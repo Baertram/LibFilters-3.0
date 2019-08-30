@@ -1,13 +1,5 @@
-local MAJOR, MINOR = "LibFilters-3.0", 1.0
+local MAJOR, MINOR = "LibFilters-3.0", 1.3
 assert(not _G["LibFilters3"], "\'" .. MAJOR .. "\' has been already loaded")
---Check if an older verison like LibFilters 2 is still active and inform the user that this might not work if addons
---try to use the filters in the same panels with different LibFilters versions!
-if LibFilters2 or LibStub then
-    local libFilters2 = LibFilters2 or LibStub("LibFilters-2.0")
-    if libFilters2 then
-        d("[" .. MAJOR .. "]An older version of this library is loaded too: LibFilters-2.0.\nPlease check which addons use this old Library in the ingame AddOn Manager and inform their authors to switch to " .. MAJOR .. ".\nOtherwise addons using the different versions might conflict at some filter panels!")
-    end
-end
 
 local LibFilters = {}
 --Global constant
@@ -134,9 +126,9 @@ local filterTypeToUpdaterName = {
     [LF_JEWELRY_CREATION]    = "SMITHING_CREATION",
     [LF_JEWELRY_DECONSTRUCT] = "SMITHING_DECONSTRUCT",
     [LF_JEWELRY_IMPROVEMENT] = "SMITHING_IMPROVEMENT",
-    [LF_JEWELRY_RESEARCH]    = "SMITHING_RESEARCH",
+    [LF_JEWELRY_RESEARCH]    = "SMITHING_RESEARCH_JEWELRY",
     [LF_SMITHING_RESEARCH_DIALOG] = "SMITHING_RESEARCH_DIALOG",
-    [LF_JEWELRY_RESEARCH_DIALOG] =  "SMITHING_RESEARCH_DIALOG",
+    [LF_JEWELRY_RESEARCH_DIALOG] =  "SMITHING_RESEARCH_JEWELRY_DIALOG",
 }
 
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
@@ -155,12 +147,15 @@ local function dialogUpdaterFunc(listDialogControl)
     if listDialogControl == nil then return nil end
     --Get & Refresh the list dialog
     local listDialog = ZO_InventorySlot_GetItemListDialog()
-    if listDialog ~= nil and listDialog.control ~= nil and listDialog.control.data ~= nil then
+    if listDialog ~= nil and listDialog.control ~= nil then
         local data = listDialog.control.data
+        if not data then return end
         --Update the research dialog?
-        if listDialogControl == SMITHING_RESEARCH_SELECT and data.craftingType and data.researchLineIndex and data.traitIndex then
-            --Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
-            listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
+        if listDialogControl == SMITHING_RESEARCH_SELECT then
+            if data.craftingType and data.researchLineIndex and data.traitIndex then
+                --Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
+                listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
+            end
         end
     end
 end
@@ -248,7 +243,7 @@ function LibFilters:HookAdditionalFilter(filterType, inventory)
     local layoutData = inventory.layoutData or inventory
     local originalFilter = layoutData.additionalFilter
 
-    layoutData.LibFilters2_filterType = filterType
+    layoutData.LibFilters3_filterType = filterType
 
     if type(originalFilter) == "function" then
         layoutData.additionalFilter = function(...)
@@ -338,16 +333,17 @@ function LibFilters:InitializeLibFilters()
 end
 
 function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
-    local inventory = PLAYER_INVENTORY.inventories[inventoryType]
-    local layoutData = PLAYER_INVENTORY.appliedLayout
-
     if inventoryType == INVENTORY_BACKPACK then
-        if layoutData and layoutData.LibFilters2_filterType then
-            return layoutData.LibFilters2_filterType
+        local layoutData = PLAYER_INVENTORY.appliedLayout
+        if layoutData and layoutData.LibFilters3_filterType then
+            return layoutData.LibFilters3_filterType
+        else
+            return
         end
     end
-
-    return inventory.LibFilters2_filterType
+    local inventory = PLAYER_INVENTORY.inventories[inventoryType]
+    if not inventory or not inventory.LibFilters3_filterType then return end
+    return inventory.LibFilters3_filterType
 end
 
 function LibFilters:GetFilterCallback(filterTag, filterType)
@@ -378,13 +374,13 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
     local callbacks = filters[filterType]
 
     if not filterTag or not callbacks or type(filterCallback) ~= "function" then
-        df("LibFilters: invalid arguments to RegisterFilter (%q, %s, %s)",
+        df(MAJOR .. ": invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
             tostring(filterTag), tostring(filterType), tostring(filterCallback))
         return
     end
 
     if callbacks[filterTag] ~= nil then
-        df("LibFilters: %q filterType %s is already in use",
+        df(MAJOR .. ": filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
             tostring(filterTag), tostring(filterType))
         return
     end

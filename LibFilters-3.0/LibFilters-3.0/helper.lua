@@ -2,7 +2,7 @@ local helpers = {}
 
 --enable LF_VENDOR_BUY
 helpers["STORE_WINDOW"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = STORE_WINDOW,
     },
@@ -11,7 +11,7 @@ helpers["STORE_WINDOW"] = {
         func = function(self, itemData)
             local result = true
 
-            if type(self.additionalFilter) == "function" then
+            if self.additionalFilter and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(itemData)
             end
 
@@ -32,7 +32,7 @@ helpers["STORE_WINDOW"] = {
 
 --enable LF_VENDOR_BUYBACK
 helpers["BUY_BACK_WINDOW"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = BUY_BACK_WINDOW,
     },
@@ -59,7 +59,7 @@ helpers["BUY_BACK_WINDOW"] = {
                 }
                 local result = true
 
-                if type(self.additionalFilter) == "function" then
+                if self.additionalFilter and type(self.additionalFilter) == "function" then
                     result = self.additionalFilter(buybackData)
                 end
 
@@ -75,7 +75,7 @@ helpers["BUY_BACK_WINDOW"] = {
 
 --enable LF_VENDOR_REPAIR
 helpers["REPAIR_WINDOW"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = REPAIR_WINDOW,
     },
@@ -109,7 +109,7 @@ helpers["REPAIR_WINDOW"] = {
                                 }
                                 local result = true
 
-                                if type(REPAIR_WINDOW.additionalFilter) == "function" then
+                                if REPAIR_WINDOW.additionalFilter and type(REPAIR_WINDOW.additionalFilter) == "function" then
                                     result = REPAIR_WINDOW.additionalFilter(data)
                                 end
 
@@ -137,7 +137,7 @@ helpers["REPAIR_WINDOW"] = {
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
 --  LF_SMITHING_REFINE
 helpers["enumerate"] = {
-    version = 3,
+    version = 4,
     locations = {
         [1] = ZO_AlchemyInventory,
         [2] = ZO_EnchantingInventory,
@@ -150,7 +150,7 @@ helpers["enumerate"] = {
             predicate = function(bagId, slotIndex)
                 local result = true
 
-                if type(self.additionalFilter) == "function" then
+                if self.additionalFilter and type(self.additionalFilter) == "function" then
                     result = self.additionalFilter(bagId, slotIndex)
                 end
 
@@ -179,7 +179,7 @@ helpers["enumerate"] = {
 
 --enable LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT
 helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
-    version = 2,
+    version = 3,
     locations = {
         [1] = ZO_SmithingExtractionInventory,
         [2] = ZO_SmithingImprovementInventory,
@@ -191,7 +191,7 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
             predicate = function(itemData)
                 local result = true
 
-                if type(self.additionalFilter) == "function" then
+                if self.additionalFilter and type(self.additionalFilter) == "function" then
                     result = self.additionalFilter(itemData.bagId, itemData.slotIndex)
                 end
 
@@ -218,8 +218,8 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
 }
 
 --enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
- helpers["SMITHING.researchPanel"] = {
-    version = 4,
+helpers["SMITHING.researchPanel"] = {
+    version = 5,
     locations = {
         [1] = SMITHING.researchPanel,
     },
@@ -235,7 +235,7 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
             local function predicate(bagId, slotIndex)
                 local result = IsNotLockedOrRetraitedItem(bagId, slotIndex)
 
-                if type(self.additionalFilter) == "function" then
+                if self.additionalFilter and type(self.additionalFilter) == "function" then
                     result = result and self.additionalFilter(bagId, slotIndex)
                 end
 
@@ -291,7 +291,7 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
 
 --enable LF_SMITHING_RESEARCH_DIALOG -- since API 100025 Murkmire
 helpers["SMITHING_RESEARCH_SELECT"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = SMITHING_RESEARCH_SELECT,
     },
@@ -304,7 +304,7 @@ helpers["SMITHING_RESEARCH_SELECT"] = {
                 local result = ZO_SharedSmithingResearch.IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
                 --Is the item researchable? Then check if additional filters are registered
                 if result then
-                    if type(self.additionalFilter) == "function" then
+                    if self.additionalFilter and type(self.additionalFilter) == "function" then
                         result = result and self.additionalFilter(bagId, slotIndex)
                     end
                 end
@@ -352,7 +352,7 @@ helpers["SMITHING_RESEARCH_SELECT"] = {
 
 --enable LF_QUICKSLOT
 helpers["QUICKSLOT_WINDOW"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
@@ -378,15 +378,17 @@ helpers["QUICKSLOT_WINDOW"] = {
 
 --enable LF_RETRAIT
 helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
-    version = 1,
-    locations = { _G, },
+    version = 2,
+    locations = {
+        [1] = _G
+    },
     helper = {
         funcName = "ZO_RetraitStation_CanItemBeRetraited",
         func = function(itemData)
             local base = ZO_RETRAIT_STATION_KEYBOARD
             local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
 
-            if type(base.additionalFilter) == "function" then
+            if base.additionalFilter and type(base.additionalFilter) == "function" then
                 result = result and base.additionalFilter(itemData.bagId, itemData.slotIndex)
             end
 
@@ -396,7 +398,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
 }
 
 --copy helpers into LibFilters
-local LibFilters = LibStub("LibFilters-2.0")
+local LibFilters = LibFilters3
 
 for name, package in pairs(helpers) do
     if LibFilters.helpers[name] == nil then
