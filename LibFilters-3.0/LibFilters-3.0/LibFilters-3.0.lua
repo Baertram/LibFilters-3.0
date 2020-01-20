@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibFilters-3.0", 1.3
+local MAJOR, MINOR = "LibFilters-3.0", 1.5
 assert(not _G["LibFilters3"], "\'" .. MAJOR .. "\' has been already loaded")
 
 local LibFilters = {}
@@ -126,9 +126,9 @@ local filterTypeToUpdaterName = {
     [LF_JEWELRY_CREATION]    = "SMITHING_CREATION",
     [LF_JEWELRY_DECONSTRUCT] = "SMITHING_DECONSTRUCT",
     [LF_JEWELRY_IMPROVEMENT] = "SMITHING_IMPROVEMENT",
-    [LF_JEWELRY_RESEARCH]    = "SMITHING_RESEARCH_JEWELRY",
+    [LF_JEWELRY_RESEARCH]    = "SMITHING_RESEARCH",
     [LF_SMITHING_RESEARCH_DIALOG] = "SMITHING_RESEARCH_DIALOG",
-    [LF_JEWELRY_RESEARCH_DIALOG] =  "SMITHING_RESEARCH_JEWELRY_DIALOG",
+    [LF_JEWELRY_RESEARCH_DIALOG] =  "SMITHING_RESEARCH_DIALOG",
 }
 
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
@@ -417,5 +417,22 @@ function LibFilters:UnregisterFilter(filterTag, filterType)
         if callbacks[filterTag] ~= nil then
             callbacks[filterTag] = nil
         end
+    end
+end
+
+function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
+    local craftingType = GetCraftingInteractionType()
+    if craftingType == CRAFTING_TYPE_INVALID then return false end
+    if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
+    if not toResearchLineIndex or toResearchLineIndex > GetNumSmithingResearchLines(craftingType) then
+        toResearchLineIndex = GetNumSmithingResearchLines(craftingType)
+    end
+    local smithingResearchPanel = helpers["SMITHING.researchPanel"].locations[1]
+    if smithingResearchPanel then
+        smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
+            from        =fromResearchLineIndex,
+            to          =toResearchLineIndex,
+            skipTable   =skipTable,
+        }
     end
 end

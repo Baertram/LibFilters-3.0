@@ -253,19 +253,39 @@ helpers["SMITHING.researchPanel"] = {
             local virtualInventoryList = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, predicate) --IsNotLockedOrRetraitedItem
             PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, virtualInventoryList) -- IsNotLockedOrRetraitedItem, virtualInventoryList
 
-            for researchLineIndex = 1, GetNumSmithingResearchLines(craftingType) do
-                local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
-                if numTraits > 0 then
-                    local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
-                    if researchingTraitIndex then
-                        numCurrentlyResearching = numCurrentlyResearching + 1
-                    end
+            --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
+            --and only show some of the entries
+            local smithingResearchPanel = self
+            local fromIterator
+            local toIterator
+            local skipTable
+            if smithingResearchPanel and smithingResearchPanel.LibFilters_3ResearchLineLoopValues then
+                local customLoopData = smithingResearchPanel.LibFilters_3ResearchLineLoopValues
+                fromIterator = customLoopData.from
+                toIterator =  customLoopData.to
+                skipTable = customLoopData.skipTable
+            end
+            if fromIterator == nil then
+                fromIterator = 1
+            end
+            if toIterator == nil then
+                toIterator = GetNumSmithingResearchLines(craftingType)
+            end
+            for researchLineIndex = fromIterator, toIterator do
+                if not skipTable or (skipTable and skipTable[researchLineIndex] == nil) then
+                    local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
+                    if numTraits > 0 then
+                        local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
+                        if researchingTraitIndex then
+                            numCurrentlyResearching = numCurrentlyResearching + 1
+                        end
 
-                    local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
-                    if expectedTypeFilter == self.typeFilter then
-                        local itemTraitCounts = self:GenerateResearchTraitCounts(virtualInventoryList, craftingType, researchLineIndex, numTraits)
-                        local data = { craftingType = craftingType, researchLineIndex = researchLineIndex, name = name, icon = icon, numTraits = numTraits, timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs, researchingTraitIndex = researchingTraitIndex, areAllTraitsKnown = areAllTraitsKnown, itemTraitCounts = itemTraitCounts }
-                        self.researchLineList:AddEntry(data)
+                        local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
+                        if expectedTypeFilter == self.typeFilter then
+                            local itemTraitCounts = self:GenerateResearchTraitCounts(virtualInventoryList, craftingType, researchLineIndex, numTraits)
+                            local data = { craftingType = craftingType, researchLineIndex = researchLineIndex, name = name, icon = icon, numTraits = numTraits, timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs, researchingTraitIndex = researchingTraitIndex, areAllTraitsKnown = areAllTraitsKnown, itemTraitCounts = itemTraitCounts }
+                            self.researchLineList:AddEntry(data)
+                        end
                     end
                 end
             end
