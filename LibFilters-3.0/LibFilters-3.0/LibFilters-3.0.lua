@@ -21,7 +21,7 @@ if LibDebugLogger then
 end
 local logger = LibFilters.logger
 
---Some constants for your filters
+--The possible LibFilters filterPanelIds
 LF_INVENTORY                = 1
 LF_BANK_WITHDRAW            = 2
 LF_BANK_DEPOSIT             = 3
@@ -59,13 +59,24 @@ LF_JEWELRY_IMPROVEMENT      = 34
 LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
+
+--Get the min and max filterPanelIds
+LF_FILTER_MIN               = LF_INVENTORY
 LF_FILTER_MAX               = LF_JEWELRY_RESEARCH_DIALOG
 
+--Returns the minimum possible filterPanelId
+function LibFilters:GetMinFilter()
+    return LF_FILTER_MAX
+end
+
+--Returns the maxium possible filterPanelId
 function LibFilters:GetMaxFilter()
     return LF_FILTER_MAX
 end
 
 LibFilters.isInitialized = false
+
+--The filters of the different FilterPanelIds will be registered to these sub-tables
 LibFilters.filters = {
     [LF_INVENTORY] = {},
     [LF_BANK_WITHDRAW] = {},
@@ -107,74 +118,82 @@ LibFilters.filters = {
 }
 local filters = LibFilters.filters
 
-local filterTypeToUpdaterName = {
-    [LF_INVENTORY] = "INVENTORY",
-    [LF_BANK_WITHDRAW] = "BANK_WITHDRAW",
-    [LF_BANK_DEPOSIT] = "INVENTORY",
-    [LF_GUILDBANK_WITHDRAW] = "GUILDBANK_WITHDRAW",
-    [LF_GUILDBANK_DEPOSIT] = "INVENTORY",
-    [LF_VENDOR_BUY] = "VENDOR_BUY",
-    [LF_VENDOR_SELL] = "INVENTORY",
-    [LF_VENDOR_BUYBACK] = "VENDOR_BUYBACK",
-    [LF_VENDOR_REPAIR] = "VENDOR_REPAIR",
-    [LF_GUILDSTORE_BROWSE] = "GUILDSTORE_BROWSE",
-    [LF_GUILDSTORE_SELL] = "INVENTORY",
-    [LF_MAIL_SEND] = "INVENTORY",
-    [LF_TRADE] = "INVENTORY",
-    [LF_SMITHING_REFINE] = "SMITHING_REFINE",
-    [LF_SMITHING_CREATION] = "SMITHING_CREATION",
-    [LF_SMITHING_DECONSTRUCT] = "SMITHING_DECONSTRUCT",
-    [LF_SMITHING_IMPROVEMENT] = "SMITHING_IMPROVEMENT",
-    [LF_SMITHING_RESEARCH] = "SMITHING_RESEARCH",
-    [LF_ALCHEMY_CREATION] = "ALCHEMY_CREATION",
-    [LF_ENCHANTING_CREATION] = "ENCHANTING",
-    [LF_ENCHANTING_EXTRACTION] = "ENCHANTING",
-    [LF_PROVISIONING_COOK] = "PROVISIONING_COOK",
-    [LF_PROVISIONING_BREW] = "PROVISIONING_BREW",
-    [LF_FENCE_SELL] = "INVENTORY",
-    [LF_FENCE_LAUNDER] = "INVENTORY",
-    [LF_CRAFTBAG] = "CRAFTBAG",
-    [LF_QUICKSLOT] = "QUICKSLOT",
-    [LF_RETRAIT] = "RETRAIT",
-    [LF_HOUSE_BANK_WITHDRAW] = "HOUSE_BANK_WITHDRAW",
-    [LF_HOUSE_BANK_DEPOSIT] = "INVENTORY",
-    [LF_JEWELRY_REFINE]      = "SMITHING_REFINE",
-    [LF_JEWELRY_CREATION]    = "SMITHING_CREATION",
-    [LF_JEWELRY_DECONSTRUCT] = "SMITHING_DECONSTRUCT",
-    [LF_JEWELRY_IMPROVEMENT] = "SMITHING_IMPROVEMENT",
-    [LF_JEWELRY_RESEARCH]    = "SMITHING_RESEARCH",
-    [LF_SMITHING_RESEARCH_DIALOG] = "SMITHING_RESEARCH_DIALOG",
-    [LF_JEWELRY_RESEARCH_DIALOG] =  "SMITHING_RESEARCH_DIALOG",
+--The fixed updater names for the LibFilters unique updater string
+local filterTypeToUpdaterNameFixed = {
+    [LF_BANK_WITHDRAW]              = "BANK_WITHDRAW",
+    [LF_GUILDBANK_WITHDRAW]         = "GUILDBANK_WITHDRAW",
+    [LF_VENDOR_BUY]                 = "VENDOR_BUY",
+    [LF_VENDOR_BUYBACK]             = "VENDOR_BUYBACK",
+    [LF_VENDOR_REPAIR]              = "VENDOR_REPAIR",
+    [LF_GUILDSTORE_BROWSE]          = "GUILDSTORE_BROWSE",
+    [LF_ALCHEMY_CREATION]           = "ALCHEMY_CREATION",
+    [LF_PROVISIONING_COOK]          = "PROVISIONING_COOK",
+    [LF_PROVISIONING_BREW]          = "PROVISIONING_BREW",
+    [LF_CRAFTBAG]                   = "CRAFTBAG",
+    [LF_QUICKSLOT]                  = "QUICKSLOT",
+    [LF_RETRAIT]                    = "RETRAIT",
+    [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
 }
-
---Debugging output
-local function debugMessage(text, textType)
-    if not text or text == "" then return end
-    textType = textType or 'I'
-    if logger ~= nil then
-        if textType == 'D' then
-            logger:Debug(text)
-        elseif textType == 'E' then
-            logger:Error(text)
-        elseif textType == 'I' then
-            logger:Info(text)
-        elseif textType == 'V' then
-            logger:Verbose(text)
-        elseif textType == 'W' then
-            logger:Warn(text)
+--The updater names which are shared with others
+local filterTypeToUpdaterNameDynamic = {
+    ["INVENTORY"] = {
+        [LF_INVENTORY]=true,
+        [LF_BANK_DEPOSIT]=true,
+        [LF_GUILDBANK_DEPOSIT]=true,
+        [LF_VENDOR_SELL]=true,
+        [LF_GUILDSTORE_SELL]=true,
+        [LF_MAIL_SEND]=true,
+        [LF_TRADE]=true,
+        [LF_FENCE_SELL]=true,
+        [LF_FENCE_LAUNDER]=true,
+        [LF_HOUSE_BANK_DEPOSIT]=true,
+    },
+    ["SMITHING_REFINE"] = {
+        [LF_SMITHING_REFINE]=true,
+        [LF_JEWELRY_REFINE]=true,
+    },
+    ["SMITHING_CREATION"] = {
+        [LF_SMITHING_CREATION]=true,
+        [LF_JEWELRY_CREATION]=true,
+    },
+    ["SMITHING_DECONSTRUCT"] = {
+        [LF_SMITHING_DECONSTRUCT]=true,
+        [LF_JEWELRY_DECONSTRUCT]=true,
+    },
+    ["SMITHING_IMPROVEMENT"] = {
+        [LF_SMITHING_IMPROVEMENT]=true,
+        [LF_JEWELRY_IMPROVEMENT]=true,
+    },
+    ["SMITHING_RESEARCH"] = {
+        [LF_SMITHING_RESEARCH]=true,
+        [LF_JEWELRY_RESEARCH]=true,
+    },
+    ["SMITHING_RESEARCH_DIALOG"] = {
+        [LF_SMITHING_RESEARCH_DIALOG]=true,
+        [LF_JEWELRY_RESEARCH_DIALOG]=true,
+    },
+    ["ENCHANTING"] = {
+        [LF_ENCHANTING_CREATION]=true,
+        [LF_ENCHANTING_EXTRACTION]=true,
+    },
+}
+--The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
+local filterTypeToUpdaterName = {}
+--Add the fixed updaterNames of the filtertypes
+filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
+--Then dynamically add the other updaterNames from the above table filterTypeToUpdaterNameDynamic
+for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDynamic) do
+    if updaterName ~= "" then
+        for filterType, isEnabled in pairs(filterTypesTableForUpdater) do
+            if isEnabled then
+                filterTypeToUpdaterName[filterType] = updaterName
+            end
         end
-    else
-        local textTypeToPrefix = {
-            ["D"] = "Debug",
-            ["E"] = "Error",
-            ["I"] = "Info",
-            ["V"] = "Verbose",
-            ["W"] = "Warning",
-        }
-        d("[".. MAJOR .."]" .. tostring(textTypeToPrefix[textType]) .. ": ".. tostring(text))
     end
 end
+LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 
+--Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
@@ -204,6 +223,7 @@ local function dialogUpdaterFunc(listDialogControl)
     end
 end
 
+--The updater functions for the inventories
 local inventoryUpdaters = {
     INVENTORY = function()
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_BACKPACK)
@@ -215,7 +235,7 @@ local inventoryUpdaters = {
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_GUILD_BANK)
     end,
     VENDOR_BUY = function()
-        if BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT.state ~= "shown" then
+        if BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT.state ~= SCENE_SHOWN then --"shown"
             STORE_WINDOW:GetStoreItems()
             SafeUpdateList(STORE_WINDOW)
         end
@@ -268,12 +288,47 @@ local inventoryUpdaters = {
         dialogUpdaterFunc(SMITHING_RESEARCH_SELECT)
     end,
 }
+LibFilters.inventoryUpdaters = inventoryUpdaters
 
+
+--Debugging output
+local function debugMessage(text, textType)
+    if not text or text == "" then return end
+    textType = textType or 'I'
+    if logger ~= nil then
+        if textType == 'D' then
+            logger:Debug(text)
+        elseif textType == 'E' then
+            logger:Error(text)
+        elseif textType == 'I' then
+            logger:Info(text)
+        elseif textType == 'V' then
+            logger:Verbose(text)
+        elseif textType == 'W' then
+            logger:Warn(text)
+        end
+    else
+        local textTypeToPrefix = {
+            ["D"] = "Debug",
+            ["E"] = "Error",
+            ["I"] = "Info",
+            ["V"] = "Verbose",
+            ["W"] = "Warning",
+        }
+        d("[".. MAJOR .."]" .. tostring(textTypeToPrefix[textType]) .. ": ".. tostring(text))
+    end
+end
+
+--Information debug
 local function df(...)
-    --d(string.format(...))
+    debugMessage(string.format(...), 'I')
+end
+--Error debug
+local function dfe(...)
     debugMessage(string.format(...), 'E')
 end
 
+--Run the applied filters on a filterType now
 local function runFilters(filterType, ...)
     for tag, filter in pairs(filters[filterType]) do
         if not filter(...) then
@@ -284,23 +339,7 @@ local function runFilters(filterType, ...)
     return true
 end
 
-function LibFilters:HookAdditionalFilter(filterType, inventory)
-    local layoutData = inventory.layoutData or inventory
-    local originalFilter = layoutData.additionalFilter
-
-    layoutData.LibFilters3_filterType = filterType
-
-    if type(originalFilter) == "function" then
-        layoutData.additionalFilter = function(...)
-            return originalFilter(...) and runFilters(filterType, ...)
-        end
-    else
-        layoutData.additionalFilter = function(...)
-            return runFilters(filterType, ...)
-        end
-    end
-end
-
+--Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_INVENTORY, PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK])
     LibFilters:HookAdditionalFilter(LF_INVENTORY, BACKPACK_MENU_BAR_LAYOUT_FRAGMENT)
@@ -357,28 +396,29 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
 end
-LibFilters.helpers = {}
-local helpers = LibFilters.helpers
-local function InstallHelpers()
-    for _, package in pairs(helpers) do
-        local funcName = package.helper.funcName
-        local func = package.helper.func
 
-        for _, location in pairs(package.locations) do
-            --e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
-            --function from helpers table, param "func"
-            location[funcName] = func
+
+--**********************************************************************************************************************
+--Hook the inventory layout or inventory to apply additional filter functions
+function LibFilters:HookAdditionalFilter(filterType, inventory)
+    local layoutData = inventory.layoutData or inventory
+    local originalFilter = layoutData.additionalFilter
+
+    layoutData.LibFilters3_filterType = filterType
+
+    if type(originalFilter) == "function" then
+        layoutData.additionalFilter = function(...)
+            return originalFilter(...) and runFilters(filterType, ...)
+        end
+    else
+        layoutData.additionalFilter = function(...)
+            return runFilters(filterType, ...)
         end
     end
 end
-function LibFilters:InitializeLibFilters()
-    if self.isInitialized then return end
-    self.isInitialized = true
 
-    InstallHelpers()
-    HookAdditionalFilters()
-end
-
+--Get the current Libfilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
+--INVENTORY_BANK
 function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
     if inventoryType == INVENTORY_BACKPACK then
         local layoutData = PLAYER_INVENTORY.appliedLayout
@@ -421,13 +461,13 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
     local callbacks = filters[filterType]
 
     if not filterTag or not callbacks or type(filterCallback) ~= "function" then
-        df("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
+        dfe("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
             tostring(filterTag), tostring(filterType), tostring(filterCallback))
         return
     end
 
     if callbacks[filterTag] ~= nil then
-        df("filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
+        dfe("filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
             tostring(filterTag), tostring(filterType))
         return
     end
@@ -437,6 +477,10 @@ end
 
 function LibFilters:RequestUpdate(filterType)
     local updaterName = filterTypeToUpdaterName[filterType]
+    if not updaterName or updaterName == "" then
+        dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tostring(filterType))
+        return
+    end
     local callbackName = "LibFilters_updateInventory_" .. updaterName
     local function Update()
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
@@ -450,6 +494,10 @@ function LibFilters:RequestUpdate(filterType)
 end
 
 function LibFilters:UnregisterFilter(filterTag, filterType)
+    if not filterTag or filterTag == "" then
+        dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tostring(filterTag), tostring(filterType))
+        return
+    end
     if filterType == nil then
         --unregister all filters with this tag
         for _, callbacks in pairs(filters) do
@@ -482,4 +530,41 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
             skipTable   =skipTable,
         }
     end
+end
+
+
+--**********************************************************************************************************************
+--Register all the helper functions of LibFilters, for some special panels like the Research or ResearchDialog, or
+--even deconstruction and improvement, etc.
+--These helper funmctions might overwrite original ESO functions in order to use their own "predicate" or
+-- "filterFunction".  So check them if the orig functions update, and upate them as well.
+--> See file helper.lua
+LibFilters.helpers = {}
+local helpers = LibFilters.helpers
+
+--Install the helpers from table helpers now -> See file helper.lua, table "helpers"
+local function InstallHelpers()
+    for _, package in pairs(helpers) do
+        local funcName = package.helper.funcName
+        local func = package.helper.func
+
+        for _, location in pairs(package.locations) do
+            --e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
+            --function from helpers table, param "func"
+            location[funcName] = func
+        end
+    end
+end
+
+--**********************************************************************************************************************
+--**********************************************************************************************************************
+--**********************************************************************************************************************
+
+--Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
+function LibFilters:InitializeLibFilters()
+    if self.isInitialized then return end
+    self.isInitialized = true
+
+    InstallHelpers()
+    HookAdditionalFilters()
 end
