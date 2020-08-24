@@ -186,7 +186,7 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
     },
     helper = {
         funcName = "GetIndividualInventorySlotsAndAddToScrollData",
-        func = function(self, predicate, filterFunction, filterType, data, useWornBag)
+        func = function(self, predicate, filterFunction, filterType, data, useWornBag, excludeBankedItems)
             local oldPredicate = predicate
             predicate = function(itemData)
                 local result = true
@@ -198,9 +198,17 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
                 return oldPredicate(itemData) and result
             end
 
-            -- Begin original function
-
-            local bagsToUse = useWornBag and ZO_ALL_CRAFTING_INVENTORY_BAGS_AND_WORN or ZO_ALL_CRAFTING_INVENTORY_BAGS_WITHOUT_WORN
+            -- Begin original function ZO_CraftingInventory:GetIndividualInventorySlotsAndAddToScrollData
+            --local bagsToUse = useWornBag and ZO_ALL_CRAFTING_INVENTORY_BAGS_AND_WORN or ZO_ALL_CRAFTING_INVENTORY_BAGS_WITHOUT_WORN
+            local bagsToUse = { BAG_BACKPACK }
+	        if useWornBag then
+		        table.insert(bagsToUse, BAG_WORN)
+	        end
+            -- Expressly using double-negative here to maintain compatibility
+            if not excludeBankedItems then
+                table.insert(bagsToUse, BAG_BANK)
+                table.insert(bagsToUse, BAG_SUBSCRIBER_BANK)
+            end
             local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(predicate, unpack(bagsToUse))
 
             ZO_ClearTable(self.itemCounts)
@@ -251,7 +259,9 @@ helpers["SMITHING.researchPanel"] = {
             local numCurrentlyResearching = 0
 
             local virtualInventoryList = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, predicate) --IsNotLockedOrRetraitedItem
-            PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, virtualInventoryList) -- IsNotLockedOrRetraitedItem, virtualInventoryList
+            if self.savedVars.includeBankedItemsChecked then
+                PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, virtualInventoryList) -- IsNotLockedOrRetraitedItem, virtualInventoryList
+            end
 
             --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
             --and only show some of the entries

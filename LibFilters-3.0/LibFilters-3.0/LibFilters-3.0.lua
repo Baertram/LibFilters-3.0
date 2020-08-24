@@ -1,9 +1,25 @@
-local MAJOR, MINOR = "LibFilters-3.0", 1.5
-assert(not _G["LibFilters3"], "\'" .. MAJOR .. "\' has been already loaded")
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.6
 
+--Was the library loaded already?
+if _G[GlobalLibName] ~= nil then return end
+
+--Local library variable
 local LibFilters = {}
---Global constant
-_G["LibFilters3"] = LibFilters
+
+--Global library constant
+_G[GlobalLibName]   = LibFilters
+LibFilters.name     = MAJOR
+LibFilters.version  = MINOR
+
+--Other libraries
+
+--LibDebugLogger
+if LibDebugLogger then
+    if not not LibFilters.logger then
+        LibFilters.logger = LibDebugLogger(MAJOR)
+    end
+end
+local logger = LibFilters.logger
 
 --Some constants for your filters
 LF_INVENTORY                = 1
@@ -131,6 +147,34 @@ local filterTypeToUpdaterName = {
     [LF_JEWELRY_RESEARCH_DIALOG] =  "SMITHING_RESEARCH_DIALOG",
 }
 
+--Debugging output
+local function debugMessage(text, textType)
+    if not text or text == "" then return end
+    textType = textType or 'I'
+    if logger ~= nil then
+        if textType == 'D' then
+            logger:Debug(text)
+        elseif textType == 'E' then
+            logger:Error(text)
+        elseif textType == 'I' then
+            logger:Info(text)
+        elseif textType == 'V' then
+            logger:Verbose(text)
+        elseif textType == 'W' then
+            logger:Warn(text)
+        end
+    else
+        local textTypeToPrefix = {
+            ["D"] = "Debug",
+            ["E"] = "Error",
+            ["I"] = "Info",
+            ["V"] = "Verbose",
+            ["W"] = "Warning",
+        }
+        d("[".. MAJOR .."]" .. tostring(textTypeToPrefix[textType]) .. ": ".. tostring(text))
+    end
+end
+
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
@@ -226,7 +270,8 @@ local inventoryUpdaters = {
 }
 
 local function df(...)
-    d(string.format(...))
+    --d(string.format(...))
+    debugMessage(string.format(...), 'E')
 end
 
 local function runFilters(filterType, ...)
@@ -320,6 +365,8 @@ local function InstallHelpers()
         local func = package.helper.func
 
         for _, location in pairs(package.locations) do
+            --e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
+            --function from helpers table, param "func"
             location[funcName] = func
         end
     end
@@ -374,13 +421,13 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
     local callbacks = filters[filterType]
 
     if not filterTag or not callbacks or type(filterCallback) ~= "function" then
-        df(MAJOR .. ": invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
+        df("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
             tostring(filterTag), tostring(filterType), tostring(filterCallback))
         return
     end
 
     if callbacks[filterTag] ~= nil then
-        df(MAJOR .. ": filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
+        df("filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
             tostring(filterTag), tostring(filterType))
         return
     end

@@ -1,9 +1,10 @@
 ## Title: LibFilters-3.0
 ## Author: Baertram, Randactyl, ingeniousclown, et al.
-## Version: 3.0r1.5
-## AddOnVersion: 315
-## APIVersion: 100028 100029
+## Version: 3.0r1.6
+## AddOnVersion: 316
+## APIVersion: 100032 100033
 ## IsLibrary: true
+## OptionalDependsOn: LibDebugLogger>=196
 
 LibFilters-3.0\LibFilters-3.0.lua
 LibFilters-3.0\helper.lua
