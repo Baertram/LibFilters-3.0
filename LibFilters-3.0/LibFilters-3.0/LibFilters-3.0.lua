@@ -522,6 +522,8 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
     if not toResearchLineIndex or toResearchLineIndex > GetNumSmithingResearchLines(craftingType) then
         toResearchLineIndex = GetNumSmithingResearchLines(craftingType)
     end
+    local helpers = LibFilters.helpers
+    if not helpers then return end
     local smithingResearchPanel = helpers["SMITHING.researchPanel"].locations[1]
     if smithingResearchPanel then
         smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
