@@ -1,4 +1,4 @@
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.6
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.7
 
 --Was the library loaded already?
 if _G[GlobalLibName] ~= nil then return end
@@ -59,10 +59,11 @@ LF_JEWELRY_IMPROVEMENT      = 34
 LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
+LF_RECONSTRUCTION           = 38
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN               = LF_INVENTORY
-LF_FILTER_MAX               = LF_JEWELRY_RESEARCH_DIALOG
+LF_FILTER_MAX               = LF_RECONSTRUCTION
 
 --Returns the minimum possible filterPanelId
 function LibFilters:GetMinFilter()
@@ -115,6 +116,7 @@ LibFilters.filters = {
     [LF_JEWELRY_RESEARCH]    = {},
     [LF_SMITHING_RESEARCH_DIALOG] = {},
     [LF_JEWELRY_RESEARCH_DIALOG] = {},
+    [LF_RECONSTRUCTION] = {},
 }
 local filters = LibFilters.filters
 
@@ -133,6 +135,7 @@ local filterTypeToUpdaterNameFixed = {
     [LF_QUICKSLOT]                  = "QUICKSLOT",
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
+    [LF_RECONSTRUCTION]             = "RECONSTRUCTION",
 }
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -279,13 +282,16 @@ local inventoryUpdaters = {
         SafeUpdateList(QUICKSLOT_WINDOW)
     end,
     RETRAIT = function()
-        ZO_RETRAIT_STATION_KEYBOARD:HandleDirtyEvent()
+        ZO_RETRAIT_KEYBOARD.inventory:HandleDirtyEvent()  --ZO_RETRAIT_STATION_KEYBOARD:HandleDirtyEvent()
     end,
     HOUSE_BANK_WITHDRAW = function()
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_HOUSE_BANK )
     end,
     SMITHING_RESEARCH_DIALOG = function()
         dialogUpdaterFunc(SMITHING_RESEARCH_SELECT)
+    end,
+    RECONSTRUCTION = function()
+        ZO_RECONSTRUCT_KEYBOARD.inventory:HandleDirtyEvent()
     end,
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
@@ -388,13 +394,15 @@ local function HookAdditionalFilters()
 
     LibFilters:HookAdditionalFilter(LF_QUICKSLOT, QUICKSLOT_WINDOW)
 
-    LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_STATION_KEYBOARD)
+    LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_KEYBOARD)
 
     LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_HOUSE_BANK])
     LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT)
 
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
+
+    LibFilters:HookAdditionalFilter(LF_RECONSTRUCTION, ZO_RECONSTRUCT_KEYBOARD)
 end
 
 
