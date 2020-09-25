@@ -59,11 +59,11 @@ LF_JEWELRY_IMPROVEMENT      = 34
 LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
-LF_RECONSTRUCTION           = 38
+LF_RECONSTRUCT           = 38
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN               = LF_INVENTORY
-LF_FILTER_MAX               = LF_RECONSTRUCTION
+LF_FILTER_MAX               = LF_RECONSTRUCT
 
 --Returns the minimum possible filterPanelId
 function LibFilters:GetMinFilter()
@@ -116,7 +116,7 @@ LibFilters.filters = {
     [LF_JEWELRY_RESEARCH]    = {},
     [LF_SMITHING_RESEARCH_DIALOG] = {},
     [LF_JEWELRY_RESEARCH_DIALOG] = {},
-    [LF_RECONSTRUCTION] = {},
+    [LF_RECONSTRUCT] = {},
 }
 local filters = LibFilters.filters
 
@@ -135,7 +135,7 @@ local filterTypeToUpdaterNameFixed = {
     [LF_QUICKSLOT]                  = "QUICKSLOT",
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
-    [LF_RECONSTRUCTION]             = "RECONSTRUCTION",
+    [LF_RECONSTRUCT]             = "RECONSTRUCTION",
 }
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -402,7 +402,7 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
 
-    LibFilters:HookAdditionalFilter(LF_RECONSTRUCTION, ZO_RECONSTRUCT_KEYBOARD)
+    LibFilters:HookAdditionalFilter(LF_RECONSTRUCT, ZO_RECONSTRUCT_KEYBOARD)
 end
 
 
