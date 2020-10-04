@@ -135,7 +135,7 @@ local filterTypeToUpdaterNameFixed = {
     [LF_QUICKSLOT]                  = "QUICKSLOT",
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
-    [LF_RECONSTRUCT]             = "RECONSTRUCTION",
+    [LF_RECONSTRUCT]                = "RECONSTRUCTION",
 }
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -199,6 +199,7 @@ LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
+--d("[LibFilters3]SafeUpdateList, inv: " ..tostring(...))
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
 
     if isMouseVisible then HideMouse() end
@@ -336,14 +337,15 @@ end
 
 --Run the applied filters on a filterType now
 local function runFilters(filterType, ...)
+--d("[LibFilters3]runFilters, filterType: " ..tostring(filterType))
     for tag, filter in pairs(filters[filterType]) do
         if not filter(...) then
             return false
         end
     end
-
     return true
 end
+LibFilters.RunFilters = runFilters
 
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
@@ -405,7 +407,6 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_RECONSTRUCT, ZO_RECONSTRUCT_KEYBOARD)
 end
 
-
 --**********************************************************************************************************************
 --Hook the inventory layout or inventory to apply additional filter functions
 function LibFilters:HookAdditionalFilter(filterType, inventory)
@@ -413,11 +414,18 @@ function LibFilters:HookAdditionalFilter(filterType, inventory)
     local originalFilter = layoutData.additionalFilter
 
     layoutData.LibFilters3_filterType = filterType
-
-    if type(originalFilter) == "function" then
+    local additionalFilterType = type(originalFilter)
+    if additionalFilterType == "function" then
         layoutData.additionalFilter = function(...)
             return originalFilter(...) and runFilters(filterType, ...)
         end
+    --[[
+    --Handled in helper.lua -> ShouldAddSlotToList
+    elseif additionalFilterType == "number" then
+        layoutData.additionalFilter = function(...)
+            return ZO_ItemFilterUtils.IsSlotInItemTypeDisplayCategoryAndSubcategory(..., inventory.currentFilter, inventory.additionalFilter) and runFilters(filterType, ...)
+        end
+     ]]
     else
         layoutData.additionalFilter = function(...)
             return runFilters(filterType, ...)
@@ -484,6 +492,7 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
 end
 
 function LibFilters:RequestUpdate(filterType)
+--d("[LibFilters3]RequestUpdate-filterType: " ..tostring(filterType))
     local updaterName = filterTypeToUpdaterName[filterType]
     if not updaterName or updaterName == "" then
         dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tostring(filterType))
@@ -491,6 +500,7 @@ function LibFilters:RequestUpdate(filterType)
     end
     local callbackName = "LibFilters_updateInventory_" .. updaterName
     local function Update()
+--d(">[LibFilters3]RequestUpdate->Update called")
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         inventoryUpdaters[updaterName]()
     end

@@ -1,7 +1,9 @@
+local LibFilters = LibFilters3
+
 local helpers = {}
 
 --enable LF_VENDOR_BUY
-helpers["STORE_WINDOW"] = {
+helpers["STORE_WINDOW:ShouldAddItemToList"] = {
     version = 2,
     locations = {
         [1] = STORE_WINDOW,
@@ -31,7 +33,7 @@ helpers["STORE_WINDOW"] = {
 }
 
 --enable LF_VENDOR_BUYBACK
-helpers["BUY_BACK_WINDOW"] = {
+helpers["BUY_BACK_WINDOW:UpdateList"] = {
     version = 2,
     locations = {
         [1] = BUY_BACK_WINDOW,
@@ -74,7 +76,7 @@ helpers["BUY_BACK_WINDOW"] = {
 }
 
 --enable LF_VENDOR_REPAIR
-helpers["REPAIR_WINDOW"] = {
+helpers["REPAIR_WINDOW:UpdateList"] = {
     version = 2,
     locations = {
         [1] = REPAIR_WINDOW,
@@ -136,7 +138,7 @@ helpers["REPAIR_WINDOW"] = {
 
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
 --  LF_SMITHING_REFINE
-helpers["enumerate"] = {
+helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
     version = 4,
     locations = {
         [1] = ZO_AlchemyInventory,
@@ -178,7 +180,7 @@ helpers["enumerate"] = {
 }
 
 --enable LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT
-helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
+helpers["SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAndAddToScrollData"] = {
     version = 3,
     locations = {
         [1] = ZO_SmithingExtractionInventory,
@@ -226,7 +228,7 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
 }
 
 --enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
-helpers["SMITHING.researchPanel"] = {
+helpers["SMITHING.researchPanel:Refresh"] = {
     version = 5,
     locations = {
         [1] = SMITHING.researchPanel,
@@ -320,7 +322,7 @@ helpers["SMITHING.researchPanel"] = {
  }
 
 --enable LF_SMITHING_RESEARCH_DIALOG -- since API 100025 Murkmire
-helpers["SMITHING_RESEARCH_SELECT"] = {
+helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
     version = 2,
     locations = {
         [1] = SMITHING_RESEARCH_SELECT,
@@ -381,7 +383,7 @@ helpers["SMITHING_RESEARCH_SELECT"] = {
 }
 
 --enable LF_QUICKSLOT
-helpers["QUICKSLOT_WINDOW"] = {
+helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     version = 2,
     locations = {
         [1] = QUICKSLOT_WINDOW,
@@ -427,8 +429,75 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     }
 }
 
+--Normal inventories, now using inventory.additionalFilters = number (changed at each inventory:ChangeFilter, will not
+--be hookable via normal LibFilters:HookAdditionalFilters.
+--The function would need to be called each time inventory:ChangeFilter happens!
+--So we will just overwrite the function "ZO_InventoryManager:ShouldAddSlotToList"
+-->https://github.com/esoui/esoui/blob/pts6.2/esoui/ingame/inventory/inventory.lua#L1588
+helpers["PLAYER_INVENTORY:ShouldAddSlotToList"] = {
+    version = 1,
+    locations = {
+        [1] = PLAYER_INVENTORY,
+    },
+    helper = {
+        funcName = "ShouldAddSlotToList", --it's defined here:
+        func = function(self, inventory, slot)
+--d("[LibFilters3]PLAYER_INVENTORY:ShouldAddSlotToList")
+            local libFilters = LibFilters3
+            --Run LibFilters registered filter functions at the current inventory
+            local layoutData = inventory.layoutData or inventory
+            local filterType = layoutData.LibFilters3_filterType
+--d(">inv: " .. tostring(inventory) .. ", filterType: " ..tostring(filterType))
+            local function runLibFiltersFilters(p_slot)
+                return libFilters.RunFilters(filterType, p_slot)
+            end
+            --https://github.com/esoui/esoui/blob/pts6.2/esoui/ingame/inventory/inventory.lua#L1578
+            local function DoesSlotPassAdditionalFilter(p_slot, currentFilter, additionalFilter)
+                if type(additionalFilter) == "function" then
+                    return additionalFilter(p_slot)
+                elseif type(additionalFilter) == "number" then
+                    return ZO_ItemFilterUtils.IsSlotInItemTypeDisplayCategoryAndSubcategory(p_slot, currentFilter, additionalFilter)
+                end
+
+                return true
+            end
+
+            local result = false
+
+            if not slot or (slot.stackCount and slot.stackCount <= 0) then
+                return false
+            end
+
+            if slot.searchData and not inventory.stringSearch:IsMatch(self.cachedSearchText, slot.searchData) then
+                return false
+            end
+
+            local currentFilter = inventory.currentFilter
+
+            --Call LibFilters3 additionally registered filter functions
+            local libFiltersFunctionsReturnValue = runLibFiltersFilters(slot)
+
+            if not DoesSlotPassAdditionalFilter(slot, currentFilter, inventory.additionalFilter) and not libFiltersFunctionsReturnValue then
+                return false
+            end
+
+            if self.appliedLayout and self.appliedLayout.additionalFilter and not DoesSlotPassAdditionalFilter(slot, currentFilter, self.appliedLayout.additionalFilter) and libFiltersFunctionsReturnValue then
+                return false
+            end
+
+            if type(currentFilter) == "function" then
+                return currentFilter(slot) and libFiltersFunctionsReturnValue
+            else
+                result = ZO_ItemFilterUtils.IsSlotFilterDataInItemTypeDisplayCategory(slot, currentFilter) and libFiltersFunctionsReturnValue
+            end
+
+            return result
+        end,
+    }
+}
+
+------------------------------------------------------------------------------------------------------------------------
 --copy helpers into LibFilters
-local LibFilters = LibFilters3
 
 for name, package in pairs(helpers) do
     if LibFilters.helpers[name] == nil then
