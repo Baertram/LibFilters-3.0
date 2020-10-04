@@ -291,7 +291,7 @@ local inventoryUpdaters = {
         SafeUpdateList(QUICKSLOT_WINDOW)
     end,
     RETRAIT = function()
-        ZO_RETRAIT_KEYBOARD.inventory:HandleDirtyEvent()  --ZO_RETRAIT_STATION_KEYBOARD:HandleDirtyEvent()
+        ZO_RETRAIT_KEYBOARD.inventory:HandleDirtyEvent()
     end,
     HOUSE_BANK_WITHDRAW = function()
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_HOUSE_BANK )

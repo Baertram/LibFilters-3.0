@@ -417,7 +417,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     helper = {
         funcName = "ZO_RetraitStation_CanItemBeRetraited",
         func = function(itemData)
-            local base = ZO_RETRAIT_STATION_KEYBOARD
+            local base = ZO_RETRAIT_KEYBOARD
             local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
 
             if base.additionalFilter and type(base.additionalFilter) == "function" then
