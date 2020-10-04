@@ -227,6 +227,14 @@ local function dialogUpdaterFunc(listDialogControl)
     end
 end
 
+--Some inventory variables
+local inventories =         PLAYER_INVENTORY.inventories
+--Some crafting variables
+local refinementPanel =     SMITHING.refinementPanel
+local deconstructionPanel = SMITHING.deconstructionPanel
+local improvementPanel =    SMITHING.improvementPanel
+local researchPanel =       SMITHING.researchPanel
+
 --The updater functions for the inventories
 local inventoryUpdaters = {
     INVENTORY = function()
@@ -253,18 +261,18 @@ local inventoryUpdaters = {
     GUILDSTORE_BROWSE = function()
     end,
     SMITHING_REFINE = function()
-        SMITHING.refinementPanel.inventory:HandleDirtyEvent()
+        refinementPanel.inventory:HandleDirtyEvent()
     end,
     SMITHING_CREATION = function()
     end,
     SMITHING_DECONSTRUCT = function()
-        SMITHING.deconstructionPanel.inventory:HandleDirtyEvent()
+        deconstructionPanel.inventory:HandleDirtyEvent()
     end,
     SMITHING_IMPROVEMENT = function()
-        SMITHING.improvementPanel.inventory:HandleDirtyEvent()
+        improvementPanel.inventory:HandleDirtyEvent()
     end,
     SMITHING_RESEARCH = function()
-        SMITHING.researchPanel:Refresh()
+        researchPanel:Refresh()
     end,
     ALCHEMY_CREATION = function()
         ALCHEMY.inventory:HandleDirtyEvent()
@@ -349,13 +357,13 @@ LibFilters.RunFilters = runFilters
 
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
-    LibFilters:HookAdditionalFilter(LF_INVENTORY, PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK])
+    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK])
     LibFilters:HookAdditionalFilter(LF_INVENTORY, BACKPACK_MENU_BAR_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_BANK])
+    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK])
     LibFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, BACKPACK_BANK_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_GUILD_BANK])
+    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK])
     LibFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT)
 
     LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, STORE_WINDOW)
@@ -370,16 +378,16 @@ local function HookAdditionalFilters()
 
     LibFilters:HookAdditionalFilter(LF_TRADE, BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, SMITHING.refinementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory)
     --LibFilters:HookAdditionalFilter(LF_SMITHING_CREATION, )
-    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, SMITHING.deconstructionPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, SMITHING.improvementPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, SMITHING.researchPanel)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, SMITHING.refinementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory)
     --LibFilters:HookAdditionalFilter(LF_JEWELRY_CREATION, )
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, SMITHING.deconstructionPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, SMITHING.improvementPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, SMITHING.researchPanel)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel)
 
     LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, ALCHEMY.inventory)
 
@@ -392,13 +400,13 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_FENCE_SELL, BACKPACK_FENCE_LAYOUT_FRAGMENT)
     LibFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, BACKPACK_LAUNDER_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG])
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
 
     LibFilters:HookAdditionalFilter(LF_QUICKSLOT, QUICKSLOT_WINDOW)
 
     LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_KEYBOARD)
 
-    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_HOUSE_BANK])
+    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK])
     LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT)
 
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
@@ -444,7 +452,7 @@ function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
             return
         end
     end
-    local inventory = PLAYER_INVENTORY.inventories[inventoryType]
+    local inventory = inventories[inventoryType]
     if not inventory or not inventory.LibFilters3_filterType then return end
     return inventory.LibFilters3_filterType
 end
@@ -542,7 +550,7 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
     end
     local helpers = LibFilters.helpers
     if not helpers then return end
-    local smithingResearchPanel = helpers["SMITHING.researchPanel"].locations[1]
+    local smithingResearchPanel = helpers["SMITHING.researchPanel:Refresh"].locations[1]
     if smithingResearchPanel then
         smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
             from        =fromResearchLineIndex,
