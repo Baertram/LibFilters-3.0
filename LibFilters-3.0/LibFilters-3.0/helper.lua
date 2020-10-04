@@ -448,6 +448,15 @@ helpers["PLAYER_INVENTORY:ShouldAddSlotToList"] = {
             local layoutData = inventory.layoutData or inventory
             local filterType = layoutData.LibFilters3_filterType
 --d(">inv: " .. tostring(inventory) .. ", filterType: " ..tostring(filterType))
+            if filterType == nil then
+                --On 1st open of the normal inventory the following slots will be checked, but why?
+                --ZO_CharacterEquipmentSlotsOffHand
+                --ZO_CharacterEquipmentSlotsNeck
+                --ZO_CharacterEquipmentSlotsShoulder
+                --local itemLink = GetItemLink(slot.bagId, slot.slotIndex)
+                --d("<<FilterType is NIL! " ..itemLink)
+                return true
+            end
             local function runLibFiltersFilters(p_slot)
                 return libFilters.RunFilters(filterType, p_slot)
             end
