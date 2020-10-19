@@ -60,14 +60,15 @@ LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
 LF_RECONSTRUCT              = 38
+LF_INVENTORY_QUEST          = 39
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN               = LF_INVENTORY
-LF_FILTER_MAX               = LF_RECONSTRUCT
+LF_FILTER_MAX               = LF_INVENTORY_QUEST
 
 --Returns the minimum possible filterPanelId
 function LibFilters:GetMinFilter()
-    return LF_FILTER_MAX
+    return LF_FILTER_MIN
 end
 
 --Returns the maxium possible filterPanelId
@@ -117,6 +118,7 @@ LibFilters.filters = {
     [LF_SMITHING_RESEARCH_DIALOG] = {},
     [LF_JEWELRY_RESEARCH_DIALOG] = {},
     [LF_RECONSTRUCT] = {},
+    [LF_INVENTORY_QUEST] = {},
 }
 local filters = LibFilters.filters
 
@@ -136,6 +138,7 @@ local filterTypeToUpdaterNameFixed = {
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
     [LF_RECONSTRUCT]                = "RECONSTRUCTION",
+    [LF_INVENTORY_QUEST]            = "INVENTORY_QUEST"
 }
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -302,6 +305,9 @@ local inventoryUpdaters = {
     RECONSTRUCTION = function()
         ZO_RECONSTRUCT_KEYBOARD.inventory:HandleDirtyEvent()
     end,
+    INVENTORY_QUEST = function()
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_QUEST_ITEM)
+    end,
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
 
@@ -343,7 +349,7 @@ local function dfe(...)
     debugMessage(string.format(...), 'E')
 end
 
---Run the applied filters on a filterType now
+--Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
 --d("[LibFilters3]runFilters, filterType: " ..tostring(filterType))
     for tag, filter in pairs(filters[filterType]) do
@@ -413,6 +419,7 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
 
     LibFilters:HookAdditionalFilter(LF_RECONSTRUCT, ZO_RECONSTRUCT_KEYBOARD)
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
 end
 
 --**********************************************************************************************************************
