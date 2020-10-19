@@ -429,11 +429,18 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     }
 }
 
---Normal inventories, now using inventory.additionalFilters = number (changed at each inventory:ChangeFilter, will not
---be hookable via normal LibFilters:HookAdditionalFilters.
+--API 100033 PTS Markarth
+--Normal inventories, now using inventory.additionalFilters = number (changed at each inventory:ChangeFilter), will not
+--be hookable via normal LibFilters:HookAdditionalFilters anymore.
 --The function would need to be called each time inventory:ChangeFilter happens!
 --So we will just overwrite the function "ZO_InventoryManager:ShouldAddSlotToList"
 -->https://github.com/esoui/esoui/blob/pts6.2/esoui/ingame/inventory/inventory.lua#L1588
+
+--Was re-patched after Baertram talked to ZOs_DanBatson about inventory.additionalFilters should not be overwritten cuz
+--it's used by addons!
+--ZOs patched it with PTS 6.3 on 2020-10-19 and ahcnged their code to use inventory.subFilter now instead of
+--additionalFilter, which will let LibFilters and other addons re-use it properly again! Thanks ZOs
+--[[
 helpers["PLAYER_INVENTORY:ShouldAddSlotToList"] = {
     version = 1,
     locations = {
@@ -504,7 +511,7 @@ helpers["PLAYER_INVENTORY:ShouldAddSlotToList"] = {
         end,
     }
 }
-
+]]
 ------------------------------------------------------------------------------------------------------------------------
 --copy helpers into LibFilters
 

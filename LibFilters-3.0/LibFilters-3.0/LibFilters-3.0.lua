@@ -59,7 +59,7 @@ LF_JEWELRY_IMPROVEMENT      = 34
 LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
-LF_RECONSTRUCT           = 38
+LF_RECONSTRUCT              = 38
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN               = LF_INVENTORY
@@ -427,13 +427,6 @@ function LibFilters:HookAdditionalFilter(filterType, inventory)
         layoutData.additionalFilter = function(...)
             return originalFilter(...) and runFilters(filterType, ...)
         end
-    --[[
-    --Handled in helper.lua -> ShouldAddSlotToList
-    elseif additionalFilterType == "number" then
-        layoutData.additionalFilter = function(...)
-            return ZO_ItemFilterUtils.IsSlotInItemTypeDisplayCategoryAndSubcategory(..., inventory.currentFilter, inventory.additionalFilter) and runFilters(filterType, ...)
-        end
-     ]]
     else
         layoutData.additionalFilter = function(...)
             return runFilters(filterType, ...)
