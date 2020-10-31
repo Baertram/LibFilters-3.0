@@ -383,6 +383,7 @@ helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
 }
 
 --enable LF_QUICKSLOT
+-->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     version = 2,
     locations = {
@@ -391,19 +392,62 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = true
+            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
 
-            if type(self.additionalFilter) == "function" then
+            if result == true and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(itemData)
             end
 
-            for i = 1, #itemData.filterData do
-                if(itemData.filterData[i] == ITEMFILTERTYPE_QUICKSLOT) then
-                    return result and true
-                end
+            return result
+        end,
+    },
+}
+-->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
+helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
+    version = 1,
+    locations = {
+        [1] = QUICKSLOT_WINDOW,
+    },
+    helper = {
+        funcName = "ShouldAddQuestItemToList",
+        func = function(self, questItemData)
+
+            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT)
+
+            if result== true and type(self.additionalFilter) == "function" then
+                result = self.additionalFilter(questItemData)
             end
 
-            return false
+            return result
+        end,
+    },
+}
+-->Will only be executed for the collectible items in the quickslot filters, but no inventory items
+helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
+    version = 1,
+    locations = {
+        [1] = QUICKSLOT_WINDOW,
+    },
+    helper = {
+        funcName = "AppendCollectiblesData",
+        func = function(self, scrollData, collectibleCategoryData)
+            local dataObjects
+            local DATA_TYPE_COLLECTIBLE_ITEM = 2
+            if collectibleCategoryData then
+                dataObjects = collectibleCategoryData:GetAllCollectibleDataObjects({ ZO_CollectibleData.IsUnlocked, ZO_CollectibleData.IsValidForPlayer, ZO_CollectibleData.IsSlottable })
+            else
+                dataObjects = ZO_COLLECTIBLE_DATA_MANAGER:GetAllCollectibleDataObjects({ ZO_CollectibleCategoryData.IsStandardCategory }, { ZO_CollectibleData.IsUnlocked, ZO_CollectibleData.IsValidForPlayer, ZO_CollectibleData.IsSlottable })
+            end
+
+            local libFiltersQuickslotCollectiblesFilterFunc
+            if type(self.additionalFilter) == "function" then
+                libFiltersQuickslotCollectiblesFilterFunc = self.additionalFilter
+            end
+            for i, collectibleData in ipairs(dataObjects) do
+                if not libFiltersQuickslotCollectiblesFilterFunc or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData) == true) then
+                    table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
+                end
+            end
         end,
     },
 }
