@@ -1,7 +1,9 @@
+local LibFilters = LibFilters3
+
 local helpers = {}
 
 --enable LF_VENDOR_BUY
-helpers["STORE_WINDOW"] = {
+helpers["STORE_WINDOW:ShouldAddItemToList"] = {
     version = 2,
     locations = {
         [1] = STORE_WINDOW,
@@ -31,7 +33,7 @@ helpers["STORE_WINDOW"] = {
 }
 
 --enable LF_VENDOR_BUYBACK
-helpers["BUY_BACK_WINDOW"] = {
+helpers["BUY_BACK_WINDOW:UpdateList"] = {
     version = 2,
     locations = {
         [1] = BUY_BACK_WINDOW,
@@ -74,7 +76,7 @@ helpers["BUY_BACK_WINDOW"] = {
 }
 
 --enable LF_VENDOR_REPAIR
-helpers["REPAIR_WINDOW"] = {
+helpers["REPAIR_WINDOW:UpdateList"] = {
     version = 2,
     locations = {
         [1] = REPAIR_WINDOW,
@@ -136,7 +138,7 @@ helpers["REPAIR_WINDOW"] = {
 
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
 --  LF_SMITHING_REFINE
-helpers["enumerate"] = {
+helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
     version = 4,
     locations = {
         [1] = ZO_AlchemyInventory,
@@ -178,7 +180,7 @@ helpers["enumerate"] = {
 }
 
 --enable LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT
-helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
+helpers["SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAndAddToScrollData"] = {
     version = 3,
     locations = {
         [1] = ZO_SmithingExtractionInventory,
@@ -226,7 +228,7 @@ helpers["GetIndividualInventorySlotsAndAddToScrollData"] = {
 }
 
 --enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
-helpers["SMITHING.researchPanel"] = {
+helpers["SMITHING.researchPanel:Refresh"] = {
     version = 5,
     locations = {
         [1] = SMITHING.researchPanel,
@@ -320,7 +322,7 @@ helpers["SMITHING.researchPanel"] = {
  }
 
 --enable LF_SMITHING_RESEARCH_DIALOG -- since API 100025 Murkmire
-helpers["SMITHING_RESEARCH_SELECT"] = {
+helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
     version = 2,
     locations = {
         [1] = SMITHING_RESEARCH_SELECT,
@@ -381,7 +383,8 @@ helpers["SMITHING_RESEARCH_SELECT"] = {
 }
 
 --enable LF_QUICKSLOT
-helpers["QUICKSLOT_WINDOW"] = {
+-->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
+helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     version = 2,
     locations = {
         [1] = QUICKSLOT_WINDOW,
@@ -389,19 +392,62 @@ helpers["QUICKSLOT_WINDOW"] = {
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = true
+            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
 
-            if type(self.additionalFilter) == "function" then
+            if result == true and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(itemData)
             end
 
-            for i = 1, #itemData.filterData do
-                if(itemData.filterData[i] == ITEMFILTERTYPE_QUICKSLOT) then
-                    return result and true
-                end
+            return result
+        end,
+    },
+}
+-->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
+helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
+    version = 1,
+    locations = {
+        [1] = QUICKSLOT_WINDOW,
+    },
+    helper = {
+        funcName = "ShouldAddQuestItemToList",
+        func = function(self, questItemData)
+
+            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT)
+
+            if result== true and type(self.additionalFilter) == "function" then
+                result = self.additionalFilter(questItemData)
             end
 
-            return false
+            return result
+        end,
+    },
+}
+-->Will only be executed for the collectible items in the quickslot filters, but no inventory items
+helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
+    version = 1,
+    locations = {
+        [1] = QUICKSLOT_WINDOW,
+    },
+    helper = {
+        funcName = "AppendCollectiblesData",
+        func = function(self, scrollData, collectibleCategoryData)
+            local dataObjects
+            local DATA_TYPE_COLLECTIBLE_ITEM = 2
+            if collectibleCategoryData then
+                dataObjects = collectibleCategoryData:GetAllCollectibleDataObjects({ ZO_CollectibleData.IsUnlocked, ZO_CollectibleData.IsValidForPlayer, ZO_CollectibleData.IsSlottable })
+            else
+                dataObjects = ZO_COLLECTIBLE_DATA_MANAGER:GetAllCollectibleDataObjects({ ZO_CollectibleCategoryData.IsStandardCategory }, { ZO_CollectibleData.IsUnlocked, ZO_CollectibleData.IsValidForPlayer, ZO_CollectibleData.IsSlottable })
+            end
+
+            local libFiltersQuickslotCollectiblesFilterFunc
+            if type(self.additionalFilter) == "function" then
+                libFiltersQuickslotCollectiblesFilterFunc = self.additionalFilter
+            end
+            for i, collectibleData in ipairs(dataObjects) do
+                if not libFiltersQuickslotCollectiblesFilterFunc or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData) == true) then
+                    table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
+                end
+            end
         end,
     },
 }
@@ -415,7 +461,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     helper = {
         funcName = "ZO_RetraitStation_CanItemBeRetraited",
         func = function(itemData)
-            local base = ZO_RETRAIT_STATION_KEYBOARD
+            local base = ZO_RETRAIT_KEYBOARD
             local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
 
             if base.additionalFilter and type(base.additionalFilter) == "function" then
@@ -427,8 +473,8 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     }
 }
 
+------------------------------------------------------------------------------------------------------------------------
 --copy helpers into LibFilters
-local LibFilters = LibFilters3
 
 for name, package in pairs(helpers) do
     if LibFilters.helpers[name] == nil then

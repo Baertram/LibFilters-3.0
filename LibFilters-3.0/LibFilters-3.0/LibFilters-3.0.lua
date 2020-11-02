@@ -1,4 +1,4 @@
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.6
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.7
 
 --Was the library loaded already?
 if _G[GlobalLibName] ~= nil then return end
@@ -59,14 +59,15 @@ LF_JEWELRY_IMPROVEMENT      = 34
 LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
+LF_INVENTORY_QUEST          = 38
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN               = LF_INVENTORY
-LF_FILTER_MAX               = LF_JEWELRY_RESEARCH_DIALOG
+LF_FILTER_MAX               = LF_INVENTORY_QUEST
 
 --Returns the minimum possible filterPanelId
 function LibFilters:GetMinFilter()
-    return LF_FILTER_MAX
+    return LF_FILTER_MIN
 end
 
 --Returns the maxium possible filterPanelId
@@ -115,6 +116,7 @@ LibFilters.filters = {
     [LF_JEWELRY_RESEARCH]    = {},
     [LF_SMITHING_RESEARCH_DIALOG] = {},
     [LF_JEWELRY_RESEARCH_DIALOG] = {},
+    [LF_INVENTORY_QUEST] = {},
 }
 local filters = LibFilters.filters
 
@@ -133,6 +135,7 @@ local filterTypeToUpdaterNameFixed = {
     [LF_QUICKSLOT]                  = "QUICKSLOT",
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
+    [LF_INVENTORY_QUEST]            = "INVENTORY_QUEST"
 }
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -196,6 +199,7 @@ LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
+--d("[LibFilters3]SafeUpdateList, inv: " ..tostring(...))
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
 
     if isMouseVisible then HideMouse() end
@@ -223,6 +227,14 @@ local function dialogUpdaterFunc(listDialogControl)
     end
 end
 
+--Some inventory variables
+local inventories =         PLAYER_INVENTORY.inventories
+--Some crafting variables
+local refinementPanel =     SMITHING.refinementPanel
+local deconstructionPanel = SMITHING.deconstructionPanel
+local improvementPanel =    SMITHING.improvementPanel
+local researchPanel =       SMITHING.researchPanel
+
 --The updater functions for the inventories
 local inventoryUpdaters = {
     INVENTORY = function()
@@ -249,18 +261,18 @@ local inventoryUpdaters = {
     GUILDSTORE_BROWSE = function()
     end,
     SMITHING_REFINE = function()
-        SMITHING.refinementPanel.inventory:HandleDirtyEvent()
+        refinementPanel.inventory:HandleDirtyEvent()
     end,
     SMITHING_CREATION = function()
     end,
     SMITHING_DECONSTRUCT = function()
-        SMITHING.deconstructionPanel.inventory:HandleDirtyEvent()
+        deconstructionPanel.inventory:HandleDirtyEvent()
     end,
     SMITHING_IMPROVEMENT = function()
-        SMITHING.improvementPanel.inventory:HandleDirtyEvent()
+        improvementPanel.inventory:HandleDirtyEvent()
     end,
     SMITHING_RESEARCH = function()
-        SMITHING.researchPanel:Refresh()
+        researchPanel:Refresh()
     end,
     ALCHEMY_CREATION = function()
         ALCHEMY.inventory:HandleDirtyEvent()
@@ -279,13 +291,19 @@ local inventoryUpdaters = {
         SafeUpdateList(QUICKSLOT_WINDOW)
     end,
     RETRAIT = function()
-        ZO_RETRAIT_STATION_KEYBOARD:HandleDirtyEvent()
+        ZO_RETRAIT_KEYBOARD.inventory:HandleDirtyEvent()
     end,
     HOUSE_BANK_WITHDRAW = function()
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_HOUSE_BANK )
     end,
     SMITHING_RESEARCH_DIALOG = function()
         dialogUpdaterFunc(SMITHING_RESEARCH_SELECT)
+    end,
+    RECONSTRUCTION = function()
+        ZO_RECONSTRUCT_KEYBOARD.inventory:HandleDirtyEvent()
+    end,
+    INVENTORY_QUEST = function()
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_QUEST_ITEM)
     end,
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
@@ -328,26 +346,27 @@ local function dfe(...)
     debugMessage(string.format(...), 'E')
 end
 
---Run the applied filters on a filterType now
+--Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
+--d("[LibFilters3]runFilters, filterType: " ..tostring(filterType))
     for tag, filter in pairs(filters[filterType]) do
         if not filter(...) then
             return false
         end
     end
-
     return true
 end
+LibFilters.RunFilters = runFilters
 
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
-    LibFilters:HookAdditionalFilter(LF_INVENTORY, PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK])
+    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK])
     LibFilters:HookAdditionalFilter(LF_INVENTORY, BACKPACK_MENU_BAR_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_BANK])
+    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK])
     LibFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, BACKPACK_BANK_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_GUILD_BANK])
+    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK])
     LibFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT)
 
     LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, STORE_WINDOW)
@@ -362,16 +381,16 @@ local function HookAdditionalFilters()
 
     LibFilters:HookAdditionalFilter(LF_TRADE, BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, SMITHING.refinementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory)
     --LibFilters:HookAdditionalFilter(LF_SMITHING_CREATION, )
-    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, SMITHING.deconstructionPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, SMITHING.improvementPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, SMITHING.researchPanel)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, SMITHING.refinementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory)
     --LibFilters:HookAdditionalFilter(LF_JEWELRY_CREATION, )
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, SMITHING.deconstructionPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, SMITHING.improvementPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, SMITHING.researchPanel)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel)
 
     LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, ALCHEMY.inventory)
 
@@ -384,19 +403,20 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_FENCE_SELL, BACKPACK_FENCE_LAYOUT_FRAGMENT)
     LibFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, BACKPACK_LAUNDER_LAYOUT_FRAGMENT)
 
-    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG])
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
 
     LibFilters:HookAdditionalFilter(LF_QUICKSLOT, QUICKSLOT_WINDOW)
 
-    LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_STATION_KEYBOARD)
+    LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_KEYBOARD)
 
-    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, PLAYER_INVENTORY.inventories[INVENTORY_HOUSE_BANK])
+    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK])
     LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT)
 
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
-end
 
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
+end
 
 --**********************************************************************************************************************
 --Hook the inventory layout or inventory to apply additional filter functions
@@ -405,8 +425,8 @@ function LibFilters:HookAdditionalFilter(filterType, inventory)
     local originalFilter = layoutData.additionalFilter
 
     layoutData.LibFilters3_filterType = filterType
-
-    if type(originalFilter) == "function" then
+    local additionalFilterType = type(originalFilter)
+    if additionalFilterType == "function" then
         layoutData.additionalFilter = function(...)
             return originalFilter(...) and runFilters(filterType, ...)
         end
@@ -428,7 +448,7 @@ function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
             return
         end
     end
-    local inventory = PLAYER_INVENTORY.inventories[inventoryType]
+    local inventory = inventories[inventoryType]
     if not inventory or not inventory.LibFilters3_filterType then return end
     return inventory.LibFilters3_filterType
 end
@@ -476,6 +496,7 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
 end
 
 function LibFilters:RequestUpdate(filterType)
+--d("[LibFilters3]RequestUpdate-filterType: " ..tostring(filterType))
     local updaterName = filterTypeToUpdaterName[filterType]
     if not updaterName or updaterName == "" then
         dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tostring(filterType))
@@ -483,6 +504,7 @@ function LibFilters:RequestUpdate(filterType)
     end
     local callbackName = "LibFilters_updateInventory_" .. updaterName
     local function Update()
+--d(">[LibFilters3]RequestUpdate->Update called")
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         inventoryUpdaters[updaterName]()
     end
@@ -524,7 +546,7 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
     end
     local helpers = LibFilters.helpers
     if not helpers then return end
-    local smithingResearchPanel = helpers["SMITHING.researchPanel"].locations[1]
+    local smithingResearchPanel = helpers["SMITHING.researchPanel:Refresh"].locations[1]
     if smithingResearchPanel then
         smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
             from        =fromResearchLineIndex,
