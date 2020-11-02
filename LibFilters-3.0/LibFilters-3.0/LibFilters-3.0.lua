@@ -59,8 +59,7 @@ LF_JEWELRY_IMPROVEMENT      = 34
 LF_JEWELRY_RESEARCH         = 35
 LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
-LF_RECONSTRUCT              = 38
-LF_INVENTORY_QUEST          = 39
+LF_INVENTORY_QUEST          = 38
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN               = LF_INVENTORY
@@ -117,7 +116,6 @@ LibFilters.filters = {
     [LF_JEWELRY_RESEARCH]    = {},
     [LF_SMITHING_RESEARCH_DIALOG] = {},
     [LF_JEWELRY_RESEARCH_DIALOG] = {},
-    [LF_RECONSTRUCT] = {},
     [LF_INVENTORY_QUEST] = {},
 }
 local filters = LibFilters.filters
@@ -137,7 +135,6 @@ local filterTypeToUpdaterNameFixed = {
     [LF_QUICKSLOT]                  = "QUICKSLOT",
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
-    [LF_RECONSTRUCT]                = "RECONSTRUCTION",
     [LF_INVENTORY_QUEST]            = "INVENTORY_QUEST"
 }
 --The updater names which are shared with others
@@ -418,7 +415,6 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
 
-    LibFilters:HookAdditionalFilter(LF_RECONSTRUCT, ZO_RECONSTRUCT_KEYBOARD)
     LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
 end
 
