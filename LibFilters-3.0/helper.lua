@@ -152,8 +152,8 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
-LibFilters3._selfEnumerateInventorySlotsAndAddToScrollData = self
-d(string.format("[LibFilters3]ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData - libFilters3FilterType: %s, alchemy: %s, enchanting: %s, smithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
+--LibFilters3._selfEnumerateInventorySlotsAndAddToScrollData = self
+--d(string.format("[LibFilters3]ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData - libFilters3FilterType: %s, alchemy: %s, enchanting: %s, smithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
 
             local oldPredicate = predicate
             predicate = function(bagId, slotIndex)
