@@ -29,9 +29,17 @@ local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.8
 --a security check if someone ships this lib without the correct txt file!
 local lfGlobal = _G[GlobalLibName]
 if lfGlobal ~= nil then
-    if lfGlobal.isInitialized == true then return end
-    if lfGlobal.name ~= nil and lfGlobal.name == MAJOR
-        and lfGlobal.version ~= nil and lfGlobal.version >= MINOR then return end
+d("[" .. MAJOR .. "]Found another instance of the library \'" .. GlobalLibName .. "\'.")
+    if lfGlobal.isInitialized == true then
+        d("[" .. MAJOR .. "]< Was already initialized -> Aborting duplicate call now!")
+        return
+    else
+        if lfGlobal.name ~= nil and lfGlobal.name == MAJOR
+                and lfGlobal.version ~= nil and lfGlobal.version >= MINOR then
+d("[" .. MAJOR .. "]< Was already loaded with a newer version \'".. tostring(lfGlobal.version) .. "\' -> Aborting load of older version \'" .. tostring(MINOR) .."  \' now!")
+            return
+        end
+    end
 end
 
 --Local library variable
