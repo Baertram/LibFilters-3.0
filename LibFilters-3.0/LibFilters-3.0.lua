@@ -662,6 +662,7 @@ libFilters.RunFilters = runFilters
 --The filter function, using the inventory/fragment.additionalFilter function/value and the registered filter function at
 --the filterType (e.g. LF_INVENTORY) via function runFilters
 local function callFilterFunc(p_inventory, filterType)
+    if libFilters.debug then df("callFilterFunc, filterType: " ..tostring(filterType) .. ", inventory: " ..tostring(p_inventory)) end
     local originalFilter = p_inventory.additionalFilter
     local additionalFilterType = type(originalFilter)
     if additionalFilterType == "function" then
@@ -872,7 +873,8 @@ end
 
 --Un-Registers the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function libFilters:UnregisterFilter(filterTag, filterType)
-    if libFilters.debug then df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterType)) end
+    local filterTypeUnregType = filterType or "-Unregister all-"
+    if libFilters.debug then df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..filterTypeUnregType) end
     if not filterTag or filterTag == "" then
         dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tostring(filterTag), tostring(filterType))
         return
