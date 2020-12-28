@@ -175,17 +175,6 @@ for _, filterConstantName in ipairs(libFiltersFilterConstants) do
     filters[_G[filterConstantName]] = {}
 end
 
---**********************************************************************************************************************
--- LibFilters mapping tables for some special filter constants
---**********************************************************************************************************************
---Mapping tables for crafting modes to libFilters constants
---ENCHANTING
-local enchantingModeToLibFilters = {
-    [ENCHANTING_MODE_CREATION]      = LF_ENCHANTING_CREATION,
-    [ENCHANTING_MODE_EXTRACTION]    = LF_ENCHANTING_EXTRACTION,
-    [ENCHANTING_MODE_RECIPES]       = nil --not supported yet
-}
-
 
 --**********************************************************************************************************************
 -- LibFilters local variables and constants for the inventory classes/inventories
@@ -206,10 +195,12 @@ local alchemy =             ALCHEMY
 
 local smithing =            SMITHING
 local refinementPanel =     smithing.refinementPanel
+local creationPanel =       smithing.creationPanel
 local deconstructionPanel = smithing.deconstructionPanel
 local improvementPanel =    smithing.improvementPanel
 local researchPanel =       smithing.researchPanel
 local researchDialogSelect= SMITHING_RESEARCH_SELECT
+local ZOsListDialog1 =      ZO_ListDialog1
 
 local enchantingClass =     ZO_Enchanting
 local enchanting =          ENCHANTING
@@ -239,6 +230,80 @@ local playerTradeInvFragment    = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
 local storeInvFragment          = BACKPACK_STORE_LAYOUT_FRAGMENT
 local fenceInvFragment          = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local launderInvFragment        = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
+
+
+--**********************************************************************************************************************
+-- LibFilters local mapping variables and tables
+--**********************************************************************************************************************
+--Mapping tables for crafting modes to libFilters filterType constants
+--ENCHANTING
+local enchantingModeToFilterType = {
+    [ENCHANTING_MODE_CREATION]      = LF_ENCHANTING_CREATION,
+    [ENCHANTING_MODE_EXTRACTION]    = LF_ENCHANTING_EXTRACTION,
+    [ENCHANTING_MODE_RECIPES]       = nil --not supported yet
+}
+
+
+--Mapping for some crafting inventories, where there are multiple filterpanelIds at the same inventory, e.g.
+--jewelry crafting and normal, -> Both use SMITHING.xxxxxPanel
+local craftingInventoryToFilterType = {
+    --Refine
+    [refinementPanel.inventory] = {
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_REFINE,
+        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_REFINE,
+        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_REFINE,
+        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_REFINE,
+    },
+    --Create
+    [creationPanel] = {
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_CREATION,
+        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_CREATION,
+        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_CREATION,
+        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_CREATION,
+    },
+    --DeconstructenchantingMode
+    [deconstructionPanel.inventory] = {
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_DECONSTRUCT,
+        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_DECONSTRUCT,
+        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_DECONSTRUCT,
+        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_DECONSTRUCT,
+    },
+    --Improve
+    [improvementPanel.inventory] = {
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_IMPROVEMENT,
+        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_IMPROVEMENT,
+        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_IMPROVEMENT,
+        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_IMPROVEMENT,
+    },
+    --Research
+    [researchPanel] = {
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_RESEARCH,
+        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_RESEARCH,
+        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_RESEARCH,
+        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_RESEARCH,
+    },
+    --ResearchDialog
+    [researchDialogSelect] = {
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_RESEARCH_DIALOG,
+        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_RESEARCH_DIALOG,
+        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_RESEARCH_DIALOG,
+        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_RESEARCH_DIALOG,
+    },
+    --Alchemy
+    [alchemy.inventory] = {
+        [CRAFTING_TYPE_ALCHEMY]         = LF_ALCHEMY_CREATION,
+
+    },
+    --Enchanting
+    [enchanting.inventory] = {
+        [CRAFTING_TYPE_ENCHANTING]      = function()
+            return enchantingModeToFilterType[enchanting.enchantingMode]
+        end,
+    },
+    --Provisioning
+    --TODO in the future
+}
+libFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 
 
 --**********************************************************************************************************************
@@ -358,19 +423,36 @@ local function updateActiveInventoryType(invType)
     libFilters.activeInventoryType = invType
 end
 
-local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc)
-    local invId = inventoryId or inventoryOrFragmentVar
+
+
+local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, isCrafting)
+    isCrafting = isCrafting or false
+    local invId
+    if isCrafting == true then
+        local libFiltersFilterTypeForCraftingBase = craftingInventoryToFilterType[inventoryOrFragmentVar]
+        if not libFiltersFilterTypeForCraftingBase then return end
+        local libFiltersFilterTypeForCrafting = libFiltersFilterTypeForCraftingBase[GetCraftingInteractionType()]
+        if not libFiltersFilterTypeForCrafting then return end
+        if type(libFiltersFilterTypeForCrafting) == "function" then
+            invId = libFiltersFilterTypeForCrafting()
+        else
+            invId = libFiltersFilterTypeForCrafting
+        end
+    else
+        invId = inventoryId or inventoryOrFragmentVar
+    end
     updateActiveInventoryType(invId)
+--d(libPreText .. "updateInventoryBase - ActiveInventoryType: " ..tostring(invId) .. ", isCrafting: " ..tostring(isCrafting))
     if callbackFunc ~= nil then callbackFunc() end
 end
 
 local function updatePlayerInventoryType(inventoryOrFragmentVar, inventoryId, callbackFunc)
-    updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc)
+    updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, false)
     SafeUpdateList(playerInventory, inventoryOrFragmentVar)
 end
 
 local function updateCraftingInventoryType(craftingInventoryOrFragmentVar, inventoryId, callbackFunc, craftingInvRefreshFunc)
-    updateInventoryBase(craftingInventoryOrFragmentVar, inventoryId, callbackFunc)
+    updateInventoryBase(craftingInventoryOrFragmentVar, inventoryId, callbackFunc, true)
     if craftingInvRefreshFunc ~= nil then
         craftingInvRefreshFunc()
     else
@@ -381,11 +463,23 @@ local function updateCraftingInventoryType(craftingInventoryOrFragmentVar, inven
 end
 
 local function updateOtherInventoryType(otherInventoryOrFragmentVar, inventoryId, callbackFunc)
-    updateInventoryBase(otherInventoryOrFragmentVar, inventoryId, callbackFunc)
+    updateInventoryBase(otherInventoryOrFragmentVar, inventoryId, callbackFunc, false)
     SafeUpdateList(otherInventoryOrFragmentVar)
 end
 
+local function resetLibFiltersFilterTypeAfterDialogClose(dialogControl)
+    --SMITHING research item dialog
+    if dialogControl == researchDialogSelect then
+        --Reset LibFilters filterType to LF_SMITHING_RESEARCH or LF_JEWELRY_RESEARCH
+        updateCraftingInventoryType(researchPanel, nil, nil, function() researchPanel:Refresh() end)
+    end
+end
+
 --Function to update a ZO_ListDialog1 dialog's list contents
+-->Used for the Research item dialog
+local dialogUpdaterCloseCallbacks = {
+    [researchDialogSelect] = false,
+}
 local function dialogUpdaterFunc(listDialogControl)
     if listDialogControl == nil then return nil end
     --Get & Refresh the list dialog
@@ -393,14 +487,25 @@ local function dialogUpdaterFunc(listDialogControl)
     if listDialog ~= nil and listDialog.control ~= nil then
         local data = listDialog.control.data
         if not data then return end
-        --Update the research dialog?
+        local dialogNeedsOnCloseCallback = false
+
+        --SMITHING research item dialog
         if listDialogControl == researchDialogSelect then
-            updateActiveInventoryType(researchDialogSelect)
+            updateInventoryBase(listDialogControl, nil, nil, true)
+            dialogNeedsOnCloseCallback = true
             if data.craftingType and data.researchLineIndex and data.traitIndex then
                 --Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
                 listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
             end
         end
+
+        --Add an updater function as the dialog closes the next time, so that the LibFilters filterType will be reset to the
+        --SMITHING's current panel again (e.g. to LF_SMITHING_RESEARCH)
+        if not dialogNeedsOnCloseCallback or dialogUpdaterCloseCallbacks[listDialogControl] then return end
+        ZOsListDialog1:SetHandler("OnEffectivelyHidden", function()
+            resetLibFiltersFilterTypeAfterDialogClose(listDialogControl)
+        end, MAJOR)
+        dialogUpdaterCloseCallbacks[listDialogControl] = true
     end
 end
 
@@ -580,7 +685,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType, inventory)
     if specialType == "enchanting" then
         local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
             updateActiveInventoryType(enchanting.inventory)
-            local libFilters3EnchantingConstant = enchantingModeToLibFilters[enchantingMode]
+            local libFilters3EnchantingConstant = enchantingModeToFilterType[enchantingMode]
             inventory.libFilters3_filterType = libFilters3EnchantingConstant
             if libFilters3EnchantingConstant == nil then return end
             callFilterFunc(inventory, libFilters3EnchantingConstant)
@@ -619,7 +724,7 @@ end
 function libFilters:GetCurrentFilterTypeForActiveInventory()
     local activeInventoryType = libFilters.activeInventoryType
     local currentFilterType = libFilters:GetCurrentFilterTypeForInventory(activeInventoryType)
-d("[LibFilters3]GetCurrentFilterTypeForActiveInventory-activeInventoryType: " ..tostring(activeInventoryType) .. ", currentFilterType: " ..tostring(currentFilterType))
+--d("[LibFilters3]GetCurrentFilterTypeForActiveInventory-activeInventoryType: " ..tostring(activeInventoryType) .. ", currentFilterType: " ..tostring(currentFilterType))
     return currentFilterType
 end
 
