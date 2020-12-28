@@ -570,22 +570,14 @@ function libFilters:HookAdditionalFilter(filterType, inventoryOrFragment)
 end
 
 
---Hook the inventory in a special way, e.g. at ENCHANTING or ALCHEMY where there is only 1 inventory variable and no
---extra fragment for the different modes (creation, extraction)
--->("enchanting", enchantingInventory, enchanting, "SetEnchantingMode", enchanting.enchantingMode)
+--Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
+--extra fragment for the different modes (creation, extraction).
+local specialHooksDone = {
+    ["enchanting"] = false,
+}
 function libFilters:HookAdditionalFilterSpecial(specialType, inventory)
-    if specialType == "alchemy" then
---[[
-        local function onSetAlchemyMode(alchemyVar, alchemyMode)
-d("[LibFilters3]Alchemy SetMode: " ..tostring(alchemyMode))
-            updateActiveInventoryType(alchemyVar.inventory)
-            local libFilters3EnchantingConstant = alchemyModeToLibFilters[alchemyMode]
-            inventory.libFilters3_filterType = libFilters3EnchantingConstant
-            callFilterFunc(alchemyVar.inventory)
-        end
-        SecurePostHook(alchemyClass, "SetMode", onSetAlchemyMode)
-]]
-    elseif specialType == "enchanting" then
+    if specialHooksDone[specialType] == true then return end
+    if specialType == "enchanting" then
         local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
             updateActiveInventoryType(enchanting.inventory)
             local libFilters3EnchantingConstant = enchantingModeToLibFilters[enchantingMode]
@@ -596,8 +588,8 @@ d("[LibFilters3]Alchemy SetMode: " ..tostring(alchemyMode))
         SecurePostHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
             onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
         end)
+        specialHooksDone[specialType] = true
     end
-
 end
 
 
@@ -613,8 +605,11 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
             return
         end
     end
-    local inventory = inventories[inventoryType] or inventoryType
-    if not inventory or not inventory.libFilters3_filterType then return end
+    local invVarType = type(inventoryType)
+    local inventory = (invVarType == "number" and inventories[inventoryType])
+                        or (invVarType == "table" and inventoryType.layoutData)
+                        or inventoryType
+    if not inventory then return end
     return inventory.libFilters3_filterType
 end
 
@@ -623,7 +618,7 @@ end
 --inventories gets applied and as it's updaterFunction is run. The activeInventory will be e.g. INVENTORY_BACKPACK
 function libFilters:GetCurrentFilterTypeForActiveInventory()
     local activeInventoryType = libFilters.activeInventoryType
-    local currentFilterType = libFilters:GetCurrentFilterTypeForInventory(libFilters.activeInventoryType)
+    local currentFilterType = libFilters:GetCurrentFilterTypeForInventory(activeInventoryType)
 d("[LibFilters3]GetCurrentFilterTypeForActiveInventory-activeInventoryType: " ..tostring(activeInventoryType) .. ", currentFilterType: " ..tostring(currentFilterType))
     return currentFilterType
 end
