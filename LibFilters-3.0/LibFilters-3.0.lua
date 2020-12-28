@@ -285,16 +285,16 @@ local storeInvFragment          = BACKPACK_STORE_LAYOUT_FRAGMENT
 local fenceInvFragment          = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local launderInvFragment        = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
 local usedFragments = {
-    [menuBarInvFragment] = true,
-    [bankInvFragment] = true,
-    [houseBankInvFragment] = true,
-    [guildBankInvFragment] = true,
-    [tradingHouseInvFragment] = true,
-    [mailInvFragment] = true,
-    [playerTradeInvFragment] = true,
-    [storeInvFragment] = true,
-    [fenceInvFragment] = true,
-    [launderInvFragment] = true,
+    [menuBarInvFragment] = "BACKPACK_MENU_BAR_LAYOUT_FRAGMENT",
+    [bankInvFragment] = "BACKPACK_BANK_LAYOUT_FRAGMENT",
+    [houseBankInvFragment] = "BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT",
+    [guildBankInvFragment] = "BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT",
+    [tradingHouseInvFragment] = "BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT",
+    [mailInvFragment] = "BACKPACK_MAIL_LAYOUT_FRAGMENT",
+    [playerTradeInvFragment] = "BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT",
+    [storeInvFragment] = "BACKPACK_STORE_LAYOUT_FRAGMENT",
+    [fenceInvFragment] = "BACKPACK_FENCE_LAYOUT_FRAGMENT",
+    [launderInvFragment] = "BACKPACK_LAUNDER_LAYOUT_FRAGMENT",
 }
 libFilters.UsedFragments = usedFragments
 
@@ -872,8 +872,10 @@ end
 
 --Checks if a filter function is already registered for the filterTag e.g. <addonName> and the filterType LF*
 function libFilters:IsFilterRegistered(filterTag, filterType)
-    local filterTypeIsRegisteredType = filterType or "-IsRegistered all-"
-    if libFilters.debug then df("IsFilterRegistered-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeIsRegisteredType)) end
+    if libFilters.debug then
+        local filterTypeIsRegisteredType = filterType or "-IsRegistered all-"
+        df("IsFilterRegistered-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeIsRegisteredType))
+    end
     if filterType == nil then
         --check whether there's any filter with this tag
         for _, callbacks in pairs(filters) do
@@ -915,8 +917,10 @@ end
 
 --Un-Registers the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function libFilters:UnregisterFilter(filterTag, filterType)
-    local filterTypeUnregType = filterType or "-Unregister all-"
-    if libFilters.debug then df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeUnregType)) end
+    if libFilters.debug then
+        local filterTypeUnregType = filterType or "-Unregister all-"
+        df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeUnregType))
+    end
     if not filterTag or filterTag == "" then
         dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tostring(filterTag), tostring(filterType))
         return
@@ -965,11 +969,8 @@ end
 --**********************************************************************************************************************
 -- LibFilters hooks into inventories/fragments/LayoutData
 --**********************************************************************************************************************
-local function fragmentChange(oldState, newState, fragmentId)
-    if libFilters.debug then
-        local fragmentName = (fragmentId and (fragmentId.name or (fragmentId.control and fragmentId.control.GetName and fragmentId.control:GetName())) or "n/a")
-        df("Fragment \'" ..  fragmentName .. "\' state change-newState: " ..tostring(newState))
-    end
+local function fragmentChange(oldState, newState, fragmentName)
+    if libFilters.debug then df("Fragment \'" ..  tostring(fragmentName) .. "\' state change-newState: " ..tostring(newState)) end
     --On fragment hiding: Reset the LibFilters current inventory and filterType variables
     if (newState == SCENE_FRAGMENT_HIDING ) then
         updateActiveInventoryType(nil, nil)
@@ -1043,9 +1044,9 @@ local function HookAdditionalFilters()
 
     --[FRAGMENTS]
     if usedFragments ~= nil then
-        for fragmentId, isHooked in pairs(usedFragments) do
-            if fragmentId and isHooked == true then
-                fragmentId:RegisterCallback("StateChange", function(oldState, newState) fragmentChange(oldState, newState, fragmentId) end)
+        for fragmentId, fragmentName in pairs(usedFragments) do
+            if fragmentId and fragmentName ~= "" then
+                fragmentId:RegisterCallback("StateChange", function(oldState, newState) fragmentChange(oldState, newState, fragmentName) end)
             end
         end
     end
