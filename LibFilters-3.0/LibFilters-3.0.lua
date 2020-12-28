@@ -21,6 +21,19 @@
 --
 --Important: You need to call LibFilters3:InitializeLibFilters() once to create the hooks and init the library properly
 
+
+--**********************************************************************************************************************
+--TODO List - Count: 2, LastUpdated: 2020-12-28
+--**********************************************************************************************************************
+--#1 Reset the variables which are used in function updateActiveInventoryType() to nil if the filterType panels close
+--   again, e.g. Mail LF_MAIL_SEND -> Close (via ESC key or pressing I to show normal inventory etc. -> LF_MAIL_SEND
+--   needs to be removed from LibFilters3.activeFilterType)
+
+--#2 Test new API functions: GetCurrentActiveFilterType, GetCurrentActiveInventoryType, GetCurrentActiveInventoryVar,
+--   ResetFilterTypeAfterListDialogClose, SetDialogsMovable
+
+
+
 --**********************************************************************************************************************
 -- LibFilters information
 --**********************************************************************************************************************
@@ -200,7 +213,13 @@ local deconstructionPanel = smithing.deconstructionPanel
 local improvementPanel =    smithing.improvementPanel
 local researchPanel =       smithing.researchPanel
 local researchDialogSelect= SMITHING_RESEARCH_SELECT
+local ZOsDialog1 =          ZO_Dialog1
 local ZOsListDialog1 =      ZO_ListDialog1
+local ZOsDialogs = {
+    [ZOsDialog1]        = true,
+    [ZOsListDialog1]    = true,
+}
+
 
 local enchantingClass =     ZO_Enchanting
 local enchanting =          ENCHANTING
@@ -419,35 +438,34 @@ local function SafeUpdateList(object, ...)
     if isMouseVisible then ShowMouse() end
 end
 
-local function updateActiveInventoryType(invType)
-    libFilters.activeInventoryType = invType
+local function updateActiveInventoryType(invType, filterType)
+    libFilters.activeInventoryType  = invType
+    libFilters.activeFilterType     = filterType
 end
 
-
-
-local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, isCrafting)
+local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, isCrafting, filterType)
     isCrafting = isCrafting or false
-    local invId
+    local invId = inventoryId or inventoryOrFragmentVar
     if isCrafting == true then
-        local libFiltersFilterTypeForCraftingBase = craftingInventoryToFilterType[inventoryOrFragmentVar]
-        if not libFiltersFilterTypeForCraftingBase then return end
-        local libFiltersFilterTypeForCrafting = libFiltersFilterTypeForCraftingBase[GetCraftingInteractionType()]
-        if not libFiltersFilterTypeForCrafting then return end
-        if type(libFiltersFilterTypeForCrafting) == "function" then
-            invId = libFiltersFilterTypeForCrafting()
-        else
-            invId = libFiltersFilterTypeForCrafting
+        if filterType == nil then
+            local libFiltersFilterTypeForCraftingBase = craftingInventoryToFilterType[inventoryOrFragmentVar]
+            if not libFiltersFilterTypeForCraftingBase then return end
+            local libFiltersFilterTypeForCrafting = libFiltersFilterTypeForCraftingBase[GetCraftingInteractionType()]
+            if not libFiltersFilterTypeForCrafting then return end
+            if type(libFiltersFilterTypeForCrafting) == "function" then
+                filterType = libFiltersFilterTypeForCrafting()
+            else
+                filterType = libFiltersFilterTypeForCrafting
+            end
         end
-    else
-        invId = inventoryId or inventoryOrFragmentVar
     end
-    updateActiveInventoryType(invId)
+    updateActiveInventoryType(invId, filterType)
 --d(libPreText .. "updateInventoryBase - ActiveInventoryType: " ..tostring(invId) .. ", isCrafting: " ..tostring(isCrafting))
     if callbackFunc ~= nil then callbackFunc() end
 end
 
-local function updatePlayerInventoryType(inventoryOrFragmentVar, inventoryId, callbackFunc)
-    updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, false)
+local function updatePlayerInventoryType(inventoryOrFragmentVar, inventoryId, callbackFunc, filterType)
+    updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, false, filterType)
     SafeUpdateList(playerInventory, inventoryOrFragmentVar)
 end
 
@@ -462,8 +480,8 @@ local function updateCraftingInventoryType(craftingInventoryOrFragmentVar, inven
     end
 end
 
-local function updateOtherInventoryType(otherInventoryOrFragmentVar, inventoryId, callbackFunc)
-    updateInventoryBase(otherInventoryOrFragmentVar, inventoryId, callbackFunc, false)
+local function updateOtherInventoryType(otherInventoryOrFragmentVar, inventoryId, callbackFunc, filterType)
+    updateInventoryBase(otherInventoryOrFragmentVar, inventoryId, callbackFunc, false, filterType)
     SafeUpdateList(otherInventoryOrFragmentVar)
 end
 
@@ -484,14 +502,15 @@ local function dialogUpdaterFunc(listDialogControl)
     if listDialogControl == nil then return nil end
     --Get & Refresh the list dialog
     local listDialog = ZO_InventorySlot_GetItemListDialog()
-    if listDialog ~= nil and listDialog.control ~= nil then
-        local data = listDialog.control.data
+    if listDialog ~= nil and listDialog.GetControl ~= nil then
+        local control = listDialog:GetControl()
+        local data = control.data
         if not data then return end
         local dialogNeedsOnCloseCallback = false
 
         --SMITHING research item dialog
         if listDialogControl == researchDialogSelect then
-            updateInventoryBase(listDialogControl, nil, nil, true)
+            updateInventoryBase(listDialogControl, nil, nil, true, nil)
             dialogNeedsOnCloseCallback = true
             if data.craftingType and data.researchLineIndex and data.traitIndex then
                 --Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
@@ -513,67 +532,67 @@ end
 local inventoryUpdaters = {
     --Inventory backpack variables
     INVENTORY = function()
-        updatePlayerInventoryType(invBackPack, nil, nil)
+        updatePlayerInventoryType(invBackPack, nil, nil, LF_INVENTORY)
     end,
     CRAFTBAG = function()
-        updatePlayerInventoryType(invCraftBag, nil, nil)
+        updatePlayerInventoryType(invCraftBag, nil, nil, LF_CRAFTBAG)
     end,
     QUICKSLOT = function()
-        updateOtherInventoryType(quickslots, nil, nil)
+        updateOtherInventoryType(quickslots, nil, nil, LF_QUICKSLOT)
     end,
     HOUSE_BANK_WITHDRAW = function()
-        updatePlayerInventoryType(invHouseBank, nil, nil)
+        updatePlayerInventoryType(invHouseBank, nil, nil, LF_HOUSE_BANK_WITHDRAW)
     end,
     INVENTORY_QUEST = function()
-        updatePlayerInventoryType(invQuestItem, nil, nil)
+        updatePlayerInventoryType(invQuestItem, nil, nil, LF_INVENTORY_QUEST)
     end,
     BANK_WITHDRAW = function()
-        updatePlayerInventoryType(invBank, nil, nil)
+        updatePlayerInventoryType(invBank, nil, nil, LF_BANK_WITHDRAW)
     end,
     GUILDBANK_WITHDRAW = function()
-        updatePlayerInventoryType(invGuildBank, nil, nil)
+        updatePlayerInventoryType(invGuildBank, nil, nil, LF_GUILDBANK_WITHDRAW)
     end,
 
     --Fragments
     BANK_DEPOSIT = function()
-        updatePlayerInventoryType(invBackPack, bankInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, bankInvFragment, nil, LF_BANK_DEPOSIT)
     end,
     GUILDBANK_DEPOSIT = function()
-        updatePlayerInventoryType(invBackPack, guildBankInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, guildBankInvFragment, nil, LF_GUILDBANK_DEPOSIT)
     end,
     HOUSE_BANK_DEPOSIT = function()
-        updatePlayerInventoryType(invBackPack, houseBankInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, houseBankInvFragment, nil, LF_HOUSE_BANK_DEPOSIT)
     end,
     VENDOR_SELL = function()
-        updatePlayerInventoryType(invBackPack, storeInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, storeInvFragment, nil, LF_VENDOR_SELL)
     end,
     GUILDSTORE_SELL = function()
-        updatePlayerInventoryType(invBackPack, tradingHouseInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, tradingHouseInvFragment, nil, LF_GUILDSTORE_SELL)
     end,
     MAIL_SEND = function()
-        updatePlayerInventoryType(invBackPack, mailInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, mailInvFragment, nil, LF_MAIL_SEND)
     end,
     TRADE = function()
-        updatePlayerInventoryType(invBackPack, playerTradeInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, playerTradeInvFragment, nil, LF_TRADE)
     end,
     FENCE_SELL = function()
-        updatePlayerInventoryType(invBackPack, fenceInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, fenceInvFragment, nil, LF_FENCE_SELL)
     end,
     FENCE_LAUNDER = function()
-        updatePlayerInventoryType(invBackPack, launderInvFragment, nil)
+        updatePlayerInventoryType(invBackPack, launderInvFragment, nil, LF_FENCE_LAUNDER)
     end,
 
     --Other inventory variables
     VENDOR_BUY = function()
         if tradingHouseInvFragment.state ~= SCENE_SHOWN then --"shown"
-            updateOtherInventoryType(vendor, nil, function() vendor:GetStoreItems() end)
+            updateOtherInventoryType(vendor, nil, function() vendor:GetStoreItems() end, LF_VENDOR_BUY)
         end
     end,
     VENDOR_BUYBACK = function()
-        updateOtherInventoryType(buyBack, nil, nil)
+        updateOtherInventoryType(buyBack, nil, nil, LF_VENDOR_BUYBACK)
     end,
     VENDOR_REPAIR = function()
-        updateOtherInventoryType(repair, nil, nil)
+        updateOtherInventoryType(repair, nil, nil, LF_VENDOR_REPAIR)
     end,
     SMITHING_REFINE = function()
         updateCraftingInventoryType(refinementPanel.inventory, nil, nil, nil)
@@ -684,11 +703,13 @@ function libFilters:HookAdditionalFilterSpecial(specialType, inventory)
     if specialHooksDone[specialType] == true then return end
     if specialType == "enchanting" then
         local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
-            updateActiveInventoryType(enchanting.inventory)
-            local libFilters3EnchantingConstant = enchantingModeToFilterType[enchantingMode]
-            inventory.libFilters3_filterType = libFilters3EnchantingConstant
-            if libFilters3EnchantingConstant == nil then return end
-            callFilterFunc(inventory, libFilters3EnchantingConstant)
+            local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
+            if libFiltersEnchantingFilterType == nil then return end
+
+            updateActiveInventoryType(enchanting.inventory, libFiltersEnchantingFilterType)
+
+            inventory.libFilters3_filterType = libFiltersEnchantingFilterType
+            callFilterFunc(inventory, libFiltersEnchantingFilterType)
         end
         SecurePostHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
             onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
@@ -711,9 +732,11 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
         end
     end
     local invVarType = type(inventoryType)
-    local inventory = (invVarType == "number" and inventories[inventoryType])
-                        or (invVarType == "table" and inventoryType.layoutData)
-                        or inventoryType
+    local isNumber  = invVarType == "number"
+    local isTable   = invVarType == "table"
+    local inventory = (isNumber == true and inventories[inventoryType])
+            or (isTable == true and inventoryType.layoutData)
+            or inventoryType
     if not inventory then return end
     return inventory.libFilters3_filterType
 end
@@ -721,11 +744,41 @@ end
 
 --Get the current libFilters filterType for the active inventory. Active inventory will be set as the hook of the supported
 --inventories gets applied and as it's updaterFunction is run. The activeInventory will be e.g. INVENTORY_BACKPACK
-function libFilters:GetCurrentFilterTypeForActiveInventory()
+function libFilters:GetCurrentActiveFilterType()
+d("[LibFilters3]GetCurrentActiveFilterType-currentFilterType: " ..tostring(libFilters.activeFilterType))
+    return libFilters.activeFilterType
+end
+
+
+--Get the current libFilters active inventory type. The activeInventory type will be e.g. INVENTORY_BACKPACK
+--or a userdate/table of the e.g. crafting inventory
+function libFilters:GetCurrentActiveInventoryType()
     local activeInventoryType = libFilters.activeInventoryType
-    local currentFilterType = libFilters:GetCurrentFilterTypeForInventory(activeInventoryType)
---d("[LibFilters3]GetCurrentFilterTypeForActiveInventory-activeInventoryType: " ..tostring(activeInventoryType) .. ", currentFilterType: " ..tostring(currentFilterType))
-    return currentFilterType
+d("[LibFilters3]GetCurrentActiveInventoryType-activeInventoryType: " ..tostring(libFilters.activeInventoryType))
+    return activeInventoryType
+end
+
+
+--Get the current libFilters active inventory. The activeInventory will be e.g. PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK]
+--or a similar userdate/table of the inventory
+function libFilters:GetCurrentActiveInventoryVar()
+d("[LibFilters3]GetCurrentActiveInventoryVar-activeInventory")
+    local activeInventoryType = libFilters:GetCurrentActiveInventoryType()
+    if not activeInventoryType then return end
+    local invVarType = type(activeInventoryType)
+    local isNumber  = invVarType == "number"
+    local isTable   = invVarType == "table"
+    local inventory = (isNumber == true and inventories[activeInventoryType])
+                    or (isTable == true and activeInventoryType)
+    return inventory
+end
+
+
+--Reset the filterType of LibFilters to to currently shown inventory again, after a list-dialog closes (e.g. the
+--research list dialo -> SMITHING_RESEARCH_SELECT)
+function libFilters:ResetFilterTypeAfterListDialogClose(listDialogControl)
+    if listDialogControl == nil then return end
+    resetLibFiltersFilterTypeAfterDialogClose(listDialogControl)
 end
 
 
@@ -908,6 +961,39 @@ local function HookAdditionalFilters()
     --libFilters:HookAdditionalFilter(LF_PROVISIONING_COOK, )
     --libFilters:HookAdditionalFilter(LF_PROVISIONING_BREW, )
 end
+
+--Enable some hooks for the ZO_*Dialog1 controls
+-->Enable drag&drop
+local function HookDialogs(doEnable)
+    for dialogCtrl, isToHook in pairs(ZOsDialogs) do
+        if isToHook == true and dialogCtrl ~= nil and dialogCtrl.SetMovable ~= nil then
+            local setMovableFunc = function()
+                local modalUnderlay = GetControl(dialogCtrl, "ModalUnderlay")
+                if modalUnderlay ~= nil then
+                    modalUnderlay:SetHidden(doEnable)
+                    dialogCtrl:SetMovable(doEnable)
+                    if doEnable == false then
+                        dialogCtrl:ClearAnchors()
+                        dialogCtrl:SetAnchor(CENTER, GUI_ROOT, CENTER)
+                    end
+                end
+            end
+            dialogCtrl:SetHandler("OnEffectivelyShown", setMovableFunc, MAJOR)
+            --Is the dialog currently shown? Then update it's movable state now
+            if dialogCtrl.IsHidden and dialogCtrl:IsHidden() == false then
+                setMovableFunc()
+            end
+        end
+    end
+end
+
+--If doEnabled = true: Remove the modal underlay behind ZO_(List)Dialog1 and make the dialog movable
+--If doEnable = false: Re-Enable the modal underlay behind the dialogs and remove the movable state
+function libFilters:SetDialogsMovable(doEnable)
+    doEnable = doEnable or false
+    HookDialogs(doEnable)
+end
+
 
 --Register all the helper functions of LibFilters, for some panels like the Research or ResearchDialog, or even
 -- deconstruction and improvement, etc.
