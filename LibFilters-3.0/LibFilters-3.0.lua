@@ -218,6 +218,8 @@ local creationPanel =       smithing.creationPanel
 local deconstructionPanel = smithing.deconstructionPanel
 local improvementPanel =    smithing.improvementPanel
 local researchPanel =       smithing.researchPanel
+
+--Dialogs
 local researchDialogSelect= SMITHING_RESEARCH_SELECT
 local ZOsDialog1 =          ZO_Dialog1
 local ZOsListDialog1 =      ZO_ListDialog1
@@ -232,6 +234,23 @@ local enchanting =          ENCHANTING
 
 local retraitClass =        ZO_RetraitStation_Retrait_Base      --or ZO_RETRAIT_KEYBOARD?
 
+local usedControls = {
+ [quickslots] =          true,
+
+ [vendor] =              true,
+ [buyBack] =             true,
+
+ [alchemy] =             true,
+
+ [refinementPanel] =     true,
+ [creationPanel] =       true,
+ [deconstructionPanel] = true,
+ [improvementPanel] =    true,
+ [researchPanel] =       true,
+ [retraitClass] =        true,
+}
+libFilters.UsedControls = usedControls
+
 --Inventory types
 local invBackPack   = INVENTORY_BACKPACK
 local invBank       = INVENTORY_BANK
@@ -239,6 +258,16 @@ local invHouseBank  = INVENTORY_HOUSE_BANK
 local invGuildBank  = INVENTORY_GUILD_BANK
 local invQuestItem  = INVENTORY_QUEST_ITEM
 local invCraftBag   = INVENTORY_CRAFT_BAG
+
+local usedInventoryTypes = {
+    [invBackPack]   = true,
+    [invBank]       = true,
+    [invHouseBank]  = true,
+    [invGuildBank]  = true,
+    [invQuestItem]  = true,
+    [invCraftBag]   = true,
+}
+libFilters.UsedInventoryTypes = usedInventoryTypes
 
 
 --**********************************************************************************************************************
@@ -255,7 +284,19 @@ local playerTradeInvFragment    = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
 local storeInvFragment          = BACKPACK_STORE_LAYOUT_FRAGMENT
 local fenceInvFragment          = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local launderInvFragment        = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
-
+local usedFragments = {
+    [menuBarInvFragment] = true,
+    [bankInvFragment] = true,
+    [houseBankInvFragment] = true,
+    [guildBankInvFragment] = true,
+    [tradingHouseInvFragment] = true,
+    [mailInvFragment] = true,
+    [playerTradeInvFragment] = true,
+    [storeInvFragment] = true,
+    [fenceInvFragment] = true,
+    [launderInvFragment] = true,
+}
+libFilters.UsedFragments = usedFragments
 
 --**********************************************************************************************************************
 -- LibFilters local mapping variables and tables
@@ -924,6 +965,18 @@ end
 --**********************************************************************************************************************
 -- LibFilters hooks into inventories/fragments/LayoutData
 --**********************************************************************************************************************
+local function fragmentChange(oldState, newState, fragmentId)
+    if libFilters.debug then
+        local fragmentName = (fragmentId and (fragmentId.name or (fragmentId.control and fragmentId.control.GetName and fragmentId.control:GetName())) or "n/a")
+        df("Fragment \'" ..  fragmentName .. "\' state change-newState: " ..tostring(newState))
+    end
+    --On fragment hiding: Reset the LibFilters current inventory and filterType variables
+    if (newState == SCENE_FRAGMENT_HIDING ) then
+        updateActiveInventoryType(nil, nil)
+    end
+end
+
+
 --Hook all the filters at the different inventory panels (libFilters filterPanelIds) now
 local function HookAdditionalFilters()
     if libFilters.debug then df("HookAdditionalFilters") end
@@ -986,6 +1039,16 @@ local function HookAdditionalFilters()
 
     --libFilters:HookAdditionalFilter(LF_PROVISIONING_COOK, )
     --libFilters:HookAdditionalFilter(LF_PROVISIONING_BREW, )
+
+
+    --[FRAGMENTS]
+    if usedFragments ~= nil then
+        for fragmentId, isHooked in pairs(usedFragments) do
+            if fragmentId and isHooked == true then
+                fragmentId:RegisterCallback("StateChange", function(oldState, newState) fragmentChange(oldState, newState, fragmentId) end)
+            end
+        end
+    end
 end
 
 --Enable some hooks for the ZO_*Dialog1 controls
