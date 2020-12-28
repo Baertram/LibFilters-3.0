@@ -831,7 +831,8 @@ end
 
 --Checks if a filter function is already registered for the filterTag e.g. <addonName> and the filterType LF*
 function libFilters:IsFilterRegistered(filterTag, filterType)
-    if libFilters.debug then df("IsFilterRegistered-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterType)) end
+    local filterTypeIsRegisteredType = filterType or "-IsRegistered all-"
+    if libFilters.debug then df("IsFilterRegistered-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeIsRegisteredType)) end
     if filterType == nil then
         --check whether there's any filter with this tag
         for _, callbacks in pairs(filters) do
@@ -874,7 +875,7 @@ end
 --Un-Registers the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function libFilters:UnregisterFilter(filterTag, filterType)
     local filterTypeUnregType = filterType or "-Unregister all-"
-    if libFilters.debug then df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..filterTypeUnregType) end
+    if libFilters.debug then df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeUnregType)) end
     if not filterTag or filterTag == "" then
         dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tostring(filterTag), tostring(filterType))
         return
