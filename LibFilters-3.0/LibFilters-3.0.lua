@@ -31,7 +31,7 @@
 
 
 --**********************************************************************************************************************
---TODO List - Count: 2, LastUpdated: 2020-12-28
+--TODO List - Count: 3                                                                          LastUpdated: 2020-12-28
 --**********************************************************************************************************************
 --#1 Reset the variables which are used in function updateActiveInventoryType() to nil if the filterType panels close
 --   again, e.g. Mail LF_MAIL_SEND -> Close (via ESC key or pressing I to show normal inventory etc. -> LF_MAIL_SEND
@@ -40,7 +40,10 @@
 --#2 Test new API functions: GetCurrentActiveFilterType, GetCurrentActiveInventoryType, GetCurrentActiveInventoryVar,
 --   ResetFilterTypeAfterListDialogClose, SetDialogsMovable
 
-
+--#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the ctaftingtable "deconstruction",
+--   once for SMITHING decon and once for JEWELRY decon? Should only be shown for one of both?!
+--   And why is there only "RunFilters" debug message but no "callFilterFunc" before or similar which calls runFilter?
+-->  Maybe another addon calls "LibFilters3.RunFilters" directly?
 
 --**********************************************************************************************************************
 -- LibFilters information
@@ -503,7 +506,7 @@ libFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
-    if libFilters.debug then df("SafeUpdateList, inv: " ..tostring(...) .. ", isMouseVisible: " ..tostring(isMouseVisible)) end
+    if libFilters.debug then df("SafeUpdateList-isMouseVisible: " ..tostring(isMouseVisible)) end
 
     if isMouseVisible then HideMouse() end
 
@@ -849,18 +852,31 @@ function libFilters:GetCurrentActiveInventoryType()
 end
 
 
---Get the current libFilters active inventory. The activeInventory will be e.g. PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK]
---or a similar userdate/table of the inventory
+--Get the current libFilters active inventory, and the last inventory that was active before.
+--The activeInventory will be e.g. PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK] or a similar userdate/table of the
+--inventory
 function libFilters:GetCurrentActiveInventoryVar()
     if libFilters.debug then df("GetCurrentActiveInventoryVar-activeInventory") end
-    local activeInventoryType = libFilters:GetCurrentActiveInventoryType()
-    if not activeInventoryType then return end
-    local invVarType = type(activeInventoryType)
-    local isNumber  = invVarType == "number"
-    local isTable   = invVarType == "table"
-    local inventory = (isNumber == true and inventories[activeInventoryType])
-                    or (isTable == true and activeInventoryType)
-    return inventory
+    local activeInventoryType, lastInventoryType = libFilters:GetCurrentActiveInventoryType()
+    local invVarType, lastInvVarType
+    local inventory, lastInventory
+    local isNumber
+    local isTable
+    if activeInventoryType then
+        invVarType = type(activeInventoryType)
+        isNumber  = invVarType == "number"
+        isTable   = invVarType == "table"
+        inventory = (isNumber == true and inventories[activeInventoryType])
+                or (isTable == true and activeInventoryType)
+    end
+    if lastInventoryType then
+        lastInvVarType = type(lastInventoryType)
+        isNumber  = lastInvVarType == "number"
+        isTable   = lastInvVarType == "table"
+        lastInventory = (isNumber == true and inventories[lastInventoryType])
+                or (isTable == true and lastInventoryType)
+    end
+    return inventory, lastInventory
 end
 
 
