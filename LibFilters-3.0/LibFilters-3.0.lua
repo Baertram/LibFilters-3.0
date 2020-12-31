@@ -714,9 +714,12 @@ libFilters.inventoryUpdaters = inventoryUpdaters
 --**********************************************************************************************************************
 --Run the applied filters at a libFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
-    if libFilters.debug then df("runFilters, filterType: " ..tostring(filterType)) end
+    local debug = libFilters.debug
+    if debug then df("runFilters, filterType: " ..tostring(filterType)) end
     for tag, filter in pairs(filters[filterType]) do
-        if not filter(...) then
+        local result = filter(...)
+        if debug then df("tag: " ..tostring(tag) .. ", result: " ..tostring(result)) end
+        if not result then
             return false
         end
     end
@@ -1210,11 +1213,20 @@ end
 
 
 --**********************************************************************************************************************
+-- LibFilters slash commands
+--**********************************************************************************************************************
+local function slashCommands()
+    SLASH_COMMANDS["/libfilters_debug"] = function()
+        libFilters.debug = not libFilters.debug
+        dfi("Debugging: ", tostring(libFilters.debug))
+    end
+end
+
+--**********************************************************************************************************************
 -- LibFilters global variable and initialization
 --**********************************************************************************************************************
 function libFilters:Initialize()
-    --TODO: Remove after debugging
-    libFilters.debug = GetDisplayName() == "@Baertram"
+    libFilters.debug = false --GetDisplayName() == "@Baertram"
 
     if libFilters.debug then df("Initialize") end
     libFilters.name     = MAJOR
@@ -1222,6 +1234,7 @@ function libFilters:Initialize()
     libFilters.author   = "ingeniousclown, Randactyl, Baertram"
 
     libFilters.isInitialized = false
+    
     libFilters.lastInventoryType = nil
     libFilters.lastFilterType = nil
     libFilters.activeInventoryType = nil
@@ -1230,7 +1243,13 @@ function libFilters:Initialize()
     --LibDebugLogger - Debugging output
     if LibDebugLogger then libFilters.logger = LibDebugLogger(MAJOR) end
 
+    --Create the slash commands for the chat
+    slashCommands()
+
     --Create the global library variable
     _G[GlobalLibName] = libFilters
 end
+
 libFilters:Initialize()
+
+
