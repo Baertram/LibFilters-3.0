@@ -227,15 +227,23 @@ local buyBack =             BUY_BACK_WINDOW
 local repair =              REPAIR_WINDOW
 
 --Some crafting variables
-local alchemyClass =        ZO_Alchemy
-local alchemy =             ALCHEMY
-
 local smithing =            SMITHING
 local refinementPanel =     smithing.refinementPanel
 local creationPanel =       smithing.creationPanel
 local deconstructionPanel = smithing.deconstructionPanel
 local improvementPanel =    smithing.improvementPanel
 local researchPanel =       smithing.researchPanel
+
+--local retraitClass =        ZO_RetraitStation_Retrait_Base
+local retrait =             ZO_RETRAIT_KEYBOARD
+
+local enchantingClass =     ZO_Enchanting
+local enchanting =          ENCHANTING
+
+--local alchemyClass =        ZO_Alchemy
+local alchemy =             ALCHEMY
+
+--TODO: Provisioning?!
 
 --Dialogs
 local researchDialogSelect= SMITHING_RESEARCH_SELECT
@@ -247,25 +255,21 @@ local ZOsDialogs = {
 }
 
 
-local enchantingClass =     ZO_Enchanting
-local enchanting =          ENCHANTING
-
-local retraitClass =        ZO_RetraitStation_Retrait_Base      --or ZO_RETRAIT_KEYBOARD?
 
 local usedControls = {
- [quickslots] =          true,
+ [quickslots] =             true,
 
- [vendor] =              true,
- [buyBack] =             true,
+ [vendor] =                 true,
+ [buyBack] =                true,
 
- [alchemy] =             true,
+ [alchemy] =                true,
 
- [refinementPanel] =     true,
- [creationPanel] =       true,
- [deconstructionPanel] = true,
- [improvementPanel] =    true,
- [researchPanel] =       true,
- [retraitClass] =        true,
+ [refinementPanel] =        true,
+ [creationPanel] =          true,
+ [deconstructionPanel] =    true,
+ [improvementPanel] =       true,
+ [researchPanel] =          true,
+ [retrait] =                true,
 }
 libFilters.UsedControls = usedControls
 
@@ -385,7 +389,11 @@ local craftingInventoryToFilterType = {
         end,
     },
     --Provisioning
-    --TODO in the future
+    --TODO in the future?
+    --Retrait
+    [retrait.inventory] = {
+        [CRAFTING_TYPE_INVALID]         = LF_RETRAIT,
+    },
 }
 libFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 
@@ -544,8 +552,17 @@ end
 local function updateCraftingInventoryType(craftingInventoryOrFragmentVar, inventoryId, callbackFunc, craftingInvRefreshFunc)
     updateInventoryBase(craftingInventoryOrFragmentVar, inventoryId, callbackFunc, true)
     if craftingInvRefreshFunc ~= nil then
-        craftingInvRefreshFunc()
+        if type(craftingInvRefreshFunc) == "function" then
+            craftingInvRefreshFunc()
+        else
+            dfe("updateCraftingInventoryType - craftingInvRefreshFunc is no function! craftingInvRefreshFunc: %s", tostring(craftingInvRefreshFunc))
+            return
+        end
     else
+        if not craftingInventoryOrFragmentVar then
+            dfe("updateCraftingInventoryType - craftingInventoryOrFragmentVar is nil! inventoryId: %s", tostring(inventoryId))
+            return
+        end
         if craftingInventoryOrFragmentVar.HandleDirtyEvent then
             craftingInventoryOrFragmentVar:HandleDirtyEvent()
         end
@@ -692,7 +709,7 @@ local inventoryUpdaters = {
         updateCraftingInventoryType(enchanting.inventory, nil, nil, nil)
     end,
     RETRAIT = function()
-        updateCraftingInventoryType(retraitClass.inventory, nil, nil, nil)
+        updateCraftingInventoryType(retrait.inventory, nil, nil, nil)
     end,
     SMITHING_RESEARCH_DIALOG = function()
         dialogUpdaterFunc(researchDialogSelect)
@@ -890,6 +907,15 @@ function libFilters:GetFilterCallback(filterTag, filterType)
 
     return filters[filterType][filterTag]
 end
+
+
+
+--**********************************************************************************************************************
+-- LibFilters library global vanilla UI inventory API functions
+--**********************************************************************************************************************
+--TODO: Provide functions to show the currently selected main filtertype (e.g. weapons, armor, consumables, ..) and the
+-- Subfiltertype (1hd, staff, shield, potions, ...)
+
 
 
 --**********************************************************************************************************************
@@ -1097,7 +1123,7 @@ local function HookAdditionalFilters()
 
     libFilters:HookAdditionalFilter(LF_QUICKSLOT, quickslots)
 
-    libFilters:HookAdditionalFilter(LF_RETRAIT, retraitClass)
+    libFilters:HookAdditionalFilter(LF_RETRAIT, retrait)
 
     libFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[invHouseBank])
     libFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, houseBankInvFragment)
@@ -1226,7 +1252,8 @@ end
 -- LibFilters global variable and initialization
 --**********************************************************************************************************************
 function libFilters:Initialize()
-    libFilters.debug = false --GetDisplayName() == "@Baertram"
+    --libFilters.debug = GetDisplayName() == "@Baertram"
+    libFilters.debug = false
 
     if libFilters.debug then df("Initialize") end
     libFilters.name     = MAJOR
@@ -1234,7 +1261,7 @@ function libFilters:Initialize()
     libFilters.author   = "ingeniousclown, Randactyl, Baertram"
 
     libFilters.isInitialized = false
-    
+
     libFilters.lastInventoryType = nil
     libFilters.lastFilterType = nil
     libFilters.activeInventoryType = nil
