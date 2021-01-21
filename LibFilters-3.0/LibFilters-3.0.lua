@@ -80,6 +80,7 @@ local libFilters = {}
 -- LibFilters debugging
 --**********************************************************************************************************************
 libFilters.debug = false
+libFilters.logger = LibDebugLogger ~= nil and LibDebugLogger(MAJOR)
 
 --Debugging output
 local function debugMessage(text, textType)
@@ -1244,7 +1245,7 @@ end
 local function slashCommands()
     SLASH_COMMANDS["/libfilters_debug"] = function()
         libFilters.debug = not libFilters.debug
-        dfi("Debugging: ", tostring(libFilters.debug))
+        dfi("Debugging: %s", tostring(libFilters.debug))
     end
 end
 
