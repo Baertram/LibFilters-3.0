@@ -411,19 +411,42 @@ libFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 -- use the same name in order to be able to throttle the updater calls for the same inventory.
 -- Below the table you'll find the updater functions for the player inventories, crafting inventories and others
 --**********************************************************************************************************************
+local function throttledCall(filterType, uniqueName, updateFunc)
+    if not uniqueName or uniqueName == "" then
+        dfe("Invalid uniqueName to throttledCall, filterType: %s", tostring(filterType))
+        return
+    end
+    if libFilters.debug then df("throttledCall - filterType: %s, uniqueName: %s", tostring(filterType), tostring(uniqueName)) end
+    --cancel previously scheduled update, if any
+    EVENT_MANAGER:UnregisterForUpdate(uniqueName)
+    --register a new one
+    EVENT_MANAGER:RegisterForUpdate(uniqueName, 10, updateFunc)
+end
+
+
 --Updating the current and lastUsed inventory and libFilters filterTypes, as the Refresh/Update function of the inventory
 --is called
 local function updateActiveInventoryType(invType, filterType, isInventory)
     isInventory = isInventory or false
-    local lastInventoryType = libFilters.activeInventoryType
-    local lastFilterType = libFilters.activeFilterType
-    if libFilters.debug then df("updateActiveInventoryType - invType: %s, filterType: %s, lastInventoryType: %s, lastFilterType: %s, isInventory: %s", tostring(invType), tostring(filterType), tostring(lastInventoryType) ,tostring(lastFilterType), tostring(isInventory)) end
-    if lastInventoryType ~= nil and lastFilterType ~= nil then
-        libFilters.lastInventoryType    = lastInventoryType
-        libFilters.lastFilterType       = lastFilterType
+    local function updateActiveInvNow(p_inv, p_filterType, p_isInv)
+        local lastInventoryType = libFilters.activeInventoryType
+        local lastFilterType = libFilters.activeFilterType
+        if libFilters.debug then df("updateActiveInventoryType - invType: %s, filterType: %s, lastInventoryType: %s, lastFilterType: %s, isInventory: %s", tostring(p_inv), tostring(p_filterType), tostring(p_isInv) ,tostring(lastFilterType), tostring(isInventory)) end
+        if lastInventoryType ~= nil and lastFilterType ~= nil then
+            libFilters.lastInventoryType    = lastInventoryType
+            libFilters.lastFilterType       = lastFilterType
+        end
+        libFilters.activeInventoryType  = p_inv
+        libFilters.activeFilterType     = p_filterType
     end
-    libFilters.activeInventoryType  = invType
-    libFilters.activeFilterType     = filterType
+
+    local callbackName = "LibFilters_updateActiveInventoryType_" .. tostring(filterType)
+    local function Update()
+        if libFilters.debug then df(">>>ActiveInventoryType -> Update called: \'%s\'",tostring(callbackName)) end
+        EVENT_MANAGER:UnregisterForUpdate(callbackName)
+        updateActiveInvNow(invType, filterType, isInventory)
+    end
+    throttledCall(filterType, callbackName, Update)
 end
 
 --Register the updater function which calls updateActiveInventoryType for the normal inventories
@@ -1116,14 +1139,11 @@ function libFilters:RequestUpdate(filterType)
     end
     local callbackName = "LibFilters_updateInventory_" .. updaterName
     local function Update()
-    if libFilters.debug then df(">>>RequestUpdate -> Update called: \'%s\'",tostring(callbackName)) end
+        if libFilters.debug then df(">>>RequestUpdate -> Update called: \'%s\'",tostring(callbackName)) end
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         inventoryUpdaters[updaterName]()
     end
-    --cancel previously scheduled update, if any
-    EVENT_MANAGER:UnregisterForUpdate(callbackName)
-    --register a new one
-    EVENT_MANAGER:RegisterForUpdate(callbackName, 10, Update)
+    throttledCall(filterType, callbackName, Update)
 end
 
 
