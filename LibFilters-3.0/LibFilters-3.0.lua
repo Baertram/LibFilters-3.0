@@ -440,7 +440,7 @@ local function updateActiveInventoryType(invType, filterType, isInventory)
         libFilters.activeFilterType     = p_filterType
     end
 
-    local callbackName = "LibFilters_updateActiveInventoryType_" .. tostring(filterType)
+    local callbackName = "LibFilters_updateActiveInventoryType"
     local function Update()
         if libFilters.debug then df(">>>ActiveInventoryType -> Update called: \'%s\'",tostring(callbackName)) end
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
