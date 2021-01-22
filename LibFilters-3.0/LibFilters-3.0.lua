@@ -852,16 +852,16 @@ end
 --Get the current libFilters filterType for the active inventory, as well as the filterType that was used before.
 --Active inventory will be set as the hook of the supported inventories gets applied and as it's updaterFunction is run.
 --The activeInventory will be e.g. INVENTORY_BACKPACK
-function libFilters:GetCurrentActiveFilterType()
-    if libFilters.debug then df("GetCurrentActiveFilterType - currentFilterType: %s, lastFilterType: %s", tostring(libFilters.activeFilterType), tostring(libFilters.lastFilterType)) end
+function libFilters:GetCurrentFilterType()
+    if libFilters.debug then df("GetCurrentFilterType - currentFilterType: %s, lastFilterType: %s", tostring(libFilters.activeFilterType), tostring(libFilters.lastFilterType)) end
     return libFilters.activeFilterType, libFilters.lastFilterType
 end
 
 
 --Get the current libFilters active inventory type. The activeInventory type will be e.g. INVENTORY_BACKPACK
 --or a userdate/table of the e.g. crafting inventory
-function libFilters:GetCurrentActiveInventoryType()
-    if libFilters.debug then df("GetCurrentActiveInventoryType - activeInventoryType: %s, lastInventoryType: %s", tostring(libFilters.activeInventoryType), tostring(libFilters.lastInventoryType)) end
+function libFilters:GetCurrentInventoryType()
+    if libFilters.debug then df("GetCurrentInventoryType - activeInventoryType: %s, lastInventoryType: %s", tostring(libFilters.activeInventoryType), tostring(libFilters.lastInventoryType)) end
     return libFilters.activeInventoryType, libFilters.lastInventoryType
 end
 
@@ -869,9 +869,9 @@ end
 --Get the current libFilters active inventory, and the last inventory that was active before.
 --The activeInventory will be e.g. PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK] or a similar userdate/table of the
 --inventory
-function libFilters:GetCurrentActiveInventoryVar()
-    if libFilters.debug then df("GetCurrentActiveInventoryVar-activeInventory") end
-    local activeInventoryType, lastInventoryType = libFilters:GetCurrentActiveInventoryType()
+function libFilters:GetCurrentInventoryVar()
+    if libFilters.debug then df("GetCurrentInventoryVar - activeInventoryType: %s, lastInventoryType: %s", tostring(libFilters.activeInventoryType), tostring(libFilters.lastInventoryType)) end
+    local activeInventoryType, lastInventoryType = libFilters:GetCurrentInventoryType()
     local invVarType, lastInvVarType
     local inventory, lastInventory
     local isNumber
@@ -894,6 +894,28 @@ function libFilters:GetCurrentActiveInventoryVar()
 end
 
 
+--Return the currently active inventory's main filterType (e.g. Weapons, Armor) -> inventory.currentFilter
+-->Returns currentFilter, inventoryType, inventoryVar, libFiltersFilterTypeOfInventory
+function libFilters:GetCurrentInventoryFilter()
+    local activeInventoryType, _ =      libFilters:GetCurrentInventoryType()
+    local activeInventoryVar, _ =       libFilters:GetCurrentInventoryVar()
+    local activeFilterType, _ =         libFilters:GetCurrentFilterType()
+
+    --Todo: How to get the active filterType from the active inventory?
+    --Should be "currentFilter" for normal inventories
+    local currentFilter = activeInventoryVar and activeInventoryVar.currentFilter
+    return currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
+end
+
+--Return the currently active inventory's main filterType's subFilterType (e.g. Weapons- > 1hd)  -> inventory.subFilter
+-->Returns currentSubFilter, currentFilter, inventoryType, inventoryControl, libFiltersFilterTypeOfInventory
+function libFilters:GetCurrentInventorySubFilter()
+    local currentFilter, activeInventoryType, activeInventoryVar, activeFilterType = libFilters:GetCurrentInventoryFilter()
+    local currentSubFilter = activeInventoryVar and activeInventoryVar.subFilter
+    return currentSubFilter, currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
+end
+
+
 --Returns the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function libFilters:GetFilterCallback(filterTag, filterType)
     if libFilters.debug then df("GetFilterCallback - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterType)) end
@@ -901,15 +923,6 @@ function libFilters:GetFilterCallback(filterTag, filterType)
 
     return filters[filterType][filterTag]
 end
-
-
-
---**********************************************************************************************************************
--- LibFilters library global vanilla UI inventory API functions
---**********************************************************************************************************************
---TODO: Provide functions to show the currently selected main filtertype (e.g. weapons, armor, consumables, ..) and the
--- Subfiltertype (1hd, staff, shield, potions, ...)
-
 
 
 --**********************************************************************************************************************
