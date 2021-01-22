@@ -285,6 +285,15 @@ local usedInventoryTypes = {
 }
 libFilters.UsedInventoryTypes = usedInventoryTypes
 
+--Filtertypes also using LF_INVENTORY's inventory control ZO_PlayerInventoryList
+local filterTypesUsingTheStandardInvControl  = {
+    [LF_MAIL_SEND]          = true,
+    [LF_TRADE]              = true,
+    [LF_BANK_DEPOSIT]       = true,
+    [LF_HOUSE_BANK_DEPOSIT] = true,
+    [LF_GUILDBANK_DEPOSIT]  = true,
+}
+libFilters.filterTypesUsingTheSameInvControl = filterTypesUsingTheStandardInvControl
 
 --**********************************************************************************************************************
 -- LibFilters local variables and constants for the fragments which are added to some inventory scenes
@@ -301,16 +310,20 @@ local storeInvFragment          = BACKPACK_STORE_LAYOUT_FRAGMENT
 local fenceInvFragment          = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local launderInvFragment        = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
 local usedFragments = {
-    [menuBarInvFragment] = "BACKPACK_MENU_BAR_LAYOUT_FRAGMENT",
-    [bankInvFragment] = "BACKPACK_BANK_LAYOUT_FRAGMENT",
-    [houseBankInvFragment] = "BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT",
-    [guildBankInvFragment] = "BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT",
-    [tradingHouseInvFragment] = "BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT",
-    [mailInvFragment] = "BACKPACK_MAIL_LAYOUT_FRAGMENT",
-    [playerTradeInvFragment] = "BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT",
-    [storeInvFragment] = "BACKPACK_STORE_LAYOUT_FRAGMENT",
-    [fenceInvFragment] = "BACKPACK_FENCE_LAYOUT_FRAGMENT",
-    [launderInvFragment] = "BACKPACK_LAUNDER_LAYOUT_FRAGMENT",
+--[[
+    [menuBarInvFragment]        = { name = "BACKPACK_MENU_BAR_LAYOUT_FRAGMENT",     filterType = function()
+        return libFilters:GetCurrentFilterType()
+    end },
+]]
+    [bankInvFragment]           = { name = "BACKPACK_BANK_LAYOUT_FRAGMENT",         filterType = LF_BANK_DEPOSIT },
+    [houseBankInvFragment]      = { name = "BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT",   filterType = LF_HOUSE_BANK_DEPOSIT },
+    [guildBankInvFragment]      = { name = "BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT",   filterType = LF_GUILD_BANK_DEPOSIT },
+    [tradingHouseInvFragment]   = { name = "BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT",filterType = LF_GUILDSTORE_SELL },
+    [mailInvFragment]           = { name = "BACKPACK_MAIL_LAYOUT_FRAGMENT",         filterType = LF_MAIL_SEND },
+    [playerTradeInvFragment]    = { name = "BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT", filterType = LF_TRADE },
+    [storeInvFragment]          = { name = "BACKPACK_STORE_LAYOUT_FRAGMENT",        filterType = LF_VENDOR_SELL },
+    [fenceInvFragment]          = { name = "BACKPACK_FENCE_LAYOUT_FRAGMENT",        filterType = LF_FENCE_SELL },
+    [launderInvFragment]        = { name = "BACKPACK_LAUNDER_LAYOUT_FRAGMENT",      filterType = LF_FENCE_LAUNDER },
 }
 libFilters.UsedFragments = usedFragments
 
@@ -400,15 +413,85 @@ libFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 --**********************************************************************************************************************
 --Updating the current and lastUsed inventory and libFilters filterTypes, as the Refresh/Update function of the inventory
 --is called
-local function updateActiveInventoryType(invType, filterType)
+local function updateActiveInventoryType(invType, filterType, isInventory)
+    isInventory = isInventory or false
     local lastInventoryType = libFilters.activeInventoryType
     local lastFilterType = libFilters.activeFilterType
-    if libFilters.debug then df("updateActiveInventoryType - invType: %s, filterType: %s, lastInventoryType: %s, lastFilterType: %s", tostring(invType), tostring(filterType), tostring(lastInventoryType) ,tostring(lastFilterType)) end
-    libFilters.lastInventoryType    = lastInventoryType
-    libFilters.lastFilterType       = lastFilterType
+    if libFilters.debug then df("updateActiveInventoryType - invType: %s, filterType: %s, lastInventoryType: %s, lastFilterType: %s, isInventory: %s", tostring(invType), tostring(filterType), tostring(lastInventoryType) ,tostring(lastFilterType), tostring(isInventory)) end
+    if lastInventoryType ~= nil and lastFilterType ~= nil then
+        libFilters.lastInventoryType    = lastInventoryType
+        libFilters.lastFilterType       = lastFilterType
+    end
     libFilters.activeInventoryType  = invType
     libFilters.activeFilterType     = filterType
 end
+
+--Register the updater function which calls updateActiveInventoryType for the normal inventories
+local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType)
+    --If any filter is enabled the update fucntion of the inventory (e.g. updateInventoryBase) will handle this. But if no
+    --filter is registrered (yet/anymore) it wont! So we need to "duplicate" the check here somehow as the inventory's
+    --control get's shown
+    if not inventoryOrFragment then return end
+    local invControl = inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list
+                        or inventoryOrFragment.container or inventoryOrFragment
+    df("registerActiveInventoryTypeUpdate - invControl: %s, invControl.IsControlHidden: %s",tostring(tostring(invControl)), tostring(invControl.IsControlHidden ~= nil))
+
+    libFilters.registeredInventoriesData = libFilters.registeredInventoriesData or {}
+    libFilters.registeredInventoriesData[filterType] = {
+        filterType = filterType,
+        inv = inventoryOrFragment,
+        invControl = invControl,
+    }
+    local filterTypeUsesSameInvControl = filterTypesUsingTheStandardInvControl[filterType] or false
+    if filterTypeUsesSameInvControl == true then
+        --Will be handled via the fragments then!
+        return
+    end
+
+    --Is this a control?
+    if invControl.IsControlHidden ~= nil then
+        invControl:SetHandler("OnEffectivelyShown", function()
+            if libFilters.debug then df("OnEffectivelyShown - inv: %s, filterType: %s", tostring(invControl.GetName and invControl:GetName()), tostring(filterType)) end
+            updateActiveInventoryType(inventoryOrFragment, filterType, true)
+        end)
+        invControl:SetHandler("OnEffectivelyHidden", function()
+            if libFilters.debug then df("OnEffectivelyHidden - inv: %s, filterType: %s", tostring(invControl.GetName and invControl:GetName()), tostring(filterType)) end
+            updateActiveInventoryType(nil, nil, true)
+        end)
+    end
+
+end
+
+
+--Register the updater function which calls updateActiveInventoryType for the fragments state change
+local function registerActiveFragmentUpdate()
+    if usedFragments ~= nil then
+        local function fragmentChange(oldState, newState, fragmentId, fragmentName, filterType)
+            if libFilters.debug then df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState)) end
+            if newState == SCENE_FRAGMENT_HIDING  then
+                updateActiveInventoryType(nil, nil)
+            elseif newState == SCENE_FRAGMENT_SHOWN then
+                filterType = filterType or libFilters:GetCurrentFilterTypeForInventory(fragmentId)
+                updateActiveInventoryType(fragmentId, filterType)
+            end
+        end
+
+        for fragmentId, fragmentData in pairs(usedFragments) do
+            if fragmentId and fragmentData.name ~= "" then
+                local filterType
+                if type(fragmentData.filterType) == "function" then
+                    filterType = fragmentData.filterType()
+                else
+                    filterType = fragmentData.filterType
+                end
+                fragmentId:RegisterCallback("StateChange", function(oldState, newState)
+                    fragmentChange(oldState, newState, fragmentId, fragmentData.name, filterType)
+                end)
+            end
+        end
+    end
+end
+
 
 --The fixed updater names for the libFilters unique updater string
 local filterTypeToUpdaterNameFixed = {
@@ -769,13 +852,15 @@ libFilters.CallFilterFunc = callFilterFunc
 -- LibFilters library global library API functions - Hook into inventories functions
 --**********************************************************************************************************************
 --Hook the inventory layout or inventory to apply additional filter functions
-function libFilters:HookAdditionalFilter(filterType, inventoryOrFragment)
-    if libFilters.debug then df("HookAdditionalFilter - filterType: %s, inventoryOrFragment: %s", tostring(filterType), tostring(inventoryOrFragment)) end
+function libFilters:HookAdditionalFilter(filterType, inventoryOrFragment, isInventory)
+    isInventory = isInventory or false
+    if libFilters.debug then df("HookAdditionalFilter - filterType: %s, inventoryOrFragment: %s, isInventory: %s", tostring(filterType), tostring(inventoryOrFragment), tostring(isInventory)) end
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
     layoutData.libFilters3_filterType = filterType
 
-    updateActiveInventoryType(inventoryOrFragment, filterType)
-
+    if isInventory == true then
+        registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType)
+    end
     callFilterFunc(layoutData, filterType)
 end
 
@@ -1090,33 +1175,28 @@ end
 --**********************************************************************************************************************
 -- LibFilters hooks into inventories/fragments/LayoutData
 --**********************************************************************************************************************
-local function fragmentChange(oldState, newState, fragmentName)
-    if libFilters.debug then df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState)) end
-    --Bug #1
-    --On fragment hiding: Reset the LibFilters current inventory and filterType variables
-    if (newState == SCENE_FRAGMENT_HIDING ) then
-        updateActiveInventoryType(nil, nil)
-    end
-end
-
-
 --Hook all the filters at the different inventory panels (libFilters filterPanelIds) now
 local function HookAdditionalFilters()
     if libFilters.debug then df("HookAdditionalFilters") end
     --[NORMAL INVENTORY / FRAGMENT HOOKS]
-    libFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack])
-    libFilters:HookAdditionalFilter(LF_INVENTORY, menuBarInvFragment)
+    libFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack], true)
+    --[[
+    libFilters:HookAdditionalFilter(function()
+        if libFilters.debug then df("HookAdditionalFilter - BACKPACK_MENU_BAR_LAYOUT_FRAGMENT") end
+        return libFilters:GetCurrentFilterType()
+    end, menuBarInvFragment) -->Also active if CraftBag is shown
+    ]]
 
-    libFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[invBank])
+    libFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[invBank], true)
     libFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, bankInvFragment)
 
-    libFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[invGuildBank])
+    libFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[invGuildBank], true)
     libFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, guildBankInvFragment)
 
-    libFilters:HookAdditionalFilter(LF_VENDOR_BUY, vendor)
+    libFilters:HookAdditionalFilter(LF_VENDOR_BUY, vendor, true)
     libFilters:HookAdditionalFilter(LF_VENDOR_SELL, storeInvFragment)
-    libFilters:HookAdditionalFilter(LF_VENDOR_BUYBACK, buyBack)
-    libFilters:HookAdditionalFilter(LF_VENDOR_REPAIR, repair)
+    libFilters:HookAdditionalFilter(LF_VENDOR_BUYBACK, buyBack, true)
+    libFilters:HookAdditionalFilter(LF_VENDOR_REPAIR, repair, true)
 
     libFilters:HookAdditionalFilter(LF_GUILDSTORE_SELL, tradingHouseInvFragment)
 
@@ -1124,35 +1204,35 @@ local function HookAdditionalFilters()
 
     libFilters:HookAdditionalFilter(LF_TRADE, playerTradeInvFragment)
 
-    libFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory)
+    libFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory, true)
     --libFilters:HookAdditionalFilter(LF_SMITHING_CREATION, )
-    libFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory)
-    libFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory)
-    libFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel)
-    libFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory)
+    libFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory, true)
+    libFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory, true)
+    libFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel, true)
+    libFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory, true)
     --libFilters:HookAdditionalFilter(LF_JEWELRY_CREATION, )
-    libFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory)
-    libFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory)
-    libFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel)
+    libFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory, true)
+    libFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory, true)
+    libFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel, true)
 
-    libFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, alchemy.inventory)
+    libFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, alchemy.inventory, true)
 
     libFilters:HookAdditionalFilter(LF_FENCE_SELL, fenceInvFragment)
     libFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, launderInvFragment)
 
-    libFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[invCraftBag])
+    libFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[invCraftBag], true)
 
-    libFilters:HookAdditionalFilter(LF_QUICKSLOT, quickslots)
+    libFilters:HookAdditionalFilter(LF_QUICKSLOT, quickslots, true)
 
-    libFilters:HookAdditionalFilter(LF_RETRAIT, retrait)
+    libFilters:HookAdditionalFilter(LF_RETRAIT, retrait, true)
 
-    libFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[invHouseBank])
+    libFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[invHouseBank], true)
     libFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, houseBankInvFragment)
 
-    libFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, researchDialogSelect)
-    libFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, researchDialogSelect)
+    libFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, researchDialogSelect, true)
+    libFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, researchDialogSelect, true)
 
-    libFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[invQuestItem])
+    libFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[invQuestItem], true)
 
     --[SPECIAL HOOKS]
     if libFilters.debug then df("HookAdditionalFilterSpecial") end
@@ -1165,15 +1245,7 @@ local function HookAdditionalFilters()
 
 
     --[FRAGMENTS]
-    if usedFragments ~= nil then
-        for fragmentId, fragmentName in pairs(usedFragments) do
-            if fragmentId and fragmentName ~= "" then
-                fragmentId:RegisterCallback("StateChange", function(oldState, newState)
-                    fragmentChange(oldState, newState, fragmentName)
-                end)
-            end
-        end
-    end
+    registerActiveFragmentUpdate()
 end
 
 --Enable some hooks for the ZO_*Dialog1 controls
@@ -1270,6 +1342,10 @@ local function slashCommands()
     SLASH_COMMANDS["/libfilters_debug"] = function()
         libFilters.debug = not libFilters.debug
         dfi("Debugging: %s", tostring(libFilters.debug))
+
+        if libFilters.debug == true and GetDisplayName() == "@Baertram" then
+            libFilters:InitializeLibFilters()
+        end
     end
     SLASH_COMMANDS["/dialogmovable"] = function()
         libFilters:SetDialogsMovable(not isDialogMovable)
@@ -1280,7 +1356,6 @@ end
 -- LibFilters global variable and initialization
 --**********************************************************************************************************************
 function libFilters:Initialize()
-    --libFilters.debug = GetDisplayName() == "@Baertram"
     libFilters.debug = false
 
     if libFilters.debug then df("Initialize") end
