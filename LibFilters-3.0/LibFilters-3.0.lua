@@ -773,6 +773,9 @@ function libFilters:HookAdditionalFilter(filterType, inventoryOrFragment)
     if libFilters.debug then df("HookAdditionalFilter - filterType: %s, inventoryOrFragment: %s", tostring(filterType), tostring(inventoryOrFragment)) end
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
     layoutData.libFilters3_filterType = filterType
+
+    updateActiveInventoryType(inventoryOrFragment, filterType)
+
     callFilterFunc(layoutData, filterType)
 end
 
@@ -805,25 +808,45 @@ end
 
 
 --**********************************************************************************************************************
---  LibFilters global library API functions - Get
+-- LibFilters library global library API functions - Filter functions
+--**********************************************************************************************************************
+--Returns the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
+function libFilters:GetFilterCallback(filterTag, filterType)
+    if libFilters.debug then df("GetFilterCallback - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterType)) end
+    if not libFilters:IsFilterRegistered(filterTag, filterType) then return end
+
+    return filters[filterType][filterTag]
+end
+
+
+--**********************************************************************************************************************
+--  LibFilters global library API functions - Get: Filter types for "LibFilters"
 --**********************************************************************************************************************
 --Returns the minimum possible filterPanelId
-function libFilters:GetMinFilter()
+function libFilters:GetMinFilterType()
     return LF_FILTER_MIN
 end
 
 
 --Returns the maxium possible filterPanelId
-function libFilters:GetMaxFilter()
+function libFilters:GetMaxFilterType()
     return LF_FILTER_MAX
 end
 
 
---Returns the filterPanel connstants table: value = "name"
-function libFilters:GetFilterPanels()
+--Returns the LibFilters LF* filterType connstants table: value = "name"
+function libFilters:GetFilterTypes()
     return libFiltersFilterConstants
 end
 
+
+--Get the current libFilters filterType for the active inventory, as well as the filterType that was used before.
+--Active inventory will be set as the hook of the supported inventories gets applied and as it's updaterFunction is run.
+--The activeInventory will be e.g. INVENTORY_BACKPACK
+function libFilters:GetCurrentFilterType()
+    if libFilters.debug then df("GetCurrentFilterType - currentFilterType: %s, lastFilterType: %s", tostring(libFilters.activeFilterType), tostring(libFilters.lastFilterType)) end
+    return libFilters.activeFilterType, libFilters.lastFilterType
+end
 
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK
@@ -849,15 +872,9 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 end
 
 
---Get the current libFilters filterType for the active inventory, as well as the filterType that was used before.
---Active inventory will be set as the hook of the supported inventories gets applied and as it's updaterFunction is run.
---The activeInventory will be e.g. INVENTORY_BACKPACK
-function libFilters:GetCurrentFilterType()
-    if libFilters.debug then df("GetCurrentFilterType - currentFilterType: %s, lastFilterType: %s", tostring(libFilters.activeFilterType), tostring(libFilters.lastFilterType)) end
-    return libFilters.activeFilterType, libFilters.lastFilterType
-end
-
-
+--**********************************************************************************************************************
+--  LibFilters global library API functions - Get: Inventories for "LibFilters"
+--**********************************************************************************************************************
 --Get the current libFilters active inventory type. The activeInventory type will be e.g. INVENTORY_BACKPACK
 --or a userdate/table of the e.g. crafting inventory
 function libFilters:GetCurrentInventoryType()
@@ -869,6 +886,7 @@ end
 --Get the current libFilters active inventory, and the last inventory that was active before.
 --The activeInventory will be e.g. PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK] or a similar userdate/table of the
 --inventory
+-->Returns inventoryVar, lastInventoryVar, isInventoryVarACraftingTable
 function libFilters:GetCurrentInventoryVar()
     if libFilters.debug then df("GetCurrentInventoryVar - activeInventoryType: %s, lastInventoryType: %s", tostring(libFilters.activeInventoryType), tostring(libFilters.lastInventoryType)) end
     local activeInventoryType, lastInventoryType = libFilters:GetCurrentInventoryType()
@@ -876,10 +894,12 @@ function libFilters:GetCurrentInventoryVar()
     local inventory, lastInventory
     local isNumber
     local isTable
+    local isCrafting = false
     if activeInventoryType then
         invVarType = type(activeInventoryType)
         isNumber  = invVarType == "number"
         isTable   = invVarType == "table"
+        isCrafting = isNumber == false
         inventory = (isNumber == true and inventories[activeInventoryType])
                 or (isTable == true and activeInventoryType)
     end
@@ -890,10 +910,13 @@ function libFilters:GetCurrentInventoryVar()
         lastInventory = (isNumber == true and inventories[lastInventoryType])
                 or (isTable == true and lastInventoryType)
     end
-    return inventory, lastInventory
+    return inventory, lastInventory, isCrafting
 end
 
 
+--**********************************************************************************************************************
+-- LibFilters library global library API functions - Get: for "Vanilla UI inventories"
+--**********************************************************************************************************************
 --Return the currently active inventory's main filterType (e.g. Weapons, Armor) -> inventory.currentFilter
 -->Returns currentFilter, inventoryType, inventoryVar, libFiltersFilterTypeOfInventory
 function libFilters:GetCurrentInventoryFilter()
@@ -901,7 +924,6 @@ function libFilters:GetCurrentInventoryFilter()
     local activeInventoryVar, _ =       libFilters:GetCurrentInventoryVar()
     local activeFilterType, _ =         libFilters:GetCurrentFilterType()
 
-    --Todo: How to get the active filterType from the active inventory?
     --Should be "currentFilter" for normal inventories
     local currentFilter = activeInventoryVar and activeInventoryVar.currentFilter
     return currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
@@ -913,15 +935,6 @@ function libFilters:GetCurrentInventorySubFilter()
     local currentFilter, activeInventoryType, activeInventoryVar, activeFilterType = libFilters:GetCurrentInventoryFilter()
     local currentSubFilter = activeInventoryVar and activeInventoryVar.subFilter
     return currentSubFilter, currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
-end
-
-
---Returns the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
-function libFilters:GetFilterCallback(filterTag, filterType)
-    if libFilters.debug then df("GetFilterCallback - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterType)) end
-    if not libFilters:IsFilterRegistered(filterTag, filterType) then return end
-
-    return filters[filterType][filterTag]
 end
 
 
@@ -1078,7 +1091,7 @@ end
 -- LibFilters hooks into inventories/fragments/LayoutData
 --**********************************************************************************************************************
 local function fragmentChange(oldState, newState, fragmentName)
-    if libFilters.debug then df("Fragment %s \'%s\' state change - newState: ", tostring(fragmentName), tostring(newState)) end
+    if libFilters.debug then df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState)) end
     --Bug #1
     --On fragment hiding: Reset the LibFilters current inventory and filterType variables
     if (newState == SCENE_FRAGMENT_HIDING ) then
