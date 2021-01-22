@@ -33,14 +33,7 @@
 --**********************************************************************************************************************
 --TODO List - Count: 3                                                                          LastUpdated: 2020-12-28
 --**********************************************************************************************************************
---#1 Reset the variables which are used in function updateActiveInventoryType() to nil if the filterType panels close
---   again, e.g. Mail LF_MAIL_SEND -> Close (via ESC key or pressing I to show normal inventory etc. -> LF_MAIL_SEND
---   needs to be removed from LibFilters3.activeFilterType)
-
---#2 Test new API functions: GetCurrentActiveFilterType, GetCurrentActiveInventoryType, GetCurrentActiveInventoryVar,
---   ResetFilterTypeAfterListDialogClose, SetDialogsMovable
-
---#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the ctaftingtable "deconstruction",
+--#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the crafting table "deconstruction",
 --   once for SMITHING decon and once for JEWELRY decon? Should only be shown for one of both?!
 --   And why is there only "RunFilters" debug message but no "callFilterFunc" before or similar which calls runFilter?
 -->  Maybe another addon calls "LibFilters3.RunFilters" directly?
@@ -410,7 +403,7 @@ libFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 local function updateActiveInventoryType(invType, filterType)
     local lastInventoryType = libFilters.activeInventoryType
     local lastFilterType = libFilters.activeFilterType
-    if libFilters.debug then df("updateActiveInventoryType, invType: " ..tostring(invType) .. ", filterType: " ..tostring(filterType) .. ", lastInventoryType: " ..tostring(lastInventoryType) .. ", lastFilterType: " ..tostring(lastFilterType)) end
+    if libFilters.debug then df("updateActiveInventoryType - invType: %s, filterType: %s, lastInventoryType: %s, lastFilterType: %s", tostring(invType), tostring(filterType), tostring(lastInventoryType) ,tostring(lastFilterType)) end
     libFilters.lastInventoryType    = lastInventoryType
     libFilters.lastFilterType       = lastFilterType
     libFilters.activeInventoryType  = invType
@@ -515,7 +508,7 @@ libFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
-    if libFilters.debug then df("SafeUpdateList-isMouseVisible: " ..tostring(isMouseVisible)) end
+    if libFilters.debug then df("SafeUpdateList - isMouseVisible: %s", tostring(isMouseVisible)) end
 
     if isMouseVisible then HideMouse() end
 
@@ -541,7 +534,7 @@ local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callback
         end
     end
     updateActiveInventoryType(invId, filterType)
-    if libFilters.debug then df("updateInventoryBase - ActiveInventoryType: " ..tostring(invId) .. ", filterType: " ..tostring(filterType) .. ", isCrafting: " ..tostring(isCrafting)) end
+    if libFilters.debug then df("updateInventoryBase - ActiveInventoryType: %s, filterType: %s, isCrafting: %s", tostring(invId), tostring(filterType), tostring(isCrafting)) end
     if callbackFunc ~= nil then callbackFunc() end
 end
 
@@ -579,7 +572,7 @@ local function resetLibFiltersFilterTypeAfterDialogClose(dialogControl)
     local dialogCtrlName = (dialogControl and (dialogControl.control and dialogControl.control.GetName and dialogControl.control:GetName())
                             or (dialogControl and dialogControl.GetName and dialogControl:GetName())
                            ) or "n/a"
-    if libFilters.debug then df("resetLibFiltersFilterTypeAfterDialogClose - dialogControl: " ..tostring(dialogCtrlName)) end
+    if libFilters.debug then df("resetLibFiltersFilterTypeAfterDialogClose - dialogControl: %s", tostring(dialogCtrlName)) end
     --SMITHING research item dialog
     if dialogControl == researchDialogSelect then
         --Reset LibFilters filterType to LF_SMITHING_RESEARCH or LF_JEWELRY_RESEARCH
@@ -593,7 +586,7 @@ local dialogUpdaterCloseCallbacks = {
     [researchDialogSelect] = false,
 }
 local function dialogUpdaterFunc(listDialogControl)
-    if libFilters.debug then df("dialogUpdaterFunc - listDialogControl: " ..tostring(listDialogControl)) end
+    if libFilters.debug then df("dialogUpdaterFunc - listDialogControl: %s", tostring(listDialogControl)) end
     if listDialogControl == nil then return nil end
     --Get & Refresh the list dialog
     local listDialog = ZO_InventorySlot_GetItemListDialog()
@@ -733,10 +726,10 @@ libFilters.inventoryUpdaters = inventoryUpdaters
 --Run the applied filters at a libFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
     local debug = libFilters.debug
-    if debug then df("runFilters, filterType: " ..tostring(filterType)) end
+    --if debug then df("runFilters, filterType: " ..tostring(filterType)) end
     for tag, filter in pairs(filters[filterType]) do
         local result = filter(...)
-        if debug then df("tag: " ..tostring(tag) .. ", result: " ..tostring(result)) end
+        if debug then df("tag: %s, result: %s", tostring(tag), tostring(result)) end
         if not result then
             return false
         end
@@ -748,7 +741,7 @@ libFilters.RunFilters = runFilters
 --The filter function, using the inventory/fragment.additionalFilter function/value and the registered filter function at
 --the filterType (e.g. LF_INVENTORY) via function runFilters
 local function callFilterFunc(p_inventory, filterType)
-    if libFilters.debug then df("callFilterFunc, filterType: " ..tostring(filterType) .. ", inventory: " ..tostring(p_inventory)) end
+    if libFilters.debug then df("callFilterFunc - filterType: %s, inventory: %s", tostring(filterType), tostring(p_inventory)) end
     local originalFilter = p_inventory.additionalFilter
     local additionalFilterType = type(originalFilter)
     if additionalFilterType == "function" then
@@ -777,7 +770,7 @@ libFilters.CallFilterFunc = callFilterFunc
 --**********************************************************************************************************************
 --Hook the inventory layout or inventory to apply additional filter functions
 function libFilters:HookAdditionalFilter(filterType, inventoryOrFragment)
-    if libFilters.debug then df("HookAdditionalFilter-filterType: " ..tostring(filterType) .. ", inventoryOrFragment: " ..tostring(inventoryOrFragment)) end
+    if libFilters.debug then df("HookAdditionalFilter - filterType: %s, inventoryOrFragment: %s", tostring(filterType), tostring(inventoryOrFragment)) end
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
     layoutData.libFilters3_filterType = filterType
     callFilterFunc(layoutData, filterType)
@@ -790,11 +783,11 @@ local specialHooksDone = {
     ["enchanting"] = false,
 }
 function libFilters:HookAdditionalFilterSpecial(specialType, inventory)
-    if libFilters.debug then df("HookAdditionalFilterSpecial-specialType: " ..tostring(specialType) .. ", inventory: " ..tostring(inventory) .. ", hookAlreadyDone: " ..tostring(specialHooksDone[specialType])) end
+    if libFilters.debug then df("HookAdditionalFilterSpecial - specialType: %s, inventory: %s, hookAlreadyDone: %s", tostring(specialType), tostring(inventory), tostring(specialHooksDone[specialType])) end
     if specialHooksDone[specialType] == true then return end
     if specialType == "enchanting" then
         local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
-            if libFilters.debug then df("onEnchantingModeUpdated-enchantingMode: " ..tostring(enchantingMode)) end
+            if libFilters.debug then df("onEnchantingModeUpdated - enchantingMode: %s", tostring(enchantingMode)) end
             local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
             if libFiltersEnchantingFilterType == nil then return end
 
@@ -851,7 +844,7 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
             or (isTable == true and inventoryType.layoutData)
             or inventoryType
     if not inventory then return end
-    if libFilters.debug then df("GetCurrentFilterTypeForInventory-inventoryType: " ..tostring(inventoryType) .. ", filterType: " ..tostring(inventory.libFilters3_filterType)) end
+    if libFilters.debug then df("GetCurrentFilterTypeForInventory - inventoryType: %s, filterType: %s",tostring(inventoryType), tostring(inventory.libFilters3_filterType)) end
     return inventory.libFilters3_filterType
 end
 
@@ -860,7 +853,7 @@ end
 --Active inventory will be set as the hook of the supported inventories gets applied and as it's updaterFunction is run.
 --The activeInventory will be e.g. INVENTORY_BACKPACK
 function libFilters:GetCurrentActiveFilterType()
-    if libFilters.debug then df("GetCurrentActiveFilterType-currentFilterType: " ..tostring(libFilters.activeFilterType) .. ", lastFilterType: " ..tostring(libFilters.lastFilterType)) end
+    if libFilters.debug then df("GetCurrentActiveFilterType - currentFilterType: %s, lastFilterType: %s", tostring(libFilters.activeFilterType), tostring(libFilters.lastFilterType)) end
     return libFilters.activeFilterType, libFilters.lastFilterType
 end
 
@@ -868,7 +861,7 @@ end
 --Get the current libFilters active inventory type. The activeInventory type will be e.g. INVENTORY_BACKPACK
 --or a userdate/table of the e.g. crafting inventory
 function libFilters:GetCurrentActiveInventoryType()
-    if libFilters.debug then df("GetCurrentActiveInventoryType-activeInventoryType: " ..tostring(libFilters.activeInventoryType) .. ", lastInventoryType: " ..tostring(libFilters.lastInventoryType)) end
+    if libFilters.debug then df("GetCurrentActiveInventoryType - activeInventoryType: %s, lastInventoryType: %s", tostring(libFilters.activeInventoryType), tostring(libFilters.lastInventoryType)) end
     return libFilters.activeInventoryType, libFilters.lastInventoryType
 end
 
@@ -903,7 +896,7 @@ end
 
 --Returns the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function libFilters:GetFilterCallback(filterTag, filterType)
-    if libFilters.debug then df("GetFilterCallback-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterType)) end
+    if libFilters.debug then df("GetFilterCallback - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterType)) end
     if not libFilters:IsFilterRegistered(filterTag, filterType) then return end
 
     return filters[filterType][filterTag]
@@ -926,7 +919,7 @@ end
 function libFilters:IsFilterRegistered(filterTag, filterType)
     if libFilters.debug then
         local filterTypeIsRegisteredType = filterType or "-IsRegistered all-"
-        df("IsFilterRegistered-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeIsRegisteredType))
+        if libFilters.debug then df("IsFilterRegistered - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterTypeIsRegisteredType)) end
     end
     if filterType == nil then
         --check whether there's any filter with this tag
@@ -952,11 +945,11 @@ end
 --or the bagId and slotIndex as parameters (only for crafting stations like alchemy, refine deconstruction, improvement,
 --retrait, enchanting, ...)
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
-    if libFilters.debug then df("RegisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterType) .. ", filterCallback: " ..tostring(filterCallback)) end
+    if libFilters.debug then df("RegisterFilter - filterTag: %s, filterType: %s, filterCallback: %s",tostring(filterTag),tostring(filterType),tostring(filterCallback)) end
     local callbacks = filters[filterType]
 
     if not filterTag or not callbacks or type(filterCallback) ~= "function" then
-        dfe("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number libFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
+        dfe("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
             tostring(filterTag), tostring(filterType), tostring(filterCallback))
         return
     end
@@ -975,10 +968,10 @@ end
 function libFilters:UnregisterFilter(filterTag, filterType)
     if libFilters.debug then
         local filterTypeUnregType = filterType or "-Unregister all-"
-        df("UnregisterFilter-filterTag: ".. tostring(filterTag) .. ", filterType: " ..tostring(filterTypeUnregType))
+        df("UnregisterFilter - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterTypeUnregType))
     end
     if not filterTag or filterTag == "" then
-        dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tostring(filterTag), tostring(filterType))
+        dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number LibFiltersLF_*FilterPanelConstant", tostring(filterTag), tostring(filterType))
         return
     end
     if filterType == nil then
@@ -1004,15 +997,15 @@ end
 --**********************************************************************************************************************
 --Requests to call the update function of the inventory/fragment of filterType LF*
 function libFilters:RequestUpdate(filterType)
-    if libFilters.debug then df("RequestUpdate-filterType: " ..tostring(filterType)) end
+    if libFilters.debug then df("RequestUpdate-filterType: %s", tostring(filterType)) end
     local updaterName = filterTypeToUpdaterName[filterType]
     if not updaterName or updaterName == "" then
-        dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tostring(filterType))
+        dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number LibFiltersLF_*FilterPanelConstant", tostring(filterType))
         return
     end
     local callbackName = "LibFilters_updateInventory_" .. updaterName
     local function Update()
-    if libFilters.debug then df(">>>RequestUpdate->Update called: \'" ..tostring(callbackName) .."\'") end
+    if libFilters.debug then df(">>>RequestUpdate->Update called: \'%s\'",tostring(callbackName)) end
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         inventoryUpdaters[updaterName]()
     end
@@ -1030,7 +1023,7 @@ end
 --Reset the filterType of LibFilters to to currently shown inventory again, after a list-dialog closes (e.g. the
 --research list dialo -> SMITHING_RESEARCH_SELECT)
 function libFilters:ResetFilterTypeAfterListDialogClose(listDialogControl)
-    if libFilters.debug then df("ResetFilterTypeAfterListDialogClose-listDialogControl: " ..tostring(listDialogControl)) end
+    if libFilters.debug then df("ResetFilterTypeAfterListDialogClose - listDialogControl: %s", tostring(listDialogControl)) end
     if listDialogControl == nil then return end
     resetLibFiltersFilterTypeAfterDialogClose(listDialogControl)
 end
@@ -1039,7 +1032,7 @@ end
 --Used for the SMITHING table -> research panel: Set some values of the currently selected research horizontal scroll list
 --etc. so that loops are able to start at these values
 function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
-    if libFilters.debug then df("SetResearchLineLoopValues-fromResearchLineIndex: ".. tostring(fromResearchLineIndex) .. ", toResearchLineIndex: " ..tostring(toResearchLineIndex) .. ", skipTable: " ..tostring(skipTable)) end
+    if libFilters.debug then df("SetResearchLineLoopValues - fromResearchLineIndex: %s, toResearchLineIndex: %s, skipTable: %s", tostring(fromResearchLineIndex), tostring(toResearchLineIndex), tostring(skipTable)) end
     local craftingType = GetCraftingInteractionType()
     if craftingType == CRAFTING_TYPE_INVALID then return false end
     if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
@@ -1072,7 +1065,8 @@ end
 -- LibFilters hooks into inventories/fragments/LayoutData
 --**********************************************************************************************************************
 local function fragmentChange(oldState, newState, fragmentName)
-    if libFilters.debug then df("Fragment \'" ..  tostring(fragmentName) .. "\' state change-newState: " ..tostring(newState)) end
+    if libFilters.debug then df("Fragment %s \'%s\' state change - newState: ", tostring(fragmentName), tostring(newState)) end
+    --Bug #1
     --On fragment hiding: Reset the LibFilters current inventory and filterType variables
     if (newState == SCENE_FRAGMENT_HIDING ) then
         updateActiveInventoryType(nil, nil)
@@ -1148,7 +1142,9 @@ local function HookAdditionalFilters()
     if usedFragments ~= nil then
         for fragmentId, fragmentName in pairs(usedFragments) do
             if fragmentId and fragmentName ~= "" then
-                fragmentId:RegisterCallback("StateChange", function(oldState, newState) fragmentChange(oldState, newState, fragmentName) end)
+                fragmentId:RegisterCallback("StateChange", function(oldState, newState)
+                    fragmentChange(oldState, newState, fragmentName)
+                end)
             end
         end
     end
@@ -1156,6 +1152,7 @@ end
 
 --Enable some hooks for the ZO_*Dialog1 controls
 -->Enable drag&drop
+local isDialogMovable = false
 local function HookDialogs(doEnable)
     for dialogCtrl, isToHook in pairs(ZOsDialogs) do
         if isToHook == true and dialogCtrl ~= nil and dialogCtrl.SetMovable ~= nil then
@@ -1177,12 +1174,13 @@ local function HookDialogs(doEnable)
             end
         end
     end
+    isDialogMovable = not isDialogMovable
 end
 
 --If doEnabled = true: Remove the modal underlay behind ZO_(List)Dialog1 and make the dialog movable
 --If doEnable = false: Re-Enable the modal underlay behind the dialogs and remove the movable state
 function libFilters:SetDialogsMovable(doEnable)
-    if libFilters.debug then df("SetDialogsMovable-doEnable: ".. tostring(doEnable)) end
+    if libFilters.debug then df("SetDialogsMovable - doEnable: %s", tostring(doEnable)) end
     doEnable = doEnable or false
     HookDialogs(doEnable)
 end
@@ -1246,6 +1244,9 @@ local function slashCommands()
     SLASH_COMMANDS["/libfilters_debug"] = function()
         libFilters.debug = not libFilters.debug
         dfi("Debugging: %s", tostring(libFilters.debug))
+    end
+    SLASH_COMMANDS["/dialogmovable"] = function()
+        libFilters:SetDialogsMovable(not isDialogMovable)
     end
 end
 
