@@ -310,11 +310,7 @@ local storeInvFragment          = BACKPACK_STORE_LAYOUT_FRAGMENT
 local fenceInvFragment          = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local launderInvFragment        = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
 local usedFragments = {
---[[
-    [menuBarInvFragment]        = { name = "BACKPACK_MENU_BAR_LAYOUT_FRAGMENT",     filterType = function()
-        return libFilters:GetCurrentFilterType()
-    end },
-]]
+    [menuBarInvFragment]        = { name = "BACKPACK_MENU_BAR_LAYOUT_FRAGMENT",     filterType = LF_INVENTORY },
     [bankInvFragment]           = { name = "BACKPACK_BANK_LAYOUT_FRAGMENT",         filterType = LF_BANK_DEPOSIT },
     [houseBankInvFragment]      = { name = "BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT",   filterType = LF_HOUSE_BANK_DEPOSIT },
     [guildBankInvFragment]      = { name = "BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT",   filterType = LF_GUILD_BANK_DEPOSIT },
@@ -934,13 +930,13 @@ end
 function libFilters:GetMinFilterType()
     return LF_FILTER_MIN
 end
-
+libFilters.GetMinFilter = libFilters.GetMinFilterType
 
 --Returns the maxium possible filterPanelId
 function libFilters:GetMaxFilterType()
     return LF_FILTER_MAX
 end
-
+libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 
 --Returns the LibFilters LF* filterType connstants table: value = "name"
 function libFilters:GetFilterTypes()
@@ -960,23 +956,14 @@ end
 --INVENTORY_BANK
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
     if not inventoryType then return end
-    if inventoryType == invBackPack then
-        local layoutData = playerInventory.appliedLayout
-        if layoutData and layoutData.libFilters3_filterType then
-            return layoutData.libFilters3_filterType
-        else
-            return
-        end
-    end
     local invVarType = type(inventoryType)
     local isNumber  = invVarType == "number"
     local isTable   = invVarType == "table"
-    local inventory = (isNumber == true and inventories[inventoryType])
-            or (isTable == true and inventoryType.layoutData)
-            or inventoryType
-    if not inventory then return end
-    if libFilters.debug then df("GetCurrentFilterTypeForInventory - inventoryType: %s, filterType: %s",tostring(inventoryType), tostring(inventory.libFilters3_filterType)) end
-    return inventory.libFilters3_filterType
+    local filterTypeOfInv = (isNumber == true and inventories[inventoryType] and inventories[inventoryType].libFilters3_filterType)
+            or (isTable == true and inventoryType.layoutData and inventoryType.layoutData.libFilters3_filterType)
+            or inventoryType and inventoryType.libFilters3_filterType
+    if libFilters.debug then df("GetCurrentFilterTypeForInventory - inventoryType: %s, filterType: %s",tostring(inventoryType), tostring(filterTypeOfInv)) end
+    return filterTypeOfInv
 end
 
 
@@ -1200,12 +1187,7 @@ local function HookAdditionalFilters()
     if libFilters.debug then df("HookAdditionalFilters") end
     --[NORMAL INVENTORY / FRAGMENT HOOKS]
     libFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack], true)
-    --[[
-    libFilters:HookAdditionalFilter(function()
-        if libFilters.debug then df("HookAdditionalFilter - BACKPACK_MENU_BAR_LAYOUT_FRAGMENT") end
-        return libFilters:GetCurrentFilterType()
-    end, menuBarInvFragment) -->Also active if CraftBag is shown
-    ]]
+    libFilters:HookAdditionalFilter(LF_INVENTORY, menuBarInvFragment)
 
     libFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[invBank], true)
     libFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, bankInvFragment)
