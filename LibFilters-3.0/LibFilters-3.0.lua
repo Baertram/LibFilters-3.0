@@ -997,7 +997,7 @@ end
 --**********************************************************************************************************************
 --Requests to call the update function of the inventory/fragment of filterType LF*
 function libFilters:RequestUpdate(filterType)
-    if libFilters.debug then df("RequestUpdate-filterType: %s", tostring(filterType)) end
+    if libFilters.debug then df("RequestUpdate - filterType: %s", tostring(filterType)) end
     local updaterName = filterTypeToUpdaterName[filterType]
     if not updaterName or updaterName == "" then
         dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number LibFiltersLF_*FilterPanelConstant", tostring(filterType))
@@ -1005,7 +1005,7 @@ function libFilters:RequestUpdate(filterType)
     end
     local callbackName = "LibFilters_updateInventory_" .. updaterName
     local function Update()
-    if libFilters.debug then df(">>>RequestUpdate->Update called: \'%s\'",tostring(callbackName)) end
+    if libFilters.debug then df(">>>RequestUpdate -> Update called: \'%s\'",tostring(callbackName)) end
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         inventoryUpdaters[updaterName]()
     end
@@ -1225,7 +1225,7 @@ end
 
 --Function needed to be called from your addon to start the libFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
-    if libFilters.debug then df("InitializeLibFilters-isInitialized: " ..tostring(libFilters.isInitialized)) end
+    if libFilters.debug then df("InitializeLibFilters - isInitialized: " ..tostring(libFilters.isInitialized)) end
     checkforOldLibFiltersVersionAndDeactive()
 
     if libFilters.isInitialized == true then return end
