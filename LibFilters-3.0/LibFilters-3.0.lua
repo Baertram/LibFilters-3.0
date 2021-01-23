@@ -1345,9 +1345,11 @@ local function slashCommands()
         libFilters.debug = not libFilters.debug
         dfi("Debugging: %s", tostring(libFilters.debug))
 
+        --[[
         if libFilters.debug == true and GetDisplayName() == "@Baertram" then
             libFilters:InitializeLibFilters()
         end
+        ]]
     end
     SLASH_COMMANDS["/dialogmovable"] = function()
         libFilters:SetDialogsMovable(not isDialogMovable)
