@@ -116,7 +116,11 @@ local function dfe(...)
     debugMessage(string.format(...), 'E')
 end
 
-local function isInitialized()
+local function isInitialized(initializeIfNot)
+    initializeIfNot = initializeIfNot or false
+    if not LibFilters.isInitialized and initializeIfNot == true then
+        LibFilters:InitializeLibFilters()
+    end
     return LibFilters.isInitialized
 end
 
@@ -451,9 +455,8 @@ local filterTypeToUpdaterNameDynamic = {
     },
 }
 --The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
-local filterTypeToUpdaterName = {}
+local filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
 --Add the fixed updaterNames of the filtertypes
-filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
 --Then dynamically add the other updaterNames from the above table filterTypeToUpdaterNameDynamic
 for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDynamic) do
     if updaterName ~= "" then
@@ -603,14 +606,18 @@ local function updateOtherInventoryType(otherInventoryOrFragmentVar, inventoryId
 end
 
 local function resetLibFiltersFilterTypeAfterDialogClose(dialogControl)
+    --[[
     local dialogCtrlName = (dialogControl and (dialogControl.control and dialogControl.control.GetName and dialogControl.control:GetName())
                             or (dialogControl and dialogControl.GetName and dialogControl:GetName())
                            ) or "n/a"
+   ]]
     --SMITHING research item dialog
     if dialogControl == researchDialogSelect then
         --Reset LibFilters filterType to LF_SMITHING_RESEARCH or LF_JEWELRY_RESEARCH
         updateCraftingInventoryType(researchPanel, nil, nil, function() researchPanel:Refresh() end)
+        return true
     end
+    return false
 end
 
 --Function to update a ZO_ListDialog1 dialog's list contents
@@ -767,8 +774,8 @@ LibFilters.CallFilterFunc = callFilterFunc
 --**********************************************************************************************************************
 --Returns the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function LibFilters:GetFilterCallback(filterTag, filterType)
-if not LibFilters:IsFilterRegistered(filterTag, filterType) then return end
-
+    if not isInitialized(true) then return end
+    if not LibFilters:IsFilterRegistered(filterTag, filterType) then return end
     return filters[filterType][filterTag]
 end
 
@@ -798,12 +805,14 @@ end
 --Active inventory will be set as the hook of the supported inventories gets applied and as it's updaterFunction is run.
 --The activeInventory will be e.g. INVENTORY_BACKPACK
 function LibFilters:GetCurrentFilterType()
+    if not isInitialized(true) then return nil, nil end
     return LibFilters.activeFilterType, LibFilters.lastFilterType
 end
 
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK
 function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
+    if not isInitialized(true) then return end
     if not inventoryType then return end
     local invVarType = type(inventoryType)
     local isNumber  = invVarType == "number"
@@ -821,6 +830,7 @@ end
 --Get the current libFilters active inventory type. The activeInventory type will be e.g. INVENTORY_BACKPACK
 --or a userdate/table of the e.g. crafting inventory
 function LibFilters:GetCurrentInventoryType()
+    if not isInitialized(true) then return nil, nil end
     return LibFilters.activeInventoryType, LibFilters.lastInventoryType
 end
 
@@ -830,6 +840,7 @@ end
 --inventory
 -->Returns inventoryVar, lastInventoryVar, isInventoryVarACraftingTable
 function LibFilters:GetCurrentInventoryVar()
+    if not isInitialized(true) then return nil, nil, nil end
     local activeInventoryType, lastInventoryType = LibFilters:GetCurrentInventoryType()
     local invVarType, lastInvVarType
     local inventory, lastInventory
@@ -861,6 +872,7 @@ end
 --Return the currently active inventory's main filterType (e.g. Weapons, Armor) -> inventory.currentFilter
 -->Returns currentFilter, inventoryType, inventoryVar, libFiltersFilterTypeOfInventory
 function LibFilters:GetCurrentInventoryFilter()
+    if not isInitialized(true) then return nil, nil, nil, nil end
     local activeInventoryType, _ =      LibFilters:GetCurrentInventoryType()
     local activeInventoryVar, _ =       LibFilters:GetCurrentInventoryVar()
     local activeFilterType, _ =         LibFilters:GetCurrentFilterType()
@@ -872,7 +884,8 @@ end
 
 --Return the currently active inventory's main filterType's subFilterType (e.g. Weapons- > 1hd)  -> inventory.subFilter
 -->Returns currentSubFilter, currentFilter, inventoryType, inventoryControl, libFiltersFilterTypeOfInventory
-function libFilters:GetCurrentInventorySubFilter()
+function LibFilters:GetCurrentInventorySubFilter()
+    if not isInitialized(true) then return nil, nil, nil, nil end
     local currentFilter, activeInventoryType, activeInventoryVar, activeFilterType = LibFilters:GetCurrentInventoryFilter()
     local currentSubFilter = activeInventoryVar and activeInventoryVar.subFilter
     return currentSubFilter, currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
@@ -884,6 +897,7 @@ end
 --**********************************************************************************************************************
 --Checks if a filter function is already registered for the filterTag e.g. <addonName> and the filterType LF*
 function LibFilters:IsFilterRegistered(filterTag, filterType)
+    if not isInitialized(true) then return end
     if filterType == nil then
         --check whether there's any filter with this tag
         for _, callbacks in pairs(filters) do
@@ -908,6 +922,7 @@ end
 --or the bagId and slotIndex as parameters (only for crafting stations like alchemy, refine deconstruction, improvement,
 --retrait, enchanting, ...)
 function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
+    if not isInitialized(true) then return end
     local callbacks = filters[filterType]
 
     if not filterTag or not callbacks or type(filterCallback) ~= "function" then
@@ -923,11 +938,13 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
     end
 
     callbacks[filterTag] = filterCallback
+    return true
 end
 
 
 --Un-Registers the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function LibFilters:UnregisterFilter(filterTag, filterType)
+    if not isInitialized(true) then return end
     if not filterTag or filterTag == "" then
         dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number LibFiltersLF_*FilterPanelConstant", tostring(filterTag), tostring(filterType))
         return
@@ -939,12 +956,14 @@ function LibFilters:UnregisterFilter(filterTag, filterType)
                 callbacks[filterTag] = nil
             end
         end
+        return true
     else
         --unregister only the specified filter type
         local callbacks = filters[filterType]
 
         if callbacks[filterTag] ~= nil then
             callbacks[filterTag] = nil
+            return true
         end
     end
 end
@@ -955,6 +974,7 @@ end
 --**********************************************************************************************************************
 --Requests to call the update function of the inventory/fragment of filterType LF*
 function LibFilters:RequestUpdate(filterType)
+    if not isInitialized(true) then return end
     local updaterName = filterTypeToUpdaterName[filterType]
     if not updaterName or updaterName == "" then
         dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number LibFiltersLF_*FilterPanelConstant", tostring(filterType))
@@ -966,6 +986,7 @@ function LibFilters:RequestUpdate(filterType)
         inventoryUpdaters[updaterName]()
     end
     throttledCall(filterType, callbackName, Update)
+    return true
 end
 
 
@@ -976,15 +997,17 @@ end
 --Reset the filterType of LibFilters to to currently shown inventory again, after a list-dialog closes (e.g. the
 --research list dialo -> SMITHING_RESEARCH_SELECT)
 function LibFilters:ResetFilterTypeAfterListDialogClose(listDialogControl)
+    if not isInitialized(true) then return end
     if LibFilters.sv.debug then df("ResetFilterTypeAfterListDialogClose - listDialogControl: %s", tostring(listDialogControl)) end
     if listDialogControl == nil then return end
-    resetLibFiltersFilterTypeAfterDialogClose(listDialogControl)
+    return resetLibFiltersFilterTypeAfterDialogClose(listDialogControl)
 end
 
 
 --Used for the SMITHING table -> research panel: Set some values of the currently selected research horizontal scroll list
 --etc. so that loops are able to start at these values
 function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
+    if not isInitialized(true) then return end
     local craftingType = GetCraftingInteractionType()
     if craftingType == CRAFTING_TYPE_INVALID then return false end
     if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
@@ -996,11 +1019,13 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
     local smithingResearchPanel = helpers["SMITHING.researchPanel:Refresh"].locations[1]
     if smithingResearchPanel then
         smithingResearchPanel.libFilters_3ResearchLineLoopValues = {
-            from        =fromResearchLineIndex,
-            to          =toResearchLineIndex,
-            skipTable   =skipTable,
+            from        = fromResearchLineIndex,
+            to          = toResearchLineIndex,
+            skipTable   = skipTable,
         }
+        return true
     end
+    return false
 end
 
 --Enable some hooks for the ZO_*Dialog1 controls
@@ -1106,19 +1131,19 @@ end
 
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
-    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK])
+    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK], true)
     LibFilters:HookAdditionalFilter(LF_INVENTORY, menuBarInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK])
+    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK], true)
     LibFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, bankInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK])
+    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK], true)
     LibFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, guildBankInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, vendor)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, vendor, true)
     LibFilters:HookAdditionalFilter(LF_VENDOR_SELL, storeInvFragment)
-    LibFilters:HookAdditionalFilter(LF_VENDOR_BUYBACK, buyBack)
-    LibFilters:HookAdditionalFilter(LF_VENDOR_REPAIR, repair)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_BUYBACK, buyBack, true)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_REPAIR, repair, true)
 
     --LibFilters:HookAdditionalFilter(LF_GUILDSTORE_BROWSE, )
     LibFilters:HookAdditionalFilter(LF_GUILDSTORE_SELL, tradingHouseInvFragment)
@@ -1127,18 +1152,18 @@ local function HookAdditionalFilters()
 
     LibFilters:HookAdditionalFilter(LF_TRADE, playerTradeInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory, true)
     --LibFilters:HookAdditionalFilter(LF_SMITHING_CREATION, )
-    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory, true)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory, true)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel, true)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory, true)
     --LibFilters:HookAdditionalFilter(LF_JEWELRY_CREATION, )
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory, true)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory, true)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel, true)
 
-    LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, alchemy.inventory)
+    LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, alchemy.inventory, true)
 
     --LibFilters:HookAdditionalFilter(LF_PROVISIONING_COOK, )
     --LibFilters:HookAdditionalFilter(LF_PROVISIONING_BREW, )
@@ -1146,19 +1171,19 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_FENCE_SELL, fenceInvFragment)
     LibFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, launderInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG], true)
 
-    LibFilters:HookAdditionalFilter(LF_QUICKSLOT, QUICKSLOT_WINDOW)
+    LibFilters:HookAdditionalFilter(LF_QUICKSLOT, quickslots, true)
 
-    LibFilters:HookAdditionalFilter(LF_RETRAIT, retrait)
+    LibFilters:HookAdditionalFilter(LF_RETRAIT, retrait, true)
 
-    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK])
+    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK], true)
     LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, houseBankInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, researchDialogSelect)
-    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, researchDialogSelect)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, researchDialogSelect, true)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, researchDialogSelect, true)
 
-    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM], true)
 
     --HookAdditionalFilter: Does not work for enchanting as all filter constants LF_ENCHANTNG* use ENCHANTING.inventory
     --and thus the last call to it (currently LF_ENCHANTING_EXTRACTION) will override the value of before registered ones
