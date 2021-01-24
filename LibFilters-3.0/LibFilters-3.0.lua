@@ -42,7 +42,7 @@
 -- LibFilters information
 --**********************************************************************************************************************
 --The libraries global name and version information
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.8
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.9
 local libPreText = "[" .. MAJOR .."]"
 
 --**********************************************************************************************************************
@@ -827,11 +827,13 @@ libFilters.inventoryUpdaters = inventoryUpdaters
 --**********************************************************************************************************************
 --Run the applied filters at a libFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
-    local debug = libFilters.sv.debug
-    --if debug then df("runFilters, filterType: " ..tostring(filterType)) end
+    local settings = libFilters.sv
+    local debug = settings.debug
+    local debugDetails = settings.debugDetails
+    if debug and debugDetails then df("runFilters, filterType: " ..tostring(filterType)) end
     for tag, filter in pairs(filters[filterType]) do
         local result = filter(...)
-        if debug then df("tag: %s, result: %s", tostring(tag), tostring(result)) end
+        if debug and debugDetails then df("tag: %s, result: %s", tostring(tag), tostring(result)) end
         if not result then
             return false
         end
@@ -1344,12 +1346,16 @@ local function slashCommands()
     SLASH_COMMANDS["/libfilters_debug"] = function()
         libFilters.sv.debug = not libFilters.sv.debug
         dfi("Debugging: %s", tostring(libFilters.sv.debug))
-
-        --[[
-        if libFilters.sv.debug == true and GetDisplayName() == "@Baertram" then
-            libFilters:InitializeLibFilters()
+    end
+    SLASH_COMMANDS["/libfilters_debugdetails"] = function()
+        libFilters.sv.debugDetails = not libFilters.sv.debugDetails
+        if libFilters.sv.debugDetails == true then
+            libFilters.sv.debug = true
+        else
+            libFilters.sv.debug = false
         end
-        ]]
+        dfi("Debugging with details: %s", tostring(libFilters.sv.debugDetails))
+
     end
     SLASH_COMMANDS["/dialogmovable"] = function()
         libFilters:SetDialogsMovable(not libFilters.sv.dialogMovable)
@@ -1363,6 +1369,7 @@ end
 local function loadSavedVariables()
     local libFiltersSV_Defaults = {
         debug           = false,
+        debugDetails    = false,
         dialogMovable   = false
     }
     local displayName = GetDisplayName()
