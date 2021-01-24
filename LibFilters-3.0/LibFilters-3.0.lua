@@ -511,48 +511,57 @@ local function updateActiveInventoryType(invType, filterType, isInventory)
         LibFilters.activeFilterType     = p_filterType
     end
 
-    --[[
     local callbackName = "LibFilters_updateActiveInventoryType"
     local function Update()
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         updateActiveInvNow(invType, filterType, isInventory)
     end
     throttledCall(filterType, callbackName, Update)
-    ]]
 end
 
---Register the updater function which calls updateActiveInventoryType for the normal inventories
-local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType)
+--Register the updater function which calls updateActiveInventoryType for the normal inventories and fragments
+local invControlHandlersSet = {}
+local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory)
     --If any filter is enabled the update fucntion of the inventory (e.g. updateInventoryBase) will handle this. But if no
     --filter is registrered (yet/anymore) it wont! So we need to "duplicate" the check here somehow as the inventory's
     --control get's shown
     if not inventoryOrFragment then return end
     local invControl = inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list
-                        or inventoryOrFragment.container or inventoryOrFragment
-    df("registerActiveInventoryTypeUpdate - invControl: %s, invControl.IsControlHidden: %s",tostring(tostring(invControl)), tostring(invControl.IsControlHidden ~= nil))
+            or inventoryOrFragment.container or inventoryOrFragment
+    --df("registerActiveInventoryTypeUpdate - invControl: %s, invControl.IsControlHidden: %s",tostring(tostring(invControl)), tostring(invControl.IsControlHidden ~= nil))
 
-    LibFilters.registeredInventoriesData = LibFilters.registeredInventoriesData or {}
-    LibFilters.registeredInventoriesData[filterType] = {
-        filterType = filterType,
-        inv = inventoryOrFragment,
-        invControl = invControl,
-    }
+    if isInventory == true then
+        LibFilters.registeredInventoriesData = LibFilters.registeredInventoriesData or {}
+        LibFilters.registeredInventoriesData[filterType] = {
+            filterType = filterType,
+            inv = inventoryOrFragment,
+            invControl = invControl,
+        }
+    else
+        LibFilters.registeredFragmentsData = LibFilters.registeredFragmentsData or {}
+        LibFilters.registeredFragmentsData[filterType] = {
+            filterType = filterType,
+            inv = inventoryOrFragment,
+            invControl = invControl,
+        }
+    end
+
     local filterTypeUsesSameInvControl = filterTypesUsingTheStandardInvControl[filterType] or false
     if filterTypeUsesSameInvControl == true then
-        --Will be handled via the fragments then!
+        --The fragments will handle the update of the active inventory type then, e.g. LF_MAIL_SEND -> BACKPACK_MAIL_LAYOUT_FRAGMENT
         return
     end
 
     --Is this a control?
-    if invControl.IsControlHidden ~= nil then
+    if not invControlHandlersSet[invControl] and invControl.IsControlHidden ~= nil then
         invControl:SetHandler("OnEffectivelyShown", function()
             updateActiveInventoryType(inventoryOrFragment, filterType, true)
         end)
         invControl:SetHandler("OnEffectivelyHidden", function()
             updateActiveInventoryType(nil, nil, true)
         end)
+        invControlHandlersSet[invControl] = true
     end
-
 end
 
 local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, isCrafting, filterType)
@@ -659,13 +668,13 @@ end
 --The updater functions for the inventories
 local inventoryUpdaters = {
     INVENTORY = function()
-        SafeUpdateList(playerInventory, INVENTORY_BACKPACK)
+        SafeUpdateList(playerInventory, invBackPack)
     end,
     BANK_WITHDRAW = function()
-        SafeUpdateList(playerInventory, INVENTORY_BANK)
+        SafeUpdateList(playerInventory, invBank)
     end,
     GUILDBANK_WITHDRAW = function()
-        SafeUpdateList(playerInventory, INVENTORY_GUILD_BANK)
+        SafeUpdateList(playerInventory, invGuildBank)
     end,
     VENDOR_BUY = function()
         if tradingHouseInvFragment.state ~= SCENE_SHOWN then --"shown"
@@ -706,7 +715,7 @@ local inventoryUpdaters = {
     PROVISIONING_BREW = function()
     end,
     CRAFTBAG = function()
-        SafeUpdateList(playerInventory, INVENTORY_CRAFT_BAG)
+        SafeUpdateList(playerInventory, invCraftBag)
     end,
     QUICKSLOT = function()
         SafeUpdateList(quickslots)
@@ -715,7 +724,7 @@ local inventoryUpdaters = {
         retrait.inventory:HandleDirtyEvent()
     end,
     HOUSE_BANK_WITHDRAW = function()
-        SafeUpdateList(playerInventory, INVENTORY_HOUSE_BANK )
+        SafeUpdateList(playerInventory, invHouseBank )
     end,
     SMITHING_RESEARCH_DIALOG = function()
         dialogUpdaterFunc(researchDialogSelect)
@@ -724,7 +733,7 @@ local inventoryUpdaters = {
         reconstruct.inventory:HandleDirtyEvent()
     end,
     INVENTORY_QUEST = function()
-        SafeUpdateList(playerInventory, INVENTORY_QUEST_ITEM)
+        SafeUpdateList(playerInventory, invQuestItem)
     end,
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
@@ -1083,9 +1092,7 @@ function LibFilters:HookAdditionalFilter(filterType, inventoryOrFragment, isInve
 
     callFilterFunc(layoutData, filterType)
 
-    if isInventory == true then
-        registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType)
-    end
+    registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory)
 
     --[[
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
@@ -1131,13 +1138,13 @@ end
 
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
-    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK], true)
+    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack], true)
     LibFilters:HookAdditionalFilter(LF_INVENTORY, menuBarInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK], true)
+    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[invBank], true)
     LibFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, bankInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK], true)
+    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[invGuildBank], true)
     LibFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, guildBankInvFragment)
 
     LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, vendor, true)
@@ -1171,19 +1178,19 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_FENCE_SELL, fenceInvFragment)
     LibFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, launderInvFragment)
 
-    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG], true)
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[invCraftBag], true)
 
     LibFilters:HookAdditionalFilter(LF_QUICKSLOT, quickslots, true)
 
     LibFilters:HookAdditionalFilter(LF_RETRAIT, retrait, true)
 
-    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK], true)
+    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[invHouseBank], true)
     LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, houseBankInvFragment)
 
     LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, researchDialogSelect, true)
     LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, researchDialogSelect, true)
 
-    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM], true)
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[invQuestItem], true)
 
     --HookAdditionalFilter: Does not work for enchanting as all filter constants LF_ENCHANTNG* use ENCHANTING.inventory
     --and thus the last call to it (currently LF_ENCHANTING_EXTRACTION) will override the value of before registered ones
