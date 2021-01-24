@@ -3,6 +3,7 @@ local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 1.8
 --Was the library loaded already?
 if _G[GlobalLibName] ~= nil then return end
 
+------------------------------------------------------------------------------------------------------------------------
 --Local library variable
 local LibFilters = {}
 
@@ -11,14 +12,56 @@ _G[GlobalLibName]   = LibFilters
 LibFilters.name     = MAJOR
 LibFilters.version  = MINOR
 
---Other libraries
+LibFilters.isInitialized = false
 
---LibDebugLogger
+------------------------------------------------------------------------------------------------------------------------
+--Other libraries
+-->LibDebugLogger
 if LibDebugLogger and LibFilters.logger == nil then
     LibFilters.logger = LibDebugLogger(MAJOR)
 end
 local logger = LibFilters.logger
 
+
+------------------------------------------------------------------------------------------------------------------------
+--Debugging output
+local function debugMessage(text, textType)
+    if not text or text == "" then return end
+    textType = textType or 'I'
+    if logger ~= nil then
+        if textType == 'D' then
+            logger:Debug(text)
+        elseif textType == 'E' then
+            logger:Error(text)
+        elseif textType == 'I' then
+            logger:Info(text)
+        elseif textType == 'V' then
+            logger:Verbose(text)
+        elseif textType == 'W' then
+            logger:Warn(text)
+        end
+    else
+        local textTypeToPrefix = {
+            ["D"] = "Debug",
+            ["E"] = "Error",
+            ["I"] = "Info",
+            ["V"] = "Verbose",
+            ["W"] = "Warning",
+        }
+        d("[".. MAJOR .."]" .. tostring(textTypeToPrefix[textType]) .. ": ".. tostring(text))
+    end
+end
+
+--Information debug
+local function df(...)
+    debugMessage(string.format(...), 'I')
+end
+--Error debug
+local function dfe(...)
+    debugMessage(string.format(...), 'E')
+end
+
+------------------------------------------------------------------------------------------------------------------------
 --The possible LibFilters filterPanelIds
 LF_INVENTORY                = 1
 LF_BANK_WITHDRAW            = 2
@@ -63,30 +106,108 @@ LF_INVENTORY_QUEST          = 38
 LF_FILTER_MIN               = LF_INVENTORY
 LF_FILTER_MAX               = LF_INVENTORY_QUEST
 
+------------------------------------------------------------------------------------------------------------------------
+--Some inventory variables and controls
+local playerInventory =     PLAYER_INVENTORY
+local inventories =         playerInventory.inventories
 
+local quickslots =          QUICKSLOT_WINDOW
+
+local vendor =              STORE_WINDOW
+local buyBack =             BUY_BACK_WINDOW
+local repair =              REPAIR_WINDOW
+
+--Some crafting variables
+local smithing =            SMITHING
+local refinementPanel =     smithing.refinementPanel
+local creationPanel =       smithing.creationPanel
+local deconstructionPanel = smithing.deconstructionPanel
+local improvementPanel =    smithing.improvementPanel
+local researchPanel =       smithing.researchPanel
+
+--local retraitClass =        ZO_RetraitStation_Retrait_Base
+local retrait =             ZO_RETRAIT_KEYBOARD
+
+local enchantingClass =     ZO_Enchanting
+local enchanting =          ENCHANTING
+
+--local alchemyClass =        ZO_Alchemy
+local alchemy =             ALCHEMY
+
+--TODO: Provisioning?!
+
+--Dialogs
+local researchDialogSelect= SMITHING_RESEARCH_SELECT
+local ZOsDialog1 =          ZO_Dialog1
+local ZOsListDialog1 =      ZO_ListDialog1
+local ZOsDialogs = {
+    [ZOsDialog1]        = true,
+    [ZOsListDialog1]    = true,
+}
+
+
+local usedControls = {
+ [quickslots] =             true,
+
+ [vendor] =                 true,
+ [buyBack] =                true,
+
+ [alchemy] =                true,
+
+ [refinementPanel] =        true,
+ [creationPanel] =          true,
+ [deconstructionPanel] =    true,
+ [improvementPanel] =       true,
+ [researchPanel] =          true,
+ [retrait] =                true,
+}
+LibFilters.UsedControls = usedControls
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Hooks
+local specialHooksDone = {
+    ["enchanting"] = false,
+}
+
+------------------------------------------------------------------------------------------------------------------------
+--Inventory types
+local invBackPack   = INVENTORY_BACKPACK
+local invBank       = INVENTORY_BANK
+local invHouseBank  = INVENTORY_HOUSE_BANK
+local invGuildBank  = INVENTORY_GUILD_BANK
+local invQuestItem  = INVENTORY_QUEST_ITEM
+local invCraftBag   = INVENTORY_CRAFT_BAG
+
+local usedInventoryTypes = {
+    [invBackPack]   = true,
+    [invBank]       = true,
+    [invHouseBank]  = true,
+    [invGuildBank]  = true,
+    [invQuestItem]  = true,
+    [invCraftBag]   = true,
+}
+LibFilters.UsedInventoryTypes = usedInventoryTypes
+
+------------------------------------------------------------------------------------------------------------------------
+--Mappings
 local enchantingModeToFilterType = {
     [ENCHANTING_MODE_CREATION]      = LF_ENCHANTING_CREATION,
     [ENCHANTING_MODE_EXTRACTION]    = LF_ENCHANTING_EXTRACTION,
     [ENCHANTING_MODE_RECIPES]       = nil --not supported yet
 }
 
---Controls
-local enchantingClass =     ZO_Enchanting
-local enchanting =          ENCHANTING
+--Filtertypes also using LF_INVENTORY's inventory control ZO_PlayerInventoryList
+local filterTypesUsingTheStandardInvControl  = {
+    [LF_MAIL_SEND]          = true,
+    [LF_TRADE]              = true,
+    [LF_BANK_DEPOSIT]       = true,
+    [LF_HOUSE_BANK_DEPOSIT] = true,
+    [LF_GUILDBANK_DEPOSIT]  = true,
+}
+LibFilters.filterTypesUsingTheSameInvControl = filterTypesUsingTheStandardInvControl
 
-
---Returns the minimum possible filterPanelId
-function LibFilters:GetMinFilter()
-    return LF_FILTER_MIN
-end
-
---Returns the maxium possible filterPanelId
-function LibFilters:GetMaxFilter()
-    return LF_FILTER_MAX
-end
-
-LibFilters.isInitialized = false
-
+------------------------------------------------------------------------------------------------------------------------
 --The filters of the different FilterPanelIds will be registered to these sub-tables
 LibFilters.filters = {
     [LF_INVENTORY] = {},
@@ -130,6 +251,7 @@ LibFilters.filters = {
 }
 local filters = LibFilters.filters
 
+------------------------------------------------------------------------------------------------------------------------
 --The fixed updater names for the LibFilters unique updater string
 local filterTypeToUpdaterNameFixed = {
     [LF_BANK_WITHDRAW]              = "BANK_WITHDRAW",
@@ -206,6 +328,7 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 end
 LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 
+------------------------------------------------------------------------------------------------------------------------
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
@@ -236,14 +359,6 @@ local function dialogUpdaterFunc(listDialogControl)
         end
     end
 end
-
---Some inventory variables
-local inventories =         PLAYER_INVENTORY.inventories
---Some crafting variables
-local refinementPanel =     SMITHING.refinementPanel
-local deconstructionPanel = SMITHING.deconstructionPanel
-local improvementPanel =    SMITHING.improvementPanel
-local researchPanel =       SMITHING.researchPanel
 
 --The updater functions for the inventories
 local inventoryUpdaters = {
@@ -318,44 +433,7 @@ local inventoryUpdaters = {
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
 
-
---Debugging output
-local function debugMessage(text, textType)
-    if not text or text == "" then return end
-    textType = textType or 'I'
-    if logger ~= nil then
-        if textType == 'D' then
-            logger:Debug(text)
-        elseif textType == 'E' then
-            logger:Error(text)
-        elseif textType == 'I' then
-            logger:Info(text)
-        elseif textType == 'V' then
-            logger:Verbose(text)
-        elseif textType == 'W' then
-            logger:Warn(text)
-        end
-    else
-        local textTypeToPrefix = {
-            ["D"] = "Debug",
-            ["E"] = "Error",
-            ["I"] = "Info",
-            ["V"] = "Verbose",
-            ["W"] = "Warning",
-        }
-        d("[".. MAJOR .."]" .. tostring(textTypeToPrefix[textType]) .. ": ".. tostring(text))
-    end
-end
-
---Information debug
-local function df(...)
-    debugMessage(string.format(...), 'I')
-end
---Error debug
-local function dfe(...)
-    debugMessage(string.format(...), 'E')
-end
-
+------------------------------------------------------------------------------------------------------------------------
 --Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
 --d("[LibFilters3]runFilters, filterType: " ..tostring(filterType))
@@ -385,6 +463,7 @@ local function callFilterFunc(p_inventory, filterType)
 end
 LibFilters.CallFilterFunc = callFilterFunc
 
+------------------------------------------------------------------------------------------------------------------------
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK])
@@ -448,7 +527,6 @@ local function HookAdditionalFilters()
     LibFilters:HookAdditionalFilterSpecial("enchanting", enchanting.inventory)
 end
 
---**********************************************************************************************************************
 --Hook the inventory layout or inventory to apply additional filter functions
 function LibFilters:HookAdditionalFilter(filterType, inventory)
     local layoutData = inventory.layoutData or inventory
@@ -469,9 +547,6 @@ end
 
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
-local specialHooksDone = {
-    ["enchanting"] = false,
-}
 function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
     if specialHooksDone[specialType] == true then return end
     if specialType == "enchanting" then
@@ -479,7 +554,7 @@ function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
             local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
             if libFiltersEnchantingFilterType == nil then return end
 
-            inventory.libFilters3_filterType = libFiltersEnchantingFilterType
+            inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
             callFilterFunc(inventory, libFiltersEnchantingFilterType)
 
             LibFilters:RequestUpdate(libFiltersEnchantingFilterType)
@@ -491,9 +566,30 @@ function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
     end
 end
 
+------------------------------------------------------------------------------------------------------------------------
+--Returns the minimum possible filterPanelId
+function LibFilters:GetMinFilter()
+    return LF_FILTER_MIN
+end
+
+--Returns the maxium possible filterPanelId
+function LibFilters:GetMaxFilter()
+    return LF_FILTER_MAX
+end
+
+------------------------------------------------------------------------------------------------------------------------
 --Get the current Libfilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK
 function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
+    if not inventoryType then return end
+    local invVarType = type(inventoryType)
+    local isNumber  = invVarType == "number"
+    local isTable   = invVarType == "table"
+    local filterTypeOfInv = (isNumber == true and inventories[inventoryType] and inventories[inventoryType].LibFilters3_filterType)
+            or (isTable == true and inventoryType.layoutData and inventoryType.layoutData.LibFilters3_filterType)
+            or inventoryType and inventoryType.LibFilters3_filterType
+    return filterTypeOfInv
+--[[
     if inventoryType == INVENTORY_BACKPACK then
         local layoutData = PLAYER_INVENTORY.appliedLayout
         if layoutData and layoutData.LibFilters3_filterType then
@@ -505,10 +601,11 @@ function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
     local inventory = inventories[inventoryType]
     if not inventory or not inventory.LibFilters3_filterType then return end
     return inventory.LibFilters3_filterType
+]]
 end
 
 function LibFilters:GetFilterCallback(filterTag, filterType)
-    if not self:IsFilterRegistered(filterTag, filterType) then return end
+    if not LibFilters:IsFilterRegistered(filterTag, filterType) then return end
 
     return filters[filterType][filterTag]
 end
@@ -549,26 +646,6 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
     callbacks[filterTag] = filterCallback
 end
 
-function LibFilters:RequestUpdate(filterType)
---d("[LibFilters3]RequestUpdate-filterType: " ..tostring(filterType))
-    local updaterName = filterTypeToUpdaterName[filterType]
-    if not updaterName or updaterName == "" then
-        dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tostring(filterType))
-        return
-    end
-    local callbackName = "LibFilters_updateInventory_" .. updaterName
-    local function Update()
---d(">[LibFilters3]RequestUpdate->Update called")
-        EVENT_MANAGER:UnregisterForUpdate(callbackName)
-        inventoryUpdaters[updaterName]()
-    end
-
-    --cancel previously scheduled update if any
-    EVENT_MANAGER:UnregisterForUpdate(callbackName)
-    --register a new one
-    EVENT_MANAGER:RegisterForUpdate(callbackName, 10, Update)
-end
-
 function LibFilters:UnregisterFilter(filterTag, filterType)
     if not filterTag or filterTag == "" then
         dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tostring(filterTag), tostring(filterType))
@@ -591,6 +668,28 @@ function LibFilters:UnregisterFilter(filterTag, filterType)
     end
 end
 
+------------------------------------------------------------------------------------------------------------------------
+function LibFilters:RequestUpdate(filterType)
+--d("[LibFilters3]RequestUpdate-filterType: " ..tostring(filterType))
+    local updaterName = filterTypeToUpdaterName[filterType]
+    if not updaterName or updaterName == "" then
+        dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tostring(filterType))
+        return
+    end
+    local callbackName = "LibFilters_updateInventory_" .. updaterName
+    local function Update()
+--d(">[LibFilters3]RequestUpdate->Update called")
+        EVENT_MANAGER:UnregisterForUpdate(callbackName)
+        inventoryUpdaters[updaterName]()
+    end
+
+    --cancel previously scheduled update if any
+    EVENT_MANAGER:UnregisterForUpdate(callbackName)
+    --register a new one
+    EVENT_MANAGER:RegisterForUpdate(callbackName, 10, Update)
+end
+
+------------------------------------------------------------------------------------------------------------------------
 function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
     local craftingType = GetCraftingInteractionType()
     if craftingType == CRAFTING_TYPE_INVALID then return false end
