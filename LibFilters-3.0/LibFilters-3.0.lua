@@ -67,6 +67,7 @@ end
 local LibFilters = {}
 local LibFiltersSVName = 'LibFilters_SV'
 LibFilters.sv = {}
+LibFilters.isInitialized = false
 
 --**********************************************************************************************************************
 -- LibFilters debugging
@@ -113,6 +114,10 @@ end
 --Error debug
 local function dfe(...)
     debugMessage(string.format(...), 'E')
+end
+
+local function isInitialized()
+    return LibFilters.isInitialized
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1271,7 +1276,7 @@ end
 function LibFilters:InitializeLibFilters()
     checkforOldLibFiltersVersionAndDeactive()
 
-    if LibFilters.isInitialized == true then return end
+    if isInitialized() then return end
 
     InstallHelpers()
     HookAdditionalFilters()
@@ -1284,6 +1289,8 @@ end
 -- LibFilters global variable and initialization
 --**********************************************************************************************************************
 function LibFilters:Initialize()
+    if isInitialized() then return end
+
     loadSavedVariables()
 
     --LibDebugLogger - Debugging output
@@ -1294,8 +1301,6 @@ function LibFilters:Initialize()
     LibFilters.name     = MAJOR
     LibFilters.version  = MINOR
     LibFilters.author   = "ingeniousclown, Randactyl, Baertram"
-
-    LibFilters.isInitialized = false
 
     LibFilters.lastInventoryType = nil
     LibFilters.lastFilterType = nil
