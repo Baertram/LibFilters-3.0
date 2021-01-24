@@ -31,7 +31,7 @@
 
 
 --**********************************************************************************************************************
---TODO List - Count: 3                                                                          LastUpdated: 2020-12-28
+--TODO List - Count: 3                                                                          LastUpdated: 2021-01-24
 --**********************************************************************************************************************
 --#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the crafting table "deconstruction",
 --   once for SMITHING decon and once for JEWELRY decon? Should only be shown for one of both?!
@@ -1256,12 +1256,12 @@ end
 local function checkforOldLibFiltersVersionAndDeactive()
     --Are any older versions of libFilters loaded?
     local libFiltersOldVersionErrorText = "Please do not use the library \'%s\' anymore! Deinstall this library and switch to the newest version \'" .. MAJOR .. "\'.\nPlease also inform the author of the addons, which still use \'%s\', to update their addon code immediately!"
-    if LibFilters ~= nil then
-        LibFilters = nil
+    if _G["LibFilters"] ~= nil then
+        _G["LibFilters"] = nil
         local lf1 = "LibFilters 1"
         dfe(libFiltersOldVersionErrorText, lf1, lf1)
-    elseif LibFilters2 ~= nil then
-        LibFilters2 = nil
+    elseif _G["LibFilters2"] ~= nil then
+        _G["LibFilters2"] = nil
         local lf2 = "LibFilters 2"
         dfe(libFiltersOldVersionErrorText, lf2, lf2)
     end
