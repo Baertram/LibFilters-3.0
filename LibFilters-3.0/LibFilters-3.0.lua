@@ -877,7 +877,7 @@ function libFilters:HookAdditionalFilter(filterType, inventoryOrFragment, isInve
     isInventory = isInventory or false
     if libFilters.sv.debug then df("HookAdditionalFilter - filterType: %s, inventoryOrFragment: %s, isInventory: %s", tostring(filterType), tostring(inventoryOrFragment), tostring(isInventory)) end
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
-    layoutData.libFilters3_filterType = filterType
+    layoutData.LibFilters3_filterType = filterType
 
     if isInventory == true then
         registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType)
@@ -902,7 +902,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType, inventory)
 
             updateActiveInventoryType(enchanting.inventory, libFiltersEnchantingFilterType)
 
-            inventory.libFilters3_filterType = libFiltersEnchantingFilterType
+            inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
             callFilterFunc(inventory, libFiltersEnchantingFilterType)
         end
         ZO_PreHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
@@ -961,9 +961,9 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
     local invVarType = type(inventoryType)
     local isNumber  = invVarType == "number"
     local isTable   = invVarType == "table"
-    local filterTypeOfInv = (isNumber == true and inventories[inventoryType] and inventories[inventoryType].libFilters3_filterType)
-            or (isTable == true and inventoryType.layoutData and inventoryType.layoutData.libFilters3_filterType)
-            or inventoryType and inventoryType.libFilters3_filterType
+    local filterTypeOfInv = (isNumber == true and inventories[inventoryType] and inventories[inventoryType].LibFilters3_filterType)
+            or (isTable == true and inventoryType.layoutData and inventoryType.layoutData.LibFilters3_filterType)
+            or inventoryType and inventoryType.LibFilters3_filterType
     if libFilters.sv.debug then df("GetCurrentFilterTypeForInventory - inventoryType: %s, filterType: %s",tostring(inventoryType), tostring(filterTypeOfInv)) end
     return filterTypeOfInv
 end
