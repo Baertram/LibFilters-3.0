@@ -137,7 +137,7 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
 }
 
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
---  LF_SMITHING_REFINE
+--  LF_SMITHING_REFINE, LF_JEWELRY_REFINE
 helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
     version = 4,
     locations = {
@@ -148,6 +148,11 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
     helper = {
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
+            local libFilters3FilterType = LibFilters3:GetCurrentFilterTypeForInventory(self)
+            local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
+            local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
+            local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
+
             local oldPredicate = predicate
             predicate = function(bagId, slotIndex)
                 local result = true
@@ -167,8 +172,20 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
 
             ZO_ClearTable(self.itemCounts)
 
+            local questSV, questItems
+            if isEnchanting == true then
+                questSV = self.savedVars.questsOnlyChecked
+                questItems = self.questRunes
+            elseif isAlchemy == true then
+                questSV = self.savedVars.questsOnlyChecked
+                questItems = self.owner.questItems
+            elseif isSmithing == true then
+                questSV = nil
+                questItems = nil
+            end
+
             for itemId, itemInfo in pairs(list) do
-                if not filterFunction or filterFunction(itemInfo.bag, itemInfo.index, filterType) then
+                if not filterFunction or filterFunction(itemInfo.bag, itemInfo.index, filterType, questSV, questItems) then
                     self:AddItemData(itemInfo.bag, itemInfo.index, itemInfo.stack, self:GetScrollDataType(itemInfo.bag, itemInfo.index), data, self.customDataGetFunction)
                 end
                 self.itemCounts[itemId] = itemInfo.stack
@@ -203,9 +220,9 @@ helpers["SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAn
             -- Begin original function ZO_CraftingInventory:GetIndividualInventorySlotsAndAddToScrollData
             --local bagsToUse = useWornBag and ZO_ALL_CRAFTING_INVENTORY_BAGS_AND_WORN or ZO_ALL_CRAFTING_INVENTORY_BAGS_WITHOUT_WORN
             local bagsToUse = { BAG_BACKPACK }
-	        if useWornBag then
-		        table.insert(bagsToUse, BAG_WORN)
-	        end
+            if useWornBag then
+                table.insert(bagsToUse, BAG_WORN)
+            end
             -- Expressly using double-negative here to maintain compatibility
             if not excludeBankedItems then
                 table.insert(bagsToUse, BAG_BANK)
@@ -382,6 +399,7 @@ helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
     },
 }
 
+
 --enable LF_QUICKSLOT
 -->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
@@ -392,7 +410,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
+            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT) and self:IsItemInTextSearch(itemData)
 
             if result == true and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(itemData)
@@ -402,6 +420,8 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
         end,
     },
 }
+
+
 -->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
     version = 1,
@@ -412,9 +432,9 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
         funcName = "ShouldAddQuestItemToList",
         func = function(self, questItemData)
 
-            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT)
+            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT) and self:IsItemInTextSearch(questItemData)
 
-            if result== true and type(self.additionalFilter) == "function" then
+            if result == true and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(questItemData)
             end
 
@@ -422,6 +442,8 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
         end,
     },
 }
+
+local DATA_TYPE_COLLECTIBLE_ITEM = 2
 -->Will only be executed for the collectible items in the quickslot filters, but no inventory items
 helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
     version = 1,
@@ -432,7 +454,6 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
         funcName = "AppendCollectiblesData",
         func = function(self, scrollData, collectibleCategoryData)
             local dataObjects
-            local DATA_TYPE_COLLECTIBLE_ITEM = 2
             if collectibleCategoryData then
                 dataObjects = collectibleCategoryData:GetAllCollectibleDataObjects({ ZO_CollectibleData.IsUnlocked, ZO_CollectibleData.IsValidForPlayer, ZO_CollectibleData.IsSlottable })
             else
@@ -444,13 +465,21 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
                 libFiltersQuickslotCollectiblesFilterFunc = self.additionalFilter
             end
             for i, collectibleData in ipairs(dataObjects) do
-                if not libFiltersQuickslotCollectiblesFilterFunc or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData) == true) then
+                collectibleData.searchData =
+                {
+                    type = ZO_TEXT_SEARCH_TYPE_COLLECTIBLE,
+                    collectibleId = collectibleData.collectibleId,
+                },
+
+                self.quickSlotSearch.Insert(collectibleData.searchData)
+                if not libFiltersQuickslotCollectiblesFilterFunc or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData) == true) and self:IsItemInTextSearch(collectibleData) then
                     table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
                 end
             end
         end,
     },
 }
+
 
 --enable LF_RETRAIT
 helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
