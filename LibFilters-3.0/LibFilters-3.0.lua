@@ -1268,11 +1268,11 @@ local function loadSavedVariables()
     if _G[LibFiltersSVName] == nil or _G[LibFiltersSVName][worldName] == nil or _G[LibFiltersSVName][worldName][displayName] == nil then
         if _G[LibFiltersSVName] ~= nil then
             _G[LibFiltersSVName][worldName] = _G[LibFiltersSVName][worldName] or {}
-            _G[LibFiltersSVName][worldName][displayName] = LibFiltersSV_Defaults
+            _G[LibFiltersSVName][worldName][displayName] = libFiltersSV_Defaults
         else
             _G[LibFiltersSVName] = {}
             _G[LibFiltersSVName][worldName] = {}
-            _G[LibFiltersSVName][worldName][displayName] = LibFiltersSV_Defaults
+            _G[LibFiltersSVName][worldName][displayName] = libFiltersSV_Defaults
         end
     end
     LibFilters.sv = _G[LibFiltersSVName][worldName][displayName]
