@@ -5,7 +5,6 @@
 ## APIVersion: 100033 100034
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=201
-## SavedVariables: LibFilters_SV
 
 LibFilters-3.0.lua
 helper.lua
