@@ -504,7 +504,8 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
 }
 
 ------------------------------------------------------------------------------------------------------------------------
---copy helpers into LibFilters
+--copy helpers into global LibFilters3Helper
+-->Will be set to nil within LibFilter3.lua at event_add_on_loaded
 
 for name, package in pairs(helpers) do
     if LibFilters.helpers[name] == nil then
