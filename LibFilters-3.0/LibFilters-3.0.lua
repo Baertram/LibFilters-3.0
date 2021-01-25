@@ -477,7 +477,12 @@ local filterTypesUsingTheSameInvControl  = {
         [LF_FENCE_SELL]         = true,
     }
 }
-LibFilters.filterTypesUsingTheSameInvControl = filterTypesUsingTheSameInvControl
+
+--FilterTypes that should not update the active inventory control and filterType via function "registerActiveInventoryTypeUpdate"
+-->These filtertypes will use fragments to update the correct filterType
+local filterTypesNotUpdatingLastInventoryData  = {
+}
+
 
 local craftingFilterTypesUsingTheSameInvControl = {
     [enchanting] = {
@@ -487,7 +492,6 @@ local craftingFilterTypesUsingTheSameInvControl = {
         [LF_ENCHANTING_EXTRACTION]  =   true,
     }
 }
-LibFilters.craftingFilterTypesUsingTheSameInvControl = craftingFilterTypesUsingTheSameInvControl
 
 ------------------------------------------------------------------------------------------------------------------------
 --The fixed updater names for the LibFilters unique updater string
@@ -619,8 +623,11 @@ end
 
 --Register the updater function which calls updateActiveInventoryType for the normal inventories and fragments
 local invControlHandlersSet = {}
-local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, noHandler)
-    noHandler = noHandler or false
+local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, noHandlers)
+    noHandlers = noHandlers or false
+    --Should this filtertype not be updated here but via fragments?
+    if isInventory == true and filterTypesNotUpdatingLastInventoryData[filterType] == true then return end
+
     --If any filter is enabled the update fucntion of the inventory (e.g. updateInventoryBase) will handle this. But if no
     --filter is registrered (yet/anymore) it wont! So we need to "duplicate" the check here somehow as the inventory's
     --control get's shown
@@ -673,7 +680,7 @@ local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType
     end
 
     --Is this a control? And should the handlers be set?
-    if invControlHandlersSet[invControl] == nil and invControl.IsControlHidden ~= nil then
+    if not noHandlers and invControlHandlersSet[invControl] == nil and invControl.IsControlHidden ~= nil then
         local name = invControl.GetName and invControl:GetName() or "n/a"
         df(">>>Registering OnShow/OnHide handler: %s", tostring(name))
         if cBase == nil or cBase.doNotHookOnShow == true then
@@ -1227,7 +1234,9 @@ function LibFilters:HookAdditionalFilter(filterType, inventoryOrFragment, isInve
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
     layoutData.LibFilters3_filterType = filterType
 
-    registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory)
+    if isInventory == true then
+        registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, false)
+    end
 
     callFilterFunc(layoutData, filterType)
 
@@ -1275,14 +1284,24 @@ function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
     end
 end
 
+local function fragmentChange(oldState, newState, fragmentId, fragmentName, filterType)
+    df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState))
+    if newState == SCENE_FRAGMENT_HIDING  then
+        updateActiveInventoryType(nil, nil)
+    elseif newState == SCENE_FRAGMENT_SHOWN then
+        filterType = filterType or LibFilters:GetCurrentFilterTypeForInventory(fragmentId)
+        updateActiveInventoryType(fragmentId, filterType)
+    end
+end
+
 
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
     --Hook the inventories (no fragments)
     for filterType, inventory in pairs(filterTypeToInventory) do
         --Do not use if a special inventory register needs to be done -> Is only in this list to get the inventory control
-        local doNotRegister = (filterTypesUsingTheSameInvControl[inventory] == nil and filterTypesUsingTheSameInvControl[inventory][filterType] == nil) or false
-        if filterTypeToSpecialInventory[filterType] == nil and not doNotRegister then
+        local doRegister = (filterTypesUsingTheSameInvControl[inventory] == nil or (filterTypesUsingTheSameInvControl[inventory] ~= nil and filterTypesUsingTheSameInvControl[inventory][filterType] == nil)) or false
+        if doRegister == true and filterTypeToSpecialInventory[filterType] == nil then
             --e.g. LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack], true)
             LibFilters:HookAdditionalFilter(filterType, inventory, true)
         end
@@ -1302,9 +1321,20 @@ local function HookAdditionalFilters()
 
     --Hook the fragments
     for fragmentId, fragmentData in pairs(fragmentToFilterType) do
-        local filterType = fragmentData.filterType
         --e.g. LibFilters:HookAdditionalFilter(LF_INVENTORY, menuBarInvFragment)
-        LibFilters:HookAdditionalFilter(filterType, fragmentId, false)
+        --LibFilters:HookAdditionalFilter(filterType, fragmentId, false)
+        --use the fragment's state change callback!
+        if fragmentId and fragmentData.name ~= "" then
+            local filterType
+            if type(fragmentData.filterType) == "function" then
+                filterType = fragmentData.filterType()
+            else
+                filterType = fragmentData.filterType
+            end
+            fragmentId:RegisterCallback("StateChange", function(oldState, newState)
+                fragmentChange(oldState, newState, fragmentId, fragmentData.name, filterType)
+            end)
+        end
     end
 
     --[[
