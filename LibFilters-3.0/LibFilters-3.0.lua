@@ -119,7 +119,6 @@ local function debugMessage(text, textType)
 end
 
 local function df(...)
-    d(string.format(...))
     debugMessage(string.format(...), 'D')
 end
 local function dfi(...)
@@ -1523,7 +1522,6 @@ function LibFilters.Initialize(eventName, addonName)
     if isInitialized(false) then return end
 
     if LibFilters.sv.debug then df("Initialize") end
-d("Initialize")
 
     loadSavedVariables()
 
