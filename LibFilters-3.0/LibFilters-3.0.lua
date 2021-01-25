@@ -463,7 +463,8 @@ local craftingInventoryToFilterType = {
 }
 LibFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 
---Filtertypes also using LF_INVENTORY's inventory control ZO_PlayerInventoryList
+--Filtertypes also using LF_INVENTORY's inventory control ZO_PlayerInventoryList.
+--Do not add them all via the HookAdditionalFilters function but use their fragments instead!
 local filterTypesUsingTheSameInvControl  = {
     [inventories[invBackPack]] = {
         [LF_MAIL_SEND]          = true,
@@ -1280,7 +1281,8 @@ local function HookAdditionalFilters()
     --Hook the inventories (no fragments)
     for filterType, inventory in pairs(filterTypeToInventory) do
         --Do not use if a special inventory register needs to be done -> Is only in this list to get the inventory control
-        if filterTypeToSpecialInventory[filterType] == nil then
+        local doNotRegister = (filterTypesUsingTheSameInvControl[inventory] == nil and filterTypesUsingTheSameInvControl[inventory][filterType] == nil) or false
+        if filterTypeToSpecialInventory[filterType] == nil and not doNotRegister then
             --e.g. LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack], true)
             LibFilters:HookAdditionalFilter(filterType, inventory, true)
         end
