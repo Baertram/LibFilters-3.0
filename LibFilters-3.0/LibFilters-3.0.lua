@@ -31,11 +31,16 @@
 
 
 --**********************************************************************************************************************
---TODO List - Count: 3                                                                          LastUpdated: 2021-01-24
+--TODO List - Count: 5                                                                         LastUpdated: 2021-01-25
 --**********************************************************************************************************************
 --#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the crafting table "deconstruction",
 --   once for SMITHING decon and once for JEWELRY decon? Should only be shown for one of both?!
 --   And why is there only "RunFilters" debug message but no "callFilterFunc" before or similar which calls runFilter?
+
+--#4 Filters at LF_HOSE_BANK_DEPOSIT do not work anymore?
+
+--#5 Filters at LF_HOSE_BANK_WITHDRAW sometimes react the same (filte the same) as LF_HOUSE_BANK_DEPOSIT?
+-->seee addon HideInventoryClutter e.g.
 
 --**********************************************************************************************************************
 -- LibFilters information
@@ -620,18 +625,10 @@ local function updateActiveInventoryType(invType, filterType, isInventory)
         end
         LibFilters.activeInventoryType  = p_inv
         LibFilters.activeFilterType     = p_filterType
-    end
 
-    local callbackName = "LibFilters_updateActiveInventoryType"
-    local function Update(p_blockMilliseconds)
-        p_blockMilliseconds = p_blockMilliseconds or 0
-        EVENT_MANAGER:UnregisterForUpdate(callbackName)
-        zo_callLater(function()
-            updateActiveInvNow(invType, filterType, isInventory, p_blockMilliseconds)
-            if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then
-                currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
-            end
-        end, p_blockMilliseconds)
+        if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then
+            currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
+        end
     end
 
     --Some inventories will be faster than the fragments showing, like LF_CRAFTBAG. We need to assure that the later called
@@ -646,7 +643,17 @@ local function updateActiveInventoryType(invType, filterType, isInventory)
             currentlyBlockedFilterTypesAtActiveInventoryUpdater = true
         end
     end
-    throttledCall(filterType, callbackName, Update, blockMilliseconds)
+
+    local callbackName = "LibFilters_updateActiveInventoryType"
+
+    local function Update()
+        df(">Update: updateActiveInventoryType - Name: %s, Blocked: %s, blockedTime: %s, filterType: %s", tostring(callbackName),tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(blockMilliseconds), tostring(filterType))
+        EVENT_MANAGER:UnregisterForUpdate(callbackName)
+        zo_callLater(function()
+            updateActiveInvNow(invType, filterType, isInventory, blockMilliseconds)
+        end, blockMilliseconds)
+    end
+    throttledCall(filterType, callbackName, Update)
 end
 
 --Register the updater function which calls updateActiveInventoryType for the normal inventories and fragments
