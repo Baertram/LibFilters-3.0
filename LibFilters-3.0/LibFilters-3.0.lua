@@ -482,6 +482,14 @@ local filterTypesUsingTheSameInvControl  = {
 local filterTypesNotUpdatingLastInventoryData  = {
 }
 
+--Some inventories will be faster than the fragments showing, like LF_CRAFTBAG. We need to assure that the later called
+--fragments (e.g. the normal inventory menu bar fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT) is not overwriting the
+--filterType of LF_CRAFTBAG  with the wrong filterType of the normal inventory again
+local blockFilterTypeAtActiveInventoryUpdater = {
+    [LF_CRAFTBAG] = 25, --25 milliseconds
+}
+local currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
+
 
 local craftingFilterTypesUsingTheSameInvControl = {
     [enchanting] = {
@@ -570,7 +578,7 @@ LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 
 ------------------------------------------------------------------------------------------------------------------------
 --Only call the function updateFunc every 10 milliseconds if requested more often
-local function throttledCall(filterType, uniqueName, updateFunc)
+local function throttledCall(filterType, uniqueName, updateFunc, ...)
     if not uniqueName or uniqueName == "" then
         dfe("Invalid uniqueName to throttledCall, filterType: %s", tostring(filterType))
         return
@@ -578,7 +586,7 @@ local function throttledCall(filterType, uniqueName, updateFunc)
     --cancel previously scheduled update, if any
     EVENT_MANAGER:UnregisterForUpdate(uniqueName)
     --register a new one
-    EVENT_MANAGER:RegisterForUpdate(uniqueName, 10, updateFunc)
+    EVENT_MANAGER:RegisterForUpdate(uniqueName, 10, function(...) updateFunc(...) end)
 end
 
 
@@ -599,9 +607,11 @@ end
 --is called
 local function updateActiveInventoryType(invType, filterType, isInventory)
     isInventory = isInventory or false
-    df("updateActiveInventoryType - isInventory: %s, filterType: %s, invType: %s",tostring(isInventory), tostring(filterType), tostring(invType))
-    local function updateActiveInvNow(p_inv, p_filterType, p_isInv)
-        df(">>RUN: updateActiveInventoryType - isInventory: %s, filterType: %s, invType: %s",tostring(isInventory), tostring(filterType), tostring(invType))
+    df("updateActiveInventoryType - Blocked: %s, isInv: %s, filterType: %s, invType: %s", tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isInventory), tostring(filterType), tostring(invType))
+    if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then return end
+
+    local function updateActiveInvNow(p_inv, p_filterType, p_isInv, p_blockMilliseconds)
+        df(">>RUN: updateActiveInventoryType - isInv: %s, filterType: %s, blockedMilliseconds: %s",tostring(isInventory), tostring(filterType), tostring(p_blockMilliseconds))
         local lastInventoryType = LibFilters.activeInventoryType
         local lastFilterType = LibFilters.activeFilterType
         if lastInventoryType ~= nil and lastFilterType ~= nil then
@@ -613,11 +623,30 @@ local function updateActiveInventoryType(invType, filterType, isInventory)
     end
 
     local callbackName = "LibFilters_updateActiveInventoryType"
-    local function Update()
+    local function Update(p_blockMilliseconds)
+        p_blockMilliseconds = p_blockMilliseconds or 0
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
-        updateActiveInvNow(invType, filterType, isInventory)
+        zo_callLater(function()
+            updateActiveInvNow(invType, filterType, isInventory, p_blockMilliseconds)
+            if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then
+                currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
+            end
+        end, p_blockMilliseconds)
     end
-    throttledCall(filterType, callbackName, Update)
+
+    --Some inventories will be faster than the fragments showing, like LF_CRAFTBAG. We need to assure that the later called
+    --fragments (e.g. the normal inventory menu bar fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT) is not overwriting the
+    --filterType of LF_CRAFTBAG  with the wrong filterType of the normal inventory again
+    local blockMilliseconds = 0
+    if filterType ~= nil then
+        blockMilliseconds = blockFilterTypeAtActiveInventoryUpdater[filterType] or 0
+        if blockMilliseconds ~= nil and blockMilliseconds > 0 then
+            --Will be set here and reset after the update function was called, with a delay of
+            --blockMilliseconds
+            currentlyBlockedFilterTypesAtActiveInventoryUpdater = true
+        end
+    end
+    throttledCall(filterType, callbackName, Update, blockMilliseconds)
 end
 
 --Register the updater function which calls updateActiveInventoryType for the normal inventories and fragments
@@ -1284,10 +1313,11 @@ function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
 end
 
 local function fragmentChange(oldState, newState, fragmentId, fragmentName, filterType)
-    df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState))
     if newState == SCENE_FRAGMENT_HIDING  then
+    df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState))
         updateActiveInventoryType(nil, nil)
     elseif newState == SCENE_FRAGMENT_SHOWN then
+    df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState))
         filterType = filterType or LibFilters:GetCurrentFilterTypeForInventory(fragmentId)
         updateActiveInventoryType(fragmentId, filterType)
     end
