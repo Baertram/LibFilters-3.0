@@ -1,4 +1,4 @@
-local LibFilters = LibFilters3
+local libFilters = LibFilters3
 
 local helpers = {}
 
@@ -148,11 +148,10 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
     helper = {
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
-            local libFilters3FilterType = LibFilters3:GetCurrentFilterTypeForInventory(self)
+            local libFilters3FilterType = libFilters:GetCurrentFilterTypeForInventory(self)
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
---d(string.format("[LibFilters3]EnumerateInventorySlotsAndAddToScrollData - filterType %s", tostring(libFilters3FilterType)))
 
             local oldPredicate = predicate
             predicate = function(bagId, slotIndex)
@@ -504,16 +503,15 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
 }
 
 ------------------------------------------------------------------------------------------------------------------------
---copy helpers into global LibFilters3Helper
--->Will be set to nil within LibFilter3.lua at event_add_on_loaded
+--copy helpers into LibFilters
 
 for name, package in pairs(helpers) do
-    if LibFilters.helpers[name] == nil then
-        LibFilters.helpers[name] = package
-    elseif LibFilters.helpers[name].version < package.version then
-        LibFilters.helpers[name] = package
+    if libFilters.helpers[name] == nil then
+        libFilters.helpers[name] = package
+    elseif libFilters.helpers[name].version < package.version then
+        libFilters.helpers[name] = package
     end
 end
 
 helpers = nil
-LibFilters = nil
+libFilters = nil
