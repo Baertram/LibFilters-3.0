@@ -1738,8 +1738,6 @@ local function slashCommands()
         settings.debugDetails = not settings.debugDetails
         if settings.debugDetails == true then
             settings.debug = true
-        else
-            settings.debug = false
         end
         dfi("Debugging with details: %s", tostring(settings.debugDetails))
 
