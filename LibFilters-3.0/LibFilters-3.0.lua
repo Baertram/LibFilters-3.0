@@ -714,9 +714,9 @@ local function getInventoryControl(inventoryOrFragment, invControlBase)
         end
     end
     if invControl == nil then
-        invControl = invControlBase.control or invControlBase.listView or invControlBase.list or invControlBase.container or
-                inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list or inventoryOrFragment.container or
-                inventoryOrFragment
+        invControl = (invControlBase and invControlBase.control or invControlBase.listView or invControlBase.list or invControlBase.container) or
+                (inventoryOrFragment and inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list or inventoryOrFragment.container or
+                inventoryOrFragment)
     end
     return invControl
 end
