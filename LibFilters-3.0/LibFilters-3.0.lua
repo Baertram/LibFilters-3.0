@@ -653,13 +653,14 @@ end
 
 --Updating the current and lastUsed inventory and libFilters filterTypes, as the Refresh/Update function of the inventory
 --is called
-local function updateActiveInventoryType(invOrFragmentType, filterType, isInventory)
-    isInventory = isInventory or false
-    df("updateActiveInventoryType - Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s", tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isInventory), tostring(filterType), tostring(invOrFragmentType))
+local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment)
+    isTrueInventoryOrFalseFragment = isTrueInventoryOrFalseFragment or false
+    local invName = LibFilters:GetInventoryName(invOrFragmentType)
+    df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType))
     if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then return end
 
     local function updateActiveInvNow(p_inv, p_filterType, p_isInv, p_blockMilliseconds)
-        df(">>RUN: updateActiveInventoryType - isInv: %s, filterType: %s, blockedMilliseconds: %s",tostring(isInventory), tostring(filterType), tostring(p_blockMilliseconds))
+        df(">>RUN: updateActiveInventoryType - isInv: %s, filterType: %s, blockedMilliseconds: %s",tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(p_blockMilliseconds))
         local lastInventoryType = LibFilters.activeInventoryType
         local lastFilterType = LibFilters.activeFilterType
         if lastInventoryType ~= nil and lastFilterType ~= nil then
@@ -693,10 +694,31 @@ local function updateActiveInventoryType(invOrFragmentType, filterType, isInvent
         df(">Update: updateActiveInventoryType - Name: %s, Blocked: %s, blockedTime: %s, filterType: %s", tostring(callbackName),tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(blockMilliseconds), tostring(filterType))
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         zo_callLater(function()
-            updateActiveInvNow(invOrFragmentType, filterType, isInventory, blockMilliseconds)
+            updateActiveInvNow(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment, blockMilliseconds)
         end, blockMilliseconds)
     end
     throttledCall(filterType, callbackName, Update)
+end
+
+local function getInventoryControl(inventoryOrFragment, invControlBase)
+    if inventoryOrFragment == nil and invControlBase == nil then return end
+    local invControl
+    if inventoryOrFragment ~= nil then
+        if inventoryOrFragment.IsControlHidden ~= nil then
+            invControl = inventoryOrFragment
+        end
+    end
+    if invControl == nil and invControlBase ~= nil then
+        if invControlBase.IsControlHidden ~= nil then
+            invControl = invControlBase
+        end
+    end
+    if invControl == nil then
+        invControl = invControlBase.control or invControlBase.listView or invControlBase.list or invControlBase.container or
+                inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list or inventoryOrFragment.container or
+                inventoryOrFragment
+    end
+    return invControl
 end
 
 --Register the updater function which calls updateActiveInventoryType for the normal inventories and fragments
@@ -710,17 +732,9 @@ local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType
     --filter is registrered (yet/anymore) it wont! So we need to "duplicate" the check here somehow as the inventory's
     --control get's shown
     if not inventoryOrFragment then return end
-    local invControl
+
     local invControlBase = filterTypeToInventory[filterType]
-    if invControlBase ~= nil then
-        if invControlBase.IsControlHidden ~= nil then
-            invControl = invControlBase
-        else
-            invControl = invControlBase.control or invControlBase.listView or invControlBase.list or invControlBase.container or
-                    inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list or inventoryOrFragment.container
-                    or inventoryOrFragment
-        end
-    end
+    local invControl = getInventoryControl(inventoryOrFragment, invControlBase)
     df("registerActiveInventoryTypeUpdate - isInventory: %s, invControl: %s, invControl.IsControlHidden: %s",tostring(isInventory), tostring(invControl), tostring(invControl.IsControlHidden ~= nil))
     if isInventory == true then
         LibFilters.registeredInventoriesData = LibFilters.registeredInventoriesData or {}
@@ -791,7 +805,7 @@ local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callback
             end
         end
     end
-    updateActiveInventoryType(invId, filterType, nil)
+    --updateActiveInventoryType(invId, filterType, nil)
     if callbackFunc ~= nil then callbackFunc() end
 end
 
@@ -1112,13 +1126,13 @@ end
 --**********************************************************************************************************************
 --  LibFilters global library API functions - Get: Filter types for "LibFilters"
 --**********************************************************************************************************************
---Returns the minimum possible filterPanelId
+--Returns the minimum possible filteType
 function LibFilters:GetMinFilterType()
     return LF_FILTER_MIN
 end
 LibFilters.GetMinFilter = LibFilters.GetMinFilterType
 
---Returns the maxium possible filterPanelId
+--Returns the maxium possible filterType
 function LibFilters:GetMaxFilterType()
     return LF_FILTER_MAX
 end
@@ -1209,6 +1223,23 @@ function LibFilters:GetInventoryOfFilterType(filterType)
     return filterTypeToInventory[filterType]
 end
 
+function LibFilters:GetInventoryName(inventoryOrFragment)
+    if inventoryOrFragment == nil then return end
+    local invOrFragmentName
+    local invData = usedInventoryTypes[inventoryOrFragment] or usedCraftingInventoryTypes[inventoryOrFragment]
+    if not invData then
+        local fragmentData = fragmentToFilterType[inventoryOrFragment]
+        if fragmentData ~= nil then
+            invOrFragmentName = fragmentData.name
+        end
+    elseif invData == true then
+        local invControl = getInventoryControl(inventoryOrFragment, nil)
+        if invControl ~= nil then
+            invOrFragmentName = invControl.GetName and invControl:GetName() or invControl.name or "n/a"
+        end
+    end
+    return invOrFragmentName
+end
 
 --**********************************************************************************************************************
 -- LibFilters library global library API functions - Get: for "Vanilla UI inventories"
@@ -1515,7 +1546,7 @@ local function fragmentChange(oldState, newState, fragmentId, fragmentName, filt
     if debug then df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState)) end
     if newState == SCENE_FRAGMENT_HIDING  then
         if debug then df("<<<<<FRAGMENT HID-ING!") end
-        updateActiveInventoryType(nil, nil, nil)
+        updateActiveInventoryType(nil, nil, false)
     elseif newState == SCENE_FRAGMENT_HIDDEN then
         if debug then df("<<<FRAGMENT HIDDEN!") end
     elseif newState == SCENE_FRAGMENT_SHOWING then
