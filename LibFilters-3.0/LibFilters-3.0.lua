@@ -31,7 +31,7 @@
 
 
 --**********************************************************************************************************************
---TODO List - Count: 8                                                                         LastUpdated: 2021-01-30
+--TODO List - Count: 9                                                                         LastUpdated: 2021-01-31
 --**********************************************************************************************************************
 --#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the crafting table "deconstruction",
 --   once for SMITHING decon and once for JEWELRY decon? Should only be shown for one of both?!
@@ -47,8 +47,10 @@
 
 --#7 LF_RETRAIT and FCOItemSaver are not working?
 
---#8 LF_SMITHING_ and LF_JEWELRY_ both seem to use LF_SMITHING_* filterTypes as the controls update their show/hide
---   Need to check GetCraftingInteractionType() with them!
+--#9 LF_ENCHANTING* does not chnage the filterTyps in the lastUsed filterTypes properly!
+
+--#10 Bank withdraw does not filter anymore subfilters if AdvancedFilters is enabled
+
 
 
 --**********************************************************************************************************************
@@ -342,6 +344,7 @@ local usedCraftingInventoryTypes = {
     [researchPanel]                 = true,
     [researchDialogSelect]          = true,
     [alchemy.inventory]             = true,
+    [enchanting.inventory]          = true,
     [provisioner.ingredientRows]    = true,
     [retrait.inventory]             = true,
 }
@@ -534,8 +537,19 @@ local filterTypesUsingTheSameInvControl  = {
     }
 }
 
+--Crafting filterTypes which use the same inventory. Used to handle the OnShow/OnHide via function
+--updateActiveInventoryType
+local craftingFilterTypesUsingTheSameInvControl = {
+    [enchanting.inventory] = {
+        ["doNotHookOnShow"]         =   true,
+        ["doNotHookOnHide"]         =   true,
+        [LF_ENCHANTING_CREATION]    =   true,
+        [LF_ENCHANTING_EXTRACTION]  =   true,
+    }
+}
+
 --FilterTypes that should not update the active inventory control and filterType via function "registerActiveInventoryTypeUpdate"
--->These filtertypes will use fragments to update the correct filterType
+-->These filtertypes will use fragments instead to update the correct filterType
 local filterTypesNotUpdatingLastInventoryData  = {
     [LF_INVENTORY]          = true,
     [LF_MAIL_SEND]          = true,
@@ -554,38 +568,38 @@ local filterTypesNotUpdatingLastInventoryData  = {
 --filterType of LF_CRAFTBAG  with the wrong filterType of the normal inventory again
 local blockFilterTypeAtActiveInventoryUpdater = {
     --[filterType] = millisecondsToBlock "updateActiveInventoryType()"
-    [LF_CRAFTBAG]                   = 25,
-    [LF_SMITHING_REFINE]            = 25,
-    [LF_JEWELRY_REFINE]             = 25,
-    [LF_JEWELRY_CREATION]           = 25,
-    [LF_SMITHING_CREATION]          = 25,
-    [LF_JEWELRY_DECONSTRUCT]        = 25,
-    [LF_SMITHING_DECONSTRUCT]       = 25,
-    [LF_JEWELRY_IMPROVEMENT]        = 25,
-    [LF_SMITHING_IMPROVEMENT]       = 25,
-    [LF_JEWELRY_RESEARCH]           = 25,
-    [LF_SMITHING_RESEARCH]          = 25,
-    --[LF_JEWELRY_RESEARCH_DIALOG]    = 25,
-    --[LF_SMITHING_RESEARCH_DIALOG]   = 25,
+    [LF_CRAFTBAG]                   = 10,
+    --Crafting
+    [LF_SMITHING_REFINE]            = 10,
+    [LF_JEWELRY_REFINE]             = 10,
+    [LF_JEWELRY_CREATION]           = 10,
+    [LF_SMITHING_CREATION]          = 10,
+    [LF_JEWELRY_DECONSTRUCT]        = 10,
+    [LF_SMITHING_DECONSTRUCT]       = 10,
+    [LF_JEWELRY_IMPROVEMENT]        = 10,
+    [LF_SMITHING_IMPROVEMENT]       = 10,
+    [LF_JEWELRY_RESEARCH]           = 10,
+    [LF_SMITHING_RESEARCH]          = 10,
+    --[LF_JEWELRY_RESEARCH_DIALOG]    = 10,
+    --[LF_SMITHING_RESEARCH_DIALOG]   = 10,
+    --Enchanting
+    [LF_ENCHANTING_CREATION]        = 10,
+    [LF_ENCHANTING_EXTRACTION]      = 10,
     --Crafting alchemy
-    [LF_ALCHEMY_CREATION]           = 25,
+    [LF_ALCHEMY_CREATION]           = 10,
     --Crafting provisioner
-    [LF_PROVISIONING_COOK]          = 25,
-    [LF_PROVISIONING_BREW]          = 25,
+    [LF_PROVISIONING_COOK]          = 10,
+    [LF_PROVISIONING_BREW]          = 10,
     --Crafting retrait / reconstruct
-    [LF_RETRAIT]                    = 25,
+    [LF_RETRAIT]                    = 10,
 
 }
+--Flag if any filterType is curently blocked. If true the function updateActiveInventoryType will not update any other
+--inventory as long as this variable is set to true. it will be reverted to false automatically after the amount of time
+--in milliseconds (defined above in table blockFilterTypeAtActiveInventoryUpdater, per filterType) has ended. See description
+--above at table blockFilterTypeAtActiveInventoryUpdater
 local currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
 
-local craftingFilterTypesUsingTheSameInvControl = {
-    [enchanting] = {
-        ["doNotHookOnShow"]         =   true,
-        ["doNotHookOnHide"]         =   true,
-        [LF_ENCHANTING_CREATION]    =   true,
-        [LF_ENCHANTING_EXTRACTION]  =   true,
-    }
-}
 
 local craftingTypeToFilterType = {
     [CRAFTING_TYPE_BLACKSMITHING] = {
@@ -733,7 +747,7 @@ end
 local function mapCraftingFilterType(filterType)
     local filterTypeToUse = filterType
     local craftingType = GetCraftingInteractionType()
-    filterTypeToUse = craftingTypeToFilterType[filterType] or filterType
+    filterTypeToUse = (craftingTypeToFilterType[craftingType] ~= nil and craftingTypeToFilterType[craftingType][filterType]) or filterType
     if settings.debug then df("mapCraftingFilterType: filterType: %s, filterTypeToUse: %s, craftingType: %s", tostring(filterType), tostring(filterTypeToUse), tostring(craftingType)) end
     return filterTypeToUse, craftingType
 end
@@ -750,7 +764,7 @@ local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueIn
 
     local craftingType = CRAFTING_TYPE_INVALID
     local filterTypeToUse = filterType
-    if isCraftingInv == true then
+    if filterType ~= nil and isCraftingInv == true then
         filterTypeToUse, craftingType = mapCraftingFilterType(filterType)
     end
 
@@ -860,6 +874,7 @@ local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType
     if craftingFilterTypeUsesTheSameInvControl == true then
         --Enchanting e.g.
         if cBase.doNotHookOnShow == true and cBase.doNotHookOnHide == true then
+            df("<<ABORT: DoNotHook onShow and OnHide is set, filterType: %s", tostring(filterType))
             return
         end
     end
@@ -879,15 +894,19 @@ local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType
 
     --Is this a control? And should the handlers be set?
     if not noHandlers and invControlHandlersSet[invControl] == nil and invControl.IsControlHidden ~= nil then
-        local name = invControl.GetName and invControl:GetName() or "n/a"
-        df(">>>Registering OnShow/OnHide handler: %s, isCraftingInv: %s", tostring(name), tostring(isCraftingInv))
-        if cBase == nil or cBase.doNotHookOnShow == true then
+        local invName = LibFilters:GetInventoryName(inventoryOrFragment)
+        df(">>>Registering OnShow/OnHide handler: %s, isCraftingInv: %s", tostring(invName), tostring(isCraftingInv))
+        if cBase == nil or not cBase.doNotHookOnShow then
             invControl:SetHandler("OnEffectivelyShown", function()
+                local linvName = LibFilters:GetInventoryName(inventoryOrFragment)
+                if settings.debug then df(">>[OnEffShow]name: %s, filterType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(linvName), tostring(filterType), tostring(filterTypeNotUpdatingLastInventoryData), tostring(isCraftingInv)) end
                 updateActiveInventoryType(inventoryOrFragment, filterType, isInventory, filterTypeNotUpdatingLastInventoryData, isCraftingInv)
             end)
         end
-        if cBase == nil or cBase.doNotHookOnHide == true then
+        if cBase == nil or not cBase.doNotHookOnHide then
             invControl:SetHandler("OnEffectivelyHidden", function()
+                local linvName = LibFilters:GetInventoryName(inventoryOrFragment)
+                if settings.debug then df("<<[OnEffHidden]name: %s, filterType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(linvName), tostring(filterType), tostring(filterTypeNotUpdatingLastInventoryData), tostring(isCraftingInv)) end
                 updateActiveInventoryType(nil, nil, isInventory, nil)
             end)
         end
@@ -1189,9 +1208,9 @@ local function runFilters(filterType, ...)
 end
 LibFilters.RunFilters = runFilters
 
---The filter function, using the inventory/fragment.additionalFilter function/value and the registered filter function at
+--Register the filter function, using the inventory/fragment.additionalFilter function/value and the registered filter function at
 --the filterType (e.g. LF_INVENTORY) via function runFilters
-local function callFilterFunc(p_inventory, filterType)
+local function registerAdditionalFilterFunc(p_inventory, filterType)
     if settings.debug and settings.debugDetails then df("callFilterFunc, p_inventory: %s, filterType: %s", tostring(p_inventory), tostring(filterType)) end
     local originalFilter = p_inventory.additionalFilter
     local additionalFilterType = type(originalFilter)
@@ -1205,7 +1224,7 @@ local function callFilterFunc(p_inventory, filterType)
         end
     end
 end
-LibFilters.CallFilterFunc = callFilterFunc
+LibFilters.RegisterAdditionalFilterFunc = registerAdditionalFilterFunc
 
 ------------------------------------------------------------------------------------------------------------------------
 --**********************************************************************************************************************
@@ -1572,7 +1591,7 @@ end
 --and register the "currentInventory" and "currentFilterType" updater functions -> Only for a real inventory, not a fragment
 -->Fragment's updates will be called from their stateChange function "fragmentChange" already!
 --and add the filterFunction enhancement to the "additionalFilters" of the inventory/fragment
-local function addLibFiltersFilterTypeIdentifiderAndAddFilterFunctionAndActiveInventoryUpdater(inventoryOrFragment, filterType, isInventory)
+local function addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(inventoryOrFragment, filterType, isInventory)
     local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
     layoutData.LibFilters3_filterType = filterType
 
@@ -1580,14 +1599,14 @@ local function addLibFiltersFilterTypeIdentifiderAndAddFilterFunctionAndActiveIn
         registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, false)
     end
 
-    callFilterFunc(layoutData, filterType)
+    registerAdditionalFilterFunc(layoutData, filterType)
 end
 
 --Hook the inventory layout or inventory to apply additional filter functions
 function LibFilters:HookAdditionalFilter(filterType, inventoryOrFragment, isInventory)
     isInventory = isInventory or false
     if settings.debug then df("[HookAdditionalFilter] - isInventory: %s, filterType: %s, invControl: %s", tostring(isInventory), tostring(filterType) .. "=" .. tostring(self:GetFilterTypeName(filterType)), tostring(inventoryOrFragment)) end
-    addLibFiltersFilterTypeIdentifiderAndAddFilterFunctionAndActiveInventoryUpdater(inventoryOrFragment, filterType, isInventory)
+    addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(inventoryOrFragment, filterType, isInventory)
 
     --[[
     --Old, for reference
@@ -1610,9 +1629,7 @@ end
 
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
-local specialHooksLibFiltersDataRegistered = {
-
-}
+local specialHooksLibFiltersDataRegistered = {}
 function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
     local debug = settings.debug
     if debug then df("[HookAdditionalFilterSpecial] - specialType: %s, hookAlreadyDone: %s, inventory: %s", tostring(specialType), tostring(specialHooksDone[specialType]), tostring(inventory)) end
@@ -1621,24 +1638,26 @@ function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
     --ENCHANTING
     if specialType == "enchanting" then
         local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
-            if debug then df("onEnchantingModeUpdated - enchantingMode: %s", tostring(enchantingMode)) end
             local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
-            if libFiltersEnchantingFilterType == nil then return end
-            --Only add the filterFunctions and the updater of the active inventory etc. once per filterType
-            if not specialHooksLibFiltersDataRegistered[libFiltersEnchantingFilterType] then
-                --TODO: test if registerActiveInventoryTypeUpdate(enchanting.inventory, ...) called in addLibFiltersFilterTypeIdentifiderAndAddFilterFunctionAndActiveInventoryUpdater
-                --will work properly, or if it needs to be  registerActiveInventoryTypeUpdate(enchanting, ...)
-                addLibFiltersFilterTypeIdentifiderAndAddFilterFunctionAndActiveInventoryUpdater(enchanting.inventory, libFiltersEnchantingFilterType, true)
-                specialHooksLibFiltersDataRegistered[libFiltersEnchantingFilterType] = true
-            end
-
-            --[[
-            registerActiveInventoryTypeUpdate(enchanting, libFiltersEnchantingFilterType, true, false)
+            if debug then df("onEnchantingModeUpdated - enchantingMode: %s, filterType: %s", tostring(enchantingMode), tostring(libFiltersEnchantingFilterType)) end
 
             inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
-            callFilterFunc(inventory, libFiltersEnchantingFilterType)
+
+            if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
+                registerAdditionalFilterFunc(inventory, libFiltersEnchantingFilterType)
+                specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+            end
+
+            updateActiveInventoryType(inventory, libFiltersEnchantingFilterType, true, false, true)
+
+            --TODO: Not working properly as it will be only called once and not on each filter change at the enchanting table
+            --Only add the filterFunctions and the updater of the active inventory etc. once per filterType
+            --[[
+            if not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
+                addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(enchanting.inventory, libFiltersEnchantingFilterType, true)
+                specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+            end
             ]]
-            LibFilters:RequestUpdate(libFiltersEnchantingFilterType)
         end
         ZO_PreHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
             onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
@@ -1692,6 +1711,7 @@ local function HookAdditionalFilters()
         --Only register once
         local specialInventoryTypeStr = specialInventoryData.type
         if not specialHooksDone[specialInventoryTypeStr] then
+            specialHooksLibFiltersDataRegistered[specialInventoryTypeStr] = {}
             --e.g. LibFilters:HookAdditionalFilterSpecial("enchanting", enchanting.inventory)
             LibFilters:HookAdditionalFilterSpecial(specialInventoryTypeStr, specialInventoryData.inventory)
         end
@@ -1716,7 +1736,7 @@ local function HookAdditionalFilters()
                     fragmentChange(oldState, newState, fragmentId, fragmentData.name, filterType)
                 end)
 
-                addLibFiltersFilterTypeIdentifiderAndAddFilterFunctionAndActiveInventoryUpdater(_G[fragmentName], filterType, false)
+                addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(_G[fragmentName], filterType, false)
             end
         end
     end
