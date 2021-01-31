@@ -47,8 +47,6 @@
 
 --#7 LF_RETRAIT and FCOItemSaver are not working?
 
---#9 LF_ENCHANTING* does not chnage the filterTyps in the lastUsed filterTypes properly!
-
 --#10 Bank withdraw does not filter anymore subfilters if AdvancedFilters is enabled
 
 
@@ -237,9 +235,10 @@ local libFiltersFilterConstants = {
     [36]  = "LF_SMITHING_RESEARCH_DIALOG",
     [37]  = "LF_JEWELRY_RESEARCH_DIALOG",
     [38]  = "LF_INVENTORY_QUEST",
-    --Add new lines here and make sure you also take care of the control of the inventory needed in table "usedControls",
-    --the updater name in table "filterTypeToUpdaterName" and updaterFunction in table "inventoryUpdaters",
-    --as well as the way to hook to the inventory.additionalFilters in function "HookAdditionalFilters",
+    --Add new lines here and make sure you also take care of the control of the inventory needed in tables "usedInventoryTypes"
+    --and "usedCraftingInventoryTypes" below, the updater name in table "filterTypeToUpdaterName" and updaterFunction in
+    --table "inventoryUpdaters", as well as the way to hook to the inventory.additionalFilters in function "HookAdditionalFilters",
+    --or via a fragment in table "fragmentToFilterType",
     --and maybe an overwritten "filter enable function" (which respects the entries of the added additionalFilters) in
     --file "helpers.lua"
     --[39] = "LF_RECONSTRUCT",
@@ -287,6 +286,7 @@ local researchPanel =       smithing.researchPanel
 
 --local retraitClass =        ZO_RetraitStation_Retrait_Base
 local retrait =             ZO_RETRAIT_KEYBOARD
+--local retraitStation =      ZO_RETRAIT_STATION_KEYBOARD
 local reconstruct =         ZO_RECONSTRUCT_KEYBOARD
 
 local enchantingClass =     ZO_Enchanting
@@ -426,7 +426,7 @@ local filterTypeToInventory = {
     [LF_PROVISIONING_COOK]          = provisioner.ingredientRows, --1 to 6
     [LF_PROVISIONING_BREW]          = provisioner.ingredientRows, --1 to 6
     --Crafting retrait / reconstruct
-    [LF_RETRAIT]                    = retrait.inventory,
+    [LF_RETRAIT]                    = retrait, --!!! Important !!! retrait.inventory will fail to filter properly due to additionalFilters used from ZO_RETRAIT_KEYBOARD
 }
 LibFilters.FilterTypeToInventory = filterTypeToInventory
 
