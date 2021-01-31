@@ -148,7 +148,7 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
     helper = {
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
-            local libFilters3FilterType = libFilters:GetCurrentFilterTypeForInventory(self)
+            local libFilters3FilterType = LibFilters3:GetCurrentFilterTypeForInventory(self)
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
