@@ -672,9 +672,9 @@ end
 --register the update here BUT check for ANY of the fragments also using this ZO_PlayerInventoryList control, to get the correct
 --filterType
 local function getFilterTypeOfActiveInventoryFragment(filterType)
-    if settings.debug then df("getFilterTypeOfActiveInventoryFragment-isValid: %s", tostring(filterTypesUsingTheSameInvControl[inventories[invBackPack]][filterType] ~= nil)) end
+    if settings.debug then df("getFilterTypeOfActiveInventoryFragment-isValid: %s", tostring(filterTypesNotUpdatingLastInventoryData[filterType] ~= nil)) end
     --Check if the current filterType is a valid "inventory fragment" used filterType
-    if filterTypesUsingTheSameInvControl[inventories[invBackPack]][filterType] == nil then return end
+    if filterTypesNotUpdatingLastInventoryData[filterType] == nil then return end
     --Check which fragment is currently active
     for lfilterType, isFragmentEnabled in pairs(fragmentsActiveState) do
         if isFragmentEnabled == true then
@@ -688,7 +688,7 @@ end
 --is called
 local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment, filterTypeNotUpdatingLastInventoryData)
     isTrueInventoryOrFalseFragment = isTrueInventoryOrFalseFragment or false
-    filterTypeUsesSameInvControl = filterTypeUsesSameInvControl or false
+    filterTypeNotUpdatingLastInventoryData = filterTypeNotUpdatingLastInventoryData or false
     local invName = LibFilters:GetInventoryName(invOrFragmentType)
     if settings.debug then df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s, filterTypeNotUpdatingLastInventoryData: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType), tostring(filterTypeNotUpdatingLastInventoryData)) end
     if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then return end
