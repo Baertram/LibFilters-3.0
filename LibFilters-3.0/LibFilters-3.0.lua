@@ -367,6 +367,8 @@ local fragmentToFilterType = {
     [launderInvFragment]        = { name = "BACKPACK_LAUNDER_LAYOUT_FRAGMENT",      filterType = LF_FENCE_LAUNDER },
 }
 LibFilters.fragmentToFilterType = fragmentToFilterType
+LibFilters.fragmentsActiveState = {}
+local fragmentsActiveState = LibFilters.fragmentsActiveState
 
 --Mappings of the inventories
 local filterTypeToInventory = {
@@ -513,6 +515,7 @@ LibFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
 --Do not add them all via the HookAdditionalFilters function but use their fragments instead!
 local filterTypesUsingTheSameInvControl  = {
     [inventories[invBackPack]] = {
+        --[LF_INVENTORY]          = true, --Do not add here or the HookAdditionalFilter is not applied!
         [LF_MAIL_SEND]          = true,
         [LF_TRADE]              = true,
         [LF_BANK_DEPOSIT]       = true,
@@ -521,12 +524,23 @@ local filterTypesUsingTheSameInvControl  = {
         [LF_VENDOR_SELL]        = true,
         [LF_FENCE_LAUNDER]      = true,
         [LF_FENCE_SELL]         = true,
+        [LF_GUILDSTORE_SELL]    = true,
     }
 }
 
 --FilterTypes that should not update the active inventory control and filterType via function "registerActiveInventoryTypeUpdate"
 -->These filtertypes will use fragments to update the correct filterType
 local filterTypesNotUpdatingLastInventoryData  = {
+    [LF_INVENTORY]          = true,
+    [LF_MAIL_SEND]          = true,
+    [LF_TRADE]              = true,
+    [LF_BANK_DEPOSIT]       = true,
+    [LF_HOUSE_BANK_DEPOSIT] = true,
+    [LF_GUILDBANK_DEPOSIT]  = true,
+    [LF_VENDOR_SELL]        = true,
+    [LF_FENCE_LAUNDER]      = true,
+    [LF_FENCE_SELL]         = true,
+    [LF_GUILDSTORE_SELL]    = true,
 }
 
 --Some inventories will be faster than the fragments showing, like LF_CRAFTBAG. We need to assure that the later called
@@ -651,12 +665,32 @@ local function SafeUpdateList(object, ...)
     if isMouseVisible then ShowMouse() end
 end
 
+--The fragments will handle the update of the active inventory type then, e.g. LF_MAIL_SEND -> BACKPACK_MAIL_LAYOUT_FRAGMENT.
+--They will also register the update of their control here with this function registerActiveInventoryTypeUpdate
+--But: If a fragment is not hidden/shown properly e.g. by switching from vendor sell to vendor buyback and then back to sell,
+--we need to run an updater. This is only possible via the ZO_PlayerInventoryList control then "showing again", thus we need to
+--register the update here BUT check for ANY of the fragments also using this ZO_PlayerInventoryList control, to get the correct
+--filterType
+local function getFilterTypeOfActiveInventoryFragment(filterType)
+    if settings.debug then df("getFilterTypeOfActiveInventoryFragment-isValid: %s", tostring(filterTypesUsingTheSameInvControl[inventories[invBackPack]][filterType] ~= nil)) end
+    --Check if the current filterType is a valid "inventory fragment" used filterType
+    if filterTypesUsingTheSameInvControl[inventories[invBackPack]][filterType] == nil then return end
+    --Check which fragment is currently active
+    for lfilterType, isFragmentEnabled in pairs(fragmentsActiveState) do
+        if isFragmentEnabled == true then
+            return lfilterType
+        end
+    end
+    return nil
+end
+
 --Updating the current and lastUsed inventory and libFilters filterTypes, as the Refresh/Update function of the inventory
 --is called
-local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment)
+local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment, filterTypeNotUpdatingLastInventoryData)
     isTrueInventoryOrFalseFragment = isTrueInventoryOrFalseFragment or false
+    filterTypeUsesSameInvControl = filterTypeUsesSameInvControl or false
     local invName = LibFilters:GetInventoryName(invOrFragmentType)
-    df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType))
+    if settings.debug then df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s, filterTypeNotUpdatingLastInventoryData: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType), tostring(filterTypeNotUpdatingLastInventoryData)) end
     if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then return end
 
     local function updateActiveInvNow(p_inv, p_filterType, p_isInv, p_blockMilliseconds)
@@ -691,12 +725,20 @@ local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueIn
     local callbackName = "LibFilters_updateActiveInventoryType"
 
     local function Update()
-        df(">Update: updateActiveInventoryType - Name: %s, Blocked: %s, blockedTime: %s, filterType: %s", tostring(callbackName),tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(blockMilliseconds), tostring(filterType))
+        if settings.debug then df(">Update: updateActiveInventoryType - Name: %s, Blocked: %s, blockedTime: %s, filterType: %s", tostring(callbackName),tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(blockMilliseconds), tostring(filterType)) end
         EVENT_MANAGER:UnregisterForUpdate(callbackName)
         zo_callLater(function()
             updateActiveInvNow(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment, blockMilliseconds)
         end, blockMilliseconds)
     end
+
+    --Is the filterType one of many used for the ZO_PlayerInventoryList? Check for the active fragment then and use the
+    --fragment's filterType!
+    if filterTypeNotUpdatingLastInventoryData == true and filterType ~= nil then
+        filterType = getFilterTypeOfActiveInventoryFragment(filterType)
+    end
+    if settings.debug then df(">filterTypeAfter: %s",tostring(filterType)) end
+
     throttledCall(filterType, callbackName, Update)
 end
 
@@ -714,9 +756,9 @@ local function getInventoryControl(inventoryOrFragment, invControlBase)
         end
     end
     if invControl == nil then
-        invControl = (invControlBase and invControlBase.control or invControlBase.listView or invControlBase.list or invControlBase.container) or
-                (inventoryOrFragment and inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list or inventoryOrFragment.container or
-                inventoryOrFragment)
+        invControl = (invControlBase ~= nil and (invControlBase.control or invControlBase.listView or invControlBase.list or invControlBase.container)) or
+                (inventoryOrFragment ~= nil and (inventoryOrFragment.control or inventoryOrFragment.listView or inventoryOrFragment.list or inventoryOrFragment.container or
+                inventoryOrFragment))
     end
     return invControl
 end
@@ -725,8 +767,6 @@ end
 local invControlHandlersSet = {}
 local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, noHandlers)
     noHandlers = noHandlers or false
-    --Should this filtertype not be updated here but via fragments?
-    if isInventory == true and filterTypesNotUpdatingLastInventoryData[filterType] == true then return end
 
     --If any filter is enabled the update fucntion of the inventory (e.g. updateInventoryBase) will handle this. But if no
     --filter is registrered (yet/anymore) it wont! So we need to "duplicate" the check here somehow as the inventory's
@@ -752,14 +792,6 @@ local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType
         }
     end
 
-    local filterTypeUsesSameInvControl = (filterTypesUsingTheSameInvControl[inventoryOrFragment] and filterTypesUsingTheSameInvControl[inventoryOrFragment][filterType]) or false
-    df(">filterType: %s, filterTypeUsesSameInvControl: %s", tostring(filterType), tostring(filterTypeUsesSameInvControl))
-    if filterTypeUsesSameInvControl == true then
-        --The fragments will handle the update of the active inventory type then, e.g. LF_MAIL_SEND -> BACKPACK_MAIL_LAYOUT_FRAGMENT.
-        --They will also register the update of their control here with this function registerActiveInventoryTypeUpdate
-        return
-    end
-
     local isCraftingInv = usedCraftingInventoryTypes[inventoryOrFragment]
     local cBase = (isCraftingInv == true and craftingFilterTypesUsingTheSameInvControl[inventoryOrFragment]) or nil
     local craftingFilterTypeUsesTheSameInvControl = (isCraftingInv == true and cBase ~= nil and craftingFilterTypesUsingTheSameInvControl[inventoryOrFragment][filterType]) or false
@@ -771,18 +803,31 @@ local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType
         end
     end
 
+    local filterTypeNotUpdatingLastInventoryData = (filterType ~= nil and filterTypesNotUpdatingLastInventoryData[filterType]) or false
+    df(">filterType: %s, filterTypeNotUpdatingLastInventoryData: %s", tostring(filterType), tostring(filterTypeNotUpdatingLastInventoryData))
+    --if filterTypeUsesSameInvControl == true then
+        --The fragments will handle the update of the active inventory type then, e.g. LF_MAIL_SEND -> BACKPACK_MAIL_LAYOUT_FRAGMENT.
+        --They will also register the update of their control here with this function registerActiveInventoryTypeUpdate
+        --But: If a fragment is not hidden/shown properly e.g. by switching from vendor sell to vendor buyback and then back to sell,
+        --we need to run an updater. This is only possible via the ZO_PlayerInventoryList control then "showing again", thus we need to
+        --register the update here BUT check for ANY of the fragments also using this ZO_PlayerInventoryList control, to get the correct
+        --filterType
+
+        --return
+    --end
+
     --Is this a control? And should the handlers be set?
     if not noHandlers and invControlHandlersSet[invControl] == nil and invControl.IsControlHidden ~= nil then
         local name = invControl.GetName and invControl:GetName() or "n/a"
         df(">>>Registering OnShow/OnHide handler: %s", tostring(name))
         if cBase == nil or cBase.doNotHookOnShow == true then
             invControl:SetHandler("OnEffectivelyShown", function()
-                updateActiveInventoryType(inventoryOrFragment, filterType, isInventory)
+                updateActiveInventoryType(inventoryOrFragment, filterType, isInventory, filterTypeNotUpdatingLastInventoryData)
             end)
         end
         if cBase == nil or cBase.doNotHookOnHide == true then
             invControl:SetHandler("OnEffectivelyHidden", function()
-                updateActiveInventoryType(nil, nil, isInventory)
+                updateActiveInventoryType(nil, nil, isInventory, nil)
             end)
         end
         invControlHandlersSet[invControl] = true
@@ -1546,15 +1591,19 @@ local function fragmentChange(oldState, newState, fragmentId, fragmentName, filt
     if debug then df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState)) end
     if newState == SCENE_FRAGMENT_HIDING  then
         if debug then df("<<<<<FRAGMENT HID-ING!") end
-        updateActiveInventoryType(nil, nil, false)
+        fragmentsActiveState[filterType] = nil
+        updateActiveInventoryType(nil, nil, false, nil)
     elseif newState == SCENE_FRAGMENT_HIDDEN then
+        fragmentsActiveState[filterType] = false
         if debug then df("<<<FRAGMENT HIDDEN!") end
     elseif newState == SCENE_FRAGMENT_SHOWING then
+        fragmentsActiveState[filterType] = nil
         if debug then df(">>>FRAGMENT SHOW-ING!") end
     elseif newState == SCENE_FRAGMENT_SHOWN then
+        fragmentsActiveState[filterType] = true
         if debug then df(">>>>>FRAGMENT SHOWN!") end
         filterType = filterType or LibFilters:GetCurrentFilterTypeForInventory(fragmentId)
-        updateActiveInventoryType(fragmentId, filterType, false)
+        updateActiveInventoryType(fragmentId, filterType, false, nil)
     end
 end
 
