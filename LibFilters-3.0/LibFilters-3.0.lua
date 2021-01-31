@@ -103,7 +103,6 @@ local function debugFunc()
     --TODO: Disable code lines below before setting library live!
     if GetDisplayName() ~= "@Baertram" then return end
     settings.debug          = true
-    settings.debugDetails   = true
 end
 
 --Debugging output
