@@ -745,7 +745,7 @@ local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueIn
     filterTypeNotUpdatingLastInventoryData = filterTypeNotUpdatingLastInventoryData or false
     isCraftingInv = isCraftingInv or false
     local invName = LibFilters:GetInventoryName(invOrFragmentType)
-    if settings.debug then df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType), tostring(filterTypeNotUpdatingLastInventoryData, tostring(isCraftingInv))) end
+    if settings.debug then df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType), tostring(filterTypeNotUpdatingLastInventoryData), tostring(isCraftingInv)) end
     if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then return end
 
     local craftingType = CRAFTING_TYPE_INVALID
