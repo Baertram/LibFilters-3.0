@@ -31,23 +31,9 @@
 
 
 --**********************************************************************************************************************
---TODO List - Count: 9                                                                         LastUpdated: 2021-01-31
+--TODO List - Count: 1                                                                         LastUpdated: 2021-01-31
 --**********************************************************************************************************************
---#3 Find out why "RunFilters" is shown duplicate in chat debug mesasges if we are ar the crafting table "deconstruction",
---   once for SMITHING decon and once for JEWELRY decon? Should only be shown for one of both?!
---   And why is there only "RunFilters" debug message but no "callFilterFunc" before or similar which calls runFilter?
-
---#4 Filters at LF_BANK_WITHDRAW filters the same like LF_BANK_DEPOSIT (After opening the mail send panel and with addon
---  AdvancedFilters enabled)
-
---#5 LF_HOUSE_BANK_DEPOSIT do not work anymore?
-
---#6 Filters at LF_HOSUE_BANK_WITHDRAW sometimes react the same (filte the same) as LF_HOUSE_BANK_DEPOSIT?
--->seee addon HideInventoryClutter e.g.
-
---#7 LF_RETRAIT and FCOItemSaver are not working?
-
---#10 Bank withdraw does not filter anymore subfilters if AdvancedFilters is enabled
+--#1 Crafting smithing jewelry does not filter "include banked items" checkbox properly at research
 
 
 
@@ -61,32 +47,22 @@ local libPreText = "[" .. MAJOR .."]"
 -- LibFilters global variable and version check -> Only load this library once
 --**********************************************************************************************************************
 --Was the library loaded already, and if so:
---Was it fully initilaized already?
---Or is the version a newer than the loaded one?
---Abort here then as we do not need to run the code below twice. Should be handled by the txt file's ## AddOnVersion:
---already, so this is just a security check if someone ships this lib without the correct txt file and hardcodes the
---call in it's addon's manifest txt
-local lfGlobal = _G[GlobalLibName]
-if lfGlobal ~= nil then
-    if lfGlobal.isInitialized == true then return end
-    if lfGlobal.name ~= nil and lfGlobal.name == MAJOR
-        and lfGlobal.version ~= nil and lfGlobal.version >= MINOR then return end
-end
+if _G[GlobalLibName] ~= nil then return end
 
-
---**********************************************************************************************************************
--- LibFilters local variable pointing to global LibFiltersX
---**********************************************************************************************************************
---Local library variable pointer to global LibFilters variable
+--Local library variable
 local LibFilters = {}
 local LibFiltersSVName = "LibFilters_SV"
 LibFilters.sv = {}
 LibFilters.isInitialized = false
 local settings = {}
 
---Table with the helper functions (overwritten/changed vanilla code for the different LibFilters filterTypes, e.g.
---quickslots/crafting tables filter functions)
-LibFilters.helpers = {}
+LibFilters.name     = MAJOR
+LibFilters.version  = MINOR
+LibFilters.author   = "ingeniousclown, Randactyl, Baertram"
+
+--Create the global library variable
+_G[GlobalLibName] = LibFilters
+
 
 --**********************************************************************************************************************
 -- LibFilters debugging
@@ -98,7 +74,6 @@ local logger
 -->LibDebugLogger
 local function createLogger()
     if logger == nil then
-d("[LibFilters-3.0]Logger created")
         logger = LibDebugLogger ~= nil and LibDebugLogger(MAJOR)
         LibFilters.logger = logger
         logger:SetEnabled(true)
@@ -180,16 +155,6 @@ local function dfv(...)
     debugMessage(string.format(...), 'V')
 end
 
-local function isInitialized(initializeIfNot)
-    initializeIfNot = initializeIfNot or false
-    if not LibFilters.isInitialized then
-        if initializeIfNot == true then
-            LibFilters:InitializeLibFilters()
-        end
-    end
-    return LibFilters.isInitialized
-end
-
 ------------------------------------------------------------------------------------------------------------------------
 --The possible LibFilters filterPanelIds
 --**********************************************************************************************************************
@@ -254,21 +219,16 @@ LibFilters.filterTypes = libFiltersFilterConstants
 LF_FILTER_MIN               = LF_INVENTORY
 LF_FILTER_MAX               = #libFiltersFilterConstants
 
-
 ------------------------------------------------------------------------------------------------------------------------
--- LibFilters registered filters array -> Addons will register their filter callbackFunctions into this table, for each
--- LibFilters filterPanel LF_*
---The filters of the different FilterPanelIds will be registered to these sub-tables
-LibFilters.filters = {}
-local filters = LibFilters.filters
-for _, filterConstantName in ipairs(libFiltersFilterConstants) do
-    filters[_G[filterConstantName]] = {}
-end
+--Special hooks
+local specialHooksDone = {
+    ["enchanting"] = false,
+}
 
 ------------------------------------------------------------------------------------------------------------------------
 --Some inventory variables and controls
 local playerInventory =     PLAYER_INVENTORY
-local inventories =         playerInventory.inventories
+local inventories =         PLAYER_INVENTORY.inventories
 
 local quickslots =          QUICKSLOT_WINDOW
 
@@ -278,11 +238,11 @@ local repair =              REPAIR_WINDOW
 
 --Some crafting variables
 local smithing =            SMITHING
-local refinementPanel =     smithing.refinementPanel
-local creationPanel =       smithing.creationPanel
-local deconstructionPanel = smithing.deconstructionPanel
-local improvementPanel =    smithing.improvementPanel
-local researchPanel =       smithing.researchPanel
+local refinementPanel =     SMITHING.refinementPanel
+local creationPanel =       SMITHING.creationPanel
+local deconstructionPanel = SMITHING.deconstructionPanel
+local improvementPanel =    SMITHING.improvementPanel
+local researchPanel =       SMITHING.researchPanel
 
 --local retraitClass =        ZO_RetraitStation_Retrait_Base
 local retrait =             ZO_RETRAIT_KEYBOARD
@@ -307,13 +267,10 @@ local ZOsDialogs = {
     [ZOsListDialog1]    = true,
 }
 
-------------------------------------------------------------------------------------------------------------------------
---Special hooks
-local specialHooksDone = {
-    ["enchanting"] = false,
-}
 
 ------------------------------------------------------------------------------------------------------------------------
+--Inventories and fragments
+
 --Inventory types
 local invBackPack   = INVENTORY_BACKPACK
 local invBank       = INVENTORY_BANK
@@ -379,7 +336,25 @@ LibFilters.fragmentToFilterType = fragmentToFilterType
 LibFilters.fragmentsActiveState = {}
 local fragmentsActiveState = LibFilters.fragmentsActiveState
 
---Mappings of the inventories
+
+------------------------------------------------------------------------------------------------------------------------
+--Mappings
+
+--Mapping for crafting
+local enchantingModeToFilterType = {
+    [ENCHANTING_MODE_CREATION]      = LF_ENCHANTING_CREATION,
+    [ENCHANTING_MODE_EXTRACTION]    = LF_ENCHANTING_EXTRACTION,
+    [ENCHANTING_MODE_RECIPES]       = nil --not supported yet
+}
+
+local provisioningModeToFilterType = {
+    [PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES]        = LF_PROVISIONING_BREW,
+    [PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING]     = LF_PROVISIONING_COOK,
+    [PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING]    = nil --not supported yet
+}
+
+
+--Mappings for the inventories
 local filterTypeToInventory = {
     --Normal inventories (all using the same)
     [LF_INVENTORY]                  = inventories[invBackPack],
@@ -430,198 +405,18 @@ local filterTypeToInventory = {
 }
 LibFilters.FilterTypeToInventory = filterTypeToInventory
 
---Some inventories need a special handling as they are re-used for more than one filterType e.g. ENCHANTNG
-local filterTypeToSpecialInventory = {
-    --Crafting enchanting
-    [LF_ENCHANTING_CREATION]        = { type = "enchanting", inventory = enchanting.inventory } ,
-    [LF_ENCHANTING_EXTRACTION]      = { type = "enchanting", inventory = enchanting.inventory },
-}
-LibFilters.FilterTypeToSpecialInventory = filterTypeToSpecialInventory
 
---Mappings for crafting
-local enchantingModeToFilterType = {
-    [ENCHANTING_MODE_CREATION]      = LF_ENCHANTING_CREATION,
-    [ENCHANTING_MODE_EXTRACTION]    = LF_ENCHANTING_EXTRACTION,
-    [ENCHANTING_MODE_RECIPES]       = nil --not supported yet
-}
-
-local provisioningModeToFilterType = {
-    [PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES]        = LF_PROVISIONING_BREW,
-    [PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING]     = LF_PROVISIONING_COOK,
-    [PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING]    = nil --not supported yet
-}
-
---Mapping for some crafting inventories, where there are multiple filterpanelIds at the same inventory, e.g.
---jewelry crafting and normal, -> Both use SMITHING.xxxxxPanel
-local craftingInventoryToFilterType = {
-    --Refine
-    [refinementPanel.inventory] = {
-        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_REFINE,
-        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_REFINE,
-        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_REFINE,
-        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_REFINE,
-    },
-    --Create
-    [creationPanel] = {
-        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_CREATION,
-        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_CREATION,
-        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_CREATION,
-        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_CREATION,
-    },
-    --DeconstructenchantingMode
-    [deconstructionPanel.inventory] = {
-        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_DECONSTRUCT,
-        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_DECONSTRUCT,
-        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_DECONSTRUCT,
-        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_DECONSTRUCT,
-    },
-    --Improve
-    [improvementPanel.inventory] = {
-        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_IMPROVEMENT,
-        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_IMPROVEMENT,
-        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_IMPROVEMENT,
-        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_IMPROVEMENT,
-    },
-    --Research
-    [researchPanel] = {
-        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_RESEARCH,
-        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_RESEARCH,
-        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_RESEARCH,
-        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_RESEARCH,
-    },
-    --ResearchDialog
-    [researchDialogSelect] = {
-        [CRAFTING_TYPE_JEWELRYCRAFTING] = LF_JEWELRY_RESEARCH_DIALOG,
-        [CRAFTING_TYPE_BLACKSMITHING]   = LF_SMITHING_RESEARCH_DIALOG,
-        [CRAFTING_TYPE_CLOTHIER]        = LF_SMITHING_RESEARCH_DIALOG,
-        [CRAFTING_TYPE_WOODWORKING]     = LF_SMITHING_RESEARCH_DIALOG,
-    },
-    --Alchemy
-    [alchemy.inventory] = {
-        [CRAFTING_TYPE_ALCHEMY]         = LF_ALCHEMY_CREATION,
-
-    },
-    --Enchanting
-    [enchanting.inventory] = {
-        [CRAFTING_TYPE_ENCHANTING]      = function()
-            return enchantingModeToFilterType[enchanting.enchantingMode]
-        end,
-    },
-    --Provisioning
-    [provisioner] = {
-        [CRAFTING_TYPE_PROVISIONING]    = function()
-            return provisioningModeToFilterType[provisioner.filterType]
-        end,
-    },
-    --Retrait
-    [retrait.inventory] = {
-        [CRAFTING_TYPE_INVALID]         = LF_RETRAIT,
-    },
-}
-LibFilters.CraftingInventoryToFilterType = craftingInventoryToFilterType
-
---Filtertypes also using LF_INVENTORY's inventory control ZO_PlayerInventoryList.
---Do not add them all via the HookAdditionalFilters function but use their fragments instead!
-local filterTypesUsingTheSameInvControl  = {
-    [inventories[invBackPack]] = {
-        --[LF_INVENTORY]          = true, --Do not add here or the HookAdditionalFilter is not applied!
-        [LF_MAIL_SEND]          = true,
-        [LF_TRADE]              = true,
-        [LF_BANK_DEPOSIT]       = true,
-        [LF_HOUSE_BANK_DEPOSIT] = true,
-        [LF_GUILDBANK_DEPOSIT]  = true,
-        [LF_VENDOR_SELL]        = true,
-        [LF_FENCE_LAUNDER]      = true,
-        [LF_FENCE_SELL]         = true,
-        [LF_GUILDSTORE_SELL]    = true,
-    }
-}
-
---Crafting filterTypes which use the same inventory. Used to handle the OnShow/OnHide via function
---updateActiveInventoryType
-local craftingFilterTypesUsingTheSameInvControl = {
-    [enchanting.inventory] = {
-        ["doNotHookOnShow"]         =   true,
-        ["doNotHookOnHide"]         =   true,
-        [LF_ENCHANTING_CREATION]    =   true,
-        [LF_ENCHANTING_EXTRACTION]  =   true,
-    }
-}
-
---FilterTypes that should not update the active inventory control and filterType via function "registerActiveInventoryTypeUpdate"
--->These filtertypes will use fragments instead to update the correct filterType
-local filterTypesNotUpdatingLastInventoryData  = {
-    [LF_INVENTORY]          = true,
-    [LF_MAIL_SEND]          = true,
-    [LF_TRADE]              = true,
-    [LF_BANK_DEPOSIT]       = true,
-    [LF_HOUSE_BANK_DEPOSIT] = true,
-    [LF_GUILDBANK_DEPOSIT]  = true,
-    [LF_VENDOR_SELL]        = true,
-    [LF_FENCE_LAUNDER]      = true,
-    [LF_FENCE_SELL]         = true,
-    [LF_GUILDSTORE_SELL]    = true,
-}
-
---Some inventories will be faster than the fragments showing, like LF_CRAFTBAG. We need to assure that the later called
---fragments (e.g. the normal inventory menu bar fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT) is not overwriting the
---filterType of LF_CRAFTBAG  with the wrong filterType of the normal inventory again
-local blockFilterTypeAtActiveInventoryUpdater = {
-    --[filterType] = millisecondsToBlock "updateActiveInventoryType()"
-    [LF_CRAFTBAG]                   = 10,
-    --Crafting
-    [LF_SMITHING_REFINE]            = 10,
-    [LF_JEWELRY_REFINE]             = 10,
-    [LF_JEWELRY_CREATION]           = 10,
-    [LF_SMITHING_CREATION]          = 10,
-    [LF_JEWELRY_DECONSTRUCT]        = 10,
-    [LF_SMITHING_DECONSTRUCT]       = 10,
-    [LF_JEWELRY_IMPROVEMENT]        = 10,
-    [LF_SMITHING_IMPROVEMENT]       = 10,
-    [LF_JEWELRY_RESEARCH]           = 10,
-    [LF_SMITHING_RESEARCH]          = 10,
-    --[LF_JEWELRY_RESEARCH_DIALOG]    = 10,
-    --[LF_SMITHING_RESEARCH_DIALOG]   = 10,
-    --Enchanting
-    [LF_ENCHANTING_CREATION]        = 10,
-    [LF_ENCHANTING_EXTRACTION]      = 10,
-    --Crafting alchemy
-    [LF_ALCHEMY_CREATION]           = 10,
-    --Crafting provisioner
-    [LF_PROVISIONING_COOK]          = 10,
-    [LF_PROVISIONING_BREW]          = 10,
-    --Crafting retrait / reconstruct
-    [LF_RETRAIT]                    = 10,
-
-}
---Flag if any filterType is curently blocked. If true the function updateActiveInventoryType will not update any other
---inventory as long as this variable is set to true. it will be reverted to false automatically after the amount of time
---in milliseconds (defined above in table blockFilterTypeAtActiveInventoryUpdater, per filterType) has ended. See description
---above at table blockFilterTypeAtActiveInventoryUpdater
-local currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
-
-
-local craftingTypeToFilterType = {
-    [CRAFTING_TYPE_BLACKSMITHING] = {
-        [LF_SMITHING_REFINE]            = LF_SMITHING_REFINE,
-        [LF_SMITHING_CREATION]          = LF_SMITHING_CREATION,
-        [LF_SMITHING_DECONSTRUCT]       = LF_SMITHING_DECONSTRUCT,
-        [LF_SMITHING_IMPROVEMENT]       = LF_SMITHING_IMPROVEMENT,
-        [LF_SMITHING_RESEARCH]          = LF_SMITHING_RESEARCH,
-        [LF_SMITHING_RESEARCH_DIALOG]   = LF_SMITHING_RESEARCH_DIALOG,
-    },
-    [CRAFTING_TYPE_JEWELRYCRAFTING] = {
-        [LF_SMITHING_REFINE]            = LF_JEWELRY_REFINE,
-        [LF_SMITHING_CREATION]          = LF_JEWELRY_CREATION,
-        [LF_SMITHING_DECONSTRUCT]       = LF_JEWELRY_DECONSTRUCT,
-        [LF_SMITHING_IMPROVEMENT]       = LF_JEWELRY_IMPROVEMENT,
-        [LF_SMITHING_RESEARCH]          = LF_JEWELRY_RESEARCH,
-        [LF_SMITHING_RESEARCH_DIALOG]   = LF_JEWELRY_RESEARCH_DIALOG,
-    },
-}
-LibFilters.craftingTypeToFilterType = craftingTypeToFilterType
 
 ------------------------------------------------------------------------------------------------------------------------
+-- LibFilters registered filters array -> Addons will register their filter callbackFunctions into this table, for each
+-- LibFilters filterPanel LF_*
+--The filters of the different FilterPanelIds will be registered to these sub-tables
+LibFilters.filters = {}
+for _, filterConstantName in ipairs(libFiltersFilterConstants) do
+    LibFilters.filters[_G[filterConstantName]] = {}
+end
+local filters = LibFilters.filters
+
 --The fixed updater names for the LibFilters unique updater string
 local filterTypeToUpdaterNameFixed = {
     [LF_BANK_WITHDRAW]              = "BANK_WITHDRAW",
@@ -683,8 +478,9 @@ local filterTypeToUpdaterNameDynamic = {
     },
 }
 --The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
-local filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
+local filterTypeToUpdaterName = {}
 --Add the fixed updaterNames of the filtertypes
+filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
 --Then dynamically add the other updaterNames from the above table filterTypeToUpdaterNameDynamic
 for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDynamic) do
     if updaterName ~= "" then
@@ -697,7 +493,7 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 end
 LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
 
-------------------------------------------------------------------------------------------------------------------------
+
 --Only call the function updateFunc every 10 milliseconds if requested more often
 local function throttledCall(filterType, uniqueName, updateFunc, ...)
     if settings.debug then df(">throttledCall: uniqueName: %s, filterType: %s", tostring(uniqueName), tostring(filterType)) end
@@ -711,110 +507,17 @@ local function throttledCall(filterType, uniqueName, updateFunc, ...)
     EVENT_MANAGER:RegisterForUpdate(uniqueName, 10, function(...) updateFunc(...) end)
 end
 
-
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
+--d("[LibFilters3]SafeUpdateList, inv: " ..tostring(...))
     local isMouseVisible = SCENE_MANAGER:IsInUIMode()
-    if settings.debug and settings.debugDetails then df("SafeUpdateList - isMouseVisible: %s", tostring(isMouseVisible)) end
 
     if isMouseVisible then HideMouse() end
 
     object:UpdateList(...)
 
     if isMouseVisible then ShowMouse() end
-end
-
---The fragments will handle the update of the active inventory type then, e.g. LF_MAIL_SEND -> BACKPACK_MAIL_LAYOUT_FRAGMENT.
---They will also register the update of their control here with this function registerActiveInventoryTypeUpdate
---But: If a fragment is not hidden/shown properly e.g. by switching from vendor sell to vendor buyback and then back to sell,
---we need to run an updater. This is only possible via the ZO_PlayerInventoryList control then "showing again", thus we need to
---register the update here BUT check for ANY of the fragments also using this ZO_PlayerInventoryList control, to get the correct
---filterType
-local function getFilterTypeOfActiveInventoryFragment(filterType)
-    if settings.debug then df("getFilterTypeOfActiveInventoryFragment-isValid: %s", tostring(filterTypesNotUpdatingLastInventoryData[filterType] ~= nil)) end
-    --Check if the current filterType is a valid "inventory fragment" used filterType
-    if filterTypesNotUpdatingLastInventoryData[filterType] == nil then return end
-    --Check which fragment is currently active
-    for lfilterType, isFragmentEnabled in pairs(fragmentsActiveState) do
-        if isFragmentEnabled == true then
-            return lfilterType
-        end
-    end
-    return nil
-end
-
-local function mapCraftingFilterType(filterType)
-    local filterTypeToUse = filterType
-    local craftingType = GetCraftingInteractionType()
-    filterTypeToUse = (craftingTypeToFilterType[craftingType] ~= nil and craftingTypeToFilterType[craftingType][filterType]) or filterType
-    if settings.debug then df("mapCraftingFilterType: filterType: %s, filterTypeToUse: %s, craftingType: %s", tostring(filterType), tostring(filterTypeToUse), tostring(craftingType)) end
-    return filterTypeToUse, craftingType
-end
-
---Updating the current and lastUsed inventory and libFilters filterTypes, as the Refresh/Update function of the inventory
---is called
-local function updateActiveInventoryType(invOrFragmentType, filterType, isTrueInventoryOrFalseFragment, filterTypeNotUpdatingLastInventoryData, isCraftingInv)
-    isTrueInventoryOrFalseFragment = isTrueInventoryOrFalseFragment or false
-    filterTypeNotUpdatingLastInventoryData = filterTypeNotUpdatingLastInventoryData or false
-    isCraftingInv = isCraftingInv or false
-    local invName = LibFilters:GetInventoryName(invOrFragmentType)
-    if settings.debug then df("]updateActiveInventoryType[\'%s\']: Blocked: %s, isInv: %s, filterType: %s, invOrFragmentType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(invName), tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(isTrueInventoryOrFalseFragment), tostring(filterType), tostring(invOrFragmentType), tostring(filterTypeNotUpdatingLastInventoryData), tostring(isCraftingInv)) end
-    if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then return end
-
-    local craftingType = CRAFTING_TYPE_INVALID
-    local filterTypeToUse = filterType
-    if filterType ~= nil and isCraftingInv == true then
-        filterTypeToUse, craftingType = mapCraftingFilterType(filterType)
-    end
-
-    local function updateActiveInvNow(p_inv, p_filterType, p_isInv, p_blockMilliseconds)
-        df(">>RUN: updateActiveInventoryType - isInv: %s, filterType: %s, blockedMilliseconds: %s",tostring(p_isInv), tostring(p_filterType), tostring(p_blockMilliseconds))
-        local lastInventoryType = LibFilters.activeInventoryType
-        local lastFilterType = LibFilters.activeFilterType
-        if lastInventoryType ~= nil and lastFilterType ~= nil then
-            LibFilters.lastInventoryType    = lastInventoryType
-            LibFilters.lastFilterType       = lastFilterType
-        end
-        LibFilters.activeInventoryType  = p_inv
-        LibFilters.activeFilterType     = p_filterType
-
-        if currentlyBlockedFilterTypesAtActiveInventoryUpdater == true then
-            currentlyBlockedFilterTypesAtActiveInventoryUpdater = false
-        end
-    end
-
-    --Some inventories will be faster than the fragments showing, like LF_CRAFTBAG. We need to assure that the later called
-    --fragments (e.g. the normal inventory menu bar fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT) is not overwriting the
-    --filterType of LF_CRAFTBAG  with the wrong filterType of the normal inventory again
-    local blockMilliseconds = 0
-    if filterTypeToUse ~= nil then
-        blockMilliseconds = blockFilterTypeAtActiveInventoryUpdater[filterTypeToUse] or 0
-        if blockMilliseconds ~= nil and blockMilliseconds > 0 then
-            --Will be set here and reset after the update function was called, with a delay of
-            --blockMilliseconds
-            currentlyBlockedFilterTypesAtActiveInventoryUpdater = true
-        end
-    end
-
-    local callbackName = "LibFilters_updateActiveInventoryType"
-
-    local function Update()
-        if settings.debug then df(">Update: updateActiveInventoryType - Name: %s, Blocked: %s, blockedTime: %s, filterType: %s", tostring(callbackName),tostring(currentlyBlockedFilterTypesAtActiveInventoryUpdater), tostring(blockMilliseconds), tostring(filterTypeToUse)) end
-        EVENT_MANAGER:UnregisterForUpdate(callbackName)
-        zo_callLater(function()
-            updateActiveInvNow(invOrFragmentType, filterTypeToUse, isTrueInventoryOrFalseFragment, blockMilliseconds)
-        end, blockMilliseconds)
-    end
-
-    --Is the filterType one of many used for the ZO_PlayerInventoryList? Check for the active fragment then and use the
-    --fragment's filterType!
-    if filterTypeNotUpdatingLastInventoryData == true and filterTypeToUse ~= nil then
-        filterTypeToUse = getFilterTypeOfActiveInventoryFragment(filterTypeToUse)
-    end
-    if settings.debug then df(">filterTypeAfter: %s",tostring(filterTypeToUse)) end
-
-    throttledCall(filterTypeToUse, callbackName, Update)
 end
 
 local function getInventoryControl(inventoryOrFragment, invControlBase)
@@ -838,131 +541,6 @@ local function getInventoryControl(inventoryOrFragment, invControlBase)
     return invControl
 end
 
---Register the updater function which calls updateActiveInventoryType for the normal inventories and fragments
-local invControlHandlersSet = {}
-local function registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, noHandlers)
-    noHandlers = noHandlers or false
-
-    --If any filter is enabled the update fucntion of the inventory (e.g. updateInventoryBase) will handle this. But if no
-    --filter is registrered (yet/anymore) it wont! So we need to "duplicate" the check here somehow as the inventory's
-    --control get's shown
-    if not inventoryOrFragment then return end
-
-    local invControlBase = filterTypeToInventory[filterType]
-    local invControl = getInventoryControl(inventoryOrFragment, invControlBase)
-    df("registerActiveInventoryTypeUpdate - isInventory: %s, invControl: %s, invControl.IsControlHidden: %s",tostring(isInventory), tostring(invControl), tostring(invControl.IsControlHidden ~= nil))
-    if isInventory == true then
-        LibFilters.registeredInventoriesData = LibFilters.registeredInventoriesData or {}
-        LibFilters.registeredInventoriesData[filterType] = {
-            filterType  = filterType,
-            inv         = inventoryOrFragment,
-            invControl  = invControl,
-        }
-    else
-        LibFilters.registeredFragmentsData = LibFilters.registeredFragmentsData or {}
-        LibFilters.registeredFragmentsData[filterType] = {
-            filterType  = filterType,
-            inv         = inventoryOrFragment,
-            invControl  = invControl,
-        }
-    end
-
-    local isCraftingInv = usedCraftingInventoryTypes[inventoryOrFragment]
-    local cBase = (isCraftingInv == true and craftingFilterTypesUsingTheSameInvControl[inventoryOrFragment]) or nil
-    local craftingFilterTypeUsesTheSameInvControl = (isCraftingInv == true and cBase ~= nil and craftingFilterTypesUsingTheSameInvControl[inventoryOrFragment][filterType]) or false
-    df(">>isCraftingInv: %s, craftingFilterTypeUsesTheSameInvControl: %s", tostring(isCraftingInv), tostring(craftingFilterTypeUsesTheSameInvControl))
-    if craftingFilterTypeUsesTheSameInvControl == true then
-        --Enchanting e.g.
-        if cBase.doNotHookOnShow == true and cBase.doNotHookOnHide == true then
-            df("<<ABORT: DoNotHook onShow and OnHide is set, filterType: %s", tostring(filterType))
-            return
-        end
-    end
-
-    local filterTypeNotUpdatingLastInventoryData = (filterType ~= nil and filterTypesNotUpdatingLastInventoryData[filterType]) or false
-    df(">filterType: %s, filterTypeNotUpdatingLastInventoryData: %s", tostring(filterType), tostring(filterTypeNotUpdatingLastInventoryData))
-    --if filterTypeUsesSameInvControl == true then
-        --The fragments will handle the update of the active inventory type then, e.g. LF_MAIL_SEND -> BACKPACK_MAIL_LAYOUT_FRAGMENT.
-        --They will also register the update of their control here with this function registerActiveInventoryTypeUpdate
-        --But: If a fragment is not hidden/shown properly e.g. by switching from vendor sell to vendor buyback and then back to sell,
-        --we need to run an updater. This is only possible via the ZO_PlayerInventoryList control then "showing again", thus we need to
-        --register the update here BUT check for ANY of the fragments also using this ZO_PlayerInventoryList control, to get the correct
-        --filterType
-
-        --return
-    --end
-
-    --Is this a control? And should the handlers be set?
-    if not noHandlers and invControlHandlersSet[invControl] == nil and invControl.IsControlHidden ~= nil then
-        local invName = LibFilters:GetInventoryName(inventoryOrFragment)
-        df(">>>Registering OnShow/OnHide handler: %s, isCraftingInv: %s", tostring(invName), tostring(isCraftingInv))
-        if cBase == nil or not cBase.doNotHookOnShow then
-            invControl:SetHandler("OnEffectivelyShown", function()
-                local linvName = LibFilters:GetInventoryName(inventoryOrFragment)
-                if settings.debug then df(">>[OnEffShow]name: %s, filterType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(linvName), tostring(filterType), tostring(filterTypeNotUpdatingLastInventoryData), tostring(isCraftingInv)) end
-                updateActiveInventoryType(inventoryOrFragment, filterType, isInventory, filterTypeNotUpdatingLastInventoryData, isCraftingInv)
-            end)
-        end
-        if cBase == nil or not cBase.doNotHookOnHide then
-            invControl:SetHandler("OnEffectivelyHidden", function()
-                local linvName = LibFilters:GetInventoryName(inventoryOrFragment)
-                if settings.debug then df("<<[OnEffHidden]name: %s, filterType: %s, filterTypeNotUpdatingLastInventoryData: %s, isCraftingInv: %s", tostring(linvName), tostring(filterType), tostring(filterTypeNotUpdatingLastInventoryData), tostring(isCraftingInv)) end
-                updateActiveInventoryType(nil, nil, isInventory, nil)
-            end)
-        end
-        invControlHandlersSet[invControl] = true
-    end
-end
-
-local function updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, isCrafting, filterType)
-    isCrafting = isCrafting or false
-    local invId = inventoryId or inventoryOrFragmentVar
-    if isCrafting == true then
-        if filterType == nil then
-            local libFiltersFilterTypeForCraftingBase = craftingInventoryToFilterType[inventoryOrFragmentVar]
-            if not libFiltersFilterTypeForCraftingBase then return end
-            local libFiltersFilterTypeForCrafting = libFiltersFilterTypeForCraftingBase[GetCraftingInteractionType()]
-            if not libFiltersFilterTypeForCrafting then return end
-            if type(libFiltersFilterTypeForCrafting) == "function" then
-                filterType = libFiltersFilterTypeForCrafting()
-            else
-                filterType = libFiltersFilterTypeForCrafting
-            end
-        end
-    end
-    --updateActiveInventoryType(invId, filterType, nil)
-    if callbackFunc ~= nil then callbackFunc() end
-end
-
-local function updatePlayerInventoryType(inventoryOrFragmentVar, inventoryId, callbackFunc, filterType)
-    updateInventoryBase(inventoryOrFragmentVar, inventoryId, callbackFunc, false, filterType)
-    SafeUpdateList(playerInventory, inventoryOrFragmentVar)
-end
-
-local function updateCraftingInventoryType(craftingInventoryOrFragmentVar, inventoryId, callbackFunc, craftingInvRefreshFunc)
-    updateInventoryBase(craftingInventoryOrFragmentVar, inventoryId, callbackFunc, true)
-    if craftingInvRefreshFunc ~= nil then
-        if type(craftingInvRefreshFunc) == "function" then
-            craftingInvRefreshFunc()
-        else
-            dfe("updateCraftingInventoryType - craftingInvRefreshFunc is no function! craftingInvRefreshFunc: %s", tostring(craftingInvRefreshFunc))
-            return
-        end
-    else
-        if not craftingInventoryOrFragmentVar then
-            dfe("updateCraftingInventoryType - craftingInventoryOrFragmentVar is nil! inventoryId: %s", tostring(inventoryId))
-            return
-        end
-        if craftingInventoryOrFragmentVar.HandleDirtyEvent then
-            craftingInventoryOrFragmentVar:HandleDirtyEvent()
-        end
-    end
-end
-
-local function updateOtherInventoryType(otherInventoryOrFragmentVar, inventoryId, callbackFunc, filterType)
-    updateInventoryBase(otherInventoryOrFragmentVar, inventoryId, callbackFunc, false, filterType)
-    SafeUpdateList(otherInventoryOrFragmentVar)
-end
 
 local function resetLibFiltersFilterTypeAfterDialogClose(dialogControl)
     --[[
@@ -973,7 +551,8 @@ local function resetLibFiltersFilterTypeAfterDialogClose(dialogControl)
     --SMITHING research item dialog
     if dialogControl == researchDialogSelect then
         --Reset LibFilters filterType to LF_SMITHING_RESEARCH or LF_JEWELRY_RESEARCH
-        updateCraftingInventoryType(researchPanel, nil, nil, function() researchPanel:Refresh() end)
+       --researchPanel:HandleDirtyEvent()
+       researchPanel:Refresh()
         return true
     end
     return false
@@ -996,7 +575,6 @@ local function dialogUpdaterFunc(listDialogControl)
 
         --SMITHING research item dialog
         if listDialogControl == researchDialogSelect then
-            updateInventoryBase(listDialogControl, nil, nil, true, nil)
             dialogNeedsOnCloseCallback = true
             local craftingType, researchLineIndex, traitIndex  = data.craftingType, data.researchLineIndex, data.traitIndex
             if craftingType and researchLineIndex and traitIndex then
@@ -1017,130 +595,26 @@ end
 
 --The updater functions for the inventories
 local inventoryUpdaters = {
-    --Inventory backpack variables
     INVENTORY = function()
-        updatePlayerInventoryType(invBackPack, nil, nil, LF_INVENTORY)
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_BACKPACK)
     end,
     BANK_WITHDRAW = function()
-        updatePlayerInventoryType(invBank, nil, nil, LF_BANK_WITHDRAW)
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_BANK)
     end,
     GUILDBANK_WITHDRAW = function()
-        updatePlayerInventoryType(invGuildBank, nil, nil, LF_GUILDBANK_WITHDRAW)
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_GUILD_BANK)
     end,
-    HOUSE_BANK_WITHDRAW = function()
-        updatePlayerInventoryType(invHouseBank, nil, nil, LF_HOUSE_BANK_WITHDRAW)
-    end,
-    INVENTORY_QUEST = function()
-        updatePlayerInventoryType(invQuestItem, nil, nil, LF_INVENTORY_QUEST)
-    end,
-    QUICKSLOT = function()
-        updateOtherInventoryType(quickslots, nil, nil, LF_QUICKSLOT)
-    end,
-    CRAFTBAG = function()
-        updatePlayerInventoryType(invCraftBag, nil, nil, LF_CRAFTBAG)
-    end,
-
-    --Fragments
-    BANK_DEPOSIT = function()
-        updatePlayerInventoryType(invBackPack, bankInvFragment, nil, LF_BANK_DEPOSIT)
-    end,
-    GUILDBANK_DEPOSIT = function()
-        updatePlayerInventoryType(invBackPack, guildBankInvFragment, nil, LF_GUILDBANK_DEPOSIT)
-    end,
-    HOUSE_BANK_DEPOSIT = function()
-        updatePlayerInventoryType(invBackPack, houseBankInvFragment, nil, LF_HOUSE_BANK_DEPOSIT)
-    end,
-    VENDOR_SELL = function()
-        updatePlayerInventoryType(invBackPack, storeInvFragment, nil, LF_VENDOR_SELL)
-    end,
-    GUILDSTORE_SELL = function()
-        updatePlayerInventoryType(invBackPack, tradingHouseInvFragment, nil, LF_GUILDSTORE_SELL)
-    end,
-    MAIL_SEND = function()
-        updatePlayerInventoryType(invBackPack, mailInvFragment, nil, LF_MAIL_SEND)
-    end,
-    TRADE = function()
-        updatePlayerInventoryType(invBackPack, playerTradeInvFragment, nil, LF_TRADE)
-    end,
-    FENCE_SELL = function()
-        updatePlayerInventoryType(invBackPack, fenceInvFragment, nil, LF_FENCE_SELL)
-    end,
-    FENCE_LAUNDER = function()
-        updatePlayerInventoryType(invBackPack, launderInvFragment, nil, LF_FENCE_LAUNDER)
-    end,
-
-    --Other inventory variables
     VENDOR_BUY = function()
-        if tradingHouseInvFragment.state ~= SCENE_SHOWN then --"shown"
-            updateOtherInventoryType(vendor, nil, function() vendor:GetStoreItems() end, LF_VENDOR_BUY)
+        if BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT.state ~= SCENE_SHOWN then --"shown"
+            STORE_WINDOW:GetStoreItems()
+            SafeUpdateList(STORE_WINDOW)
         end
     end,
     VENDOR_BUYBACK = function()
-        updateOtherInventoryType(buyBack, nil, nil, LF_VENDOR_BUYBACK)
+        SafeUpdateList(BUY_BACK_WINDOW)
     end,
     VENDOR_REPAIR = function()
-        updateOtherInventoryType(repair, nil, nil, LF_VENDOR_REPAIR)
-    end,
-
-    --Crafting
-    SMITHING_REFINE = function()
-        updateCraftingInventoryType(refinementPanel.inventory, nil, nil, nil)
-    end,
-    SMITHING_CREATION = function()
-    end,
-    SMITHING_DECONSTRUCT = function()
-        updateCraftingInventoryType(deconstructionPanel.inventory, nil, nil, nil)
-    end,
-    SMITHING_IMPROVEMENT = function()
-        updateCraftingInventoryType(improvementPanel.inventory, nil, nil, nil)
-    end,
-    SMITHING_RESEARCH = function()
-        updateCraftingInventoryType(researchPanel, nil, nil, function() researchPanel:Refresh() end)
-    end,
-    ALCHEMY_CREATION = function()
-        updateCraftingInventoryType(alchemy.inventory, nil, nil, nil)
-    end,
-    ENCHANTING = function()
-        updateCraftingInventoryType(enchanting.inventory, nil, nil, nil)
-    end,
-    RETRAIT = function()
-        updateCraftingInventoryType(retrait.inventory, nil, nil, nil)
-    end,
-    SMITHING_RESEARCH_DIALOG = function()
-        dialogUpdaterFunc(researchDialogSelect)
-    end,
-
-    --Todo: Add support in the future maybe
-    PROVISIONING_COOK = function()
-    end,
-    PROVISIONING_BREW = function()
-    end,
-    GUILDSTORE_BROWSE = function()
-    end,
-
- --[[
-
-    --Old updaters for reference
-    INVENTORY = function()
-        SafeUpdateList(playerInventory, invBackPack)
-    end,
-    BANK_WITHDRAW = function()
-        SafeUpdateList(playerInventory, invBank)
-    end,
-    GUILDBANK_WITHDRAW = function()
-        SafeUpdateList(playerInventory, invGuildBank)
-    end,
-    VENDOR_BUY = function()
-        if tradingHouseInvFragment.state ~= SCENE_SHOWN then --"shown"
-            vendor:GetStoreItems()
-            SafeUpdateList(vendor)
-        end
-    end,
-    VENDOR_BUYBACK = function()
-        SafeUpdateList(buyBack)
-    end,
-    VENDOR_REPAIR = function()
-        SafeUpdateList(repair)
+        SafeUpdateList(REPAIR_WINDOW)
     end,
     GUILDSTORE_BROWSE = function()
     end,
@@ -1165,37 +639,33 @@ local inventoryUpdaters = {
         enchanting.inventory:HandleDirtyEvent()
     end,
     PROVISIONING_COOK = function()
-        --TODO
     end,
     PROVISIONING_BREW = function()
-        --TODO
     end,
     CRAFTBAG = function()
-        SafeUpdateList(playerInventory, invCraftBag)
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_CRAFT_BAG)
     end,
     QUICKSLOT = function()
-        SafeUpdateList(quickslots)
+        SafeUpdateList(QUICKSLOT_WINDOW)
     end,
     RETRAIT = function()
-        retrait.inventory:HandleDirtyEvent()
+        ZO_RETRAIT_KEYBOARD.inventory:HandleDirtyEvent()
     end,
     HOUSE_BANK_WITHDRAW = function()
-        SafeUpdateList(playerInventory, invHouseBank )
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_HOUSE_BANK )
     end,
     SMITHING_RESEARCH_DIALOG = function()
-        dialogUpdaterFunc(researchDialogSelect)
+        dialogUpdaterFunc(SMITHING_RESEARCH_SELECT)
     end,
     RECONSTRUCTION = function()
-        reconstruct.inventory:HandleDirtyEvent()
+        ZO_RECONSTRUCT_KEYBOARD.inventory:HandleDirtyEvent()
     end,
     INVENTORY_QUEST = function()
-        SafeUpdateList(playerInventory, invQuestItem)
+        SafeUpdateList(PLAYER_INVENTORY, INVENTORY_QUEST_ITEM)
     end,
-    ]]
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
 
-------------------------------------------------------------------------------------------------------------------------
 --Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
 local function runFilters(filterType, ...)
     if settings.debug and settings.debugDetails then df("runFilters, filterType: %s", tostring(filterType)) end
@@ -1208,23 +678,6 @@ local function runFilters(filterType, ...)
 end
 LibFilters.RunFilters = runFilters
 
---Register the filter function, using the inventory/fragment.additionalFilter function/value and the registered filter function at
---the filterType (e.g. LF_INVENTORY) via function runFilters
-local function registerAdditionalFilterFunc(p_inventory, filterType)
-    if settings.debug and settings.debugDetails then df("callFilterFunc, p_inventory: %s, filterType: %s", tostring(p_inventory), tostring(filterType)) end
-    local originalFilter = p_inventory.additionalFilter
-    local additionalFilterType = type(originalFilter)
-    if additionalFilterType == "function" then
-        p_inventory.additionalFilter = function(...)
-            return originalFilter(...) and runFilters(filterType, ...)
-        end
-    else
-        p_inventory.additionalFilter = function(...)
-            return runFilters(filterType, ...)
-        end
-    end
-end
-LibFilters.RegisterAdditionalFilterFunc = registerAdditionalFilterFunc
 
 ------------------------------------------------------------------------------------------------------------------------
 --**********************************************************************************************************************
@@ -1239,11 +692,77 @@ LibFilters.RegisterAdditionalFilterFunc = registerAdditionalFilterFunc
 --**********************************************************************************************************************
 -- LibFilters library global library API functions - Filter functions
 --**********************************************************************************************************************
+
+
+--**********************************************************************************************************************
+--Hook the inventory layout or inventory to apply additional filter functions
+function LibFilters:HookAdditionalFilter(filterType, inventory)
+    local layoutData = inventory.layoutData or inventory
+    local originalFilter = layoutData.additionalFilter
+
+    layoutData.LibFilters3_filterType = filterType
+    local additionalFilterType = type(originalFilter)
+    if additionalFilterType == "function" then
+        layoutData.additionalFilter = function(...)
+            return originalFilter(...) and runFilters(filterType, ...)
+        end
+    else
+        layoutData.additionalFilter = function(...)
+            return runFilters(filterType, ...)
+        end
+    end
+end
+
+--Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
+--extra fragment for the different modes (creation, extraction).
+local specialHooksLibFiltersDataRegistered = {}
+function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
+    local debug = settings.debug
+    if debug then df("[HookAdditionalFilterSpecial] - specialType: %s, hookAlreadyDone: %s, inventory: %s", tostring(specialType), tostring(specialHooksDone[specialType]), tostring(inventory)) end
+    if specialHooksDone[specialType] == true then return end
+
+    --ENCHANTING
+    if specialType == "enchanting" then
+        local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
+            local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
+            if debug then df("onEnchantingModeUpdated - enchantingMode: %s, filterType: %s", tostring(enchantingMode), tostring(libFiltersEnchantingFilterType)) end
+            enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
+
+            specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
+
+            --Only once
+            if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
+                local originalFilter = enchantingVar.inventory.additionalFilter
+                local additionalFilterType = type(originalFilter)
+                if additionalFilterType == "function" then
+                    enchantingVar.inventory.additionalFilter = function(...)
+                        return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
+                    end
+                else
+                    enchantingVar.inventory.additionalFilter = function(...)
+                        return runFilters(libFiltersEnchantingFilterType, ...)
+                    end
+                end
+
+                specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+            end
+
+        end
+        ZO_PreHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
+            onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
+        end)
+        specialHooksDone[specialType] = true
+    end
+end
+
+
+--**********************************************************************************************************************
+-- LibFilters library global library API functions - Filter functions
+--**********************************************************************************************************************
 --Returns the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function LibFilters:GetFilterCallback(filterTag, filterType)
-    if not isInitialized(true) then return end
     if settings.debug then df("GetFilterCallback - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterType)) end
-    if not LibFilters:IsFilterRegistered(filterTag, filterType) then return end
+    if not self:IsFilterRegistered(filterTag, filterType) then return end
     return filters[filterType][filterTag]
 end
 
@@ -1279,70 +798,31 @@ function LibFilters:GetFilterTypeToInventory()
     return filterTypeToInventory
 end
 
---Get the current libFilters filterType for the active inventory, as well as the filterType that was used before.
---Active inventory will be set as the hook of the supported inventories gets applied and as it's updaterFunction is run.
---The activeInventory will be e.g. INVENTORY_BACKPACK
-function LibFilters:GetCurrentFilterType()
-    if not isInitialized(true) then return nil, nil end
-    return LibFilters.activeFilterType, LibFilters.lastFilterType
-end
 
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK
 function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
-    if not isInitialized(true) then return end
-    if not inventoryType then return end
-    local invVarType = type(inventoryType)
-    local isNumber  = invVarType == "number"
-    local isTable   = invVarType == "table"
-    local filterTypeOfInv = (isNumber == true and inventories[inventoryType] and inventories[inventoryType].LibFilters3_filterType)
-            or (isTable == true and inventoryType.layoutData and inventoryType.layoutData.LibFilters3_filterType)
-            or inventoryType and inventoryType.LibFilters3_filterType
-    return filterTypeOfInv
+    --LibFilters._inventoryType = inventoryType
+    --Get the layoutData from the fragment. If no fragment: Abort
+    if inventoryType == INVENTORY_BACKPACK then
+        local layoutData = PLAYER_INVENTORY.appliedLayout
+        if layoutData and layoutData.LibFilters3_filterType then
+            return layoutData.LibFilters3_filterType
+        else
+            return
+        end
+    end
+    --Get the inventory from PLAYER_INVENTORY.inventories
+    --> Added new: "number" check and else inventoryType to support enchanting.inventory
+    local inventory = (type(inventoryType) == "number" and inventories[inventoryType]) or inventoryType
+    if not inventory or not inventory.LibFilters3_filterType then return end
+    if settings.debug then df("<LibFilters:GetCurrentFilterTypeForInventory(%s) = %s", tostring(inventoryType), tostring(inventory.LibFilters3_filterType)) end
+    return inventory.LibFilters3_filterType
 end
-
 
 --**********************************************************************************************************************
 --  LibFilters global library API functions - Get: Inventories for "LibFilters"
 --**********************************************************************************************************************
---Get the current libFilters active inventory type. The activeInventory type will be e.g. INVENTORY_BACKPACK
---or a userdate/table of the e.g. crafting inventory
-function LibFilters:GetCurrentInventoryType()
-    if not isInitialized(true) then return nil, nil end
-    return LibFilters.activeInventoryType, LibFilters.lastInventoryType
-end
-
-
---Get the current libFilters active inventory, and the last inventory that was active before.
---The activeInventory will be e.g. PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK] or a similar userdate/table of the
---inventory
--->Returns inventoryVar, lastInventoryVar, isInventoryVarACraftingTable
-function LibFilters:GetCurrentInventoryVar()
-    if not isInitialized(true) then return nil, nil, nil end
-    local activeInventoryType, lastInventoryType = LibFilters:GetCurrentInventoryType()
-    local invVarType, lastInvVarType
-    local inventory, lastInventory
-    local isNumber
-    local isTable
-    local isCrafting = false
-    if activeInventoryType then
-        invVarType = type(activeInventoryType)
-        isNumber  = invVarType == "number"
-        isTable   = invVarType == "table"
-        isCrafting = isNumber == false
-        inventory = (isNumber == true and inventories[activeInventoryType])
-                or (isTable == true and activeInventoryType)
-    end
-    if lastInventoryType then
-        lastInvVarType = type(lastInventoryType)
-        isNumber  = lastInvVarType == "number"
-        isTable   = lastInvVarType == "table"
-        lastInventory = (isNumber == true and inventories[lastInventoryType])
-                or (isTable == true and lastInventoryType)
-    end
-    return inventory, lastInventory, isCrafting
-end
-
 --Returns the inventory for the LibFilters LF_* filterType
 function LibFilters:GetInventoryOfFilterType(filterType)
     return filterTypeToInventory[filterType]
@@ -1366,31 +846,6 @@ function LibFilters:GetInventoryName(inventoryOrFragment)
     return invOrFragmentName
 end
 
---**********************************************************************************************************************
--- LibFilters library global library API functions - Get: for "Vanilla UI inventories"
---**********************************************************************************************************************
---Return the currently active inventory's main filterType (e.g. Weapons, Armor) -> inventory.currentFilter
--->Returns currentFilter, inventoryType, inventoryVar, libFiltersFilterTypeOfInventory
-function LibFilters:GetCurrentInventoryFilter()
-    if not isInitialized(true) then return nil, nil, nil, nil end
-    local activeInventoryType, _ =      LibFilters:GetCurrentInventoryType()
-    local activeInventoryVar, _ =       LibFilters:GetCurrentInventoryVar()
-    local activeFilterType, _ =         LibFilters:GetCurrentFilterType()
-
-    --Should be "currentFilter" for normal inventories
-    local currentFilter = activeInventoryVar and activeInventoryVar.currentFilter
-    return currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
-end
-
---Return the currently active inventory's main filterType's subFilterType (e.g. Weapons- > 1hd)  -> inventory.subFilter
--->Returns currentSubFilter, currentFilter, inventoryType, inventoryControl, libFiltersFilterTypeOfInventory
-function LibFilters:GetCurrentInventorySubFilter()
-    if not isInitialized(true) then return nil, nil, nil, nil end
-    local currentFilter, activeInventoryType, activeInventoryVar, activeFilterType = LibFilters:GetCurrentInventoryFilter()
-    local currentSubFilter = activeInventoryVar and activeInventoryVar.subFilter
-    return currentSubFilter, currentFilter, activeInventoryType, activeInventoryVar, activeFilterType
-end
-
 
 --**********************************************************************************************************************
 -- LibFilters library global library API functions - (Un)Register filters of addons
@@ -1401,7 +856,6 @@ function LibFilters:IsFilterRegistered(filterTag, filterType)
         local filterTypeIsRegisteredType = filterType or "-IsRegistered all-"
         df("IsFilterRegistered - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterTypeIsRegisteredType))
     end
-    if not isInitialized(true) then return end
     if filterType == nil then
         --check whether there's any filter with this tag
         for _, callbacks in pairs(filters) do
@@ -1426,7 +880,6 @@ end
 --or the bagId and slotIndex as parameters (only for crafting stations like alchemy, refine deconstruction, improvement,
 --retrait, enchanting, ...)
 function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
-    if not isInitialized(true) then return end
     if settings.debug then df("RegisterFilter - filterTag: %s, filterType: %s, filterCallback: %s",tostring(filterTag),tostring(filterType),tostring(filterCallback)) end
     local callbacks = filters[filterType]
 
@@ -1449,7 +902,6 @@ end
 
 --Un-Registers the filter callbackFunction for the specified filterTag e.g. <addonName> and filterType LF*
 function LibFilters:UnregisterFilter(filterTag, filterType)
-    if not isInitialized(true) then return end
     if settings.debug then
         local filterTypeUnregType = filterType or "-Unregister all-"
         df("UnregisterFilter - filterTag: %s, filterType: %s",tostring(filterTag),tostring(filterTypeUnregType))
@@ -1477,7 +929,6 @@ function LibFilters:UnregisterFilter(filterTag, filterType)
     end
 end
 
-
 --**********************************************************************************************************************
 -- LibFilters library global library API functions - Update / Refresh
 --**********************************************************************************************************************
@@ -1486,7 +937,6 @@ function LibFilters:RequestUpdate(filterType)
     local debug = settings.debug
     if debug then df("RequestUpdate - filterType: %s", tostring(filterType)) end
 
-    if not isInitialized(true) then return end
     local updaterName = filterTypeToUpdaterName[filterType]
     if not updaterName or updaterName == "" then
         dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number LibFiltersLF_*FilterPanelConstant", tostring(filterType))
@@ -1502,42 +952,34 @@ function LibFilters:RequestUpdate(filterType)
     return true
 end
 
-
-
 --**********************************************************************************************************************
 -- LibFilters library global API functions - Special functions
 --**********************************************************************************************************************
 --Reset the filterType of LibFilters to to currently shown inventory again, after a list-dialog closes (e.g. the
 --research list dialo -> SMITHING_RESEARCH_SELECT)
 function LibFilters:ResetFilterTypeAfterListDialogClose(listDialogControl)
-    if not isInitialized(true) then return end
     if settings.debug then df("ResetFilterTypeAfterListDialogClose - listDialogControl: %s", tostring(listDialogControl)) end
     if listDialogControl == nil then return end
     return resetLibFiltersFilterTypeAfterDialogClose(listDialogControl)
 end
 
-
---Used for the SMITHING table -> research panel: Set some values of the currently selected research horizontal scroll list
---etc. so that loops are able to start at these values
 function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
-    if not isInitialized(true) then return end
     local craftingType = GetCraftingInteractionType()
     if craftingType == CRAFTING_TYPE_INVALID then return false end
     if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
     if not toResearchLineIndex or toResearchLineIndex > GetNumSmithingResearchLines(craftingType) then
         toResearchLineIndex = GetNumSmithingResearchLines(craftingType)
     end
+    local helpers = LibFilters.helpers
     if not helpers then return end
     local smithingResearchPanel = helpers["SMITHING.researchPanel:Refresh"].locations[1]
     if smithingResearchPanel then
-        smithingResearchPanel.libFilters_3ResearchLineLoopValues = {
-            from        = fromResearchLineIndex,
-            to          = toResearchLineIndex,
-            skipTable   = skipTable,
+        smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
+            from        =fromResearchLineIndex,
+            to          =toResearchLineIndex,
+            skipTable   =skipTable,
         }
-        return true
     end
-    return false
 end
 
 --Enable some hooks for the ZO_*Dialog1 controls
@@ -1582,266 +1024,96 @@ end
 --**********************************************************************************************************************
 --**********************************************************************************************************************
 
-
 ------------------------------------------------------------------------------------------------------------------------
 -- INSTALL THE HOOKS TO THE INVENTORIES AND FRAGMENTS TO USE THE additionalFilters subtable for the LibFilters filter
 --functions
 
---Add the LibFilters3_filterType variable to the inventory or fragment (or it's layoutData if it exists),
---and register the "currentInventory" and "currentFilterType" updater functions -> Only for a real inventory, not a fragment
--->Fragment's updates will be called from their stateChange function "fragmentChange" already!
---and add the filterFunction enhancement to the "additionalFilters" of the inventory/fragment
-local function addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(inventoryOrFragment, filterType, isInventory)
-    local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
-    layoutData.LibFilters3_filterType = filterType
-
-    if isInventory == true then
-        registerActiveInventoryTypeUpdate(inventoryOrFragment, filterType, isInventory, false)
-    end
-
-    registerAdditionalFilterFunc(layoutData, filterType)
-end
-
---Hook the inventory layout or inventory to apply additional filter functions
-function LibFilters:HookAdditionalFilter(filterType, inventoryOrFragment, isInventory)
-    isInventory = isInventory or false
-    if settings.debug then df("[HookAdditionalFilter] - isInventory: %s, filterType: %s, invControl: %s", tostring(isInventory), tostring(filterType) .. "=" .. tostring(self:GetFilterTypeName(filterType)), tostring(inventoryOrFragment)) end
-    addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(inventoryOrFragment, filterType, isInventory)
-
-    --[[
-    --Old, for reference
-    local layoutData = inventoryOrFragment.layoutData or inventoryOrFragment
-    local originalFilter = layoutData.additionalFilter
-
-    layoutData.LibFilters3_filterType = filterType
-    local additionalFilterType = type(originalFilter)
-    if additionalFilterType == "function" then
-        layoutData.additionalFilter = function(...)
-            return originalFilter(...) and runFilters(filterType, ...)
-        end
-    else
-        layoutData.additionalFilter = function(...)
-            return runFilters(filterType, ...)
-        end
-    end
-    ]]
-end
-
---Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
---extra fragment for the different modes (creation, extraction).
-local specialHooksLibFiltersDataRegistered = {}
-function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
-    local debug = settings.debug
-    if debug then df("[HookAdditionalFilterSpecial] - specialType: %s, hookAlreadyDone: %s, inventory: %s", tostring(specialType), tostring(specialHooksDone[specialType]), tostring(inventory)) end
-    if specialHooksDone[specialType] == true then return end
-
-    --ENCHANTING
-    if specialType == "enchanting" then
-        local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
-            local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
-            if debug then df("onEnchantingModeUpdated - enchantingMode: %s, filterType: %s", tostring(enchantingMode), tostring(libFiltersEnchantingFilterType)) end
-
-            inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
-
-            if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
-                registerAdditionalFilterFunc(inventory, libFiltersEnchantingFilterType)
-                specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
-            end
-
-            updateActiveInventoryType(inventory, libFiltersEnchantingFilterType, true, false, true)
-
-            --TODO: Not working properly as it will be only called once and not on each filter change at the enchanting table
-            --Only add the filterFunctions and the updater of the active inventory etc. once per filterType
-            --[[
-            if not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
-                addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(enchanting.inventory, libFiltersEnchantingFilterType, true)
-                specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
-            end
-            ]]
-        end
-        ZO_PreHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
-            onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
-        end)
-        specialHooksDone[specialType] = true
-    end
-end
-
-local function fragmentChange(oldState, newState, fragmentId, fragmentName, filterType)
-    local debug = settings.debug
-    if debug then df("Fragment \'%s\' state change - newState: %s", tostring(fragmentName), tostring(newState)) end
-    if newState == SCENE_FRAGMENT_HIDING  then
-        if debug then df("<<<<<FRAGMENT HID-ING!") end
-        fragmentsActiveState[filterType] = nil
-        updateActiveInventoryType(nil, nil, false, nil)
-    elseif newState == SCENE_FRAGMENT_HIDDEN then
-        fragmentsActiveState[filterType] = false
-        if debug then df("<<<FRAGMENT HIDDEN!") end
-    elseif newState == SCENE_FRAGMENT_SHOWING then
-        fragmentsActiveState[filterType] = nil
-        if debug then df(">>>FRAGMENT SHOW-ING!") end
-    elseif newState == SCENE_FRAGMENT_SHOWN then
-        fragmentsActiveState[filterType] = true
-        if debug then df(">>>>>FRAGMENT SHOWN!") end
-        filterType = filterType or LibFilters:GetCurrentFilterTypeForInventory(fragmentId)
-        updateActiveInventoryType(fragmentId, filterType, false, nil)
-    end
-end
-
-
+--**********************************************************************************************************************
 --Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
 local function HookAdditionalFilters()
-    local debug = settings.debug
-    if debug then df("Hook additionalFilters") end
+    LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK])
+    LibFilters:HookAdditionalFilter(LF_INVENTORY, BACKPACK_MENU_BAR_LAYOUT_FRAGMENT)
 
-    --Hook the inventories (no fragments)
-    for filterType, inventory in pairs(filterTypeToInventory) do
-        --Do not use if a special inventory register needs to be done -> Is only in this list to get the inventory control
-        local doRegister = (filterTypesUsingTheSameInvControl[inventory] == nil or
-                (filterTypesUsingTheSameInvControl[inventory] ~= nil and filterTypesUsingTheSameInvControl[inventory][filterType] == nil)) or false
-        if doRegister == true and filterTypeToSpecialInventory[filterType] == nil then
-            --e.g. LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[invBackPack], true)
-            LibFilters:HookAdditionalFilter(filterType, inventory, true)
-        end
-    end
+    LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK])
+    LibFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, BACKPACK_BANK_LAYOUT_FRAGMENT)
 
-    --HookAdditionalFilter: Does not work for enchanting as all filter constants LF_ENCHANTNG* use ENCHANTING.inventory
-    --and thus the last call to it (currently LF_ENCHANTING_EXTRACTION) will override the value of before registered ones
-    --Hook the special inventories (no fragments)
-    for _, specialInventoryData in pairs(filterTypeToSpecialInventory) do
-        --Only register once
-        local specialInventoryTypeStr = specialInventoryData.type
-        if not specialHooksDone[specialInventoryTypeStr] then
-            specialHooksLibFiltersDataRegistered[specialInventoryTypeStr] = {}
-            --e.g. LibFilters:HookAdditionalFilterSpecial("enchanting", enchanting.inventory)
-            LibFilters:HookAdditionalFilterSpecial(specialInventoryTypeStr, specialInventoryData.inventory)
-        end
-    end
+    LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK])
+    LibFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT)
 
-    --Hook the fragments
-    for fragmentId, fragmentData in pairs(fragmentToFilterType) do
-        --e.g. LibFilters:HookAdditionalFilter(LF_INVENTORY, menuBarInvFragment)
-        --LibFilters:HookAdditionalFilter(filterType, fragmentId, false)
-        --use the fragment's state change callback!
-        local fragmentName = fragmentData.name
-        if fragmentName ~= nil and fragmentName ~= "" then
-            if _G[fragmentName] ~= nil then
-                local filterType
-                if type(fragmentData.filterType) == "function" then
-                    filterType = fragmentData.filterType()
-                else
-                    filterType = fragmentData.filterType
-                end
-                if settings.debug then df("[HookAdditionalFilters-Fragments] - name: %s, filterType: %s, fragment: %s", tostring(fragmentData.name), tostring(filterType), tostring(_G[fragmentName])) end
-                _G[fragmentName]:RegisterCallback("StateChange", function(oldState, newState)
-                    fragmentChange(oldState, newState, fragmentId, fragmentData.name, filterType)
-                end)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, STORE_WINDOW)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_SELL, BACKPACK_STORE_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_BUYBACK, BUY_BACK_WINDOW)
+    LibFilters:HookAdditionalFilter(LF_VENDOR_REPAIR, REPAIR_WINDOW)
 
-                addLibFiltersFilterTypeIdentifierAndAddFilterFunctionAndActiveInventoryUpdater(_G[fragmentName], filterType, false)
-            end
-        end
-    end
+    --LibFilters:HookAdditionalFilter(LF_GUILDSTORE_BROWSE, )
+    LibFilters:HookAdditionalFilter(LF_GUILDSTORE_SELL, BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT)
 
-    --[[
-        --old Hooks into the inventories and fragments, for reference
-        LibFilters:HookAdditionalFilter(LF_INVENTORY, inventories[INVENTORY_BACKPACK])
-        LibFilters:HookAdditionalFilter(LF_INVENTORY, BACKPACK_MENU_BAR_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_MAIL_SEND, BACKPACK_MAIL_LAYOUT_FRAGMENT)
 
-        LibFilters:HookAdditionalFilter(LF_BANK_WITHDRAW, inventories[INVENTORY_BANK])
-        LibFilters:HookAdditionalFilter(LF_BANK_DEPOSIT, BACKPACK_BANK_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_TRADE, BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT)
 
-        LibFilters:HookAdditionalFilter(LF_GUILDBANK_WITHDRAW, inventories[INVENTORY_GUILD_BANK])
-        LibFilters:HookAdditionalFilter(LF_GUILDBANK_DEPOSIT, BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory)
+    --LibFilters:HookAdditionalFilter(LF_SMITHING_CREATION, )
+    LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory)
+    --LibFilters:HookAdditionalFilter(LF_JEWELRY_CREATION, )
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel)
 
-        LibFilters:HookAdditionalFilter(LF_VENDOR_BUY, STORE_WINDOW)
-        LibFilters:HookAdditionalFilter(LF_VENDOR_SELL, BACKPACK_STORE_LAYOUT_FRAGMENT)
-        LibFilters:HookAdditionalFilter(LF_VENDOR_BUYBACK, BUY_BACK_WINDOW)
-        LibFilters:HookAdditionalFilter(LF_VENDOR_REPAIR, REPAIR_WINDOW)
+    LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, ALCHEMY.inventory)
 
-        --LibFilters:HookAdditionalFilter(LF_GUILDSTORE_BROWSE, )
-        LibFilters:HookAdditionalFilter(LF_GUILDSTORE_SELL, BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT)
+    --LibFilters:HookAdditionalFilter(LF_PROVISIONING_COOK, )
+    --LibFilters:HookAdditionalFilter(LF_PROVISIONING_BREW, )
 
-        LibFilters:HookAdditionalFilter(LF_MAIL_SEND, BACKPACK_MAIL_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_FENCE_SELL, BACKPACK_FENCE_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, BACKPACK_LAUNDER_LAYOUT_FRAGMENT)
 
-        LibFilters:HookAdditionalFilter(LF_TRADE, BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
 
-        LibFilters:HookAdditionalFilter(LF_SMITHING_REFINE, refinementPanel.inventory)
-        --LibFilters:HookAdditionalFilter(LF_SMITHING_CREATION, )
-        LibFilters:HookAdditionalFilter(LF_SMITHING_DECONSTRUCT, deconstructionPanel.inventory)
-        LibFilters:HookAdditionalFilter(LF_SMITHING_IMPROVEMENT, improvementPanel.inventory)
-        LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH, researchPanel)
-        LibFilters:HookAdditionalFilter(LF_JEWELRY_REFINE, refinementPanel.inventory)
-        --LibFilters:HookAdditionalFilter(LF_JEWELRY_CREATION, )
-        LibFilters:HookAdditionalFilter(LF_JEWELRY_DECONSTRUCT, deconstructionPanel.inventory)
-        LibFilters:HookAdditionalFilter(LF_JEWELRY_IMPROVEMENT, improvementPanel.inventory)
-        LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH, researchPanel)
+    LibFilters:HookAdditionalFilter(LF_QUICKSLOT, QUICKSLOT_WINDOW)
 
-        LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, ALCHEMY.inventory)
+    LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_KEYBOARD)
 
-        LibFilters:HookAdditionalFilter(LF_ENCHANTING_CREATION, ENCHANTING.inventory)
-        LibFilters:HookAdditionalFilter(LF_ENCHANTING_EXTRACTION, ENCHANTING.inventory)
+    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK])
+    LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT)
 
-        --LibFilters:HookAdditionalFilter(LF_PROVISIONING_COOK, )
-        --LibFilters:HookAdditionalFilter(LF_PROVISIONING_BREW, )
+    LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
+    LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
 
-        LibFilters:HookAdditionalFilter(LF_FENCE_SELL, BACKPACK_FENCE_LAYOUT_FRAGMENT)
-        LibFilters:HookAdditionalFilter(LF_FENCE_LAUNDER, BACKPACK_LAUNDER_LAYOUT_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
 
-        LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
+    --Does not work! Same inventory, would always return LF_ENCHANTING_EXTRACTION (as it was added at last)
+    --LibFilters:HookAdditionalFilter(LF_ENCHANTING_CREATION, ENCHANTING.inventory)
+    --LibFilters:HookAdditionalFilter(LF_ENCHANTING_EXTRACTION, ENCHANTING.inventory)
+     LibFilters:HookAdditionalFilterSpecial("enchanting", enchanting.inventory)
 
-        LibFilters:HookAdditionalFilter(LF_QUICKSLOT, QUICKSLOT_WINDOW)
-
-        LibFilters:HookAdditionalFilter(LF_RETRAIT, ZO_RETRAIT_KEYBOARD)
-
-        LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_WITHDRAW, inventories[INVENTORY_HOUSE_BANK])
-        LibFilters:HookAdditionalFilter(LF_HOUSE_BANK_DEPOSIT, BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT)
-
-        LibFilters:HookAdditionalFilter(LF_SMITHING_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
-        LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, SMITHING_RESEARCH_SELECT)
-
-        LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
-    ]]
 end
 
-
---Register all the helper functions of LibFilters, for some panels like the Research or ResearchDialog, or even
--- deconstruction and improvement, etc.
---These helper functions will overwrite original vanilla UI ESO functions in order to add and use the LibFilters
---"predicate"/"filterFunction" within the ZOs code. If the vanilla UI function updates this versions here need to be
---updated as well!
+--**********************************************************************************************************************
+--Register all the helper functions of LibFilters, for some special panels like the Research or ResearchDialog, or
+--even deconstruction and improvement, etc.
+--These helper funmctions might overwrite original ESO functions in order to use their own "predicate" or
+-- "filterFunction".  So check them if the orig functions update, and upate them as well.
 --> See file helper.lua
+LibFilters.helpers = {}
+local helpers = LibFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
 local function InstallHelpers()
-d(">settings.debug: " ..tostring(settings.debug))
-    local debug = settings.debug
-    if debug then df("InstallHelpers") end
-    local helpers = LibFilters.helpers
-    for packageName, package in pairs(helpers) do
+    for _, package in pairs(helpers) do
         local funcName = package.helper.funcName
         local func = package.helper.func
-        if debug then df("->Package: %s, funcName: %s", tostring(packageName), tostring(funcName)) end
 
         for _, location in pairs(package.locations) do
             --e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
             --function from helpers table, param "func"
-            local locationName
-            if location then
-                if location.control and location.control.GetName then
-                    locationName = location.control:GetName()
-                elseif location.GetName then
-                    locationName = location:GetName()
-                else
-                    locationName = location
-                end
-            end
-            if debug then df("-->Adding to location: %s ", tostring(locationName)) end
             location[funcName] = func
         end
     end
 end
-------------------------------------------------------------------------------------------------------------------------
--- HOKS END
-------------------------------------------------------------------------------------------------------------------------
 
 --**********************************************************************************************************************
 -- LibFilters SavedVariables
@@ -1938,49 +1210,25 @@ local function checkforOldLibFiltersVersionAndDeactive()
     return false
 end
 
---Function needed to be called from your addon to start the libFilters instance and enable the filtering!
+
+--**********************************************************************************************************************
+--**********************************************************************************************************************
+--**********************************************************************************************************************
+
+--Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function LibFilters:InitializeLibFilters()
     debugFunc()
 
-    local isLibInitialized = isInitialized(false)
-    if settings.debug then df("InitializeLibFilters - isInitialized: %s", tostring(isLibInitialized)) end
-    if isLibInitialized then return end
+    if settings.debug then df("InitializeLibFilters - isInitialized: %s", tostring(self.isInitialized )) end
+    if self.isInitialized then return end
 
     if checkforOldLibFiltersVersionAndDeactive() == true then
         d("Old LibFilters version found -> Please deactivate it!")
     end
+    self.isInitialized = true
 
     InstallHelpers()
     HookAdditionalFilters()
-
-    LibFilters.isInitialized = true
-end
-
-
---**********************************************************************************************************************
--- LibFilters global variable and initialization
---**********************************************************************************************************************
-function LibFilters.Initialize(eventName, addonName)
-    if isInitialized(false) then return end
-
-    debugFunc()
-
-    createLogger()
-
-    LibFilters.name     = MAJOR
-    LibFilters.version  = MINOR
-    LibFilters.author   = "ingeniousclown, Randactyl, Baertram"
-
-    LibFilters.lastInventoryType = nil
-    LibFilters.lastFilterType = nil
-    LibFilters.activeInventoryType = nil
-    LibFilters.activeFilterType = nil
-
-    --Create the slash commands for the chat
-    slashCommands()
-
-    --Create the global library variable
-    _G[GlobalLibName] = LibFilters
 end
 
 local function LibFilters_OnAddOnLoaded(eventName, addonName)
@@ -1990,7 +1238,10 @@ local function LibFilters_OnAddOnLoaded(eventName, addonName)
     loadSavedVariables()
     if settings.debug then df("EVENT_ADD_ON_LOADED") end
 end
-
 EVENT_MANAGER:RegisterForEvent(MAJOR .. "_EVENT_ADD_ON_LOADED", EVENT_ADD_ON_LOADED, LibFilters_OnAddOnLoaded)
 
-LibFilters.Initialize()
+--Run once
+debugFunc()
+createLogger()
+--Create the slash commands for the chat
+slashCommands()
