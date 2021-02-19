@@ -86,6 +86,7 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
 }
 
 --enable LF_VENDOR_REPAIR
+local DATA_TYPE_REPAIR_ITEM = 1
 helpers["REPAIR_WINDOW:UpdateList"] = {
     version = 3,
     locations = {
@@ -94,48 +95,48 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
     helper = {
         funcName = "UpdateList",
         func = function(self)
+
             local function GatherDamagedEquipmentFromBag(bagId, dataTable)
-                local DATA_TYPE_REPAIR_ITEM = 1
-                local bagSlots = GetBagSize(bagId)
+                for slotIndex in ZO_IterateBagSlots(bagId) do
+                    if not TEXT_SEARCH_MANAGER or
+                        (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex)) then
+                        local condition = GetItemCondition(bagId, slotIndex)
+                        if condition < 100 and not IsItemStolen(bagId, slotIndex) then
+                            local icon, stackCount, _, _, _, _, _, functionalQuality, displayQuality = GetItemInfo(bagId, slotIndex)
+                            if stackCount > 0 then
+                                local repairCost = GetItemRepairCost(bagId, slotIndex)
+                                if repairCost > 0 then
+                                    local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
+                                    local data =
+                                    {
+                                        bagId = bagId,
+                                        slotIndex = slotIndex,
+                                        name = name,
+                                        icon = icon,
+                                        stackCount = stackCount,
+                                        functionalQuality = functionalQuality,
+                                        displayQuality = displayQuality,
+                                        -- quality is deprecated, included here for addon backwards compatibility
+                                        quality = displayQuality,
+                                        condition = condition,
+                                        repairCost = repairCost
+                                    }
+                                    local result = true
 
-                for slotIndex = 0, bagSlots - 1 do
-                    local condition = GetItemCondition(bagId, slotIndex)
+                                    if REPAIR_WINDOW.additionalFilter and type(REPAIR_WINDOW.additionalFilter) == "function" then
+                                        result = REPAIR_WINDOW.additionalFilter(data)
+                                    end
 
-                    if condition < 100 and not IsItemStolen(bagId, slotIndex) then
-                        local icon, stackCount, _, _, _, _, _, functionalQuality, displayQuality = GetItemInfo(bagId, slotIndex)
-
-                        if stackCount > 0 then
-                            local repairCost = GetItemRepairCost(bagId, slotIndex)
-
-                            if repairCost > 0 then
-                                local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
-                                local data = {
-                                    bagId = bagId,
-                                    slotIndex = slotIndex,
-                                    name = name,
-                                    icon = icon,
-                                    stackCount = stackCount,
-                                    functionalQuality = functionalQuality,
-                                    displayQuality = displayQuality,
-                                    -- quality is deprecated, included here for addon backwards compatibility
-                                    quality = displayQuality,
-                                    condition = condition,
-                                    repairCost = repairCost
-                                }
-                                local result = true
-
-                                if REPAIR_WINDOW.additionalFilter and type(REPAIR_WINDOW.additionalFilter) == "function" then
-                                    result = REPAIR_WINDOW.additionalFilter(data)
-                                end
-
-                                if result then
-                                    dataTable[#dataTable + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_REPAIR_ITEM, data)
+                                    if result then
+                                        dataTable[#dataTable + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_REPAIR_ITEM, data)
+                                    end
                                 end
                             end
                         end
                     end
                 end
             end
+
             ZO_ScrollList_Clear(self.list)
             ZO_ScrollList_ResetToTop(self.list)
 
@@ -463,8 +464,8 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
     },
 }
 
-local DATA_TYPE_COLLECTIBLE_ITEM = 2
 -->Will only be executed for the collectible items in the quickslot filters, but no inventory items
+local DATA_TYPE_COLLECTIBLE_ITEM = 2
 helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
     version = 2,
     locations = {
