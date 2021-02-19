@@ -585,7 +585,6 @@ end
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK
 function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
-LibFilters._inventoryType = inventoryType
     --Get the layoutData from the fragment. If no fragment: Abort
     if inventoryType == INVENTORY_BACKPACK then
         local layoutData = PLAYER_INVENTORY.appliedLayout
@@ -599,7 +598,6 @@ LibFilters._inventoryType = inventoryType
     --> Added new: "number" check and else inventoryType to support enchanting.inventory
     local inventory = (type(inventoryType) == "number" and inventories[inventoryType]) or inventoryType
     if not inventory or not inventory.LibFilters3_filterType then return end
-df("<LibFilters:GetCurrentFilterTypeForInventory(%s) = %s", tostring(inventoryType), tostring(inventory.LibFilters3_filterType))
     return inventory.LibFilters3_filterType
 end
 
@@ -626,7 +624,6 @@ end
 --extra fragment for the different modes (creation, extraction).
 local specialHooksLibFiltersDataRegistered = {}
 function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
-df("[HookAdditionalFilterSpecial] - specialType: %s, hookAlreadyDone: %s, inventory: %s", tostring(specialType), tostring(specialHooksDone[specialType]), tostring(inventory))
     if specialHooksDone[specialType] == true then return end
 
     --ENCHANTING
