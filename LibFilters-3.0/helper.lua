@@ -1,4 +1,4 @@
-local libFilters = LibFilters3
+local LibFilters = LibFilters3
 
 local helpers = {}
 
@@ -41,88 +41,102 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
     helper = {
         funcName = "UpdateList",
         func = function(self)
-            local DATA_TYPE_BUY_BACK_ITEM = 1
-            ZO_ScrollList_Clear(self.list)
-            ZO_ScrollList_ResetToTop(self.list)
+            if not self.control:IsControlHidden() then
+                local DATA_TYPE_BUY_BACK_ITEM = 1
+                ZO_ScrollList_Clear(self.list)
+                ZO_ScrollList_ResetToTop(self.list)
 
-            local scrollData = ZO_ScrollList_GetDataList(self.list)
+                local scrollData = ZO_ScrollList_GetDataList(self.list)
 
-            for entryIndex = 1, GetNumBuybackItems() do
-                local icon, name, stack, price, quality, meetsRequirements = GetBuybackItemInfo(entryIndex)
-                local buybackData = {
-                    slotIndex = entryIndex,
-                    icon = icon,
-                    name = name,
-                    stack = stack,
-                    price = price,
-                    quality = quality,
-                    meetsRequirements = meetsRequirements,
-                    stackBuyPrice = stack * price,
-                }
-                local result = true
+                for entryIndex = 1, GetNumBuybackItems() do
+                    if not TEXT_SEARCH_MANAGER or
+                        (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex)) then
+                        local icon, name, stack, price, functionalQuality, meetsRequirements, displayQuality = GetBuybackItemInfo(entryIndex)
+                        if stack > 0 then
+                            local buybackData = {
+                                slotIndex = entryIndex,
+                                icon = icon,
+                                name = name,
+                                stack = stack,
+                                price = price,
+                                functionalQuality = functionalQuality,
+                                displayQuality = displayQuality,
+                                -- quality is deprecated, included here for addon backwards compatibility
+                                quality = displayQuality,
+                                meetsRequirements = meetsRequirements,
+                                stackBuyPrice = stack * price,
+                            }
+                            local result = true
 
-                if self.additionalFilter and type(self.additionalFilter) == "function" then
-                    result = self.additionalFilter(buybackData)
+                            if self.additionalFilter and type(self.additionalFilter) == "function" then
+                                result = self.additionalFilter(buybackData)
+                            end
+
+                            if result then
+                                scrollData[#scrollData + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_BUY_BACK_ITEM, buybackData)
+                            end
+                        end
+                    end
                 end
 
-                if(stack > 0) and result then
-                    scrollData[#scrollData + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_BUY_BACK_ITEM, buybackData)
-                end
+                self:ApplySort()
             end
-
-            self:ApplySort()
         end,
     },
 }
 
 --enable LF_VENDOR_REPAIR
+local DATA_TYPE_REPAIR_ITEM = 1
 helpers["REPAIR_WINDOW:UpdateList"] = {
-    version = 2,
+    version = 3,
     locations = {
         [1] = REPAIR_WINDOW,
     },
     helper = {
         funcName = "UpdateList",
         func = function(self)
+
             local function GatherDamagedEquipmentFromBag(bagId, dataTable)
-                local DATA_TYPE_REPAIR_ITEM = 1
-                local bagSlots = GetBagSize(bagId)
+                for slotIndex in ZO_IterateBagSlots(bagId) do
+                    if not TEXT_SEARCH_MANAGER or
+                        (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex)) then
+                        local condition = GetItemCondition(bagId, slotIndex)
+                        if condition < 100 and not IsItemStolen(bagId, slotIndex) then
+                            local icon, stackCount, _, _, _, _, _, functionalQuality, displayQuality = GetItemInfo(bagId, slotIndex)
+                            if stackCount > 0 then
+                                local repairCost = GetItemRepairCost(bagId, slotIndex)
+                                if repairCost > 0 then
+                                    local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
+                                    local data =
+                                    {
+                                        bagId = bagId,
+                                        slotIndex = slotIndex,
+                                        name = name,
+                                        icon = icon,
+                                        stackCount = stackCount,
+                                        functionalQuality = functionalQuality,
+                                        displayQuality = displayQuality,
+                                        -- quality is deprecated, included here for addon backwards compatibility
+                                        quality = displayQuality,
+                                        condition = condition,
+                                        repairCost = repairCost
+                                    }
+                                    local result = true
 
-                for slotIndex = 0, bagSlots - 1 do
-                    local condition = GetItemCondition(bagId, slotIndex)
+                                    if REPAIR_WINDOW.additionalFilter and type(REPAIR_WINDOW.additionalFilter) == "function" then
+                                        result = REPAIR_WINDOW.additionalFilter(data)
+                                    end
 
-                    if condition < 100 and not IsItemStolen(bagId, slotIndex) then
-                        local icon, stackCount, _, _, _, _, _, quality = GetItemInfo(bagId, slotIndex)
-
-                        if stackCount > 0 then
-                            local repairCost = GetItemRepairCost(bagId, slotIndex)
-
-                            if repairCost > 0 then
-                                local name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
-                                local data = {
-                                    bagId = bagId,
-                                    slotIndex = slotIndex,
-                                    name = name,
-                                    icon = icon,
-                                    stackCount = stackCount,
-                                    quality = quality,
-                                    condition = condition,
-                                    repairCost = repairCost
-                                }
-                                local result = true
-
-                                if REPAIR_WINDOW.additionalFilter and type(REPAIR_WINDOW.additionalFilter) == "function" then
-                                    result = REPAIR_WINDOW.additionalFilter(data)
-                                end
-
-                                if result then
-                                    dataTable[#dataTable + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_REPAIR_ITEM, data)
+                                    if result then
+                                        dataTable[#dataTable + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_REPAIR_ITEM, data)
+                                    end
                                 end
                             end
                         end
                     end
                 end
             end
+
             ZO_ScrollList_Clear(self.list)
             ZO_ScrollList_ResetToTop(self.list)
 
@@ -403,14 +417,18 @@ helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
 --enable LF_QUICKSLOT
 -->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
-    version = 2,
+    version = 3,
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT) and self:IsItemInTextSearch(itemData)
+            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT) and
+                (
+                        (self.IsItemInTextSearch and self:IsItemInTextSearch(itemData))
+                          or (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex))
+                )
 
             if result == true and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(itemData)
@@ -424,7 +442,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
 
 -->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
@@ -432,8 +450,11 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
         funcName = "ShouldAddQuestItemToList",
         func = function(self, questItemData)
 
-            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT) and self:IsItemInTextSearch(questItemData)
-
+            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT) and
+                (
+                        (self.IsItemInTextSearch and self:IsItemInTextSearch(questItemData))
+                    or (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId))
+                )
             if result == true and type(self.additionalFilter) == "function" then
                 result = self.additionalFilter(questItemData)
             end
@@ -443,10 +464,10 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
     },
 }
 
-local DATA_TYPE_COLLECTIBLE_ITEM = 2
 -->Will only be executed for the collectible items in the quickslot filters, but no inventory items
+local DATA_TYPE_COLLECTIBLE_ITEM = 2
 helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
-    version = 1,
+    version = 2,
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
@@ -469,11 +490,21 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
                 {
                     type = ZO_TEXT_SEARCH_TYPE_COLLECTIBLE,
                     collectibleId = collectibleData.collectibleId,
-                },
+                }
 
-                self.quickSlotSearch.Insert(collectibleData.searchData)
-                if not libFiltersQuickslotCollectiblesFilterFunc or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData) == true) and self:IsItemInTextSearch(collectibleData) then
-                    table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
+                local result = (not libFiltersQuickslotCollectiblesFilterFunc and true) or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData))
+
+                if TEXT_SEARCH_MANAGER then
+                    if TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
+                        if result == true then
+                            table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
+                        end
+                    end
+                else
+                    self.quickSlotSearch.Insert(collectibleData.searchData)
+                    if self:IsItemInTextSearch(collectibleData) and result == true then
+                        table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
+                    end
                 end
             end
         end,
@@ -503,15 +534,16 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
 }
 
 ------------------------------------------------------------------------------------------------------------------------
---copy helpers into LibFilters
+--copy helpers into global LibFilters3Helper
+-->Will be set to nil within LibFilter3.lua at event_add_on_loaded
 
 for name, package in pairs(helpers) do
-    if libFilters.helpers[name] == nil then
-        libFilters.helpers[name] = package
-    elseif libFilters.helpers[name].version < package.version then
-        libFilters.helpers[name] = package
+    if LibFilters.helpers[name] == nil then
+        LibFilters.helpers[name] = package
+    elseif LibFilters.helpers[name].version < package.version then
+        LibFilters.helpers[name] = package
     end
 end
 
 helpers = nil
-libFilters = nil
+LibFilters = nil
