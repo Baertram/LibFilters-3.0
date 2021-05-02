@@ -1,8 +1,8 @@
 ## Title: LibFilters-3.0
 ## Author: Baertram, Randactyl, ingeniousclown, et al.
-## Version: 3.0r2.0
-## AddOnVersion: 320
-## APIVersion: 100033 100034
+## Version: 3.0r2.1
+## AddOnVersion: 321
+## APIVersion: 100035 100036
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=201
 
