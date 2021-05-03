@@ -520,7 +520,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     },
     helper = {
         funcName = "ZO_RetraitStation_CanItemBeRetraited",
-        func = function(itemData)
+        func = function(self, itemData)
             local base = ZO_RETRAIT_KEYBOARD
             local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
 
@@ -532,6 +532,29 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
         end,
     }
 }
+
+--enable LF_INVENTORY_COMPANION
+helpers["COMPANION_EQUIPMENT_KEYBOARD:ShouldAddItemToList"] = {
+    version = 1,
+    locations = {
+        [1] = COMPANION_EQUIPMENT_KEYBOARD
+    },
+    helper = {
+        funcName = "ShouldAddItemToList",
+        func = function(self, itemData)
+            local origFilterRetVar = ZO_ItemFilterUtils.IsSlotInItemTypeDisplayCategoryAndSubcategory(itemData, ITEM_TYPE_DISPLAY_CATEGORY_COMPANION, self.currentFilter.descriptor)
+                    and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("companionEquipmentTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+            local result = origFilterRetVar
+
+            if result == true and self.additionalFilter and type(self.additionalFilter) == "function" then
+                result = self.additionalFilter(itemData)
+            end
+
+            return result
+        end,
+    }
+}
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --copy helpers into global LibFilters3Helper

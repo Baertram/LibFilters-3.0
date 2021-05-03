@@ -481,7 +481,7 @@ local function HookAdditionalFilters()
 
     LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
 
-    LibFilters:HookAdditionalFilter(LF_INVENTORY_COMPANION, COMPANION_EQUIPMENT_KEYBOARD_FRAGMENT)
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_COMPANION, COMPANION_EQUIPMENT_KEYBOARD)
 
 
 ------------------------------------------------------------------------------------------------------------------------
