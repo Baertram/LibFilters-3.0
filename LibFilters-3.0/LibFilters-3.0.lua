@@ -558,7 +558,7 @@ function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
     end
     --Get the inventory from PLAYER_INVENTORY.inventories
     --> Added new: "number" check and else inventoryType to support enchanting.inventory
-    local inventory = (type(inventoryType) == "number" and inventories[inventoryType]) or inventoryType
+    local inventory = (type(inventoryType) == "number" and inventories[inventoryType] ~= nil) or inventoryType
     if not inventory or not inventory.LibFilters3_filterType then return end
     return inventory.LibFilters3_filterType
 end
