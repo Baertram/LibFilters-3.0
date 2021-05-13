@@ -520,7 +520,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
     },
     helper = {
         funcName = "ZO_RetraitStation_CanItemBeRetraited",
-        func = function(self, itemData)
+        func = function(itemData)
             local base = ZO_RETRAIT_KEYBOARD
             local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
 
