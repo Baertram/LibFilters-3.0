@@ -352,7 +352,6 @@ local inventoryUpdaters = {
     PROVISIONING_BREW = function()
     end,
     CRAFTBAG = function()
-d(">SafeUpdateList->COMPANION_EQUIPMENT_KEYBOARD")
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_CRAFT_BAG)
     end,
     QUICKSLOT = function()
