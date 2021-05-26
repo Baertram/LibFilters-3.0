@@ -352,6 +352,7 @@ local inventoryUpdaters = {
     PROVISIONING_BREW = function()
     end,
     CRAFTBAG = function()
+d(">SafeUpdateList->COMPANION_EQUIPMENT_KEYBOARD")
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_CRAFT_BAG)
     end,
     QUICKSLOT = function()
@@ -773,3 +774,12 @@ function LibFilters:InitializeLibFilters()
     InstallHelpers()
     HookAdditionalFilters()
 end
+
+--Fix for the CraftBag on PTS -> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
+--[[
+    local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
+    craftBag.additionalFilter = layoutData.additionalFilter
+]]
+SecurePostHook(PLAYER_INVENTORY, "ApplyBackpackLayout", function(layoutData)
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
+end)
