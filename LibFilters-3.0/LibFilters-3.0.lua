@@ -774,11 +774,14 @@ function LibFilters:InitializeLibFilters()
     HookAdditionalFilters()
 end
 
---Fix for the CraftBag on PTS -> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
+--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
 --[[
+    --Added lines with 7.0.4:
     local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
     craftBag.additionalFilter = layoutData.additionalFilter
 ]]
 SecurePostHook(PLAYER_INVENTORY, "ApplyBackpackLayout", function(layoutData)
+--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tostring(ZO_CraftBag:IsHidden()))
+    if ZO_CraftBag:IsHidden() then return end
     LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
 end)
