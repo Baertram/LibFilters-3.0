@@ -1,5 +1,5 @@
 --Known bugs: 2
---Last update: 2021-02-18, Baertram
+--Last update: 2021-08-13, Baertram
 --
 --Bugs/Todo List:
 --
@@ -30,7 +30,7 @@ Looks like the code that's specific to the repair window is being executed outsi
 --    all of sudden no items are shown anymore.
 
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 2.0
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 2.2
 
 --Was the library loaded already?
 if _G[GlobalLibName] ~= nil then return end
@@ -53,56 +53,10 @@ if LibDebugLogger then
 end
 local logger = LibFilters.logger
 
---The possible LibFilters filterPanelIds - hard coded
---[[
-LF_INVENTORY                = 1
-LF_BANK_WITHDRAW            = 2
-LF_BANK_DEPOSIT             = 3
-LF_GUILDBANK_WITHDRAW       = 4
-LF_GUILDBANK_DEPOSIT        = 5
-LF_VENDOR_BUY               = 6
-LF_VENDOR_SELL              = 7
-LF_VENDOR_BUYBACK           = 8
-LF_VENDOR_REPAIR            = 9
-LF_GUILDSTORE_BROWSE        = 10
-LF_GUILDSTORE_SELL          = 11
-LF_MAIL_SEND                = 12
-LF_TRADE                    = 13
-LF_SMITHING_REFINE          = 14
-LF_SMITHING_CREATION        = 15
-LF_SMITHING_DECONSTRUCT     = 16
-LF_SMITHING_IMPROVEMENT     = 17
-LF_SMITHING_RESEARCH        = 18
-LF_ALCHEMY_CREATION         = 19
-LF_ENCHANTING_CREATION      = 20
-LF_ENCHANTING_EXTRACTION    = 21
-LF_PROVISIONING_COOK        = 22
-LF_PROVISIONING_BREW        = 23
-LF_FENCE_SELL               = 24
-LF_FENCE_LAUNDER            = 25
-LF_CRAFTBAG                 = 26
-LF_QUICKSLOT                = 27
-LF_RETRAIT                  = 28
-LF_HOUSE_BANK_WITHDRAW      = 29
-LF_HOUSE_BANK_DEPOSIT       = 30
-LF_JEWELRY_REFINE           = 31
-LF_JEWELRY_CREATION         = 32
-LF_JEWELRY_DECONSTRUCT      = 33
-LF_JEWELRY_IMPROVEMENT      = 34
-LF_JEWELRY_RESEARCH         = 35
-LF_SMITHING_RESEARCH_DIALOG = 36
-LF_JEWELRY_RESEARCH_DIALOG  = 37
-LF_INVENTORY_QUEST          = 38
-
---Get the min and max filterPanelIds
-LF_FILTER_MIN               = LF_INVENTORY
-LF_FILTER_MAX               = LF_INVENTORY_QUEST
-]]
-
 ------------------------------------------------------------------------------------------------------------------------
 --The possible LibFilters filterPanelIds
 --**********************************************************************************************************************
--- LibFilters filterPanel constants value = "name"
+-- LibFilters filterPanel constants [value number] = "name"
 --**********************************************************************************************************************
 --The possible libFilters filterPanelIds
 local libFiltersFilterConstants = {
@@ -144,14 +98,14 @@ local libFiltersFilterConstants = {
     [36]  = "LF_SMITHING_RESEARCH_DIALOG",
     [37]  = "LF_JEWELRY_RESEARCH_DIALOG",
     [38]  = "LF_INVENTORY_QUEST",
-    --Add new lines here and make sure you also take care of the control of the inventory needed in tables "usedInventoryTypes"
-    --and "usedCraftingInventoryTypes" below, the updater name in table "filterTypeToUpdaterName" and updaterFunction in
-    --table "inventoryUpdaters", as well as the way to hook to the inventory.additionalFilters in function "HookAdditionalFilters",
+    [39]  = "LF_INVENTORY_COMPANION",
+    --Add new lines here and make sure you also take care of the control of the inventory needed in tables "LibFilters.filters",
+    --the updater name in table "filterTypeToUpdaterName*" and updaterFunction in table "inventoryUpdaters",
+    --as well as the way to hook to the inventory.additionalFilters in function "HookAdditionalFilters",
     --or via a fragment in table "fragmentToFilterType",
     --and maybe an overwritten "filter enable function" (which respects the entries of the added additionalFilters) in
     --file "helpers.lua"
-    --[39] = "LF_RECONSTRUCT",
-    --[40] = "LF_...",
+    --[<number constant>] = "LF_...",
 }
 --register the filterConstants for the filterpanels in the global table _G
 for value, filterConstantName in ipairs(libFiltersFilterConstants) do
@@ -236,6 +190,7 @@ LibFilters.filters = {
     [LF_SMITHING_RESEARCH_DIALOG] = {},
     [LF_JEWELRY_RESEARCH_DIALOG] = {},
     [LF_INVENTORY_QUEST] = {},
+    [LF_INVENTORY_COMPANION] = {},
 }
 local filters = LibFilters.filters
 
@@ -254,7 +209,8 @@ local filterTypeToUpdaterNameFixed = {
     [LF_QUICKSLOT]                  = "QUICKSLOT",
     [LF_RETRAIT]                    = "RETRAIT",
     [LF_HOUSE_BANK_WITHDRAW]        = "HOUSE_BANK_WITHDRAW",
-    [LF_INVENTORY_QUEST]            = "INVENTORY_QUEST"
+    [LF_INVENTORY_QUEST]            = "INVENTORY_QUEST",
+    [LF_INVENTORY_COMPANION]        = "INVENTORY_COMPANION"
 }
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -416,6 +372,9 @@ local inventoryUpdaters = {
     INVENTORY_QUEST = function()
         SafeUpdateList(PLAYER_INVENTORY, INVENTORY_QUEST_ITEM)
     end,
+    INVENTORY_COMPANION = function()
+        SafeUpdateList(COMPANION_EQUIPMENT_KEYBOARD, nil)
+    end
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
 
@@ -522,6 +481,9 @@ local function HookAdditionalFilters()
 
     LibFilters:HookAdditionalFilter(LF_INVENTORY_QUEST, inventories[INVENTORY_QUEST_ITEM])
 
+    LibFilters:HookAdditionalFilter(LF_INVENTORY_COMPANION, COMPANION_EQUIPMENT_KEYBOARD)
+
+
 ------------------------------------------------------------------------------------------------------------------------
     --Does not work! Same inventory, would always return LF_ENCHANTING_EXTRACTION (as it was added at last)
     --LibFilters:HookAdditionalFilter(LF_ENCHANTING_CREATION, ENCHANTING.inventory)
@@ -596,7 +558,7 @@ function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
     end
     --Get the inventory from PLAYER_INVENTORY.inventories
     --> Added new: "number" check and else inventoryType to support enchanting.inventory
-    local inventory = (type(inventoryType) == "number" and inventories[inventoryType]) or inventoryType
+    local inventory = (type(inventoryType) == "number" and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
     if not inventory or not inventory.LibFilters3_filterType then return end
     return inventory.LibFilters3_filterType
 end
@@ -811,3 +773,15 @@ function LibFilters:InitializeLibFilters()
     InstallHelpers()
     HookAdditionalFilters()
 end
+
+--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
+--[[
+    --Added lines with 7.0.4:
+    local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
+    craftBag.additionalFilter = layoutData.additionalFilter
+]]
+SecurePostHook(PLAYER_INVENTORY, "ApplyBackpackLayout", function(layoutData)
+--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tostring(ZO_CraftBag:IsHidden()))
+    if ZO_CraftBag:IsHidden() then return end
+    LibFilters:HookAdditionalFilter(LF_CRAFTBAG, inventories[INVENTORY_CRAFT_BAG])
+end)
