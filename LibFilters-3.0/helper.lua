@@ -166,6 +166,7 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
+--d(string.format("[LF3]libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
 
             local oldPredicate = predicate
             predicate = function(bagId, slotIndex)
@@ -191,6 +192,8 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
                 questSV = self.savedVars.questsOnlyChecked
                 questItems = self.questRunes
             elseif isAlchemy == true then
+                self.owner:UpdatePotentialQuestItems(list, self.alchemyQuestInfo)
+
                 questSV = self.savedVars.questsOnlyChecked
                 questItems = self.owner.questItems
             elseif isSmithing == true then

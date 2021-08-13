@@ -1,5 +1,5 @@
 --Known bugs: 2
---Last update: 2021-05-02, Baertram
+--Last update: 2021-08-13, Baertram
 --
 --Bugs/Todo List:
 --
@@ -30,7 +30,7 @@ Looks like the code that's specific to the repair window is being executed outsi
 --    all of sudden no items are shown anymore.
 
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 2.1
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 2.2
 
 --Was the library loaded already?
 if _G[GlobalLibName] ~= nil then return end
