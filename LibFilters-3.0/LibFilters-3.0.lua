@@ -792,13 +792,9 @@ LibFilters3._enchantingVar = enchantingVar
 		GAMEPAD_ENCHANTING_CREATION_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 			if newState == SCENE_SHOWING then
 				enchantingMode = ENCHANTING_MODE_CREATION
-
+				updateAdditionalFiltersAtGamepadEnchantingInventory(enchantingVar, enchantingMode)
 			elseif newState == SCENE_SHOWN then
 				enchantingMode = ENCHANTING_MODE_CREATION
-d("[LibFilters3]EnchantingCreationScene-enchantingMode: " ..tostring(enchantingMode))
-LibFilters3._enchantingVar = enchantingVar
-				updateAdditionalFiltersAtGamepadEnchantingInventory(enchantingVar, enchantingMode)
-
 			elseif newState == SCENE_HIDING then
 				enchantingMode = ENCHANTING_MODE_NONE
 			end
@@ -807,12 +803,9 @@ LibFilters3._enchantingVar = enchantingVar
 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 			if newState == SCENE_SHOWING then
 				enchantingMode = ENCHANTING_MODE_EXTRACTION
+				updateAdditionalFiltersAtGamepadEnchantingInventory(enchantingVar, enchantingMode)
 			elseif newState == SCENE_SHOWN then
 				enchantingMode = ENCHANTING_MODE_EXTRACTION
-d("[LibFilters3]EnchantingExtractionScene-enchantingMode: " ..tostring(enchantingMode))
-LibFilters3._enchantingVar = enchantingVar
-				updateAdditionalFiltersAtGamepadEnchantingInventory(enchantingVar, enchantingMode)
-
 			elseif newState == SCENE_HIDING then
 				enchantingMode = ENCHANTING_MODE_NONE
 			end
