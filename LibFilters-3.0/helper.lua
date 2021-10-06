@@ -709,22 +709,21 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
                     and DoesNotBlockResearch(bagId, slotIndex)
 
             --If the gamepad research -> selected item for research scene is showing/shown
-            local sceneStatesAllowed = {
-                [SCENE_SHOWING] = true,
-                [SCENE_SHOWN] = true,
-            }
             local gamePadMode = IsInGamepadPreferredMode()
-            if gamePadMode and GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
-                    and sceneStatesAllowed[GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:GetState()] then
-                --d(">GamePad smithing research - Selected item!")
-                if GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.additionalFilter and type(GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.additionalFilter) == "function" then
-                    return result and GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.additionalFilter(bagId, slotIndex)
+            if gamePadMode then
+                local sceneStatesAllowed = {
+                    [SCENE_SHOWING] = true,
+                    [SCENE_SHOWN] = true,
+                }
+                local gpsmresc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
+                if gpsmresc and sceneStatesAllowed[gpsmresc:GetState()] and
+                   gpsmresc.additionalFilter and type(gpsmresc.additionalFilter) == "function" then
+                    return result and gpsmresc.additionalFilter(bagId, slotIndex)
                 end
             elseif not gamePadMode then
-                if SMITHING_RESEARCH_SELECT and not SMITHING_RESEARCH_SELECT:IsHidden() then
-                    if SMITHING_RESEARCH_SELECT.additionalFilter and type(SMITHING_RESEARCH_SELECT.additionalFilter) == "function" then
-                        return result and SMITHING_RESEARCH_SELECT.additionalFilter(bagId, slotIndex)
-                    end
+                local smReSe = SMITHING_RESEARCH_SELECT
+                if smReSe and not smReSe:IsHidden() and smReSe.additionalFilter and type(smReSe.additionalFilter) == "function" then
+                    return result and smReSe.additionalFilter(bagId, slotIndex)
                 end
             end
             return result
