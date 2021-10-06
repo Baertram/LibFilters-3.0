@@ -719,7 +719,7 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
                    gpsmresc.additionalFilter and type(gpsmresc.additionalFilter) == "function" then
                     return result and gpsmresc.additionalFilter(bagId, slotIndex)
                 end
-            elseif not gamePadMode then
+            else--if not gamePadMode then
                 local smReSe = SMITHING_RESEARCH_SELECT
                 if smReSe and not smReSe:IsHidden() and smReSe.additionalFilter and type(smReSe.additionalFilter) == "function" then
                     return result and smReSe.additionalFilter(bagId, slotIndex)
