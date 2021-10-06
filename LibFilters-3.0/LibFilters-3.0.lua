@@ -138,29 +138,36 @@ local improvementPanel_GP =	 	SMITHING_GAMEPAD.improvementPanel
 local researchPanel_GP =		SMITHING_GAMEPAD.researchPanel
 
 local enchantingClass =	  		ZO_Enchanting
+local enchantingClass_GP = 		ZO_GamepadEnchanting
 local enchanting =			 	ENCHANTING
---Gampad enchanting
+local enchanting_GP = 			GAMEPAD_ENCHANTING
 
 local alchemy = 				ALCHEMY
 local alchemy_GP = 				GAMEPAD_ALCHEMY
 
 --local retraitClass =		  ZO_RetraitStation_Retrait_Base
 local retrait =				 	ZO_RETRAIT_KEYBOARD
---Gampad retrait???
+local retrait_GP = 				ZO_RETRAIT_STATION_GAMEPAD
 
 
 --Special hooks
 local specialHooksDone = {
 	 ["enchanting"] = false,
 }
+local enchantingTypeToVars = {
+	["enchanting"] = {
+		class = enchantingClass,
+	},
+}
+
 
 --Mappings
 
 --Mapping for crafting
 local enchantingModeToFilterType = {
 	 [ENCHANTING_MODE_CREATION]		= LF_ENCHANTING_CREATION,
-	 [ENCHANTING_MODE_EXTRACTION]	 = LF_ENCHANTING_EXTRACTION,
-	 [ENCHANTING_MODE_RECIPES]		 = nil --not supported yet
+	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
+	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
 }
 
 
@@ -384,7 +391,11 @@ local inventoryUpdaters = {
 		  end
 	 end,
 	 ENCHANTING = function()
-		  enchanting.inventory:HandleDirtyEvent()
+		  if IsGamepad() then
+		  	  enchanting_GP.inventory:HandleDirtyEvent()
+		  else
+		  	  enchanting.inventory:HandleDirtyEvent()
+		  end
 	 end,
 	 PROVISIONING_COOK = function()
 	 end,
@@ -397,7 +408,11 @@ local inventoryUpdaters = {
 		  SafeUpdateList(QUICKSLOT_WINDOW)
 	 end,
 	 RETRAIT = function()
-		  retrait.inventory:HandleDirtyEvent()
+		  if IsGamepad() then
+		  	  retrait_GP:HandleDirtyEvent()
+		  else
+		      retrait.inventory:HandleDirtyEvent()
+		  end
 	 end,
 	 HOUSE_BANK_WITHDRAW = function()
 		  SafeUpdateList(PLAYER_INVENTORY, INVENTORY_HOUSE_BANK )
@@ -536,14 +551,14 @@ local function HookAdditionalFilters()
 
 	 LibFilters:HookAdditionalFilter(LF_RETRAIT, retrait)
 
-	 --The commented lines below do not work! Same inventory, would always return LF_ENCHANTING_EXTRACTION (as it was
-	 --added at last)
-	 --LibFilters:HookAdditionalFilter(LF_ENCHANTING_CREATION, ENCHANTING.inventory)
-	 --LibFilters:HookAdditionalFilter(LF_ENCHANTING_EXTRACTION, ENCHANTING.inventory)
-	 --So this new function call here splits it up properly
+	--The commented lines below do not work! Same inventory, would always return LF_ENCHANTING_EXTRACTION (as it was
+	--added at last)
+	--LibFilters:HookAdditionalFilter(LF_ENCHANTING_CREATION, ENCHANTING.inventory)
+	--LibFilters:HookAdditionalFilter(LF_ENCHANTING_EXTRACTION, ENCHANTING.inventory)
+	--So this new function call here splits it up properly
 	 LibFilters:HookAdditionalFilterSpecial("enchanting", enchanting.inventory)
 
-------------------------------------------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------------------------------------------
 	 --Keyboard -^-
 ------------------------------------------------------------------------------------------------------------------------
 	 --Gamepad -v-
@@ -599,9 +614,26 @@ local function HookAdditionalFilters()
 	LibFilters:HookAdditionalFilter(LF_JEWELRY_RESEARCH_DIALOG, GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE)
 
 	LibFilters:HookAdditionalFilter(LF_ALCHEMY_CREATION, alchemy_GP.inventory)
+
+	LibFilters:HookAdditionalFilter(LF_RETRAIT, retrait_GP)
+
+	LibFilters:HookAdditionalFilter(LF_ENCHANTING_CREATION, GAMEPAD_ENCHANTING_CREATION_SCENE)
+	LibFilters:HookAdditionalFilter(LF_ENCHANTING_EXTRACTION, GAMEPAD_ENCHANTING_EXTRACTION_SCENE)
+
 ------------------------------------------------------------------------------------------------------------------------
 	 --Gamepad -^-
 ------------------------------------------------------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------------------------------------------------------
+	 --Keyboard & Gamepad -v-
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+	 --Keyboard & Gamepad -^-
+------------------------------------------------------------------------------------------------------------------------
+
+
 end
 
 
@@ -698,37 +730,46 @@ local specialHooksLibFiltersDataRegistered = {}
 function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
 	 if specialHooksDone[specialType] == true then return end
 
-	 --ENCHANTING
-	 if specialType == "enchanting" then
-		  local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
-				local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
-				enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
+	 --ENCHANTING keyboard
+	if specialType == "enchanting" then
+		local enchantingClassForSpecialType = enchantingTypeToVars[specialType].class
+		if enchantingClassForSpecialType == nil then return end
 
-				specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
+		local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
+d("[LibFilters3]onEnchantingModeUpdateden-chantingMode: " ..tostring(enchantingMode))
+LibFilters3._enchantingVar = enchantingVar
 
-				--Only once
-				if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
-					 local originalFilter = enchantingVar.inventory.additionalFilter
-					 local additionalFilterType = type(originalFilter)
-					 if additionalFilterType == "function" then
-						  enchantingVar.inventory.additionalFilter = function(...)
-								return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
-						  end
-					 else
-						  enchantingVar.inventory.additionalFilter = function(...)
-								return runFilters(libFiltersEnchantingFilterType, ...)
-						  end
-					 end
+			local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
+			enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
 
-					 specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+			specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
+
+			--Only once
+			if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
+				local originalFilter = enchantingVar.inventory.additionalFilter
+				local additionalFilterType = type(originalFilter)
+				if additionalFilterType == "function" then
+					enchantingVar.inventory.additionalFilter = function(...)
+						return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
+					end
+				else
+					enchantingVar.inventory.additionalFilter = function(...)
+						return runFilters(libFiltersEnchantingFilterType, ...)
+					end
 				end
 
-		  end
-		  ZO_PreHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
-				onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
-		  end)
-		  specialHooksDone[specialType] = true
-	 end
+				specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+			end
+
+		end
+
+		--Hook the class variable (used for keyboard and gamepad as a base) OnModeUpdate to get the switch between
+		--enchanting creation and enchanting extarction
+		ZO_PreHook(enchantingClassForSpecialType, "OnModeUpdated", function(selfEnchanting)
+			onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
+		end)
+		specialHooksDone[specialType] = true
+	end
 end
 
 --**********************************************************************************************************************

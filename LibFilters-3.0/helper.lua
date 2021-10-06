@@ -172,9 +172,9 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
 }
 
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
---  LF_SMITHING_REFINE, LF_JEWELRY_REFINE
+--  LF_SMITHING_REFINE, LF_JEWELRY_REFINE for keyboard mode
 helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
-    version = 4,
+    version = 5,
     locations = {
         [1] = ZO_AlchemyInventory,
         [2] = ZO_EnchantingInventory,
