@@ -479,7 +479,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
 ------------------------------------------------------------------------------------------------------------------------
 --enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
 helpers["SMITHING.researchPanel:Refresh"] = {
-    version = 5,
+    version = 6,
     locations = {
         [1] = SMITHING.researchPanel,
         [2] = SMITHING_GAMEPAD.researchPanel, --Added with API 101032 The Deadlands 2021-10-06
