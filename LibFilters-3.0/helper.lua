@@ -290,6 +290,7 @@ helpers["SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAn
     },
 }
 
+--[[
 --enable LF_SMITHING_RESEARCH_DIALOG -- since API 100025 Murkmire
 helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
     version = 2,
@@ -324,12 +325,10 @@ helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
 
             listDialog:ClearList()
 
-            --[[
             --Overwritten original function to filter items with additional filters/filter functions
-            local function IsResearchableItem(bagId, slotIndex)
-                return ZO_SharedSmithingResearch.IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
-            end
-            ]]
+            --local function IsResearchableItem(bagId, slotIndex)
+            --    return ZO_SharedSmithingResearch.IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+            --end
 
             local virtualInventoryList = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, IsResearchableItem)
             PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, IsResearchableItem, virtualInventoryList)
@@ -350,6 +349,7 @@ helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
         end -- SMITHING_RESEARCH_SELECT.SetupDialog
     },
 }
+]]
 
 
 --enable LF_QUICKSLOT
@@ -693,7 +693,7 @@ helpers["GAMEPAD_SMITHING_Extraction/Improvement_Inventory:GetIndividualInventor
         end,
     },
 }
---enable LF_SMITHING_RESEARCH_DIALOG for gamepad mode --
+--enable LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG for keyboard and gamepad mode --
 -- if counts == 0 then trait is unselectable
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     version = 1,
@@ -713,11 +713,18 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
                 [SCENE_SHOWING] = true,
                 [SCENE_SHOWN] = true,
             }
-            if IsInGamepadPreferredMode() and GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
+            local gamePadMode = IsInGamepadPreferredMode()
+            if gamePadMode and GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
                     and sceneStatesAllowed[GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:GetState()] then
---d(">GamePad smithing research - Selected item!")
+                --d(">GamePad smithing research - Selected item!")
                 if GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.additionalFilter and type(GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.additionalFilter) == "function" then
                     return result and GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.additionalFilter(bagId, slotIndex)
+                end
+            elseif not gamePadMode then
+                if SMITHING_RESEARCH_SELECT and not SMITHING_RESEARCH_SELECT:IsHidden() then
+                    if SMITHING_RESEARCH_SELECT.additionalFilter and type(SMITHING_RESEARCH_SELECT.additionalFilter) == "function" then
+                        return result and SMITHING_RESEARCH_SELECT.additionalFilter(bagId, slotIndex)
+                    end
                 end
             end
             return result
