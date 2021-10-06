@@ -694,7 +694,6 @@ helpers["GAMEPAD_SMITHING_Extraction/Improvement_Inventory:GetIndividualInventor
     },
 }
 --enable LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG for keyboard and gamepad mode --
--- if counts == 0 then trait is unselectable
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     version = 1,
     locations = {
@@ -730,6 +729,8 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
         end
     },
 }
+
+
 --[[
 --enable LF_SMITHING_RESEARCH_DIALOG for gamepad mode --
 -- if counts == 0 then trait is unselectable
