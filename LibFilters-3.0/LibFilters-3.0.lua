@@ -680,18 +680,20 @@ function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
 			return
 		end
 	end
-
-	--local isGamePad = IsInGamepadPreferredMode()
-	--If in gamepad mode: Check if inventoryType is a SCENE, e.g. GAMEPAD_ENCHANTING_CREATION_SCENE
-	--if isGamePad then
+	local invVarIsNumber = (type(inventoryType) == "number") or false
+	if not invVarIsNumber then
+		--local isGamePad = IsInGamepadPreferredMode()
+		--If in gamepad mode: Check if inventoryType is a SCENE, e.g. GAMEPAD_ENCHANTING_CREATION_SCENE
+		--if isGamePad then
 		if inventoryType.sceneManager ~= nil and inventoryType.LibFilters3_filterType ~= nil then
 			return inventoryType.LibFilters3_filterType
 		end
-	--end
+		--end
+	end
 	--Afterwards:
 	--Get the inventory from PLAYER_INVENTORY.inventories if the "number" check returns true,
 	--and else use inventoryType directly to support enchanting.inventory
-	local inventory = (type(inventoryType) == "number" and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
+	local inventory = (invVarIsNumber and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
 	if inventory == nil or inventory.LibFilters3_filterType == nil then return end
 	return inventory.LibFilters3_filterType
 end

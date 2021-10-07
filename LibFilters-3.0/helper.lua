@@ -694,6 +694,7 @@ helpers["GAMEPAD_SMITHING_Extraction/Improvement_Inventory:GetIndividualInventor
     },
 }
 --enable LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG for keyboard and gamepad mode --
+local origZO_SharedSmithingResearch_IsResearchableItem = ZO_SharedSmithingResearch.IsResearchableItem
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     version = 1,
     locations = {
@@ -704,8 +705,7 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
         func = function(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
 --d("ZO_SharedSmithingResearch.IsResearchableItem: " ..GetItemLink(bagId, slotIndex))
             --Do original filters
-            local result = CanItemBeSmithingTraitResearched(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
-                    and DoesNotBlockResearch(bagId, slotIndex)
+            local result = origZO_SharedSmithingResearch_IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
 
             --If the gamepad research -> selected item for research scene is showing/shown
             local gamePadMode = IsInGamepadPreferredMode()
