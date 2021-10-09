@@ -204,7 +204,7 @@ local invCraftbag_GP =			GAMEPAD_INVENTORY.craftBagList
 
 --Quest items
 local invQuests =				inventories[invTypeQuest]
-local invQuests_GP
+local invQuests_GP				--TODO
 
 --Quickslots
 local quickslots =				QUICKSLOT_WINDOW
@@ -250,16 +250,16 @@ local vendorRepair_GP =			ZO_GamepadStoreRepair 		--store_GP.components[ZO_MODE_
 --[Fence]
 --Fence launder
 local invFenceLaunder =			BACKPACK_LAUNDER_LAYOUT_FRAGMENT
-local invFenceLaunder_GP
+local invFenceLaunder_GP		--TODO
 
 --Fence sell
 local invFenceSell = 			BACKPACK_FENCE_LAYOUT_FRAGMENT
-local invFenceSell_GP
+local invFenceSell_GP			--TODO
 
 
 --[Guild store]
-local guildStoreBuy
-local guildStoreBuy_GP
+local guildStoreBuy 			--not supported by LibFilters yet
+local guildStoreBuy_GP			--not supported by LibFilters yet
 local guildStoreSell = 			BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
 local guildStoreSell_GP = 		GAMEPAD_TRADING_HOUSE_FRAGMENT
 
@@ -286,6 +286,10 @@ local smithing_GP = 			SMITHING_GAMEPAD
 --Refinement
 local refinementPanel =	  		smithing.refinementPanel
 local refinementPanel_GP =	  	smithing_GP.refinementPanel
+
+--Create
+local creationPanel =	  		smithing.creationPanel		---not "officially" supported by LibFilters yet
+local creationPanel_GP =	  	smithing_GP.creationPanel	---not "officially" supported by LibFilters yet
 
 --Deconstruction
 local deconstructionPanel = 	smithing.deconstructionPanel
@@ -574,125 +578,174 @@ local function dialogUpdaterFunc(listDialogControl)
 	 end
 end
 
+--Updater function for a normal inventory in keyboard mode
+local function updateKeyboardPlayerInventoryType(invType)
+	SafeUpdateList(playerInv, invType)
+end
+
+local function updateCraftingInventoryDirty(craftingInventory)
+	craftingInventory:HandleDirtyEvent()
+end
+
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)
 local inventoryUpdaters = {
-	 INVENTORY = function()
-		  SafeUpdateList(playerInv, invTypeBackpack)
-	 end,
-	 BANK_WITHDRAW = function()
-		  SafeUpdateList(playerInv, invTypeBank)
-	 end,
-	 GUILDBANK_WITHDRAW = function()
-		  SafeUpdateList(playerInv, invTypeGuildBank)
-	 end,
-	 VENDOR_BUY = function()
+	INVENTORY = function()
 		if IsGamepad() then
-			vendorBuy_GP:UpdateList()
+			--TODO
+		else
+			updateKeyboardPlayerInventoryType(invTypeBackpack)
+		end
+	end,
+	CRAFTBAG = function()
+		if IsGamepad() then
+			--TODO
+		else
+			updateKeyboardPlayerInventoryType(invTypeCraftBag)
+		end
+	end,
+	INVENTORY_QUEST = function()
+		if IsGamepad() then
+			--TODO
+		else
+			updateKeyboardPlayerInventoryType(invTypeQuest)
+		end
+	end,
+	QUICKSLOT = function()
+		if IsGamepad() then
+			SafeUpdateList(quickslots_GP) --TODO
+		else
+			SafeUpdateList(quickslots)
+		end
+	end,
+	BANK_WITHDRAW = function()
+		if IsGamepad() then
+			--TODO
+		else
+			updateKeyboardPlayerInventoryType(invTypeBank)
+		end
+	end,
+	GUILDBANK_WITHDRAW = function()
+		if IsGamepad() then
+			--TODO
+		else
+			updateKeyboardPlayerInventoryType(invTypeGuildBank)
+		end
+	end,
+	HOUSE_BANK_WITHDRAW = function()
+		if IsGamepad() then
+			--TODO
+		else
+			updateKeyboardPlayerInventoryType(invTypeHouseBank)
+		end
+	end,
+	VENDOR_BUY = function()
+		if IsGamepad() then
+			vendorBuy_GP:UpdateList() --TODO
 		else
 			if guildStoreSell.state ~= SCENE_SHOWN then --"shown"
 				store:GetStoreItems()
 				SafeUpdateList(store)
 			end
 		end
-	 end,
-	 VENDOR_BUYBACK = function()
-		  SafeUpdateList(vendorBuyBack)
-	 end,
-	 VENDOR_REPAIR = function()
-		  SafeUpdateList(vendorRepair)
-	 end,
-	 GUILDSTORE_BROWSE = function()
-	 end,
-	 SMITHING_REFINE = function()
-		  if IsGamepad() then
-				refinementPanel_GP.inventory:HandleDirtyEvent()
-		  else
-				refinementPanel.inventory:HandleDirtyEvent()
-		  end
-	 end,
-	 SMITHING_CREATION = function()
-		  --[[
-		  --Not supported yet
-		  if IsGamepad() then
-		  else
-		  end
-		  ]]
-	 end,
-	 SMITHING_DECONSTRUCT = function()
-		  if IsGamepad() then
-				deconstructionPanel_GP.inventory:HandleDirtyEvent()
-		  else
-				deconstructionPanel.inventory:HandleDirtyEvent()
-		  end
-	 end,
-	 SMITHING_IMPROVEMENT = function()
-		  if IsGamepad() then
-				improvementPanel_GP.inventory:HandleDirtyEvent()
-		  else
-				improvementPanel.inventory:HandleDirtyEvent()
-		  end
-	 end,
-	 SMITHING_RESEARCH = function()
-		  if IsGamepad() then
-				researchPanel_GP:Refresh()
-		  else
-				researchPanel:Refresh()
-		  end
-	 end,
-	 ALCHEMY_CREATION = function()
-		  if IsGamepad() then
-			  alchemy_GP.inventory:HandleDirtyEvent()
-		  else
-		      alchemy.inventory:HandleDirtyEvent()
-		  end
-	 end,
-	 ENCHANTING = function()
-		  if IsGamepad() then
-		  	  enchanting_GP.inventory:HandleDirtyEvent()
-		  else
-		  	  enchanting.inventory:HandleDirtyEvent()
-		  end
-	 end,
-	 PROVISIONING_COOK = function()
-	 end,
-	 PROVISIONING_BREW = function()
-	 end,
-	 CRAFTBAG = function()
-		 if IsGamepad() then
-		 	SafeUpdateList(playerInv, invTypeCraftBag)
-		 else
-		 	SafeUpdateList(playerInv, invTypeCraftBag)
-		 end
-	 end,
-	 QUICKSLOT = function()
-		 if IsGamepad() then
-			SafeUpdateList(quickslots_GP)
-		 else
-			SafeUpdateList(quickslots)
-		 end
-	 end,
-	 RETRAIT = function()
-		  if IsGamepad() then
-		  	  retrait_GP:HandleDirtyEvent()
-		  else
-		      retrait.inventory:HandleDirtyEvent()
-		  end
-	 end,
-	 HOUSE_BANK_WITHDRAW = function()
-		  SafeUpdateList(playerInv, invTypeHouseBank )
-	 end,
-	 SMITHING_RESEARCH_DIALOG = function()
-		  dialogUpdaterFunc(researchChooseItemDialog)
-	 end,
-	 RECONSTRUCTION = function()
-		  reconstruct.inventory:HandleDirtyEvent()
-	 end,
-	 INVENTORY_QUEST = function()
-		  SafeUpdateList(playerInv, invTypeQuest)
-	 end,
-	 INVENTORY_COMPANION = function()
-		  SafeUpdateList(companionEquipment, nil)
-	 end
+	end,
+	VENDOR_BUYBACK = function()
+		if IsGamepad() then
+			vendorBuyBack_GP:UpdateList() --TODO
+		else
+			SafeUpdateList(vendorBuyBack)
+		end
+	end,
+	VENDOR_REPAIR = function()
+		if IsGamepad() then
+			vendorRepair_GP:UpdateList()  --TODO
+		else
+			SafeUpdateList(vendorRepair)
+		end
+	end,
+	GUILDSTORE_BROWSE = function()
+	end,
+	INVENTORY_COMPANION = function()
+		if IsGamepad() then
+			SafeUpdateList(companionEquipment_GP, nil) --TODO
+		else
+			SafeUpdateList(companionEquipment, nil)
+		end
+	end,
+	SMITHING_REFINE = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(refinementPanel_GP.inventory)
+		else
+			updateCraftingInventoryDirty(refinementPanel.inventory)
+		end
+	end,
+	SMITHING_CREATION = function()
+	--[[
+	--Not supported yet
+	if IsGamepad() then
+	else
+	end
+	]]
+	end,
+	SMITHING_DECONSTRUCT = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(deconstructionPanel_GP.inventory)
+		else
+			updateCraftingInventoryDirty(deconstructionPanel.inventory)
+		end
+	end,
+	SMITHING_IMPROVEMENT = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(improvementPanel_GP.inventory)
+		else
+			updateCraftingInventoryDirty(improvementPanel.inventory)
+		end
+	end,
+	SMITHING_RESEARCH = function()
+		if IsGamepad() then
+			researchPanel_GP:Refresh()
+		else
+			researchPanel:Refresh()
+		end
+	end,
+	SMITHING_RESEARCH_DIALOG = function()
+		if IsGamepad() then
+			--TODO
+		else
+			dialogUpdaterFunc(researchChooseItemDialog)
+		end
+	end,
+	ALCHEMY_CREATION = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(alchemy_GP.inventory) --TODO
+		else
+			updateCraftingInventoryDirty(alchemy.inventory)
+		end
+	end,
+	ENCHANTING = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(enchanting_GP.inventory) --TODO
+		else
+			updateCraftingInventoryDirty(enchanting.inventory)
+		end
+	end,
+	PROVISIONING_COOK = function()
+	end,
+	PROVISIONING_BREW = function()
+	end,
+	RETRAIT = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(retrait_GP) --TODO
+		else
+			updateCraftingInventoryDirty(retrait.inventory)
+		end
+	end,
+	RECONSTRUCTION = function()
+		if IsGamepad() then
+			updateCraftingInventoryDirty(reconstruct_GP) --TODO
+		else
+			updateCraftingInventoryDirty(reconstruct.inventory)
+		end
+	end,
 }
 LibFilters.inventoryUpdaters = inventoryUpdaters
 
@@ -1085,8 +1138,9 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
 	 local craftingType = GetCraftingInteractionType()
 	 if craftingType == CRAFTING_TYPE_INVALID then return false end
 	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
-	 if not toResearchLineIndex or toResearchLineIndex > GetNumSmithingResearchLines(craftingType) then
-		  toResearchLineIndex = GetNumSmithingResearchLines(craftingType)
+	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
+	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
+		  toResearchLineIndex = numSmithingResearchLines
 	 end
 	 local helpers = LibFilters.helpers
 	 if not helpers then return end
