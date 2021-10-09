@@ -39,6 +39,8 @@ if _G[GlobalLibName] ~= nil then return end
 --LOCAL SPEED UP VARIABLE REFERENCES
 ------------------------------------------------------------------------------------------------------------------------
 --Game API local speedup
+local EM = EVENT_MANAGER
+local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
 
 --LibFilters local speedup
@@ -178,17 +180,31 @@ LF_FILTER_MAX					= #libFiltersFilterConstants
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
 ------------------------------------------------------------------------------------------------------------------------
+--[Inventory types]
+local invTypeBackpack =			INVENTORY_BACKPACK
+local invTypeQuest = 			INVENTORY_QUEST_ITEM
+local invTypeBank =				INVENTORY_BANK
+local invTypeGuildBank =		INVENTORY_GUILD_BANK
+local invTypeHouseBank =		INVENTORY_HOUSE_BANK
+local invTypeCraftBag = 		INVENTORY_CRAFT_BAG
+
 --[Inventories]
 local playerInv = 		    	PLAYER_INVENTORY
 local inventories =				playerInv.inventories
 
 --Backpack
-local invBackpack =				BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
-local invBackpack_GP
+local invBackpack =				inventories[invTypeBackpack]
+local invBackpackFragment =		BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
+local invBackpack_GP =			GAMEPAD_INVENTORY.itemList
+
+--Craftbag
+local craftBagClass = 			ZO_CraftBag
+local invCraftbag =				inventories[invTypeCraftBag]
+local invCraftbag_GP =			GAMEPAD_INVENTORY.craftBagList
 
 --Quest items
-local quests
-local quests_GP
+local invQuests =				inventories[invTypeQuest]
+local invQuests_GP
 
 --Quickslots
 local quickslots =				QUICKSLOT_WINDOW
@@ -198,21 +214,21 @@ local quickslots_GP =			GAMEPAD_QUICKSLOT
 --[Banks]
 --Player bank
 local invBankDeposit =			BACKPACK_BANK_LAYOUT_FRAGMENT
-local invBankDeposit_GP
-local invBankWithdraw
-local invBankWithdraw_GP
+local invBankDeposit_GP =		GAMEPAD_BANKING.depositList
+local invBankWithdraw =			inventories[invTypeBank]
+local invBankWithdraw_GP =		GAMEPAD_BANKING.withdrawList
 
 --Guild bank
 local invGuildBankDeposit =   	BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
-local invGuildBankDeposit_GP
-local invGuildBankWithdraw
-local invGuildBankWithdraw_GP
+local invGuildBankDeposit_GP =	GAMEPAD_GUILD_BANK.depositList
+local invGuildBankWithdraw =	inventories[invTypeGuildBank]
+local invGuildBankWithdraw_GP = GAMEPAD_GUILD_BANK.withdrawList
 
 --House bank
 local invHouseBankDeposit = 	BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
-local invHouseBankDeposit_GP
-local invHouseBankWithdraw
-local invHouseBankWithdraw_GP
+local invHouseBankDeposit_GP =	GAMEPAD_BANKING.depositList
+local invHouseBankWithdraw =	inventories[invTypeHouseBank]
+local invHouseBankWithdraw_GP =	GAMEPAD_BANKING.withdrawList
 
 
 --[Vendor]
@@ -245,17 +261,17 @@ local invFenceSell_GP
 local guildStoreBuy
 local guildStoreBuy_GP
 local guildStoreSell = 			BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
-local guildStoreSell_GP
+local guildStoreSell_GP = 		GAMEPAD_TRADING_HOUSE_FRAGMENT
 
 
 --[Mail]
 local mailSend =				BACKPACK_MAIL_LAYOUT_FRAGMENT
-local mailSend_GP
+local mailSend_GP =				GAMEPAD_MAIL_SEND_FRAGMENT
 
 
 --[Player 2 player trade]
 local player2playerTrade = 		BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
-local player2playerTrade_GP
+local player2playerTrade_GP = 	GAMEPAD_TRADE_FRAGMENT
 
 
 --[Companion]
@@ -290,6 +306,8 @@ local enchantingClass =	  		ZO_Enchanting
 local enchantingClass_GP = 		ZO_GamepadEnchanting
 local enchanting =			 	ENCHANTING
 local enchanting_GP = 			GAMEPAD_ENCHANTING
+local enchantingCreate_GP = 	GAMEPAD_ENCHANTING_CREATION_SCENE
+local enchantingExtract_GP = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 
 --Alchemy
 local alchemy = 				ALCHEMY
@@ -342,16 +360,16 @@ local LF_ConstantToAdditionalFilterSpecialHook = {
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 	--Keyboard mode
 	[false] = {
-		[LF_INVENTORY]                = { inventories[INVENTORY_BACKPACK], invBackpack },
-		[LF_INVENTORY_QUEST]          = { inventories[INVENTORY_QUEST_ITEM] },
-		[LF_CRAFTBAG]                 = { inventories[INVENTORY_CRAFT_BAG] },
+		[LF_INVENTORY]                = { invBackpack, invBackpackFragment },
+		[LF_INVENTORY_QUEST]          = { invQuests },
+		[LF_CRAFTBAG]                 = { invCraftbag },
 		[LF_INVENTORY_COMPANION]      = { companionEquipment },
 		[LF_QUICKSLOT]                = { quickslots },
-		[LF_BANK_WITHDRAW]            = { inventories[INVENTORY_BANK] },
+		[LF_BANK_WITHDRAW]            = { invBankWithdraw },
 		[LF_BANK_DEPOSIT]             = { invBankDeposit },
-		[LF_GUILDBANK_WITHDRAW]       = { inventories[INVENTORY_GUILD_BANK] },
+		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw },
 		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit },
-		[LF_HOUSE_BANK_WITHDRAW]      = { inventories[INVENTORY_HOUSE_BANK] },
+		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw },
 		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit },
 		[LF_VENDOR_BUY]               = { store },
 		[LF_VENDOR_SELL]              = { vendorSell },
@@ -387,27 +405,27 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY]                = { inventories[INVENTORY_BACKPACK], BACKPACK_MENU_BAR_LAYOUT_FRAGMENT }, --TODO replace with e.g. GAMEPAD_INVENTORY.itemList and add helper to GAMEPAD_INVENTORY.itemList:SetItemFilterFunction
-		[LF_INVENTORY_QUEST]          = { inventories[INVENTORY_QUEST_ITEM] },
-		[LF_CRAFTBAG]                 = { inventories[INVENTORY_CRAFT_BAG] }, --TODO replace with e.g. GAMEPAD_INVENTORY.craftBagList and add helper to GAMEPAD_INVENTORY.craftBagList:SetItemFilterFunction
-		[LF_INVENTORY_COMPANION]      = { companionEquipment_GP },
-		[LF_QUICKSLOT]                = { quickslots },
-		[LF_BANK_WITHDRAW]            = { inventories[INVENTORY_BANK] }, --TODO replace with e.g. GAMEPAD_BANKING.withdrawList and add helper to GAMEPAD_BANKING.withdrawList:SetItemFilterFunction
-		[LF_BANK_DEPOSIT]             = { BACKPACK_BANK_LAYOUT_FRAGMENT }, --TODO replace with e.g. GAMEPAD_BANKING.depositList and add helper to GAMEPAD_BANKING.depositList:SetItemFilterFunction
-		[LF_GUILDBANK_WITHDRAW]       = { inventories[INVENTORY_GUILD_BANK] }, --TODO replace with e.g. GAMEPAD_GUILD_BANK.withdrawList and add helper to GAMEPAD_GUILD_BANK.withdrawList:SetItemFilterFunction
-		[LF_GUILDBANK_DEPOSIT]        = { BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT }, --TODO replace with e.g. GAMEPAD_GUILD_BANK.depositList and add helper to GAMEPAD_GUILD_BANK.depositList:SetItemFilterFunction
-		[LF_HOUSE_BANK_WITHDRAW]      = { inventories[INVENTORY_HOUSE_BANK] }, --TODO replace with e.g. GAMEPAD_BANKING.withdrawList and add helper to GAMEPAD_BANKING.withdrawList:SetItemFilterFunction and check for houseBankBag -> GetBankingBag()
-		[LF_HOUSE_BANK_DEPOSIT]       = { BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT }, --TODO replace with e.g. GAMEPAD_BANKING.depositList and add helper to GAMEPAD_BANKING.depositList:SetItemFilterFunction and check for houseBankBag -> GetBankingBag()
+		[LF_INVENTORY]                = { invBackpack_GP }, --TODO replace with e.g. GAMEPAD_INVENTORY.itemList and add helper to GAMEPAD_INVENTORY.itemList:SetItemFilterFunction
+		[LF_INVENTORY_QUEST]          = { invQuests_GP },
+		[LF_CRAFTBAG]                 = { invCraftbag_GP }, --TODO replace with e.g. GAMEPAD_INVENTORY.craftBagList and add helper to GAMEPAD_INVENTORY.craftBagList:SetItemFilterFunction
+		[LF_INVENTORY_COMPANION]      = { companionEquipment_GP }, --TODO Validate for gamepad mode
+		[LF_QUICKSLOT]                = { quickslots_GP }, --TODO Validate for gamepad mode
+		[LF_BANK_WITHDRAW]            = { invBankWithdraw_GP }, --TODO replace with e.g. GAMEPAD_BANKING.withdrawList and add helper to GAMEPAD_BANKING.withdrawList:SetItemFilterFunction
+		[LF_BANK_DEPOSIT]             = { invBankDeposit_GP }, --TODO replace with e.g. GAMEPAD_BANKING.depositList and add helper to GAMEPAD_BANKING.depositList:SetItemFilterFunction
+		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw_GP }, --TODO replace with e.g. GAMEPAD_GUILD_BANK.withdrawList and add helper to GAMEPAD_GUILD_BANK.withdrawList:SetItemFilterFunction
+		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit_GP }, --TODO replace with e.g. GAMEPAD_GUILD_BANK.depositList and add helper to GAMEPAD_GUILD_BANK.depositList:SetItemFilterFunction
+		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw_GP }, --TODO replace with e.g. GAMEPAD_BANKING.withdrawList and add helper to GAMEPAD_BANKING.withdrawList:SetItemFilterFunction and check for houseBankBag -> GetBankingBag()
+		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit_GP }, --TODO replace with e.g. GAMEPAD_BANKING.depositList and add helper to GAMEPAD_BANKING.depositList:SetItemFilterFunction and check for houseBankBag -> GetBankingBag()
 		[LF_VENDOR_BUY]               = { vendorBuy_GP },
-		[LF_VENDOR_SELL]              = { BACKPACK_STORE_LAYOUT_FRAGMENT },
-		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
-		[LF_VENDOR_REPAIR]            = { vendorRepair },
-		[LF_FENCE_SELL]               = { BACKPACK_FENCE_LAYOUT_FRAGMENT },
-		[LF_FENCE_LAUNDER]            = { BACKPACK_LAUNDER_LAYOUT_FRAGMENT },
+		[LF_VENDOR_SELL]              = { vendorSell_GP },
+		[LF_VENDOR_BUYBACK]           = { vendorBuyBack_GP },
+		[LF_VENDOR_REPAIR]            = { vendorRepair_GP },
+		[LF_FENCE_SELL]               = { invFenceSell_GP },
+		[LF_FENCE_LAUNDER]            = { invFenceLaunder_GP },
 		--[LF_GUILDSTORE_BROWSE] 		= {},
-		[LF_GUILDSTORE_SELL]          = { BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT },
-		[LF_MAIL_SEND]                = { GAMEPAD_MAIL_SEND_FRAGMENT }, --TODO replace with e.g. MAIL_MANAGER_GAMEPAD.send.inventoryList and add helper to MAIL_MANAGER_GAMEPAD.send.inventoryList:SetItemFilterFunction
-		[LF_TRADE]                    = { BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT },
+		[LF_GUILDSTORE_SELL]          = { guildStoreSell_GP },
+		[LF_MAIL_SEND]                = { mailSend_GP }, --TODO replace with e.g. MAIL_MANAGER_GAMEPAD.send.inventoryList and add helper to MAIL_MANAGER_GAMEPAD.send.inventoryList:SetItemFilterFunction
+		[LF_TRADE]                    = { player2playerTrade_GP },
 		[LF_SMITHING_REFINE]          = { refinementPanel_GP.inventory },
 		--[LF_SMITHING_CREATION] 		= {},
 		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel_GP.inventory },
@@ -425,8 +443,8 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		--[LF_PROVISIONING_BREW]		= {},
 		[LF_RETRAIT]                  = { retrait_GP },
 
-		[LF_ENCHANTING_CREATION]	  = {GAMEPAD_ENCHANTING_CREATION_SCENE},
-		[LF_ENCHANTING_EXTRACTION]    = {GAMEPAD_ENCHANTING_EXTRACTION_SCENE},
+		[LF_ENCHANTING_CREATION]	  = {enchantingCreate_GP},
+		[LF_ENCHANTING_EXTRACTION]    = {enchantingExtract_GP},
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
 	},
@@ -529,7 +547,7 @@ local specialHooksDone = {
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
 --d("[LibFilters3]SafeUpdateList, inv: " ..tostring(...))
-	 local isMouseVisible = SCENE_MANAGER:IsInUIMode()
+	 local isMouseVisible = SM:IsInUIMode()
 
 	 if isMouseVisible then HideMouse() end
 
@@ -559,19 +577,19 @@ end
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)
 local inventoryUpdaters = {
 	 INVENTORY = function()
-		  SafeUpdateList(playerInv, INVENTORY_BACKPACK)
+		  SafeUpdateList(playerInv, invTypeBackpack)
 	 end,
 	 BANK_WITHDRAW = function()
-		  SafeUpdateList(playerInv, INVENTORY_BANK)
+		  SafeUpdateList(playerInv, invTypeBank)
 	 end,
 	 GUILDBANK_WITHDRAW = function()
-		  SafeUpdateList(playerInv, INVENTORY_GUILD_BANK)
+		  SafeUpdateList(playerInv, invTypeGuildBank)
 	 end,
 	 VENDOR_BUY = function()
 		if IsGamepad() then
 			vendorBuy_GP:UpdateList()
 		else
-			if BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT.state ~= SCENE_SHOWN then --"shown"
+			if guildStoreSell.state ~= SCENE_SHOWN then --"shown"
 				store:GetStoreItems()
 				SafeUpdateList(store)
 			end
@@ -640,10 +658,18 @@ local inventoryUpdaters = {
 	 PROVISIONING_BREW = function()
 	 end,
 	 CRAFTBAG = function()
-		  SafeUpdateList(playerInv, INVENTORY_CRAFT_BAG)
+		 if IsGamepad() then
+		 	SafeUpdateList(playerInv, invTypeCraftBag)
+		 else
+		 	SafeUpdateList(playerInv, invTypeCraftBag)
+		 end
 	 end,
 	 QUICKSLOT = function()
-		  SafeUpdateList(QUICKSLOT_WINDOW)
+		 if IsGamepad() then
+			SafeUpdateList(quickslots_GP)
+		 else
+			SafeUpdateList(quickslots)
+		 end
 	 end,
 	 RETRAIT = function()
 		  if IsGamepad() then
@@ -653,7 +679,7 @@ local inventoryUpdaters = {
 		  end
 	 end,
 	 HOUSE_BANK_WITHDRAW = function()
-		  SafeUpdateList(playerInv, INVENTORY_HOUSE_BANK )
+		  SafeUpdateList(playerInv, invTypeHouseBank )
 	 end,
 	 SMITHING_RESEARCH_DIALOG = function()
 		  dialogUpdaterFunc(researchChooseItemDialog)
@@ -662,7 +688,7 @@ local inventoryUpdaters = {
 		  reconstruct.inventory:HandleDirtyEvent()
 	 end,
 	 INVENTORY_QUEST = function()
-		  SafeUpdateList(playerInv, INVENTORY_QUEST_ITEM)
+		  SafeUpdateList(playerInv, invTypeQuest)
 	 end,
 	 INVENTORY_COMPANION = function()
 		  SafeUpdateList(companionEquipment, nil)
@@ -1042,14 +1068,14 @@ function LibFilters:RequestUpdate(filterType)
 	 local callbackName = "LibFilters_updateInventory_" .. updaterName
 	 local function Update()
 --d(">[LibFilters3]RequestUpdate->Update called")
-		  EVENT_MANAGER:UnregisterForUpdate(callbackName)
+		  EM:UnregisterForUpdate(callbackName)
 		  inventoryUpdaters[updaterName]()
 	 end
 
 	 --cancel previously scheduled update if any
-	 EVENT_MANAGER:UnregisterForUpdate(callbackName)
+	 EM:UnregisterForUpdate(callbackName)
 	 --register a new one
-	 EVENT_MANAGER:RegisterForUpdate(callbackName, 10, Update)
+	 EM:RegisterForUpdate(callbackName, 10, Update)
 end
 
 
@@ -1118,7 +1144,7 @@ local function ApplyFixes()
 	]]
 	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
 	--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tostring(ZO_CraftBag:IsHidden()))
-		if ZO_CraftBag:IsHidden() then return end
+		if craftBagClass:IsHidden() then return end
 		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
 		hookAdditionalFilter(LibFilters, LF_CRAFTBAG)
 	end)
