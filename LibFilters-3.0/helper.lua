@@ -575,6 +575,371 @@ helpers["SMITHING.researchPanel:Refresh"] = {
 ------------------------------------------------------------------------------------------------------------------------
  -- -v- GAMEPAD ONLY
 ------------------------------------------------------------------------------------------------------------------------
+-------------------
+--locals for Vendor/Fence
+-------------------
+local STORE_WEAPON_GROUP = 1
+local STORE_HEAVY_ARMOR_GROUP = 2
+local STORE_MEDIUM_ARMOR_GROUP = 3
+local STORE_LIGHT_ARMOR_GROUP = 4
+local STORE_JEWELRY_GROUP = 5
+local STORE_SUPPLIES_GROUP = 6
+local STORE_MATERIALS_GROUP = 7
+local STORE_QUICKSLOTS_GROUP = 8
+local STORE_COLLECTIBLE_GROUP = 9
+local STORE_QUEST_ITEMS_GROUP = 10
+local STORE_ANTIQUITY_LEADS_GROUP = 11
+local STORE_OTHER_GROUP = 12
+local function GetItemStoreGroup(itemData)
+    if itemData.entryType == STORE_ENTRY_TYPE_COLLECTIBLE then
+        return STORE_COLLECTIBLE_GROUP
+    elseif itemData.entryType == STORE_ENTRY_TYPE_QUEST_ITEM then
+        return STORE_QUEST_ITEMS_GROUP
+    elseif itemData.entryType == STORE_ENTRY_TYPE_ANTIQUITY_LEAD then
+        return STORE_ANTIQUITY_LEADS_GROUP
+    elseif itemData.equipType == EQUIP_TYPE_RING or itemData.equipType== EQUIP_TYPE_NECK then
+        return STORE_JEWELRY_GROUP
+    elseif itemData.itemType == ITEMTYPE_WEAPON or itemData.displayFilter == ITEMFILTERTYPE_WEAPONS then
+        return STORE_WEAPON_GROUP
+    elseif itemData.itemType == ITEMTYPE_ARMOR or itemData.displayFilter == ITEMFILTERTYPE_ARMOR then
+        local armorType
+        if itemData.bagId and itemData.slotIndex then
+            armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
+        else
+            armorType = GetItemLinkArmorType(itemData.itemLink)
+        end
+        if armorType == ARMORTYPE_HEAVY then
+            return STORE_HEAVY_ARMOR_GROUP
+        elseif armorType == ARMORTYPE_MEDIUM then
+            return STORE_MEDIUM_ARMOR_GROUP
+        elseif armorType == ARMORTYPE_LIGHT then
+            return STORE_LIGHT_ARMOR_GROUP
+        end
+    elseif ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData) then
+        return STORE_SUPPLIES_GROUP
+    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_CRAFTING) then
+        return STORE_MATERIALS_GROUP
+    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_QUICKSLOT) then
+        return STORE_QUICKSLOTS_GROUP
+    end
+    return STORE_OTHER_GROUP
+end
+local function GetBestItemCategoryDescription(itemData)
+    if itemData.storeGroup == STORE_COLLECTIBLE_GROUP then
+        local collectibleCategory = GetCollectibleCategoryTypeFromLink(itemData.itemLink)
+        return GetString("SI_COLLECTIBLECATEGORYTYPE", collectibleCategory)
+    elseif itemData.storeGroup == STORE_QUEST_ITEMS_GROUP then
+        return GetString(SI_ITEM_FORMAT_STR_QUEST_ITEM)
+    elseif itemData.storeGroup == STORE_ANTIQUITY_LEADS_GROUP then
+        return GetString(SI_GAMEPAD_VENDOR_ANTIQUITY_LEAD_GROUP_HEADER)
+    else
+        return ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription(itemData)
+    end
+end
+local function GetBestSellItemCategoryDescription(itemData)
+    local traitType = GetItemTrait(itemData.bagId, itemData.slotIndex)
+    if traitType == ITEM_TRAIT_TYPE_WEAPON_ORNATE or traitType == ITEM_TRAIT_TYPE_ARMOR_ORNATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_ORNATE then
+        return GetString("SI_ITEMTRAITTYPE", traitType)
+    else
+        return GetBestItemCategoryDescription(itemData)
+    end
+end
+
+local function GatherDamagedEquipmentFromBag(searchContext, bagId, itemTable)
+    local bagSlots = GetBagSize(bagId)
+    for slotIndex = 0, bagSlots - 1 do
+        if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
+            local condition = GetItemCondition(bagId, slotIndex)
+            if condition < 100 and not IsItemStolen(bagId, slotIndex) then
+                local _, stackCount = GetItemInfo(bagId, slotIndex)
+                if stackCount > 0 then
+                    local repairCost = GetItemRepairCost(bagId, slotIndex)
+                    if repairCost > 0 then
+                        local damagedItem = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
+                        damagedItem.condition = condition
+                        damagedItem.repairCost = repairCost
+                        damagedItem.invalidPrice = repairCost > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
+                        damagedItem.isEquippedInCurrentCategory = damagedItem.bagId == BAG_WORN
+                        damagedItem.storeGroup = GetItemStoreGroup(damagedItem)
+                        damagedItem.bestGamepadItemCategoryName = GetBestItemCategoryDescription(damagedItem)
+                        table.insert(itemTable, damagedItem)
+                    end
+                end
+            end
+        end
+    end
+end
+-- optFilterFunction is an optional additional check to make when gathering all the stolen items
+-- ... are bag ids to get items from
+local function GetStolenItems(optFilterFunction, ...)
+    local function IsStolenItem(itemData)
+        local isStolen = itemData.stolen
+        if optFilterFunction then
+            return isStolen and optFilterFunction(itemData)
+        else
+            return isStolen
+        end
+    end
+    local items = SHARED_INVENTORY:GenerateFullSlotData(IsStolenItem, ...)
+    local unequippedItems = {}
+    --- Setup sort filter
+    for _, itemData in ipairs(items) do
+        itemData.isEquipped = false
+        itemData.meetsRequirementsToBuy = true
+        itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
+        itemData.storeGroup = GetItemStoreGroup(itemData)
+        itemData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemData)
+        table.insert(unequippedItems, itemData)
+    end
+    return unequippedItems
+end
+-------------------
+
+--enable LF_VENDOR_BUY for gamepad mode
+local gamepad_Store_Buy = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = {
+    version = 1,
+    locations = {
+        [1] = gamepad_Store_Buy,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc', searchContext)
+			-- added filter
+			local function shouldAddItemToList(itemData)
+				if ZO_GamepadStoreBuy.additionalFilter and type(ZO_GamepadStoreBuy.additionalFilter) == "function" then
+					return ZO_GamepadStoreBuy.additionalFilter(itemData)
+				end
+			end
+			
+		-- original function
+			local items = ZO_StoreManager_GetStoreItems()
+			--- Gamepad versions have extra data / differently named values in templates  < zos
+			local buyItems = {}
+			for index, itemData in ipairs(items) do
+			-- add filter
+				if shouldAddItemToList(itemData) then
+					itemData.pressedIcon = itemData.icon
+					itemData.stackCount = itemData.stack
+					itemData.sellPrice = itemData.price
+					if itemData.sellPrice == 0 then
+						itemData.sellPrice = itemData.stackBuyPriceCurrency1
+					end
+					itemData.selectedNameColor = ZO_SELECTED_TEXT
+					itemData.unselectedNameColor = ZO_DISABLED_TEXT
+					itemData.itemLink = GetStoreItemLink(itemData.slotIndex)
+					itemData.itemType = GetItemLinkItemType(itemData.itemLink)
+					itemData.equipType = GetItemLinkEquipType(itemData.itemLink)
+					itemData.storeGroup = GetItemStoreGroup(itemData)
+					itemData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemData)
+					if not itemData.meetsRequirementsToBuy and ZO_StoreManager_DoesBuyStoreFailureLockEntry(itemData.buyStoreFailure) then
+						itemData.locked = true
+					end
+					table.insert(buyItems, itemData)
+				end
+			end
+			return buyItems
+		end
+    },
+}
+
+--enable LF_VENDOR_SELL for gamepad mode
+local gamepad_Store_Sell = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] = {
+    version = 1,
+    locations = {
+        [1] = gamepad_Store_Sell,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc')
+			-- added filter
+			local function shouldAddItemToList(itemData)
+				local result = itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+				if result then
+					if ZO_GamepadStoreSell.additionalFilter and type(ZO_GamepadStoreSell.additionalFilter) == "function" then
+						result = result and ZO_GamepadStoreSell.additionalFilter(itemData)
+					end
+				end
+				return result
+			end
+			
+			-- original function
+			local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_WORN, BAG_BACKPACK)
+			local unequippedItems = {}
+			--- Setup sort filter   < zos
+			for _, itemData in ipairs(items) do
+			-- add filter
+				if shouldAddItemToList(itemData) then
+					itemData.isEquipped = false
+					itemData.meetsRequirementsToBuy = true
+					itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
+					itemData.storeGroup = GetItemStoreGroup(itemData)
+					itemData.bestGamepadItemCategoryName = GetBestSellItemCategoryDescription(itemData)
+					itemData.customSortOrder = itemData.sellInformationSortOrder
+					table.insert(unequippedItems, itemData)
+				end
+			end
+			return unequippedItems
+		end
+    },
+}
+
+--enable LF_VENDOR_BUYBACK for gamepad mode
+local gamepad_Store_BuyBack = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc"] = {
+    version = 1,
+    locations = {
+        [1] = gamepad_Store_BuyBack,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc', searchContext)
+		-- original function
+			local items = {}
+			for entryIndex = 1, GetNumBuybackItems() do
+				if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex) then
+					local icon, name, stackCount, price, functionalQuality, meetsRequirementsToEquip, displayQuality = GetBuybackItemInfo(entryIndex)
+					if stackCount > 0 then
+						local itemLink = GetBuybackItemLink(entryIndex)
+						local itemType = GetItemLinkItemType(itemLink)
+						local equipType = GetItemLinkEquipType(itemLink)
+						local traitInformation = GetItemTraitInformationFromItemLink(itemLink)
+						local sellInformation = GetItemLinkSellInformation(itemLink)
+						local totalPrice = price * stackCount
+						local buybackData =
+						{
+							slotIndex = entryIndex,
+							icon = icon,
+							name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name),
+							stackCount = stackCount,
+							price = price,
+							sellPrice = totalPrice,
+							functionalQuality = functionalQuality,
+							displayQuality = displayQuality,
+							-- self.quality is deprecated, included here for addon backwards compatibility
+							quality = displayQuality,
+							meetsRequirementsToBuy = true,
+							meetsRequirementsToEquip = meetsRequirementsToEquip,
+							stackBuyPrice = totalPrice,
+							itemLink = itemLink,
+							itemType = itemType,
+							equipType = equipType,
+							filterData = { GetItemLinkFilterTypeInfo(itemLink) },
+							traitInformation = traitInformation,
+							itemTrait = GetItemLinkTraitInfo(itemLink),
+							traitInformationSortOrder = ZO_GetItemTraitInformation_SortOrder(traitInformation),
+							sellInformation = sellInformation,
+							sellInformationSortOrder = ZO_GetItemSellInformationCustomSortOrder(sellInformation),
+						}
+						buybackData.storeGroup = GetItemStoreGroup(buybackData)
+						buybackData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(buybackData)
+						
+						local result = true
+
+						if ZO_GamepadStoreBuyback.additionalFilter and type(ZO_GamepadStoreBuyback.additionalFilter) == "function" then
+							result = ZO_GamepadStoreBuyback.additionalFilter(buybackData)
+						end
+
+						if result then
+							table.insert(items, buybackData)
+						end
+						
+					end
+				end
+			end
+			return items
+		end
+    },
+}
+
+--enable LF_VENDOR_REPAIR for gamepad mode
+local gamepad_Store_Repair = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"] = {
+    version = 1,
+    locations = {
+        [1] = gamepad_Store_Repair,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc', searchContext)
+			local items = {}
+			GatherDamagedEquipmentFromBag(searchContext, BAG_WORN, items)
+			GatherDamagedEquipmentFromBag(searchContext, BAG_BACKPACK, items)
+			-- return list
+			
+			local repairItems = {}
+			if ZO_GamepadStoreRepair.additionalFilter and type(ZO_GamepadStoreRepair.additionalFilter) == "function" then
+				for _, itemData in pairs(items) do
+					if ZO_GamepadStoreRepair.additionalFilter(itemData) then
+						table.insert(repairItems, itemData)
+					end
+				end
+			else
+				repairItems = items
+			end
+			
+			return repairItems
+		end
+    },
+}
+
+--enable LF_FENCE_SELL for gamepad mode
+local gamepad_Fence_Sell = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc"] = { -- not tested
+    version = 1,
+    locations = {
+        [1] = gamepad_Fence_Sell,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc')
+			local function TextSearchFilterFunction(itemData)
+				local result = itemData.sellPrice > 0 and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+
+				if result then
+					if ZO_GamepadFenceSell.additionalFilter and type(ZO_GamepadFenceSell.additionalFilter) == "function" then
+						result = result and ZO_GamepadFenceSell.additionalFilter(itemData)
+					end
+				end
+				return result
+			end
+			-- can't sell stolen things from BAG_WORN so just check BACKPACK
+			return GetStolenItems(TextSearchFilterFunction, BAG_BACKPACK)
+		end
+    },
+}
+
+--enable LF_FENCE_LAUNDER for gamepad mode
+local gamepad_Fence_Launder = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"] = { -- not tested
+    version = 1,
+    locations = {
+        [1] = gamepad_Fence_Launder,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
+			local function TextSearchFilterFunction(itemData)
+				local result = searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+				if result then
+					if ZO_GamepadFenceLaunder.additionalFilter and type(ZO_GamepadFenceLaunder.additionalFilter) == "function" then
+						result = result and ZO_GamepadFenceLaunder.additionalFilter(itemData)
+					end
+				end
+				return result
+			end
+			return GetStolenItems(TextSearchFilterFunction, BAG_WORN, BAG_BACKPACK)
+		end
+    },
+}
+
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
 --  LF_SMITHING_REFINE, LF_JEWELRY_REFINE for gamepad mode
 helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
@@ -693,6 +1058,7 @@ helpers["GAMEPAD_SMITHING_Extraction/Improvement_Inventory:GetIndividualInventor
         end,
     },
 }
+
 --enable LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG for keyboard and gamepad mode --
 local origZO_SharedSmithingResearch_IsResearchableItem = ZO_SharedSmithingResearch.IsResearchableItem
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
@@ -730,109 +1096,35 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     },
 }
 
-
---[[
---enable LF_SMITHING_RESEARCH_DIALOG for gamepad mode --
--- if counts == 0 then trait is unselectable
-helpers["GAMEPAD_SMITHING_RESEARCH_SELECT:GenerateResearchTraitCounts"] = {
+--enable LF_INVENTORY_COMPANION for gamepad mode
+helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not tested
     version = 1,
     locations = {
-        [1] = SMITHING_GAMEPAD.researchPanel,
+        [1] = COMPANION_EQUIPMENT_GAMEPAD,
     },
     helper = {
-        funcName = "GenerateResearchTraitCounts",
-        func = function(self, virtualInventoryList, craftingType, researchLineIndex, numTraits)
-			-- including the local function GetTraitIndexForItem, not normally in this function
-			local function GetTraitIndexForItem(bagId, slotIndex, craftingType, researchLineIndex, numTraits)
-				for traitIndex = 1, numTraits do
-					if CanItemBeSmithingTraitResearched(bagId, slotIndex, craftingType, researchLineIndex, traitIndex) then
-						return traitIndex
-					end
-				end
-				return nil
-			end
-
-			local function additionalFilter(bagId, slotIndex)
+        funcName = "GetItemDataFilterComparator",
+        func = function(filteredEquipSlot, nonEquipableFilterType)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
+			return function(itemData)
 				if self.additionalFilter and type(self.additionalFilter) == "function" then
-					return self.additionalFilter(bagId, slotIndex)
+					if not self.additionalFilter(itemData) then return end
 				end
-			end -- function DoesNotBlockResearch(bagId, slotIndex)
-
-			-- original function
-			local counts
-			for itemId, itemInfo in pairs(virtualInventoryList) do
-				local traitIndex = GetTraitIndexForItem(itemInfo.bag, itemInfo.index, craftingType, researchLineIndex, numTraits)
-				if traitIndex and additionalFilter(itemInfo.bag, itemInfo.index) then
-					counts = counts or {}
-					counts[traitIndex] = (counts[traitIndex] or 0) + 1
+				if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+					return false
+				end
+				if itemData.actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+					return false
+				end
+				if filteredEquipSlot then
+					return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
 				end
 			end
-			return counts
 		end
     },
 }
 
-GAMEPAD_SMITHING_RESEARCH_SELECT = ZO_Object:MultiSubclass(SMITHING_GAMEPAD.researchPanel)
-helpers["GAMEPAD_SMITHING_RESEARCH_SELECT:SetupDialog"] = {
-    version = 1,
-    locations = {
-        [1] = GAMEPAD_SMITHING_RESEARCH_SELECT,
-    },
-    helper = {
-        funcName = "SetupDialog",
-        func = function(self)
-			local function AddEntry(data)
-				local entry = ZO_GamepadEntryData:New(data.name)
-				entry:InitializeCraftingInventoryVisualData(data.bag, data.index, data.stack)
-				self.confirmList:AddEntry("ZO_GamepadSubMenuEntryTemplate", entry)
-			end
-			
-			--Overwrite the local function "IsResearchableItem" of file /esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
-			local function IsResearchableItem(bagId, slotIndex)
-				local result = ZO_SharedSmithingResearch.IsResearchableItem(bagId, slotIndex, self.confirmCraftingType, self.confirmResearchLineIndex, self.confirmTraitIndex)
-				
-				--Is the item researchable? Then check if additional filters are registered
-				if result then
-					if self.additionalFilter and type(self.additionalFilter) == "function" then
-						result = result and self.additionalFilter(bagId, slotIndex)
-					end
-				end
-				return result
-			end -- function IsResearchableItem(bagId, slotIndex)
-			
-			local confirmPanel = self.panelContent:GetNamedChild("Confirm")
-			confirmPanel:GetNamedChild("SelectionText"):SetText(GetString(SI_GAMEPAD_SMITHING_RESEARCH_SELECT_ITEM))
-			self.confirmList:Clear()
-			
-			local virtualInventoryList = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, IsResearchableItem)
-			if self.savedVars.includeBankedItemsChecked then
-				PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, IsResearchableItem, virtualInventoryList)
-			end
-			
-			for itemId, itemInfo in pairs(virtualInventoryList) do
-				itemInfo.name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(itemInfo.bag, itemInfo.index))
-				AddEntry(itemInfo)
-			end
-			self.confirmList:Commit()
-			self.confirmList:Activate()
-		end
-    },
-}
 
--- displays the researchable items list for items that pass the filter
-function SMITHING_GAMEPAD.researchPanel:LibAdded()
-	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
-		if newState == SCENE_SHOWING then
-			GAMEPAD_SMITHING_RESEARCH_SELECT:SetupDialog()
-			KEYBIND_STRIP:AddKeybindButtonGroup(self.confirmKeybindStripDescriptor)
-		elseif newState == SCENE_HIDING then
-			self.confirmList:Deactivate()
-			KEYBIND_STRIP:RemoveKeybindButtonGroup(self.confirmKeybindStripDescriptor)
-			GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-		end
-	end)
-end
-]]
 
 ------------------------------------------------------------------------------------------------------------------------
  -- -^- GAMEPAD ONLY
