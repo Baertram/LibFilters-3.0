@@ -2,6 +2,29 @@ local LibFilters = LibFilters3
 
 local helpers = {}
 
+local function doesAdditionalFilterFuncExist(objectVar)
+    return (objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
+end
+
+--Check for .additionalFilters in an object and run it on the slotItem now
+local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
+    resultIfNoAdditionalFilter = resultIfNoAdditionalFilter or false
+    if doesAdditionalFilterFuncExist(objectVar) then
+        return resultIfNoAdditionalFilter and objectVar.additionalFilter(slotItem)
+    end
+    return resultIfNoAdditionalFilter
+end
+
+--Check for .additionalFilters in an object and run it on the bagId and slotIndex now
+local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
+    resultIfNoAdditionalFilter = resultIfNoAdditionalFilter or false
+    if doesAdditionalFilterFuncExist(objectVar) then
+        return resultIfNoAdditionalFilter and objectVar.additionalFilter(bagId, slotIndex)
+    end
+    return resultIfNoAdditionalFilter
+end
+
+
 --Original function at:
 --smithingresearch_shared.lua
 --[[
@@ -34,9 +57,7 @@ helpers["STORE_WINDOW:ShouldAddItemToList"] = {
         func = function(self, itemData)
             local result = true
 
-            if self.additionalFilter and type(self.additionalFilter) == "function" then
-                result = self.additionalFilter(itemData)
-            end
+            result = checkAndRundAdditionalFilters(self, itemData, result)
 
             if self.currentFilter == ITEMFILTERTYPE_ALL then
                 return result and true
@@ -89,9 +110,7 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
                             }
                             local result = true
 
-                            if self.additionalFilter and type(self.additionalFilter) == "function" then
-                                result = self.additionalFilter(buybackData)
-                            end
+                            result = checkAndRundAdditionalFilters(self, buybackData, result)
 
                             if result then
                                 scrollData[#scrollData + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_BUY_BACK_ITEM, buybackData)
@@ -144,9 +163,7 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
                                     }
                                     local result = true
 
-                                    if REPAIR_WINDOW.additionalFilter and type(REPAIR_WINDOW.additionalFilter) == "function" then
-                                        result = REPAIR_WINDOW.additionalFilter(data)
-                                    end
+                                    result = checkAndRundAdditionalFilters(REPAIR_WINDOW, data, result)
 
                                     if result then
                                         dataTable[#dataTable + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_REPAIR_ITEM, data)
@@ -193,9 +210,7 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
             predicate = function(bagId, slotIndex)
                 local result = true
 
-                if self.additionalFilter and type(self.additionalFilter) == "function" then
-                    result = self.additionalFilter(bagId, slotIndex)
-                end
+                result = checkAndRundAdditionalFiltersBag(self, bagId, slotIndex, result)
 
                 return oldPredicate(bagId, slotIndex) and result
             end
@@ -248,9 +263,7 @@ helpers["SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAn
             predicate = function(itemData)
                 local result = true
 
-                if self.additionalFilter and type(self.additionalFilter) == "function" then
-                    result = self.additionalFilter(itemData.bagId, itemData.slotIndex)
-                end
+                result = checkAndRundAdditionalFiltersBag(self, itemData.bagId, itemData.slotIndex, result)
 
                 return oldPredicate(itemData) and result
             end
@@ -368,9 +381,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
                           or (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex))
                 )
 
-            if result == true and type(self.additionalFilter) == "function" then
-                result = self.additionalFilter(itemData)
-            end
+            result = checkAndRundAdditionalFilters(self, itemData, result)
 
             return result
         end,
@@ -393,9 +404,8 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
                         (self.IsItemInTextSearch and self:IsItemInTextSearch(questItemData))
                     or (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId))
                 )
-            if result == true and type(self.additionalFilter) == "function" then
-                result = self.additionalFilter(questItemData)
-            end
+
+            result = checkAndRundAdditionalFilters(self, questItemData, result)
 
             return result
         end,
@@ -462,9 +472,7 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
             local base = ZO_RETRAIT_KEYBOARD
             local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
 
-            if base.additionalFilter and type(base.additionalFilter) == "function" then
-                result = result and base.additionalFilter(itemData.bagId, itemData.slotIndex)
-            end
+            result = checkAndRundAdditionalFiltersBag(base, itemData.bagId, itemData.slotIndex, result)
 
             return result
         end,
@@ -492,9 +500,7 @@ helpers["SMITHING.researchPanel:Refresh"] = {
             -- Our filter function to insert LibFilter rules
             local function predicate(bagId, slotIndex)
                 local result = DoesNotBlockResearch(bagId, slotIndex)
-                if self.additionalFilter and type(self.additionalFilter) == "function" then
-                    result = result and self.additionalFilter(bagId, slotIndex)
-                end
+                result = checkAndRundAdditionalFiltersBag(self, bagId, slotIndex, result)
                 return result
             end
 
@@ -645,30 +651,6 @@ local function GetBestSellItemCategoryDescription(itemData)
     end
 end
 
-local function GatherDamagedEquipmentFromBag(searchContext, bagId, itemTable)
-    local bagSlots = GetBagSize(bagId)
-    for slotIndex = 0, bagSlots - 1 do
-        if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
-            local condition = GetItemCondition(bagId, slotIndex)
-            if condition < 100 and not IsItemStolen(bagId, slotIndex) then
-                local _, stackCount = GetItemInfo(bagId, slotIndex)
-                if stackCount > 0 then
-                    local repairCost = GetItemRepairCost(bagId, slotIndex)
-                    if repairCost > 0 then
-                        local damagedItem = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
-                        damagedItem.condition = condition
-                        damagedItem.repairCost = repairCost
-                        damagedItem.invalidPrice = repairCost > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
-                        damagedItem.isEquippedInCurrentCategory = damagedItem.bagId == BAG_WORN
-                        damagedItem.storeGroup = GetItemStoreGroup(damagedItem)
-                        damagedItem.bestGamepadItemCategoryName = GetBestItemCategoryDescription(damagedItem)
-                        table.insert(itemTable, damagedItem)
-                    end
-                end
-            end
-        end
-    end
-end
 -- optFilterFunction is an optional additional check to make when gathering all the stolen items
 -- ... are bag ids to get items from
 local function GetStolenItems(optFilterFunction, ...)
@@ -708,9 +690,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = 
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc', searchContext)
 			-- added filter
 			local function shouldAddItemToList(itemData)
-				if ZO_GamepadStoreBuy.additionalFilter and type(ZO_GamepadStoreBuy.additionalFilter) == "function" then
-					return ZO_GamepadStoreBuy.additionalFilter(itemData)
-				end
+                return checkAndRundAdditionalFilters(ZO_GamepadStoreBuy, itemData, nil)
 			end
 			
 		-- original function
@@ -759,9 +739,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 			local function shouldAddItemToList(itemData)
 				local result = itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
 				if result then
-					if ZO_GamepadStoreSell.additionalFilter and type(ZO_GamepadStoreSell.additionalFilter) == "function" then
-						result = result and ZO_GamepadStoreSell.additionalFilter(itemData)
-					end
+                    result = checkAndRundAdditionalFilters(ZO_GamepadStoreSell, itemData, result)
 				end
 				return result
 			end
@@ -867,23 +845,44 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"]
         funcName = "updateFunc",
         func = function(searchContext)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc', searchContext)
+			local function GatherDamagedEquipmentFromBag(searchContext, bagId, itemTable)
+				local bagSlots = GetBagSize(bagId)
+				for slotIndex = 0, bagSlots - 1 do
+					if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
+						local condition = GetItemCondition(bagId, slotIndex)
+						if condition < 100 and not IsItemStolen(bagId, slotIndex) then
+							local _, stackCount = GetItemInfo(bagId, slotIndex)
+							if stackCount > 0 then
+								local repairCost = GetItemRepairCost(bagId, slotIndex)
+								if repairCost > 0 then
+									local damagedItem = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
+									
+									local result = true
+
+									if ZO_GamepadStoreRepair.additionalFilter and type(ZO_GamepadStoreRepair.additionalFilter) == "function" then
+										result = ZO_GamepadStoreRepair.additionalFilter(damagedItem)
+									end
+									
+									if result then
+										damagedItem.condition = condition
+										damagedItem.repairCost = repairCost
+										damagedItem.invalidPrice = repairCost > GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
+										damagedItem.isEquippedInCurrentCategory = damagedItem.bagId == BAG_WORN
+										damagedItem.storeGroup = GetItemStoreGroup(damagedItem)
+										damagedItem.bestGamepadItemCategoryName = GetBestItemCategoryDescription(damagedItem)
+										table.insert(itemTable, damagedItem)
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+			
 			local items = {}
 			GatherDamagedEquipmentFromBag(searchContext, BAG_WORN, items)
 			GatherDamagedEquipmentFromBag(searchContext, BAG_BACKPACK, items)
-			-- return list
-			
-			local repairItems = {}
-			if ZO_GamepadStoreRepair.additionalFilter and type(ZO_GamepadStoreRepair.additionalFilter) == "function" then
-				for _, itemData in pairs(items) do
-					if ZO_GamepadStoreRepair.additionalFilter(itemData) then
-						table.insert(repairItems, itemData)
-					end
-				end
-			else
-				repairItems = items
-			end
-			
-			return repairItems
+			return items
 		end
     },
 }
@@ -961,22 +960,21 @@ helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAn
             local oldPredicate = predicate
             predicate = function(bagId, slotIndex)
                 local result = true
-
-                if self.additionalFilter and type(self.additionalFilter) == "function" then
-                    result = self.additionalFilter(bagId, slotIndex)
+				
+				local additionalFilter = self.additionalFilter or SCENE_MANAGER:GetCurrentScene().additionalFilter
+                if additionalFilter and type(additionalFilter) == "function" then
+                    result = additionalFilter(bagId, slotIndex)
                 end
 
                 return oldPredicate(bagId, slotIndex) and result
             end
 
             -- Begin original function
-
             local list = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, predicate)
             PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, list)
             PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_CRAFT_BAG, predicate, list)
 
             ZO_ClearTable(self.itemCounts)
-
 
             local questSV, questItems
             if isEnchanting == true then
@@ -993,12 +991,8 @@ helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAn
 
 			local filteredDataTable = {}
 			for itemId, itemInfo in pairs(list) do
-				if not filterFunction or filterFunction(itemInfo.bag, itemInfo.index, filterType) then
-					filteredDataTable[#filteredDataTable + 1] = self:GenerateCraftingInventoryEntryData(
-                            itemInfo.bag, itemInfo.index,
-                            itemInfo.stack,
-                            questSV, questItems
-                    )
+				if not filterFunction or filterFunction(itemInfo.bag, itemInfo.index, filterType, questSV, questItems) then
+					filteredDataTable[#filteredDataTable + 1] = self:GenerateCraftingInventoryEntryData(itemInfo.bag, itemInfo.index, itemInfo.stack)
 				end
 				self.itemCounts[itemId] = itemInfo.stack
 			end
@@ -1104,7 +1098,7 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
     },
     helper = {
         funcName = "GetItemDataFilterComparator",
-        func = function(filteredEquipSlot, nonEquipableFilterType)
+        func = function(self, filteredEquipSlot, nonEquipableFilterType)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
 			return function(itemData)
 				if self.additionalFilter and type(self.additionalFilter) == "function" then
@@ -1124,7 +1118,175 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
     },
 }
 
+local inventories =				PLAYER_INVENTORY.inventories
+local bagList = { -- < rename?
+	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
+	[BAG_BANK]				= inventories[INVENTORY_BANK],
+	[BAG_SUBSCRIBER_BANK]	= inventories[INVENTORY_BANK],
+	[BAG_VIRTUAL]			= inventories[INVENTORY_CRAFT_BAG],
+	[BAG_GUILDBANK]			= inventories[INVENTORY_GUILD_BANK],
+	[BAG_HOUSE_BANK_ONE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TWO]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_THREE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FOUR]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FIVE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SIX]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SEVEN]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
+}
 
+--enable LF_INVENTORY_QUEST for gamepad mode
+helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
+    version = 1,
+    locations = {
+        [1] = GAMEPAD_INVENTORY,
+    },
+    helper = {
+        funcName = "GetQuestItemDataFilterComparator",
+        func = function(self, questItemId)
+--d( 'GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator')
+			local function doesItemPassFilter(questItemId)
+				local result = self:IsSlotInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
+				if result then
+	--				local additionalFilter = inventories[INVENTORY_QUEST_ITEM] and inventories[INVENTORY_QUEST_ITEM].additionalFilter
+					if inventories[INVENTORY_QUEST_ITEM].additionalFilter and type(inventories[INVENTORY_QUEST_ITEM].additionalFilter) == "function" then
+						local slotData = {bagId = ZO_QUEST_ITEMS_FILTER_BAG, slotIndex = questItemId}
+						result = result and inventories[INVENTORY_QUEST_ITEM].additionalFilter(slotData)
+					end
+				end
+				return result
+			end
+			
+			return doesItemPassFilter(questItemId)
+		end
+    },
+}
+
+--enable LF_INVENTORY for gamepad mode
+helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
+    version = 1,
+    locations = {
+        [1] = GAMEPAD_INVENTORY,
+    },
+    helper = {
+        funcName = "GetItemDataFilterComparator",
+        func = function(self, filteredEquipSlot, nonEquipableFilterType)
+--d( 'GAMEPAD_INVENTORY:GetItemDataFilterComparator')
+			return function(itemData)
+				if self.additionalFilter and type(self.additionalFilter) == "function" then
+					if not self.additionalFilter(itemData) then return false end
+				end
+				if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+					return false
+				end
+				if itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+					return nonEquipableFilterType == ITEMFILTERTYPE_COMPANION
+				end
+				if filteredEquipSlot then
+					return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
+				end
+				if nonEquipableFilterType then
+					return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, nonEquipableFilterType)
+				end
+				return ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData)
+			end
+		end
+    },
+}
+
+--enable LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/LF_TRADE
+--LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG/LF_MAIL_SEND for gamepad mode
+helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
+    version = 1,
+    locations = {
+        [1] = ZO_GamepadInventoryList,
+    },
+    helper = {
+        funcName = "AddSlotDataToTable",
+        func = function(self, slotsTable, inventoryType, slotIndex)
+--d( 'ZO_GamepadInventoryList:AddSlotDataToTable')
+			local function shouldInclude(slotData)
+				local result = true
+
+				if self.itemFilterFunction then
+					result = self.itemFilterFunction(slotData)
+				end
+				if result then
+					local additionalFilter = bagList[inventoryType].additionalFilter
+					if type(additionalFilter) == "function" then
+						result = result and additionalFilter(slotData)
+					end
+				end    
+				return result
+			end
+			
+			local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
+			local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
+			
+			if slotData then
+				if shouldInclude(slotData) then
+					-- itemData is shared in several places and can write their own value of bestItemCategoryName.
+					-- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
+					slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
+					table.insert(slotsTable, slotData)
+				end
+			end
+		end
+    },
+}
+
+--]]
+
+--[[
+--enable LF_INVENTORY/LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG for gamepad mode
+helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = { -- not tested
+    version = 1,
+    locations = {
+        [1] = GAMEPAD_INVENTORY.itemList,
+        [2] = GAMEPAD_INVENTORY.craftBagList,
+        [3] = GAMEPAD_BANKING.depositList,
+        [4] = GAMEPAD_BANKING.withdrawList,
+        [5] = GAMEPAD_GUILD_BANK.depositList,
+        [6] = GAMEPAD_GUILD_BANK.withdrawList,
+        [7] = ZO_MailSend_Gamepad.inventoryList,
+    },
+    helper = {
+        funcName = "AddSlotDataToTable",
+        func = function(slotsTable, inventoryType, slotIndex)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
+			local function shouldInclude(slotData)
+				local result = true
+				if self.itemFilterFunction then
+					result = self.itemFilterFunction(slotData)
+				end
+				if result then
+					local additionalFilter = self.additionalFilter or bagList[inventoryType].additionalFilter
+					if type(additionalFilter) == "function" then
+						result = additionalFilter(slotData)
+					end
+				end
+				return result
+			end
+			
+			
+			local itemFilterFunction = self.itemFilterFunction
+			local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
+			local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
+			
+			if slotData then
+				if shouldInclude(slotData) then
+					-- itemData is shared in several places and can write their own value of bestItemCategoryName.
+					-- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
+					slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
+					table.insert(slotsTable, slotData)
+				end
+			end
+		end
+    },
+}
+--]]
 
 ------------------------------------------------------------------------------------------------------------------------
  -- -^- GAMEPAD ONLY

@@ -6,7 +6,8 @@
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=217
 
+gpBackpackFragments.lua
 LibFilters-3.0.lua
 helper.lua
 
-## test.lua
+test.lua
