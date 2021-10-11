@@ -9,7 +9,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LibFilters3.LF
 local getCurrentFilterTypeForInventory = LibFilters3.GetCurrentFilterTypeForInventory
 
 local function doesAdditionalFilterFuncExist(objectVar)
-    return (objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
+    return (objectVar and objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
 end
 
 --Check for .additionalFilter in an object and run it on the slotItem now
@@ -937,15 +937,16 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
     },
 }
 
-local function getAdditionalFilterFromGamepadEnchantingScene(enchantingMode)
+
+local function getAdditionalFilterObjectFromGamepadEnchantingScene(enchantingMode)
     local enchantingFilterType = enchantingModeToFilterType[enchantingMode]
     if not enchantingFilterType then return end
+d(">>enchantingFilterType: " ..tostring(enchantingFilterType))
     local enchantingScene = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][enchantingFilterType]
     if not enchantingScene then return end
-    local additionalFilterAtEnchantingScene = enchantingScene.additionalFilter
-    return additionalFilterAtEnchantingScene
+d(">>enchantingScene: " ..tostring(enchantingScene.name))
+    return enchantingScene
 end
-
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
 --  LF_SMITHING_REFINE, LF_JEWELRY_REFINE for gamepad mode
 helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
@@ -958,29 +959,36 @@ helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAn
     helper = {
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
+            --self = GAMEPAD_ENCHANTING.inventory -> self.owner: GAMEPAD_ENCHANTING
+LibFilters3._enchantingGamepadSelf = self
+            --If we are at enchanting and the LibFilters filterType constant LF was not set via the scene callback yet
+            local enchantingMode
+            if self.owner == GAMEPAD_ENCHANTING and self.LibFilters3_filterType == nil then
+                enchantingMode = self.owner:GetEnchantingMode()
+                self.LibFilters3_filterType = enchantingModeToFilterType[enchantingMode]
+            end
+
             local libFilters3FilterType = getCurrentFilterTypeForInventory(LibFilters3, self)
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
---d(string.format("[LF3]libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
+d(string.format("[LF3]GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData-libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
 
             --Enchanting? Get the actual enchantingMode, and the enchanting gamepad scene
-            local additionalFilter
-            if isEnchanting == true or libFilters3FilterType == LF_ENCHANTING_EXTRACTION then
-                local enchantingMode = self.owner:GetEnchantingMode()
-                additionalFilter = getAdditionalFilterFromGamepadEnchantingScene(enchantingMode)
+            local additionalFilterObject
+            if isEnchanting == true or libFilters3FilterType == LF_ENCHANTING_EXTRACTION or self.owner.GetEnchantingMode then
+                enchantingMode = enchantingMode or self.owner:GetEnchantingMode()
+d(">enchantingMode: " .. tostring(enchantingMode))
+                additionalFilterObject = getAdditionalFilterObjectFromGamepadEnchantingScene(enchantingMode)
             else
-                additionalFilter = self.additionalFilter
+                additionalFilterObject = self
             end
 
             local oldPredicate = predicate
             predicate = function(bagId, slotIndex)
                 local result = true
-				
-                if additionalFilter and type(additionalFilter) == "function" then
-                    result = result and additionalFilter(bagId, slotIndex)
-                end
-                return oldPredicate(bagId, slotIndex) and result
+				result = checkAndRundAdditionalFiltersBag(additionalFilterObject, bagId, slotIndex, result)
+                return result and oldPredicate(bagId, slotIndex)
             end
 
             -- Begin original function
