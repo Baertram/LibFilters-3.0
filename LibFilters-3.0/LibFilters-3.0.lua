@@ -352,6 +352,7 @@ local enchantingModeToFilterType = {
 	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
 	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
 }
+LibFilters.enchantingModeToFilterType = enchantingModeToFilterType
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = "HookAdditionalFilterSpecial" --LibFilters:HookAdditionalFilterSpecial
@@ -465,6 +466,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
 	},
 }
+LibFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 
 --[Mapping for update of inventories]
 --The fixed updater names for the LibFilters unique updater string -> See table inventoryUpdaters below -> The key is
