@@ -14,19 +14,19 @@ end
 
 --Check for .additionalFilter in an object and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
-    resultIfNoAdditionalFilter = resultIfNoAdditionalFilter or false
     if doesAdditionalFilterFuncExist(objectVar) then
         return resultIfNoAdditionalFilter and objectVar.additionalFilter(slotItem)
     end
+    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
     return resultIfNoAdditionalFilter
 end
 
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
 local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
-    resultIfNoAdditionalFilter = resultIfNoAdditionalFilter or false
     if doesAdditionalFilterFuncExist(objectVar) then
         return resultIfNoAdditionalFilter and objectVar.additionalFilter(bagId, slotIndex)
     end
+    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
     return resultIfNoAdditionalFilter
 end
 
@@ -941,10 +941,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 local function getAdditionalFilterObjectFromGamepadEnchantingScene(enchantingMode)
     local enchantingFilterType = enchantingModeToFilterType[enchantingMode]
     if not enchantingFilterType then return end
-d(">>enchantingFilterType: " ..tostring(enchantingFilterType))
+--d(">>enchantingFilterType: " ..tostring(enchantingFilterType))
     local enchantingScene = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][enchantingFilterType]
     if not enchantingScene then return end
-d(">>enchantingScene: " ..tostring(enchantingScene.name))
+--d(">>enchantingScene: " ..tostring(enchantingScene.name))
     return enchantingScene
 end
 --enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
@@ -960,7 +960,6 @@ helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAn
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
             --self = GAMEPAD_ENCHANTING.inventory -> self.owner: GAMEPAD_ENCHANTING
-LibFilters3._enchantingGamepadSelf = self
             --If we are at enchanting and the LibFilters filterType constant LF was not set via the scene callback yet
             local enchantingMode
             if self.owner == GAMEPAD_ENCHANTING and self.LibFilters3_filterType == nil then
@@ -972,13 +971,12 @@ LibFilters3._enchantingGamepadSelf = self
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
-d(string.format("[LF3]GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData-libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
+--d(string.format("[LF3]GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData-libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
 
             --Enchanting? Get the actual enchantingMode, and the enchanting gamepad scene
             local additionalFilterObject
             if isEnchanting == true or libFilters3FilterType == LF_ENCHANTING_EXTRACTION or self.owner.GetEnchantingMode then
                 enchantingMode = enchantingMode or self.owner:GetEnchantingMode()
-d(">enchantingMode: " .. tostring(enchantingMode))
                 additionalFilterObject = getAdditionalFilterObjectFromGamepadEnchantingScene(enchantingMode)
             else
                 additionalFilterObject = self
@@ -1038,9 +1036,7 @@ helpers["GAMEPAD_SMITHING_Extraction/Improvement_Inventory:GetIndividualInventor
             predicate = function(itemData)
                 local result = true
 
-                if self.additionalFilter and type(self.additionalFilter) == "function" then
-                    result = self.additionalFilter(itemData.bagId, itemData.slotIndex)
-                end
+                result = checkAndRundAdditionalFiltersBag(self, itemData.bagId, itemData.slotIndex, result)
 
                 return oldPredicate(itemData) and result
             end
@@ -1094,17 +1090,16 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
             if gamePadMode then
                 local sceneStatesAllowed = {
                     [SCENE_SHOWING] = true,
-                    [SCENE_SHOWN] = true,
+                    [SCENE_SHOWN]   = true,
                 }
                 local gpsmresc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
-                if gpsmresc and sceneStatesAllowed[gpsmresc:GetState()] and
-                   gpsmresc.additionalFilter and type(gpsmresc.additionalFilter) == "function" then
-                    return result and gpsmresc.additionalFilter(bagId, slotIndex)
+                if gpsmresc and sceneStatesAllowed[gpsmresc:GetState()] then
+                    return checkAndRundAdditionalFiltersBag(gpsmresc, bagId, slotIndex, result)
                 end
             else--if not gamePadMode then
                 local smReSe = SMITHING_RESEARCH_SELECT
-                if smReSe and not smReSe:IsHidden() and smReSe.additionalFilter and type(smReSe.additionalFilter) == "function" then
-                    return result and smReSe.additionalFilter(bagId, slotIndex)
+                if smReSe and not smReSe:IsHidden() then
+                    return checkAndRundAdditionalFiltersBag(smReSe, bagId, slotIndex, result)
                 end
             end
             return result
@@ -1123,19 +1118,17 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
         func = function(self, filteredEquipSlot, nonEquipableFilterType)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
 			return function(itemData)
-				if self.additionalFilter and type(self.additionalFilter) == "function" then
-					if not self.additionalFilter(itemData) then return end
-				end
-				if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
-					return false
-				end
-				if itemData.actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-					return false
-				end
-				if filteredEquipSlot then
-					return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
-				end
-			end
+                if not checkAndRundAdditionalFilters(self, itemData, nil) then return end
+                if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                    return false
+                end
+                if itemData.actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+                    return false
+                end
+                if filteredEquipSlot then
+                    return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
+                end
+            end
 		end
     },
 }
@@ -1172,11 +1165,7 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 			local function doesItemPassFilter(questItemId)
 				local result = self:IsSlotInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
 				if result then
-	--				local additionalFilter = inventories[INVENTORY_QUEST_ITEM] and inventories[INVENTORY_QUEST_ITEM].additionalFilter
-					if inventories[INVENTORY_QUEST_ITEM].additionalFilter and type(inventories[INVENTORY_QUEST_ITEM].additionalFilter) == "function" then
-						local slotData = {bagId = ZO_QUEST_ITEMS_FILTER_BAG, slotIndex = questItemId}
-						result = result and inventories[INVENTORY_QUEST_ITEM].additionalFilter(slotData)
-					end
+					result = checkAndRundAdditionalFiltersBag(inventories[INVENTORY_QUEST_ITEM], ZO_QUEST_ITEMS_FILTER_BAG, questItemId, result)
 				end
 				return result
 			end
@@ -1197,23 +1186,21 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
         func = function(self, filteredEquipSlot, nonEquipableFilterType)
 --d( 'GAMEPAD_INVENTORY:GetItemDataFilterComparator')
 			return function(itemData)
-				if self.additionalFilter and type(self.additionalFilter) == "function" then
-					if not self.additionalFilter(itemData) then return false end
-				end
-				if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
-					return false
-				end
-				if itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-					return nonEquipableFilterType == ITEMFILTERTYPE_COMPANION
-				end
-				if filteredEquipSlot then
-					return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
-				end
-				if nonEquipableFilterType then
-					return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, nonEquipableFilterType)
-				end
-				return ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData)
-			end
+                if not checkAndRundAdditionalFilters(self, itemData, nil) then return end
+                if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                    return false
+                end
+                if itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+                    return nonEquipableFilterType == ITEMFILTERTYPE_COMPANION
+                end
+                if filteredEquipSlot then
+                    return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
+                end
+                if nonEquipableFilterType then
+                    return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, nonEquipableFilterType)
+                end
+                return ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData)
+            end
 		end
     },
 }
@@ -1236,11 +1223,8 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
 					result = self.itemFilterFunction(slotData)
 				end
 				if result then
-					local additionalFilter = bagList[inventoryType].additionalFilter
-					if type(additionalFilter) == "function" then
-						result = result and additionalFilter(slotData)
-					end
-				end    
+                    result = checkAndRundAdditionalFilters(self, slotData, result)
+				end
 				return result
 			end
 			
