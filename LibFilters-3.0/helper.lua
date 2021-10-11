@@ -1,12 +1,13 @@
 local LibFilters = LibFilters3
 
+local SM = SCENE_MANAGER
 local helpers = {}
 
 local function doesAdditionalFilterFuncExist(objectVar)
     return (objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
 end
 
---Check for .additionalFilters in an object and run it on the slotItem now
+--Check for .additionalFilter in an object and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
     resultIfNoAdditionalFilter = resultIfNoAdditionalFilter or false
     if doesAdditionalFilterFuncExist(objectVar) then
@@ -15,7 +16,7 @@ local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAddi
     return resultIfNoAdditionalFilter
 end
 
---Check for .additionalFilters in an object and run it on the bagId and slotIndex now
+--Check for .additionalFilter in an object and run it on the bagId and slotIndex now
 local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
     resultIfNoAdditionalFilter = resultIfNoAdditionalFilter or false
     if doesAdditionalFilterFuncExist(objectVar) then
@@ -430,7 +431,7 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
             end
 
             local libFiltersQuickslotCollectiblesFilterFunc
-            if type(self.additionalFilter) == "function" then
+            if doesAdditionalFilterFuncExist(self) then
                 libFiltersQuickslotCollectiblesFilterFunc = self.additionalFilter
             end
             for i, collectibleData in ipairs(dataObjects) do
@@ -818,9 +819,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc
 						
 						local result = true
 
-						if ZO_GamepadStoreBuyback.additionalFilter and type(ZO_GamepadStoreBuyback.additionalFilter) == "function" then
-							result = ZO_GamepadStoreBuyback.additionalFilter(buybackData)
-						end
+                        result = checkAndRundAdditionalFilters(ZO_GamepadStoreBuyback, buybackData, result)
 
 						if result then
 							table.insert(items, buybackData)
@@ -859,10 +858,8 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"]
 									
 									local result = true
 
-									if ZO_GamepadStoreRepair.additionalFilter and type(ZO_GamepadStoreRepair.additionalFilter) == "function" then
-										result = ZO_GamepadStoreRepair.additionalFilter(damagedItem)
-									end
-									
+                                    result = checkAndRundAdditionalFilters(ZO_GamepadStoreRepair, damagedItem, result)
+
 									if result then
 										damagedItem.condition = condition
 										damagedItem.repairCost = repairCost
@@ -902,9 +899,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
 				local result = itemData.sellPrice > 0 and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
 
 				if result then
-					if ZO_GamepadFenceSell.additionalFilter and type(ZO_GamepadFenceSell.additionalFilter) == "function" then
-						result = result and ZO_GamepadFenceSell.additionalFilter(itemData)
-					end
+                    result = checkAndRundAdditionalFilters(ZO_GamepadFenceSell, itemData, result)
 				end
 				return result
 			end
@@ -928,9 +923,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 			local function TextSearchFilterFunction(itemData)
 				local result = searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
 				if result then
-					if ZO_GamepadFenceLaunder.additionalFilter and type(ZO_GamepadFenceLaunder.additionalFilter) == "function" then
-						result = result and ZO_GamepadFenceLaunder.additionalFilter(itemData)
-					end
+                    result = checkAndRundAdditionalFilters(ZO_GamepadFenceLaunder, itemData, result)
 				end
 				return result
 			end
@@ -961,11 +954,10 @@ helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAn
             predicate = function(bagId, slotIndex)
                 local result = true
 				
-				local additionalFilter = self.additionalFilter or SCENE_MANAGER:GetCurrentScene().additionalFilter
+                local additionalFilter = self.additionalFilter or SM:GetCurrentScene().additionalFilter
                 if additionalFilter and type(additionalFilter) == "function" then
-                    result = additionalFilter(bagId, slotIndex)
+                    result = result and additionalFilter(bagId, slotIndex)
                 end
-
                 return oldPredicate(bagId, slotIndex) and result
             end
 

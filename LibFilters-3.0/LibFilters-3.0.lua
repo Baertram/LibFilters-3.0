@@ -925,7 +925,7 @@ function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 			end
 		end
 	end
-------------------------------------------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------------------------------------------
 	--Should the LF constant be hooked by any special function of LibFilters?
 	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
 	local inventoriesToHookForLFConstant
@@ -934,29 +934,36 @@ function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		if hookKeyboardAndGamepadMode == true then
 			--Keyboard
 			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[false]
-			hookNowSpecial(inventoriesToHookForLFConstant)
+			if inventoriesToHookForLFConstant ~= nil then
+				hookNowSpecial(inventoriesToHookForLFConstant)
+			end
 			--Gamepad
 			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[true]
-			hookNowSpecial(inventoriesToHookForLFConstant)
+			if inventoriesToHookForLFConstant ~= nil then
+				hookNowSpecial(inventoriesToHookForLFConstant)
+			end
 		else
 			--Only currently detected mode, gamepad or keyboard
 			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[IsGamepad()]
 			hookNowSpecial(inventoriesToHookForLFConstant)
 		end
+	end
+	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
+	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
+	--the .additionalFilter to the correct gamepad enchanting inventory
+	--So try to run the same LF_ constant as normal hook as well (if it exists)
+	--Hook normal via the given control/scene/fragment etc. -> See table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+	if hookKeyboardAndGamepadMode == true then
+		--Keyboard
+		inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[false][filterLFConstant]
+		hookNow(inventoriesToHookForLFConstant)
+		--Gamepad
+		inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][filterLFConstant]
+		hookNow(inventoriesToHookForLFConstant)
 	else
-		--Hook normal via the given control/scene/fragment etc. -> See table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
-		if hookKeyboardAndGamepadMode == true then
-			--Keyboard
-			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[false][filterLFConstant]
-			hookNow(inventoriesToHookForLFConstant)
-			--Gamepad
-			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][filterLFConstant]
-			hookNow(inventoriesToHookForLFConstant)
-		else
-			--Only currently detected mode, gamepad or keyboard
-			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[IsGamepad()][filterLFConstant]
-			hookNow(inventoriesToHookForLFConstant)
-		end
+		--Only currently detected mode, gamepad or keyboard
+		inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[IsGamepad()][filterLFConstant]
+		hookNow(inventoriesToHookForLFConstant)
 	end
 end
 hookAdditionalFilter = LibFilters.HookAdditionalFilter
