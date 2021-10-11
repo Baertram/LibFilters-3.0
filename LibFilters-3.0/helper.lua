@@ -6,6 +6,7 @@ local helpers = {}
 local enchantingModeToFilterType = LibFilters3.enchantingModeToFilterType
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LibFilters3.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 
+local getCurrentFilterTypeForInventory = LibFilters3.GetCurrentFilterTypeForInventory
 
 local function doesAdditionalFilterFuncExist(objectVar)
     return (objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
@@ -205,7 +206,7 @@ helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToSc
     helper = {
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
-            local libFilters3FilterType = LibFilters3:GetCurrentFilterTypeForInventory(self)
+            local libFilters3FilterType = getCurrentFilterTypeForInventory(LibFilters3, self)
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
@@ -957,13 +958,13 @@ helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAn
     helper = {
         funcName = "EnumerateInventorySlotsAndAddToScrollData",
         func = function(self, predicate, filterFunction, filterType, data)
-            local libFilters3FilterType = LibFilters3:GetCurrentFilterTypeForInventory(self)
+            local libFilters3FilterType = getCurrentFilterTypeForInventory(LibFilters3, self)
             local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
             local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
             local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
 --d(string.format("[LF3]libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
 
-            --Enchanting? Get the actual enchantingMode
+            --Enchanting? Get the actual enchantingMode, and the enchanting gamepad scene
             local additionalFilter
             if isEnchanting == true or libFilters3FilterType == LF_ENCHANTING_EXTRACTION then
                 local enchantingMode = self.owner:GetEnchantingMode()

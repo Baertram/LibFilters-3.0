@@ -394,30 +394,30 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSell },
 		[LF_FENCE_LAUNDER]            = { invFenceLaunder },
-		--[LF_GUILDSTORE_BROWSE] 		= {},
+		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_GUILDSTORE_SELL]          = { guildStoreSell },
 		[LF_MAIL_SEND]                = { mailSend },
 		[LF_TRADE]                    = { player2playerTrade },
 		[LF_SMITHING_REFINE]          = { refinementPanel.inventory },
-		--[LF_SMITHING_CREATION] 		= {},
+		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel.inventory },
 		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel.inventory },
 		[LF_SMITHING_RESEARCH]        = { researchPanel },
 		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog },
 		[LF_JEWELRY_REFINE]           = { refinementPanel.inventory },
-		--[LF_JEWELRY_CREATION] 		= {},
+		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel.inventory },
 		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel.inventory },
 		[LF_JEWELRY_RESEARCH]         = { researchPanel },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog },
 		[LF_ALCHEMY_CREATION]         = { alchemy.inventory },
-		--[LF_PROVISIONING_COOK]		= {},
-		--[LF_PROVISIONING_BREW]		= {},
+		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_RETRAIT]                  = { retrait },
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
-		--[LF_ENCHANTING_CREATION]	  = {},
-		--[LF_ENCHANTING_EXTRACTION]  = {},
+		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
 	},
 
 	--Gamepad mode
@@ -439,31 +439,31 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_VENDOR_REPAIR]            = { vendorRepair_GP },
 		[LF_FENCE_SELL]               = { invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { invFenceLaunder_GP },
-		--[LF_GUILDSTORE_BROWSE] 		= {},
+		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_GUILDSTORE_SELL]          = { guildStoreSell_GP },
 		[LF_MAIL_SEND]                = { mailSend_GP },
 		[LF_TRADE]                    = { player2playerTrade_GP },
 		[LF_SMITHING_REFINE]          = { refinementPanel_GP.inventory },
-		--[LF_SMITHING_CREATION] 		= {},
+		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel_GP.inventory },
 		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel_GP.inventory },
 		[LF_SMITHING_RESEARCH]        = { researchPanel_GP },
 		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog_GP },
 		[LF_JEWELRY_REFINE]           = { refinementPanel_GP.inventory },
-		--[LF_JEWELRY_CREATION] 		= {},
+		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel_GP.inventory },
 		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel_GP.inventory },
 		[LF_JEWELRY_RESEARCH]         = { researchPanel_GP },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP },
 		[LF_ALCHEMY_CREATION]         = { alchemy_GP.inventory },
-		--[LF_PROVISIONING_COOK]		= {},
-		--[LF_PROVISIONING_BREW]		= {},
+		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_RETRAIT]                  = { retrait_GP },
-
 		[LF_ENCHANTING_CREATION]	  = {enchantingCreate_GP},
 		[LF_ENCHANTING_EXTRACTION]    = {enchantingExtract_GP},
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
+		
 	},
 }
 LibFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
@@ -894,7 +894,8 @@ end
 function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepadMode)
 	local function hookNowSpecial(inventoriesToHookForLFConstant_Table)
 		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for LF_ constant %s, keyboardAndGamepadMode: %s", tos(filterLFConstant), tos(hookKeyboardAndGamepadMode))
+			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, keyboardAndGamepadMode: %s", tos(LibFilters:GetFilterTypeName(filterLFConstant)), tos(hookKeyboardAndGamepadMode))
+
 			return
 		end
 		local funcName = inventoriesToHookForLFConstant_Table.funcName
@@ -905,9 +906,11 @@ function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	end
 	local function hookNow(inventoriesToHookForLFConstant_Table)
 		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter-table of hooks is empty for LF_ constant %s, keyboardAndGamepadMode: %s", tos(filterLFConstant), tos(hookKeyboardAndGamepadMode))
+			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, keyboardAndGamepadMode: %s", tos(LibFilters:GetFilterTypeName(filterLFConstant)), tos(hookKeyboardAndGamepadMode))
 			return
 		end
+		if #inventoriesToHookForLFConstant_Table == 0 then return end
+
 		for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
 			if inventory ~= nil then
 				local layoutData = inventory.layoutData or inventory
