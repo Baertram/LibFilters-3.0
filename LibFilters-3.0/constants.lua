@@ -16,11 +16,13 @@ libFilters.filters = {}
 local filters = libFilters.filters
 libFilters.isInitialized = false
 
---Global library constant LibFilters3
+------------------------------------------------------------------------------------------------------------------------
+--Create global library constant LibFilters3
 _G[GlobalLibName]	= libFilters
 libFilters.name	            = MAJOR
 libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
+------------------------------------------------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------------------------------------------------

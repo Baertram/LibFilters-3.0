@@ -1,13 +1,26 @@
-local LibFilters = LibFilters3
+------------------------------------------------------------------------------------------------------------------------
+--Name, global variable LibFilters3
+------------------------------------------------------------------------------------------------------------------------
+local libFilters = LibFilters3
 
-local SM = SCENE_MANAGER
+
+------------------------------------------------------------------------------------------------------------------------
+--Local LibFilters speed-up variables and references
+------------------------------------------------------------------------------------------------------------------------
+local enchantingModeToFilterType = libFilters.enchantingModeToFilterType
+local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local getCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeForInventory
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Local variables for the helpers
+------------------------------------------------------------------------------------------------------------------------
 local helpers = {}
 
-local enchantingModeToFilterType = LibFilters3.enchantingModeToFilterType
-local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LibFilters3.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 
-local getCurrentFilterTypeForInventory = LibFilters3.GetCurrentFilterTypeForInventory
-
+------------------------------------------------------------------------------------------------------------------------
+--Local functions for the helpers
+------------------------------------------------------------------------------------------------------------------------
 local function doesAdditionalFilterFuncExist(objectVar)
     return (objectVar and objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
 end
@@ -55,7 +68,15 @@ end
 
 
 ------------------------------------------------------------------------------------------------------------------------
- -- -v- KEYBOARD ONLY
+--The helpers: Overwritten/changed ZOs vanilla code for the different LibFilters LF_* filterTypes. Most of them will
+--check for the existance of an entry .additionalFilter and run the filters together with vanilla code filters then.
+--Some vanilla filters like the inventories of player, bank, guild bank deposits already use .additionalFilter them-
+--selves in the ZOs code and we did just hook it to add our own functions in addition. See file LibFilters-3.0.lua,
+--function libFilters:HookAdditionalFilter(LF_* constant) and runFilters()
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+ -- -v- KEYBOARD ONLY helpers
 ---------------------------------------------------------------------------------------------------------------------------
 --enable LF_VENDOR_BUY
 helpers["STORE_WINDOW:ShouldAddItemToList"] = {
@@ -84,6 +105,7 @@ helpers["STORE_WINDOW:ShouldAddItemToList"] = {
         end,
     },
 }
+
 
 --enable LF_VENDOR_BUYBACK
 helpers["BUY_BACK_WINDOW:UpdateList"] = {
@@ -135,6 +157,7 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
         end,
     },
 }
+
 
 --enable LF_VENDOR_REPAIR
 local DATA_TYPE_REPAIR_ITEM = 1
@@ -199,6 +222,7 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
     },
 }
 
+
 --enable LF_QUICKSLOT
 -->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
@@ -246,6 +270,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
     },
 }
 
+
 -->Will only be executed for the collectible items in the quickslot filters, but no inventory items
 local DATA_TYPE_COLLECTIBLE_ITEM = 2
 helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
@@ -292,14 +317,12 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
         end,
     },
 }
-
-
 ------------------------------------------------------------------------------------------------------------------------
- -- -^- KEYBOARD ONLY
+ -- -^- KEYBOARD ONLY helpers
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
- -- -v- KEYBOARD and GAMEPAD - shared
+ -- -v- KEYBOARD and GAMEPAD - shared helpers
 ------------------------------------------------------------------------------------------------------------------------
 --enable LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION
 helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
@@ -339,6 +362,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
     }
 }
 
+
 --enable LF_ALCHEMY_CREATION
 helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
     version = 1,
@@ -377,6 +401,7 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
         end,
     }
 }
+
 
 --enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
 helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
@@ -477,6 +502,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     },
  }
 
+
 --enable LF_SMITHING_RESEARCH_DIALOG/LF_JEWELRY_RESEARCH_DIALOG smithing/jewelry
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     version = 1,
@@ -503,11 +529,10 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     }
 }
 
+--enable LF_RETRAIT
 local function doesSmithingItemPassFilter(bagId, slotIndex, filterType)
 	return ZO_CraftingUtils_GetSmithingFilterFromItem(bagId, slotIndex) == filterType
 end
-
---enable LF_RETRAIT
 helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
     version = 2,
     locations = {
@@ -523,6 +548,7 @@ helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
         end,
     }
 }
+
 
 --enable LF_SMITHING_REFINE/LF_JEWELRY_REFINE/LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT smithing/jewelry
 helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
@@ -541,6 +567,7 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
         end,
     }
 }
+
 
 --enable LF_SMITHING_IMPROVEMENT/LF_JEWELRY_IMPROVEMENT smithing/jewelry
 helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
@@ -561,12 +588,12 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 }
 
 ------------------------------------------------------------------------------------------------------------------------
- -- -^- KEYBOARD and GAMEPAD - shared
+ -- -^- KEYBOARD and GAMEPAD - shared helpers
 ------------------------------------------------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------------------------------------------------
- -- -v- GAMEPAD ONLY
+ -- -v- GAMEPAD ONLY helpers
 ------------------------------------------------------------------------------------------------------------------------
 -------------------
 --locals for Vendor/Fence
@@ -663,12 +690,12 @@ local function GetStolenItems(optFilterFunction, ...)
     return unequippedItems
 end
 
+
 --enable LF_VENDOR_BUY for gamepad mode
-local gamepad_Store_Buy = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = {
     version = 1,
     locations = {
-        [1] = gamepad_Store_Buy,
+        [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list,
     },
     helper = {
         funcName = "updateFunc",
@@ -710,12 +737,12 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = 
     },
 }
 
+
 --enable LF_VENDOR_SELL for gamepad mode
-local gamepad_Store_Sell = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] = {
     version = 1,
     locations = {
-        [1] = gamepad_Store_Sell,
+        [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list,
     },
     helper = {
         funcName = "updateFunc",
@@ -752,11 +779,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 }
 
 --enable LF_VENDOR_BUYBACK for gamepad mode
-local gamepad_Store_BuyBack = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc"] = {
     version = 1,
     locations = {
-        [1] = gamepad_Store_BuyBack,
+        [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list,
     },
     helper = {
         funcName = "updateFunc",
@@ -819,11 +845,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc
 }
 
 --enable LF_VENDOR_REPAIR for gamepad mode
-local gamepad_Store_Repair = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"] = {
     version = 1,
     locations = {
-        [1] = gamepad_Store_Repair,
+        [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list,
     },
     helper = {
         funcName = "updateFunc",
@@ -869,12 +894,12 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"]
     },
 }
 
+
 --enable LF_FENCE_SELL for gamepad mode
-local gamepad_Fence_Sell = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc"] = { -- not tested
     version = 1,
     locations = {
-        [1] = gamepad_Fence_Sell,
+        [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list,
     },
     helper = {
         funcName = "updateFunc",
@@ -894,12 +919,12 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
     },
 }
 
+
 --enable LF_FENCE_LAUNDER for gamepad mode
-local gamepad_Fence_Launder = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"] = { -- not tested
     version = 1,
     locations = {
-        [1] = gamepad_Fence_Launder,
+        [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list,
     },
     helper = {
         funcName = "updateFunc",
@@ -916,6 +941,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 		end
     },
 }
+
 
 --enable LF_INVENTORY_COMPANION for gamepad mode
 helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not tested
@@ -943,24 +969,6 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
     },
 }
 
-local inventories = PLAYER_INVENTORY.inventories
-local bagList = { -- < rename?
-	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
-	[BAG_BANK]				= inventories[INVENTORY_BANK],
-	[BAG_SUBSCRIBER_BANK]	= inventories[INVENTORY_BANK],
-	[BAG_VIRTUAL]			= inventories[INVENTORY_CRAFT_BAG],
-	[BAG_GUILDBANK]			= inventories[INVENTORY_GUILD_BANK],
-	[BAG_HOUSE_BANK_ONE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_TWO]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_THREE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_FOUR]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_FIVE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_SIX]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_SEVEN]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
-}
 
 --enable LF_INVENTORY_QUEST for gamepad mode
 helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
@@ -985,8 +993,29 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 		end
     },
 }
+
+
 --/script d(GAMEPAD_INVENTORY.questFilter)
 --enable LF_INVENTORY for gamepad mode
+local inventories = PLAYER_INVENTORY.inventories
+local bagList = { -- < rename?
+	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
+	[BAG_BANK]				= inventories[INVENTORY_BANK],
+	[BAG_SUBSCRIBER_BANK]	= inventories[INVENTORY_BANK],
+	[BAG_VIRTUAL]			= inventories[INVENTORY_CRAFT_BAG],
+	[BAG_GUILDBANK]			= inventories[INVENTORY_GUILD_BANK],
+	[BAG_HOUSE_BANK_ONE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TWO]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_THREE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FOUR]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FIVE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SIX]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SEVEN]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
+}
+
 helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
     version = 1,
     locations = {
@@ -1056,20 +1085,18 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
 }
 
 ------------------------------------------------------------------------------------------------------------------------
- -- -^- GAMEPAD ONLY
+ -- -^- GAMEPAD ONLY helpers
 ------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
---copy helpers into global LibFilters3Helper
--->Will be set to nil within LibFilter3.lua at event_add_on_loaded
 
+------------------------------------------------------------------------------------------------------------------------
+--copy helpers into global LibFilters3.helpers
+-->LibFilters3.helpers will be set to nil again within LibFilter3.lua at event_add_on_loaded
 for name, package in pairs(helpers) do
-    if LibFilters.helpers[name] == nil then
-        LibFilters.helpers[name] = package
-    elseif LibFilters.helpers[name].version < package.version then
-        LibFilters.helpers[name] = package
+    if libFilters.helpers[name] == nil then
+        libFilters.helpers[name] = package
+    elseif libFilters.helpers[name].version < package.version then
+        libFilters.helpers[name] = package
     end
 end
-
 helpers = nil
-LibFilters = nil
