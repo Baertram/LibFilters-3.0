@@ -131,11 +131,11 @@ _G[getCustomLibFiltersFragmentName(LF_HOUSE_BANK_DEPOSIT)]  = gamepadLibFiltersH
 
 --Guild bank deposit
 gamepadLibFiltersGuildBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
-_G[getCustomLibFiltersFragmentName(LF_GUILD_BANK_DEPOSIT)]  = gamepadLibFiltersGuildBankDepositFragment
+_G[getCustomLibFiltersFragmentName(LF_GUILDBANK_DEPOSIT)]  = gamepadLibFiltersGuildBankDepositFragment
 
 --Trading house = Guild store deposit
 gamepadLibFiltersGuildStoreSellFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
-_G[getCustomLibFiltersFragmentName(LF_GUILD_STORE_SELL)]	= gamepadLibFiltersGuildStoreSellFragment
+_G[getCustomLibFiltersFragmentName(LF_GUILDSTORE_SELL)]	= gamepadLibFiltersGuildStoreSellFragment
 
 --Mail send
 gamepadLibFiltersMaiLSendFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
@@ -164,18 +164,18 @@ _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDe
 local customFragmentsUpdateRef                           = libFilters.constants.gamepad.customFragments
 customFragmentsUpdateRef[LF_INVENTORY].fragment          = gamepadLibFiltersInventoryDepositFragment
 customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment       = gamepadLibFiltersBankDepositFragment
-customFragmentsUpdateRef[LF_GUILD_BANK_DEPOSIT].fragment = gamepadLibFiltersGuildBankDepositFragment
+customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment = gamepadLibFiltersGuildBankDepositFragment
 customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment = gamepadLibFiltersHouseBankDepositFragment
-customFragmentsUpdateRef[LF_GUILD_STORE_SELL].fragment   = gamepadLibFiltersGuildStoreSellFragment
+customFragmentsUpdateRef[LF_GUILDSTORE_SELL].fragment   = gamepadLibFiltersGuildStoreSellFragment
 customFragmentsUpdateRef[LF_MAIL_SEND].fragment          = gamepadLibFiltersMaiLSendFragment
 customFragmentsUpdateRef[LF_TRADE].fragment              = gamepadLibFiltersPlayerTradeFragment
 --Update the table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata for the gamepad mode fragments
 -->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_INVENTORY] 			= { gamepadLibFiltersInventoryDepositFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_BANK_DEPOSIT] 		= { gamepadLibFiltersBankDepositFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILD_BANK_DEPOSIT] 	= { gamepadLibFiltersGuildBankDepositFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILDBANK_DEPOSIT] 	= { gamepadLibFiltersGuildBankDepositFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_HOUSE_BANK_DEPOSIT] 	= { gamepadLibFiltersHouseBankDepositFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILD_STORE_SELL] 	= { gamepadLibFiltersGuildStoreSellFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILDSTORE_SELL] 	= { gamepadLibFiltersGuildStoreSellFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_MAIL_SEND] 			= { gamepadLibFiltersMaiLSendFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_TRADE] 				= { gamepadLibFiltersPlayerTradeFragment }
 
