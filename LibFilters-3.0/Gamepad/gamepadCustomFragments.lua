@@ -25,12 +25,30 @@ local SM = SCENE_MANAGER
 local libFilters = LibFilters3
 
 --LibFilters local speedup and reference variables
-local constants = libFilters.constants
-local gamepadConstants = libFilters.constants.gamepad
-local customFragments = gamepadConstants.customFragments
-local fragmentPrefix = gamepadConstants.customFragmentPrefix
+--Overall constants
+local constants = 					libFilters.constants
+local inventoryTypes = 				constants.inventoryTypes
+local playerInventoryType = inventoryTypes["player"] -- INVENTORY_BACKPACK
 
---The fragment variables
+--Keyboard
+local keyboardConstants = 			constants.keyboard
+local palyerInventory = keyboardConstants.playerInv
+
+--Gamepad
+local gamepadConstants = 			constants.gamepad
+local invRootScene = 				gamepadConstants.invRootScene
+local invBackpack_GP = 				gamepadConstants.invBackpack_GP
+local invBank_GP = 					gamepadConstants.invBank_GP
+local invGuildStoreSellScene_GP = 	gamepadConstants.invGuildStoreSellScene_GP
+local invGuildBankDepositScene_GP = gamepadConstants.invGuildBankDepositScene_GP
+local invMailSendScene_GP = 		gamepadConstants.invMailSendScene_GP
+local invPlayerTradeScene_GP = 		gamepadConstants.invPlayerTradeScene_GP
+
+local customFragments_GP = 			gamepadConstants.customFragments
+local fragmentPrefix = 				gamepadConstants.customFragmentPrefix
+
+
+--The local fragment variables
 local gamepadLibFiltersInventoryDepositFragment
 local gamepadLibFiltersBankDepositFragment
 local gamepadLibFiltersGuildBankDepositFragment
@@ -45,15 +63,18 @@ local gamepadLibFiltersPlayerTradeFragment
 ------------------------------------------------------------------------------------------------------------------------
 --Add the fragment prefix and return the fragment
 local function getCustomLibFiltersFragmentName(libFiltersFilterType)
-	local fragmentName = customFragments[libFiltersFilterType]
+	local fragmentName = customFragments_GP[libFiltersFilterType]
 	return fragmentPrefix .. fragmentName
 end
+libFilters.GetCustomLibFiltersFragmentName = getCustomLibFiltersFragmentName
 
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Custom added Gamepad inventory type fragment's sub-class
 ------------------------------------------------------------------------------------------------------------------------
 local LibFilters_InventoryLayoutFragment = ZO_SceneFragment:Subclass()
+libFilters.InventoryLayoutFragmentClass = LibFilters_InventoryLayoutFragment
+
 function LibFilters_InventoryLayoutFragment:New(...)
 	local fragment = ZO_SceneFragment.New(self)
     fragment:Initialize(...)
@@ -72,25 +93,30 @@ function LibFilters_InventoryLayoutFragment:Show()
 end
 function LibFilters_InventoryLayoutFragment:Hide()
 	self:OnHidden()
-	if GAMEPAD_INVENTORY.layoutData then
+	if invBackpack_GP.layoutData then
 	end
 		self:ApplyInventoryLayout(gamepadLibFiltersInventoryDepositFragment.layoutData)
 end
 
---Use the same layoutData as within Keyboard mode
+--Use the same layoutData as within Keyboard mode. If the fragments are shown the layoutData, which contains the
+--.additionalFilter entry, will be copied to the PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK].additionalFilter
+--Actually happens like done in vanilla game for keybord mode, now for gamepad mode via LibFilters as well.
+-->Vanila keyboard mode code, which applies the layoutData.additionalFilter (which is e.g. our hooked fragment
+-->BACKPACK_MENU_BAR_LAYOUT_FRAGMENT or BACKPACK_BANK_LAYOUT_FRAGMENT)
+-->https://github.com/esoui/esoui/blob/306d6f936a0daa58a24db85b85dd264a04d10699/esoui/ingame/inventory/inventory.lua#L2103
 function LibFilters_InventoryLayoutFragment:ApplyInventoryLayout(layoutData)
 	--[[
 	if layoutData == PLAYER_INVENTORY.appliedLayout and not layoutData.alwaysReapplyLayout then
 		return
 	end
 	]]
-	PLAYER_INVENTORY.appliedLayout = layoutData
-	PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK].additionalFilter = layoutData.additionalFilter
+	palyerInventory.appliedLayout = layoutData
+	palyerInventory.inventories[playerInventoryType].additionalFilter = layoutData.additionalFilter
 end
 
 
 ------------------------------------------------------------------------------------------------------------------------
--- Custom added Gamepad inventory type fragments
+-- Custom added Gamepad inventory type fragments -> Create the fragments now
 ------------------------------------------------------------------------------------------------------------------------
 --Player bank deposit
 gamepadLibFiltersBankDepositFragment = LibFilters_InventoryLayoutFragment:New(
@@ -132,25 +158,41 @@ _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDe
 
 
 ------------------------------------------------------------------------------------------------------------------------
--- Gamepad Scenes: Add new custom fragments to the scenes
+-- Add the created fragments to the LibFilters gamepad fragment constants so they are not nil anymore in
+-- LibFilters-3.0.lua. See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
+------------------------------------------------------------------------------------------------------------------------
+local customFragmentsUpdteRef = libFilters.constants.gamepad.customFragments
+customFragmentsUpdteRef[LF_INVENTORY].fragment = 			gamepadLibFiltersInventoryDepositFragment
+customFragmentsUpdteRef[LF_BANK_DEPOSIT].fragment = 		gamepadLibFiltersBankDepositFragment
+customFragmentsUpdteRef[LF_GUILD_BANK_DEPOSIT].fragment = 	gamepadLibFiltersGuildBankDepositFragment
+customFragmentsUpdteRef[LF_HOUSE_BANK_DEPOSIT].fragment = 	gamepadLibFiltersHouseBankDepositFragment
+customFragmentsUpdteRef[LF_GUILD_STORE_SELL].fragment = 	gamepadLibFiltersGuildStoreSellFragment
+customFragmentsUpdteRef[LF_MAIL_SEND].fragment = 			gamepadLibFiltersMaiLSendFragment
+customFragmentsUpdteRef[LF_TRADE].fragment = 				gamepadLibFiltersPlayerTradeFragment
+
+
+------------------------------------------------------------------------------------------------------------------------
+-- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepd player inventory
-GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(gamepadLibFiltersInventoryDepositFragment)
+invRootScene:AddFragment(gamepadLibFiltersInventoryDepositFragment)
 
 -- Gamepad bank and house bank: Used for switching the gamepad bank's fragment depending if house bank or not
-ZO_PreHook(GAMEPAD_BANKING, 'OnOpenBank', function(self, bankBag)
+local gamepadBankingScene = GAMEPAD_BANKING_SCENE
+ZO_PreHook(invBank_GP, 'OnOpenBank', function(self, bankBag)
 	if bankBag == BAG_BANK then
-		GAMEPAD_BANKING_SCENE:RemoveFragment(gamepadLibFiltersHouseBankDepositFragment)
-		GAMEPAD_BANKING_SCENE:AddFragment(gamepadLibFiltersBankDepositFragment)
+		gamepadBankingScene:RemoveFragment(gamepadLibFiltersHouseBankDepositFragment)
+		gamepadBankingScene:AddFragment(gamepadLibFiltersBankDepositFragment)
 	else
 		--House bank
-		GAMEPAD_BANKING_SCENE:RemoveFragment(gamepadLibFiltersBankDepositFragment)
-		GAMEPAD_BANKING_SCENE:AddFragment(gamepadLibFiltersHouseBankDepositFragment)
+		gamepadBankingScene:RemoveFragment(gamepadLibFiltersBankDepositFragment)
+		gamepadBankingScene:AddFragment(gamepadLibFiltersHouseBankDepositFragment)
 	end
 	return false
 end)
 
-GAMEPAD_GUILD_BANK_SCENE:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
-TRADING_HOUSE_GAMEPAD_SCENE:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
-SM:GetScene("mailManagerGamepad"):AddFragment(gamepadLibFiltersMaiLSendFragment)
-SM:GetScene("gamepadTrade"):AddFragment(gamepadLibFiltersPlayerTradeFragment)
+invGuildBankDepositScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
+invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
+
+invMailSendScene_GP:AddFragment(gamepadLibFiltersMaiLSendFragment)
+invPlayerTradeScene_GP:AddFragment(gamepadLibFiltersPlayerTradeFragment)

@@ -1,35 +1,15 @@
---Known bugs: 2
---Last update: 2021-10-05, Baertram
+------------------------------------------------------------------------------------------------------------------------
+--Bugs/Todo List for version: 3.0 r3.0
+------------------------------------------------------------------------------------------------------------------------
+--Known bugs: 0
+--Last update: 2021-10-17, Baertram
 --
---Bugs/Todo List:
 --
---#1: PTS API 100034, Update 29
---[[Originally Posted by code65536
-Currently on the Update 29 PTS, LibFilters is causing an error when interacting with a merchant.
 
-EsoUI/Ingame/StoreWindow/Keyboard/BuyBack_Keyboard.lua:209: operator < is not supported for nil < numberhide stack
-1. EsoUI/Ingame/StoreWindow/Keyboard/BuyBack_Keyboard.lua:209: in function 'BuyBack:SetupBuyBackSlot'show
-2. EsoUI/Ingame/StoreWindow/Keyboard/BuyBack_Keyboard.lua:25: in function '(anonymous)'show
-3. [C]: in function 'PostHookFunction'
-4. EsoUI/Libraries/ZO_Templates/ScrollTemplates.lua:2372: in function 'ZO_ScrollList_UpdateScroll'show
-5. EsoUI/Libraries/ZO_Templates/ScrollTemplates.lua:2128: in function 'ZO_ScrollList_Commit'show
-6. EsoUI/Ingame/StoreWindow/Keyboard/BuyBack_Keyboard.lua:226: in function 'BuyBack:ApplySort'show
-7. user:/AddOns/LibFilters-3.0/LibFilters-3.0/helper.lua:73: in function 'UpdateList'show
-8. EsoUI/Ingame/StoreWindow/Keyboard/BuyBack_Keyboard.lua:86: in function 'OnListTextFilterComplete'show
-9. EsoUI/Libraries/Utility/ZO_CallbackObject.lua:107: in function 'ZO_CallbackObjectMixin:FireCallbacks'show
-10. EsoUI/Ingame/Utility/TextSearchManager.lua:212: in function 'ZO_TextSearchManager:ExecuteSearch'show
-11. EsoUI/Ingame/Utility/TextSearchManager.lua:159: in function 'ZO_TextSearchManager:CleanSearch'show
-12. EsoUI/Ingame/Utility/TextSearchManager.lua:85: in function 'ZO_TextSearchManager:ActivateTextSearch'show
-13. EsoUI/Ingame/StoreWindow/Keyboard/StoreWindow_Keyboard.lua:184: in function 'ShowStoreWindow'show
-Looks like the code that's specific to the repair window is being executed outside of that context?
-]]
---
---#2: -> Seems to be only a bug if AdvancedFilters is enabled!!!
---	 Opening bank withdraw e.g. armor heavy (where there are items!), opening mail via keybind e.g. ring filter,
---	 closing mail, opening bank withdraw again showing armor heavy (the last selected one before opening mail) and
---	 all of sudden no items are shown anymore.
 
+------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
+------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
 local MAJOR      = libFilters.name
 local filters    = libFilters.filters
@@ -49,23 +29,56 @@ local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
 
 --LibFilters local speedup and reference variables
-local constants = libFilters.constants
-local keyboardConstants = libFilters.constants.keyboard
-local gamepadConstants = libFilters.constants.gamepad
-local libFiltersFilterConstants = libFilters.filterTypes
-local customFragments = gamepadConstants.customFragments
+--Overall constants
+local constants = 					libFilters.constants
+local libFiltersFilterConstants = 	libFilters.filterTypes
+local inventoryTypes = 				constants.inventoryTypes
+local invTypeBackpack = 			inventoryTypes["player"]
+local invTypeQuest =				inventoryTypes["quest"]
+local invTypeBank =					inventoryTypes["bank"]
+local invTypeGuildBank =			inventoryTypes["guild_bank"]
+local invTypeHouseBank =			inventoryTypes["house_bank"]
+local invTypeCraftBag =				inventoryTypes["craftbag"]
 
---Local pre-defiend function name
-local hookAdditionalFilter
+local enchantingModeToFilterType = 	libFilters.enchantingModeToFilterType
+local filterTypeToUpdaterName = 	libFilters.FilterTypeToUpdaterName
+local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local LF_ConstantToAdditionalFilterSpecialHook = 					libFilters.LF_ConstantToAdditionalFilterSpecialHook
+
+--Keyboard
+local keyboardConstants = 			constants.keyboard
+local playerInv = 					keyboardConstants.playerInv
+local inventories = 				keyboardConstants.inventories
+local researchChooseItemDialog = 	keyboardConstants.researchChooseItemDialog
+
+--Gamepad
+local gamepadConstants = 			constants.gamepad
+local customFragments_GP = 			gamepadConstants.customFragments
+--Get the updated constants values of the gamepad fragments, created after constants.lua was called, in file
+--Gamepad/gamepadCustomFragments.lua
+local invBackpackFragment_GP =	customFragments_GP[LF_INVENTORY].fragment
+local invBankDeposit_GP = 		customFragments_GP[LF_BANK_DEPOSIT].fragment
+local invGuildBankDeposit_GP = 	customFragments_GP[LF_GUILDBANK_DEPOSIT].fragment
+local invHouseBankDeposit_GP = 	customFragments_GP[LF_HOUSE_BANK_DEPOSIT].fragment
+local guildStoreSell_GP = 		customFragments_GP[LF_GUILDSTORE_SELL].fragment
+local mailSend_GP = 			customFragments_GP[LF_MAIL_SEND].fragment
+local player2playerTrade_GP = 	customFragments_GP[LF_TRADE].fragment
 
 
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK state variables
 ------------------------------------------------------------------------------------------------------------------------
---Special hooks
+--Special hooks done? Add the possible special hook names in this table so that function libFilters:HookAdditionalFilterSpecial
+--will not register the special hooks more than once
 local specialHooksDone = {
 	 ["enchanting"] = false,
 }
+
+--Local pre-defined function names. Code will be added further down in this file. Only created here already to be re-used
+--in code prior to creation (functions using it won't be called before creation was done, but they are local and more
+--DOWN in the lua file than the actual fucntion's creation is done -> lua interpreter wouldn't find it).
+local hookAdditionalFilter
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
@@ -128,11 +141,8 @@ end
 local function SafeUpdateList(object, ...)
 --d("[LibFilters3]SafeUpdateList, inv: " ..tos(...))
 	 local isMouseVisible = SM:IsInUIMode()
-
 	 if isMouseVisible then HideMouse() end
-
 	 object:UpdateList(...)
-
 	 if isMouseVisible then ShowMouse() end
 end
 
@@ -171,65 +181,66 @@ end
 local inventoryUpdaters = {
 	INVENTORY = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(invBackpack_GP)
+			updateGamepadInventoryList(gamepadConstants.invBackpack_GP)
 		else
-			updateKeyboardPlayerInventoryType(invTypeBackpack)
+			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeBackpack)
 		end
 	end,
 	INVENTORY_COMPANION = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(companionEquipment_GP)
+			updateGamepadInventoryList(gamepadConstants.companionEquipment_GP)
 		else
-			SafeUpdateList(companionEquipment, nil)
+			SafeUpdateList(keyboardConstants.companionEquipment, nil)
 		end
 	end,
 	CRAFTBAG = function()
 		if IsGamepad() then
-			invBackpack_GP:RefreshCraftBagList()
+			gamepadConstants.invBackpack_GP:RefreshCraftBagList()
 		else
-			updateKeyboardPlayerInventoryType(invTypeCraftBag)
+			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeCraftBag)
 		end
 	end,
 	INVENTORY_QUEST = function()
 		if IsGamepad() then
 			--TODO
 		else
-			updateKeyboardPlayerInventoryType(invTypeQuest)
+			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeQuest)
 		end
 	end,
 	QUICKSLOT = function()
 		if IsGamepad() then
 	--		SafeUpdateList(quickslots_GP) --TODO
 		else
-			SafeUpdateList(quickslots)
+			SafeUpdateList(keyboardConstants.quickslots)
 		end
 	end,
 	BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(invBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invBankWithdraw_GP)
 		else
-			updateKeyboardPlayerInventoryType(invTypeBank)
+			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeBank)
 		end
 	end,
 	GUILDBANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(invGuildBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invGuildBankWithdraw_GP)
 		else
-			updateKeyboardPlayerInventoryType(invTypeGuildBank)
+			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeGuildBank)
 		end
 	end,
 	HOUSE_BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(invHouseBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invHouseBankWithdraw_GP)
 		else
-			updateKeyboardPlayerInventoryType(invTypeHouseBank)
+			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeHouseBank)
 		end
 	end,
 	VENDOR_BUY = function()
 		if IsGamepad() then
---			vendorBuy_GP:UpdateList() --TODO
+--			gamepadConstants.vendorBuy_GP:UpdateList() --TODO
 		else
-			if guildStoreSell.state ~= SCENE_SHOWN then --"shown"
+			if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
+				local store = keyboardConstants.store
 				store:GetStoreItems()
 				SafeUpdateList(store)
 			end
@@ -237,25 +248,25 @@ local inventoryUpdaters = {
 	end,
 	VENDOR_BUYBACK = function()
 		if IsGamepad() then
---			vendorBuyBack_GP:UpdateList() --TODO
+--			gamepadConstants.vendorBuyBack_GP:UpdateList() --TODO
 		else
-			SafeUpdateList(vendorBuyBack)
+			SafeUpdateList(keyboardConstants.vendorBuyBack)
 		end
 	end,
 	VENDOR_REPAIR = function()
 		if IsGamepad() then
-	--		vendorRepair_GP:UpdateList()  --TODO
+	--		gamepadConstants.vendorRepair_GP:UpdateList()  --TODO
 		else
-			SafeUpdateList(vendorRepair)
+			SafeUpdateList(keyboardConstants.vendorRepair)
 		end
 	end,
 	GUILDSTORE_BROWSE = function()
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(refinementPanel_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.refinementPanel_GP.inventory)
 		else
-			updateCraftingInventoryDirty(refinementPanel.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.refinementPanel.inventory)
 		end
 	end,
 	SMITHING_CREATION = function()
@@ -268,23 +279,23 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_DECONSTRUCT = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(deconstructionPanel_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.deconstructionPanel_GP.inventory)
 		else
-			updateCraftingInventoryDirty(deconstructionPanel.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.deconstructionPanel.inventory)
 		end
 	end,
 	SMITHING_IMPROVEMENT = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(improvementPanel_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.improvementPanel_GP.inventory)
 		else
-			updateCraftingInventoryDirty(improvementPanel.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.improvementPanel.inventory)
 		end
 	end,
 	SMITHING_RESEARCH = function()
 		if IsGamepad() then
-			researchPanel_GP:Refresh()
+			gamepadConstants.researchPanel_GP:Refresh()
 		else
-			researchPanel:Refresh()
+			keyboardConstants.researchPanel:Refresh()
 		end
 	end,
 	SMITHING_RESEARCH_DIALOG = function()
@@ -296,16 +307,16 @@ local inventoryUpdaters = {
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(alchemy_GP.inventory) --TODO
+			updateCraftingInventoryDirty(gamepadConstants.alchemy_GP.inventory) --TODO
 		else
-			updateCraftingInventoryDirty(alchemy.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.alchemy.inventory)
 		end
 	end,
 	ENCHANTING = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(enchanting_GP.inventory) --TODO
+			updateCraftingInventoryDirty(gamepadConstants.enchanting_GP.inventory) --TODO
 		else
-			updateCraftingInventoryDirty(enchanting.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.enchanting.inventory)
 		end
 	end,
 	PROVISIONING_COOK = function()
@@ -314,16 +325,16 @@ local inventoryUpdaters = {
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(retrait_GP) --TODO
+			updateCraftingInventoryDirty(gamepadConstants.retrait_GP) --TODO
 		else
-			updateCraftingInventoryDirty(retrait.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.retrait.inventory)
 		end
 	end,
 	RECONSTRUCTION = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(reconstruct_GP) --TODO
+			updateCraftingInventoryDirty(gamepadConstants.reconstruct_GP) --TODO
 		else
-			updateCraftingInventoryDirty(reconstruct.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.reconstruct.inventory)
 		end
 	end,
 }
@@ -493,9 +504,9 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	------------------------------------------------------------------------------------------------------------------------
 	--Should the LF constant be hooked by any special function of LibFilters?
 	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
-	--[[
 	local inventoriesToHookForLFConstant
 	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterLFConstant]
+--[[
 	if hookSpecialFunctionDataOfLFConstant ~= nil then
 		if hookKeyboardAndGamepadMode == true then
 			--Keyboard
@@ -516,7 +527,7 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		end
 	end
 	inventoriesToHookForLFConstant = nil
---]]
+]]
 	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
 	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
 	--the .additionalFilter to the correct gamepad enchanting inventory
@@ -581,7 +592,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType)
 
 		--Hook the class variable (used for keyboard and gamepad as a base) OnModeUpdate to get the switch between
 		--enchanting creation and enchanting extarction
-		ZO_PreHook(enchantingClass, "OnModeUpdated", function(selfEnchanting)
+		ZO_PreHook(keyboardConstants.enchantingClass, "OnModeUpdated", function(selfEnchanting)
 			onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
 		end)
 
@@ -598,8 +609,8 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	if specialType == "enchanting_GamePad" then
 		--The enchanting scenes to hook into
 		local enchantingScenesGamepad = {
-			[LF_ENCHANTING_CREATION] = 		enchantingCreate_GP,
-			[LF_ENCHANTING_EXTRACTION] = 	enchantingExtract_GP,
+			[LF_ENCHANTING_CREATION] = 		gamepadConstants.enchantingCreate_GP,
+			[LF_ENCHANTING_EXTRACTION] = 	gamepadConstants.enchantingExtract_GP,
 		}
 
 		local function updateLibFilters3_filterTypeAtGamepadEnchantingInventory(enchantingVar)
@@ -631,8 +642,8 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 		    --for GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData (see helpers.lua)
 			enchantingSceneGamepad:RegisterCallback("StateChange", function(oldState, newState)
 				if newState == SCENE_SHOWING then
-d("[LF3]GamePadEnchanting " ..tostring(libFilters:GetFilterTypeName(libFiltersEnchantingFilterType)) .." Scene:Showing")
-					updateLibFilters3_filterTypeAtGamepadEnchantingInventory(enchanting_GP)
+--d("[LF3]GamePadEnchanting " ..tostring(libFilters:GetFilterTypeName(libFiltersEnchantingFilterType)) .." Scene:Showing")
+					updateLibFilters3_filterTypeAtGamepadEnchantingInventory(gamepadConstants.enchanting_GP)
 				end
 			end)
 		end
@@ -796,7 +807,7 @@ local function ApplyFixes()
 	]]
 	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
 	--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
-		if craftBagClass:IsHidden() then return end
+		if keyboardConstants.craftBagClass:IsHidden() then return end
 		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
 		hookAdditionalFilter(libFilters, LF_CRAFTBAG)
 	end)
