@@ -506,7 +506,6 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
 	local inventoriesToHookForLFConstant
 	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterLFConstant]
---[[
 	if hookSpecialFunctionDataOfLFConstant ~= nil then
 		if hookKeyboardAndGamepadMode == true then
 			--Keyboard
@@ -527,7 +526,7 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		end
 	end
 	inventoriesToHookForLFConstant = nil
-]]
+
 	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
 	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
 	--the .additionalFilter to the correct gamepad enchanting inventory
@@ -563,6 +562,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType)
 	if specialHooksDone[specialType] == true then return end
 
 	--ENCHANTING keyboard
+	--[[
 	if specialType == "enchanting" then
 
 		local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
@@ -598,6 +598,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType)
 
 		specialHooksDone[specialType] = true
 	end
+	]]
 end
 
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
@@ -606,6 +607,7 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	if specialHooksDone[specialType] == true then return end
 
 	--ENCHANTING gamepad
+	--[[
 	if specialType == "enchanting_GamePad" then
 		--The enchanting scenes to hook into
 		local enchantingScenesGamepad = {
@@ -650,6 +652,7 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 
 		specialHooksDone[specialType] = true
 	end
+	]]
 end
 
 --**********************************************************************************************************************

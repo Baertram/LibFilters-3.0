@@ -331,7 +331,7 @@ gamepadConstants.creationPanel_GP =	  			smithing_GP.creationPanel
 gamepadConstants.deconstructionPanel_GP = 		smithing_GP.deconstructionPanel
 
 --Improvement
-gamepadConstants.deconstructionPanel_GP = 		smithing_GP.improvementPanel
+gamepadConstants.improvementPanel_GP = 			smithing_GP.improvementPanel
 
 --Research
 gamepadConstants.researchPanel_GP =				smithing_GP.researchPanel
@@ -342,7 +342,7 @@ gamepadConstants.enchantingCreate_GP = 			GAMEPAD_ENCHANTING_CREATION_SCENE
 gamepadConstants.enchantingExtract_GP = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 
 --Alchemy
-gamepadConstants.alchemy_GP = 						ALCHEMY_SCENE
+gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
 
 --Retrait
 --gamepadConstants.retrait = --
@@ -396,6 +396,10 @@ local standardSceneSpecialHookFunc = 	"HookAdditionalFilterSceneSpecial"	--LibFi
 -->Any entry with LF* in this table will NOT use LibFilters:HookAdditionalFilter below!
 -->See mapping table table "LF_ConstantToAdditionalFilterControlSceneFragmentUserdata" below
 local LF_ConstantToAdditionalFilterSpecialHook = {
+--[[
+--DISABLED: but kept as reference for an example.
+--LF_ENCHANTING_ will be now added to the gamepad scenes via normal HookAdditionalFilter function
+--and used for keyboard and gamepad mode this way via helpers function ZO_Enchanting_DoesEnchantingItemPassFilter
 	[LF_ENCHANTING_CREATION] = { --this will also apply the filters for LF_ENCHANTING_EXTRACTION
 --		[false] = {funcName = standardSpecialHookFunc, 	params = {"enchanting"}}, --Keyboard mode
 --		[true] 	= {funcName = standardSceneSpecialHookFunc, params = {"enchanting_GamePad"}},
@@ -404,16 +408,25 @@ local LF_ConstantToAdditionalFilterSpecialHook = {
 		--[false] = {}, --> See LF_ENCHANTING_CREATION above!
 		--[true] = {}, --> See LF_ENCHANTING_CREATION above!
 	},
+	]]
 }
 libFilters.LF_ConstantToAdditionalFilterSpecialHook = LF_ConstantToAdditionalFilterSpecialHook
 
 --[Mapping GamePad/Keyboard control/scene/fragment/userdate/etc. .additionalFilter entry to the LF_* constant]
 -->This table contains the mapping between GamePad and Keyboard mode, and the LibFilters constant LF_* to
 -->the control, scene, fragment, userdata to use to store the .additionalFilters table addition to.
--->The controls/fregments/scenes can be many. Each entry in the value table will be applying .additionalFilters
+-->The controls/fragments/scenes can be many. Each entry in the value table will be applying .additionalFilters
 -->Used in function LibFilters:HookAdditionalFilter(filterType_LF_Constant)
+--
 --> This table's gamepad entries of some fragments (custom created ones!) will be updated via file
 --> /Gamepad/gamepadCustomFragments.lua,
+--
+--> Attention: Entries in helper.lua which relate to keyboard AND gamepad made will not hook both, keyboard and
+--> gamepad mode! There will only be one hook then in this table, for keyboard OR gamepad mode! e.g.
+--> LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua -> ZO_Enchanting_DoesEnchantingItemPassFilter.
+--> So the hook will be in the [true] subtable for gamepad mode!
+--> LF_SMITHING_RESEARCH_DIALOG and LF_JEWELRY_RESEARCH_DIALOG use the keyboard control SMITHING_RESEARCH_SELECT in helpers.lua
+--> ZO_SharedSmithingResearch.IsResearchableItem. So the hook will be in the [false] subtable for keyboard mode!
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 	--Keyboard mode
 	[false] = {
@@ -434,76 +447,99 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_VENDOR_REPAIR]            = { keyboardConstants.vendorRepair },
 		[LF_FENCE_SELL]               = { keyboardConstants.invFenceSell },
 		[LF_FENCE_LAUNDER]            = { keyboardConstants.invFenceLaunder },
-		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_GUILDSTORE_SELL]          = { keyboardConstants.guildStoreSell },
 		[LF_MAIL_SEND]                = { keyboardConstants.mailSend },
 		[LF_TRADE]                    = { keyboardConstants.player2playerTrade },
-		[LF_SMITHING_REFINE]          = { keyboardConstants.refinementPanel },
+		[LF_SMITHING_RESEARCH_DIALOG] = { keyboardConstants.researchChooseItemDialog },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { keyboardConstants.researchChooseItemDialog },
+
+		--Not implemented yet
+		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+
+		--Shared with gamepad mode -> See entry with LF_* at [true] (using gamepadConstants) below
+		[LF_SMITHING_REFINE]          = { keyboardConstants.refinementPanel },
 		[LF_SMITHING_DECONSTRUCT]     = { keyboardConstants.deconstructionPanel },
 		[LF_SMITHING_IMPROVEMENT]     = { keyboardConstants.improvementPanel },
 		[LF_SMITHING_RESEARCH]        = { keyboardConstants.researchPanel },
-		[LF_SMITHING_RESEARCH_DIALOG] = { keyboardConstants.researchChooseItemDialog },
 		[LF_JEWELRY_REFINE]           = { keyboardConstants.refinementPanel },
-		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_DECONSTRUCT]      = { keyboardConstants.deconstructionPanel },
 		[LF_JEWELRY_IMPROVEMENT]      = { keyboardConstants.improvementPanel },
 		[LF_JEWELRY_RESEARCH]         = { keyboardConstants.researchPanel },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { keyboardConstants.researchChooseItemDialog },
 		[LF_ALCHEMY_CREATION]         = { keyboardConstants.alchemy },
-		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_RETRAIT]                  = { keyboardConstants.retrait },
 
+
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
+		-->Currently disalbed as the Gamepad mode Scenes for enchatning create/extract are used to store the filters in
+		-->.additionalFilter and the helper function ZO_Enchanting_DoesEnchantingItemPassFilter will be used to read the
+		-->scenes for both, keyboard AND gamepad mode
 --		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
 --		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
 	},
 
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY]                = {  }, --Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
-		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },	--using inventories[invType]
+		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
---		[LF_QUICKSLOT]                = { quickslots_GP }, --not in gamepad mode
-		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },	--using inventories[invType]
-		[LF_BANK_DEPOSIT]             = {  },		--Updated in file /gamepad/gamepadCustomFragments.lua
-		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },	--using inventories[invType]
-		[LF_GUILDBANK_DEPOSIT]        = {  },	--Updated in file /gamepad/gamepadCustomFragments.lua
-		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },	--using inventories[invType]
-		[LF_HOUSE_BANK_DEPOSIT]       = {  },	--Updated in file /gamepad/gamepadCustomFragments.lua
+--		[LF_QUICKSLOT]                = { .gamepadConstantsquickslots_GP }, --not in gamepad mode -- TODO
+		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },
+		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },
+		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },
 		[LF_VENDOR_BUY]               = { gamepadConstants.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gamepadConstants.vendorSell_GP },
 		[LF_VENDOR_BUYBACK]           = { gamepadConstants.vendorBuyBack_GP },
 		[LF_VENDOR_REPAIR]            = { gamepadConstants.vendorRepair_GP },
 		[LF_FENCE_SELL]               = { gamepadConstants.invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { gamepadConstants.invFenceLaunder_GP },
-		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_GUILDSTORE_SELL]          = { },		--Updated in file /gamepad/gamepadCustomFragments.lua
-		[LF_MAIL_SEND]                = { },			--Updated in file /gamepad/gamepadCustomFragments.lua
-		[LF_TRADE]                    = {  },			--Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_SMITHING_REFINE]          = { gamepadConstants.refinementPanel_GP },
---		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_DECONSTRUCT]     = { gamepadConstants.deconstructionPanel_GP },
-		[LF_SMITHING_IMPROVEMENT]     = { gamepadConstants.improvementPanel_GP },
-		[LF_SMITHING_RESEARCH]        = { gamepadConstants.researchPanel_GP },
 		[LF_SMITHING_RESEARCH_DIALOG] = { gamepadConstants.researchChooseItemDialog_GP },
-		[LF_JEWELRY_REFINE]           = { gamepadConstants.refinementPanel_GP },
---		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_DECONSTRUCT]      = { gamepadConstants.deconstructionPanel_GP },
-		[LF_JEWELRY_IMPROVEMENT]      = { gamepadConstants.improvementPanel_GP },
-		[LF_JEWELRY_RESEARCH]         = { gamepadConstants.researchPanel_GP },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { gamepadConstants.researchChooseItemDialog_GP },
-		[LF_ALCHEMY_CREATION]         = { gamepadConstants.alchemy_GP },
+
+
+		--Not implemented yet
+		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_RETRAIT]                  = { gamepadConstants.retrait_GP },
 
-		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
-		 [LF_ENCHANTING_CREATION]	  = {gamepadConstants.enchantingCreate_GP},
-		 [LF_ENCHANTING_EXTRACTION]   = {gamepadConstants.enchantingExtract_GP},
 
+		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_INVENTORY]                = { }, --uses fragment
+		[LF_BANK_DEPOSIT]             = { }, --uses fragment
+		[LF_GUILDBANK_DEPOSIT]        = { }, --uses fragment
+		[LF_HOUSE_BANK_DEPOSIT]       = { }, --uses fragment
+		[LF_GUILDSTORE_SELL]          = { }, --uses fragment
+		[LF_MAIL_SEND]                = { }, --uses fragment
+		[LF_TRADE]                    = { }, --uses fragment
+
+
+		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
+		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
+		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
+		--> or keyboard mode, and only hook teh active one!
+		--[LF_SMITHING_DECONSTRUCT]     = { gamepadConstants.deconstructionPanel_GP },
+		--[LF_SMITHING_IMPROVEMENT]     = { gamepadConstants.improvementPanel_GP },
+		--[LF_SMITHING_RESEARCH]        = { gamepadConstants.researchPanel_GP },
+		--[LF_JEWELRY_REFINE]           = { gamepadConstants.refinementPanel_GP },
+		--[LF_JEWELRY_DECONSTRUCT]      = { gamepadConstants.deconstructionPanel_GP },
+		--[LF_JEWELRY_IMPROVEMENT]      = { gamepadConstants.improvementPanel_GP },
+		--[LF_JEWELRY_RESEARCH]         = { gamepadConstants.researchPanel_GP },
+		--[LF_ALCHEMY_CREATION]         = { gamepadConstants.alchemy_GP },
+		--[LF_RETRAIT]                  = { gamepadConstants.retrait_GP },
+
+
+		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
+		--But curerntly they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
+		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
+		-->Used for gamepad AND keyboard mode with these entries here !!!
+		[LF_ENCHANTING_CREATION]	  = {gamepadConstants.enchantingCreate_GP},
+		[LF_ENCHANTING_EXTRACTION]    = {gamepadConstants.enchantingExtract_GP},
 	},
 }
 libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
