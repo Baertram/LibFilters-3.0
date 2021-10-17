@@ -9,7 +9,7 @@ libFiltersTest = {}
 -- /script d(#libFiltersTest)
 -- /script d(#libFiltersTest[7])
 -- /script libFiltersTest = {}
-
+--	/script LibFilters3:RequestUpdate(LF_SMITHING_RESEARCH)
 SLASH_COMMANDS["/testfilters"] = function()
 	local filterTag = "TEST"
 	local filterTypes = {
@@ -50,14 +50,65 @@ SLASH_COMMANDS["/testfilters"] = function()
 		LF_INVENTORY_COMPANION
 	}
 
+
+	local function doesItemPassFilter(bagId, slotIndex, stackCount)
+		local itemType,  specializedItemType = GetItemType(bagId, slotIndex)
+		local quality = GetItemQuality(bagId, slotIndex)
+
+		if itemType == ITEMTYPE_ENCHANTING_RUNE_ASPECT then
+			return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+		elseif itemType == ITEMTYPE_BLACKSMITHING_BOOSTER then
+			return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+		elseif itemType == ITEMTYPE_CLOTHIER_BOOSTER then
+			return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+		elseif itemType == ITEMTYPE_JEWELRYCRAFTING_BOOSTER then
+			return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+		elseif itemType == ITEMTYPE_WOODWORKING_BOOSTER then
+			return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+		elseif itemType == ITEMTYPE_WEAPON or itemType == ITEMTYPE_ARMOR then
+			return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE and not IsItemPlayerLocked(bagId, slotIndex) and 
+				GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION
+		elseif itemType == ITEMTYPE_POISON_BASE or itemType == ITEMTYPE_POTION_BASE or itemType == ITEMTYPE_REAGENT then
+			return stackCount > 100
+		end
+			
+		if quality > ITEM_FUNCTIONAL_QUALITY_ARCANE then
+			return false
+		end
+		return stackCount > 1
+	end
+
 	for _, filterType in pairs(filterTypes) do
 		libFilters.test[filterType] = {}
 		libFiltersTest[filterType] = {}
 
-		local function filterCallback(...)
-			d( "filter test " .. filterType)
-			table.insert(libFiltersTest[filterType], {...})
-			return false
+		local function filterCallback(slotOrBagId, slotIndex)
+	--		table.insert(libFiltersTest[filterType], {...})
+			if slotIndex then
+				local bagId = slotOrBagId
+				local itemLink = GetItemLink(bagId, slotIndex)
+				local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
+				local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
+				
+				local result = doesItemPassFilter(bagId, slotIndex, stackCount)
+				if result == false then
+					-- can take a moment to display for research, has a low filter threshold
+					d(string.format("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterType, stackCount, itemLink))
+				end
+				return result
+			else
+				local bagId, slotIndex = slotOrBagId.bagId, slotOrBagId.slotIndex
+				local itemLink = bagId == nil and GetQuestItemLink(slotIndex) or GetItemLink(bagId, slotIndex)
+				local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
+				local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
+				
+				local result = doesItemPassFilter(bagId, slotIndex, stackCount)
+				if result == false then
+					-- can take a moment to display for research, has a low filter threshold
+					d(string.format("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterType, stackCount, itemLink))
+				end
+				return result
+			end
 		end
 
 		if libFilters:IsFilterRegistered(filterTag, filterType) then

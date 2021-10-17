@@ -14,22 +14,27 @@ end
 
 --Check for .additionalFilter in an object and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
+	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
+	
     if doesAdditionalFilterFuncExist(objectVar) then
-        return resultIfNoAdditionalFilter and objectVar.additionalFilter(slotItem)
+		if resultIfNoAdditionalFilter then
+			resultIfNoAdditionalFilter = objectVar.additionalFilter(slotItem)
+		end
     end
-    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
-    return resultIfNoAdditionalFilter
+	return resultIfNoAdditionalFilter
 end
 
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
 local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
+	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
+	
     if doesAdditionalFilterFuncExist(objectVar) then
-        return resultIfNoAdditionalFilter and objectVar.additionalFilter(bagId, slotIndex)
+		if resultIfNoAdditionalFilter then
+			resultIfNoAdditionalFilter = objectVar.additionalFilter(bagId, slotIndex)
+		end
     end
-    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
-    return resultIfNoAdditionalFilter
+	return resultIfNoAdditionalFilter
 end
-
 
 --Original function at:
 --smithingresearch_shared.lua
@@ -194,183 +199,6 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
     },
 }
 
---enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
---  LF_SMITHING_REFINE, LF_JEWELRY_REFINE for keyboard mode
-helpers["ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
-    version = 5,
-    locations = {
-        [1] = ZO_AlchemyInventory,
-        [2] = ZO_EnchantingInventory,
-        [3] = ZO_SmithingExtractionInventory,
-    },
-    helper = {
-        funcName = "EnumerateInventorySlotsAndAddToScrollData",
-        func = function(self, predicate, filterFunction, filterType, data)
-            local libFilters3FilterType = getCurrentFilterTypeForInventory(LibFilters3, self)
-            local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
-            local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
-            local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
---d(string.format("[LF3]libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
-
-            local oldPredicate = predicate
-            predicate = function(bagId, slotIndex)
-                local result = true
-
-                result = checkAndRundAdditionalFiltersBag(self, bagId, slotIndex, result)
-
-                return oldPredicate(bagId, slotIndex) and result
-            end
-
-            -- Begin original function
-
-            local list = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, predicate)
-            PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, list)
-            PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_CRAFT_BAG, predicate, list)
-
-            ZO_ClearTable(self.itemCounts)
-
-            local questSV, questItems
-            if isEnchanting == true then
-                questSV = self.savedVars.questsOnlyChecked
-                questItems = self.questRunes
-            elseif isAlchemy == true then
-                self.owner:UpdatePotentialQuestItems(list, self.alchemyQuestInfo)
-
-                questSV = self.savedVars.questsOnlyChecked
-                questItems = self.owner.questItems
-            elseif isSmithing == true then
-                questSV = nil
-                questItems = nil
-            end
-
-            for itemId, itemInfo in pairs(list) do
-                if not filterFunction or filterFunction(itemInfo.bag, itemInfo.index, filterType, questSV, questItems) then
-                    self:AddItemData(itemInfo.bag, itemInfo.index, itemInfo.stack, self:GetScrollDataType(itemInfo.bag, itemInfo.index), data, self.customDataGetFunction)
-                end
-                self.itemCounts[itemId] = itemInfo.stack
-            end
-
-            return list
-        end,
-    },
-}
-
---enable LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT
-helpers["SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAndAddToScrollData"] = {
-    version = 3,
-    locations = {
-        [1] = ZO_SmithingExtractionInventory,
-        [2] = ZO_SmithingImprovementInventory,
-    },
-    helper = {
-        funcName = "GetIndividualInventorySlotsAndAddToScrollData",
-        func = function(self, predicate, filterFunction, filterType, data, useWornBag, excludeBankedItems)
-            local oldPredicate = predicate
-            predicate = function(itemData)
-                local result = true
-
-                result = checkAndRundAdditionalFiltersBag(self, itemData.bagId, itemData.slotIndex, result)
-
-                return oldPredicate(itemData) and result
-            end
-
-            -- Begin original function ZO_CraftingInventory:GetIndividualInventorySlotsAndAddToScrollData
-            --local bagsToUse = useWornBag and ZO_ALL_CRAFTING_INVENTORY_BAGS_AND_WORN or ZO_ALL_CRAFTING_INVENTORY_BAGS_WITHOUT_WORN
-            local bagsToUse = { BAG_BACKPACK }
-            if useWornBag then
-                table.insert(bagsToUse, BAG_WORN)
-            end
-            -- Expressly using double-negative here to maintain compatibility
-            if not excludeBankedItems then
-                table.insert(bagsToUse, BAG_BANK)
-                table.insert(bagsToUse, BAG_SUBSCRIBER_BANK)
-            end
-            local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(predicate, unpack(bagsToUse))
-
-            ZO_ClearTable(self.itemCounts)
-
-            for i, slotData in pairs(filteredDataTable) do
-                if not filterFunction or filterFunction(slotData.bagId, slotData.slotIndex, filterType) then
-                    self:AddItemData(
-                            slotData.bagId,
-                            slotData.slotIndex,
-                            slotData.stackCount,
-                            self:GetScrollDataType(slotData.bagId, slotData.slotIndex),
-                            data,
-                            self.customDataGetFunction,
-                            slotData
-                    )
-                end
-                self.itemCounts[i] = slotData.stackCount
-            end
-
-            return filteredDataTable
-        end,
-    },
-}
-
---[[
---enable LF_SMITHING_RESEARCH_DIALOG -- since API 100025 Murkmire
-helpers["SMITHING_RESEARCH_SELECT:SetupDialog"] = {
-    version = 2,
-    locations = {
-        [1] = SMITHING_RESEARCH_SELECT,
-    },
-    helper = {
-        funcName = "SetupDialog",
-        func = function(self, craftingType, researchLineIndex, traitIndex)
-            --Overwrite the local function "IsResearchableItem" of file /esoui/ingame/crafting/keyboard/smithingresearch_keyboard.lua
-            --inside function ZO_SmithingResearchSelect:SetupDialog
-            local function IsResearchableItem(bagId, slotIndex)
-                local result = ZO_SharedSmithingResearch.IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
-                --Is the item researchable? Then check if additional filters are registered
-                if result then
-                    if self.additionalFilter and type(self.additionalFilter) == "function" then
-                        result = result and self.additionalFilter(bagId, slotIndex)
-                    end
-                end
-                return result
-            end -- function IsResearchableItem(bagId, slotIndex)
-
-            --======== Source code of original function =======================
-            local listDialog = ZO_InventorySlot_GetItemListDialog()
-
-            local _, _, _, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
-            local formattedTime = ZO_FormatTime(timeRequiredForNextResearchSecs, TIME_FORMAT_STYLE_COLONS, TIME_FORMAT_PRECISION_TWELVE_HOUR)
-
-            listDialog:SetAboveText(GetString(SI_SMITHING_RESEARCH_DIALOG_SELECT))
-            listDialog:SetBelowText(zo_strformat(SI_SMITHING_RESEARCH_DIALOG_CONSUME, formattedTime))
-            listDialog:SetEmptyListText("")
-
-            listDialog:ClearList()
-
-            --Overwritten original function to filter items with additional filters/filter functions
-            --local function IsResearchableItem(bagId, slotIndex)
-            --    return ZO_SharedSmithingResearch.IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
-            --end
-
-            local virtualInventoryList = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, IsResearchableItem)
-            PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, IsResearchableItem, virtualInventoryList)
-
-            for itemId, itemInfo in pairs(virtualInventoryList) do
-                itemInfo.name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(itemInfo.bag, itemInfo.index))
-                listDialog:AddListItem(itemInfo)
-            end
-
-            --Added local function from file /esoui/ingame/crafting/keyboard/smithingresearch_keyboard.lua
-            local function SortComparator(left, right)
-                return left.data.name < right.data.name
-            end
-
-            listDialog:CommitList(SortComparator)
-
-            listDialog:AddCustomControl(self.control, LIST_DIALOG_CUSTOM_CONTROL_LOCATION_BOTTOM)
-        end -- SMITHING_RESEARCH_SELECT.SetupDialog
-    },
-}
-]]
-
-
 --enable LF_QUICKSLOT
 -->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
@@ -466,24 +294,6 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
 }
 
 
---enable LF_RETRAIT
-helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
-    version = 2,
-    locations = {
-        [1] = _G
-    },
-    helper = {
-        funcName = "ZO_RetraitStation_CanItemBeRetraited",
-        func = function(itemData)
-            local base = ZO_RETRAIT_KEYBOARD
-            local result = CanItemBeRetraited(itemData.bagId, itemData.slotIndex)
-
-            result = checkAndRundAdditionalFiltersBag(base, itemData.bagId, itemData.slotIndex, result)
-
-            return result
-        end,
-    }
-}
 ------------------------------------------------------------------------------------------------------------------------
  -- -^- KEYBOARD ONLY
 ------------------------------------------------------------------------------------------------------------------------
@@ -491,8 +301,85 @@ helpers["ZO_RetraitStation_CanItemBeRetraited"] = {
 ------------------------------------------------------------------------------------------------------------------------
  -- -v- KEYBOARD and GAMEPAD - shared
 ------------------------------------------------------------------------------------------------------------------------
+--enable LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION
+helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
+    version = 1,
+    locations = {
+        [1] = _G
+    },
+    helper = {
+        funcName = "ZO_Enchanting_DoesEnchantingItemPassFilter",
+        func = function(bagId, slotIndex, filterType, questFilterChecked, questRunes)
+			-- using GAMEPAD_ENCHANTING_CREATION_SCENE/GAMEPAD_ENCHANTING_EXTRACTION_SCENE exclusively
+			
+			-- i used the gamepad scenes here since they were already set to be filters and required less changing
+			-- they also are both for what they are being used for ENCHANTING_CREATION/ENCHANTING_EXTRACTION
+			local usedInCraftingType, craftingSubItemType, runeType = GetItemCraftingInfo(bagId, slotIndex)
+			if filterType == EXTRACTION_FILTER then
+				local result = craftingSubItemType == ITEMTYPE_GLYPH_WEAPON or craftingSubItemType == ITEMTYPE_GLYPH_ARMOR or craftingSubItemType == ITEMTYPE_GLYPH_JEWELRY
+				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_EXTRACTION_SCENE, bagId, slotIndex, result)
+			elseif filterType == NO_FILTER or filterType == runeType then
+				local function doesItemPassFilter(bagId, slotIndex, runeType, questFilterChecked)
+					if questFilterChecked then
+						local itemId = GetItemId(bagId, slotIndex)
+						if questRunes.potency == itemId or questRunes.essence == itemId or questRunes.aspect == itemId then
+							return DoesPlayerHaveRunesForEnchanting(questRunes.aspect, questRunes.essence, questRunes.potency)
+						else
+							return false
+						end
+					else
+						return runeType == ENCHANTING_RUNE_ASPECT or runeType == ENCHANTING_RUNE_ESSENCE or runeType == ENCHANTING_RUNE_POTENCY
+					end
+				end
+				local result = doesItemPassFilter(bagId, slotIndex, runeType, questFilterChecked)
+				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_CREATION_SCENE, bagId, slotIndex, result)
+			end
+			return false
+        end,
+    }
+}
+
+--enable LF_ALCHEMY_CREATION
+helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
+    version = 1,
+    locations = {
+        [1] = _G
+    },
+    helper = {
+        funcName = "ZO_Alchemy_DoesAlchemyItemPassFilter",
+        func = function(bagId, slotIndex, filterType, isQuestFilterChecked, questInfo)
+			-- using ALCHEMY_SCENE exclusively
+--d( 'ZO_Alchemy_DoesAlchemyItemPassFilter')
+			local function doesItemPassFilter(bagId, slotIndex, runeType, questFilterChecked)
+				if isQuestFilterChecked then
+					--If no there is no valid combination at all, then everything fails the filter
+					if not questInfo.validCombinationFound then
+						return false
+					end
+					local itemId = GetItemId(bagId, slotIndex)
+					--If this item does not match any solvents or reagents that are quest related, then it does not pass the filter
+					if (not questInfo.reagents or questInfo.reagents[itemId] == nil) and (not questInfo.solvent or questInfo.solvent.itemId ~= itemId) then
+						return false
+					end
+				end
+				if filterType == nil then
+					return true
+				end
+				local _, craftingSubItemType = GetItemCraftingInfo(bagId, slotIndex)
+				if type(filterType) == "function" then
+					return filterType(craftingSubItemType)
+				end
+				return filterType == craftingSubItemType
+			end
+			
+			local result = doesItemPassFilter(bagId, slotIndex, runeType, questFilterChecked)
+			return checkAndRundAdditionalFiltersBag(ALCHEMY_SCENE, bagId, slotIndex, result)
+        end,
+    }
+}
+
 --enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
-helpers["SMITHING.researchPanel:Refresh"] = {
+helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     version = 6,
     locations = {
         [1] = SMITHING.researchPanel,
@@ -553,7 +440,18 @@ helpers["SMITHING.researchPanel:Refresh"] = {
                         local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
                         if expectedTypeFilter == self.typeFilter then
                             local itemTraitCounts = self:GenerateResearchTraitCounts(virtualInventoryList, craftingType, researchLineIndex, numTraits)
-                            local data = { craftingType = craftingType, researchLineIndex = researchLineIndex, name = name, icon = icon, numTraits = numTraits, timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs, researchingTraitIndex = researchingTraitIndex, areAllTraitsKnown = areAllTraitsKnown, itemTraitCounts = itemTraitCounts }
+                            local data = { 
+								name = name, 
+								icon = icon, 
+								numTraits = numTraits,
+								craftingType = craftingType, 
+								itemTraitCounts = itemTraitCounts,
+								areAllTraitsKnown = areAllTraitsKnown,
+								researchLineIndex = researchLineIndex,
+								researchingTraitIndex = researchingTraitIndex,
+								timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs
+							}
+							
                             self.researchLineList:AddEntry(data)
                         end
                     end
@@ -578,6 +476,89 @@ helpers["SMITHING.researchPanel:Refresh"] = {
         end,
     },
  }
+
+--enable LF_SMITHING_RESEARCH_DIALOG/LF_JEWELRY_RESEARCH_DIALOG smithing/jewelry
+helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
+    version = 1,
+    locations = {
+        [1] = ZO_SharedSmithingResearch
+    },
+    helper = {
+        funcName = "IsResearchableItem",
+        func = function(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+			-- get objectVar for LF_SMITHING_RESEARCH_DIALOG or LF_JEWELRY_RESEARCH_DIALOG
+            local base = SMITHING_RESEARCH_SELECT
+			
+			local function DoesNotBlockResearch(bagId, slotIndex)
+				return not IsItemPlayerLocked(bagId, slotIndex) and GetItemTraitInformation(bagId, slotIndex) ~= ITEM_TRAIT_INFORMATION_RETRAITED and GetItemTraitInformation(bagId, slotIndex) ~= ITEM_TRAIT_INFORMATION_RECONSTRUCTED
+			end
+
+			local function doesItemPassFilter(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+				return CanItemBeSmithingTraitResearched(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+						and DoesNotBlockResearch(bagId, slotIndex)
+			end
+			local result = doesItemPassFilter(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+        end,
+    }
+}
+
+local function doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+	return ZO_CraftingUtils_GetSmithingFilterFromItem(bagId, slotIndex) == filterType
+end
+
+--enable LF_RETRAIT
+helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
+    version = 2,
+    locations = {
+        [1] = _G
+    },
+    helper = {
+        funcName = "ZO_RetraitStation_DoesItemPassFilter",
+        func = function(bagId, slotIndex, filterType)
+            local base = ZO_RETRAIT_KEYBOARD
+			
+			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+        end,
+    }
+}
+
+--enable LF_SMITHING_REFINE/LF_JEWELRY_REFINE/LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT smithing/jewelry
+helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
+    version = 1,
+    locations = {
+        [1] = _G
+    },
+    helper = {
+        funcName = "ZO_SharedSmithingExtraction_DoesItemPassFilter",
+        func = function(bagId, slotIndex, filterType)
+			-- get objectVar for LF_SMITHING_REFINE or LF_JEWELRY_REFINE
+            local base = SMITHING.deconstructionPanel
+			
+			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+        end,
+    }
+}
+
+--enable LF_SMITHING_IMPROVEMENT/LF_JEWELRY_IMPROVEMENT smithing/jewelry
+helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
+    version = 1,
+    locations = {
+        [1] = _G
+    },
+    helper = {
+        funcName = "ZO_SharedSmithingImprovement_DoesItemPassFilter",
+        func = function(bagId, slotIndex, filterType)
+			-- get objectVar for LF_SMITHING_IMPROVEMENT or LF_JEWELRY_IMPROVEMENT
+            local base = SMITHING.improvementPanel
+			
+			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+        end,
+    }
+}
 
 ------------------------------------------------------------------------------------------------------------------------
  -- -^- KEYBOARD and GAMEPAD - shared
@@ -681,7 +662,6 @@ local function GetStolenItems(optFilterFunction, ...)
     end
     return unequippedItems
 end
--------------------
 
 --enable LF_VENDOR_BUY for gamepad mode
 local gamepad_Store_Buy = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list
@@ -937,176 +917,6 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
     },
 }
 
-
-local function getAdditionalFilterObjectFromGamepadEnchantingScene(enchantingMode)
-    local enchantingFilterType = enchantingModeToFilterType[enchantingMode]
-    if not enchantingFilterType then return end
---d(">>enchantingFilterType: " ..tostring(enchantingFilterType))
-    local enchantingScene = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][enchantingFilterType]
-    if not enchantingScene then return end
---d(">>enchantingScene: " ..tostring(enchantingScene.name))
-    return enchantingScene
-end
---enable LF_ALCHEMY_CREATION, LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION,
---  LF_SMITHING_REFINE, LF_JEWELRY_REFINE for gamepad mode
-helpers["GAMEPAD_ALCHEMY_ENCHANTING_SMITHING_Inventory:EnumerateInventorySlotsAndAddToScrollData"] = {
-    version = 1,
-    locations = {
-		[1] = ZO_GamepadAlchemyInventory,
-		[2] = ZO_GamepadEnchantingInventory,
-        [3] = ZO_GamepadExtractionInventory,
-    },
-    helper = {
-        funcName = "EnumerateInventorySlotsAndAddToScrollData",
-        func = function(self, predicate, filterFunction, filterType, data)
-            --self = GAMEPAD_ENCHANTING.inventory -> self.owner: GAMEPAD_ENCHANTING
-            --If we are at enchanting and the LibFilters filterType constant LF was not set via the scene callback yet
-            local enchantingMode
-            if self.owner == GAMEPAD_ENCHANTING and self.LibFilters3_filterType == nil then
-                enchantingMode = self.owner:GetEnchantingMode()
-                self.LibFilters3_filterType = enchantingModeToFilterType[enchantingMode]
-            end
-
-            local libFilters3FilterType = getCurrentFilterTypeForInventory(LibFilters3, self)
-            local isAlchemy     = libFilters3FilterType == LF_ALCHEMY_CREATION
-            local isEnchanting  = libFilters3FilterType == LF_ENCHANTING_CREATION
-            local isSmithing    = (libFilters3FilterType == LF_SMITHING_REFINE or libFilters3FilterType == LF_JEWELRY_REFINE)
---d(string.format("[LF3]GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData-libFilters3FilterType: %s, isAlchemy: %s, isEnchanting: %s, isSmithing: %s", tostring(libFilters3FilterType), tostring(isAlchemy), tostring(isEnchanting), tostring(isSmithing)))
-
-            --Enchanting? Get the actual enchantingMode, and the enchanting gamepad scene
-            local additionalFilterObject
-            if isEnchanting == true or libFilters3FilterType == LF_ENCHANTING_EXTRACTION or self.owner.GetEnchantingMode then
-                enchantingMode = enchantingMode or self.owner:GetEnchantingMode()
-                additionalFilterObject = getAdditionalFilterObjectFromGamepadEnchantingScene(enchantingMode)
-            else
-                additionalFilterObject = self
-            end
-
-            local oldPredicate = predicate
-            predicate = function(bagId, slotIndex)
-                local result = true
-				result = checkAndRundAdditionalFiltersBag(additionalFilterObject, bagId, slotIndex, result)
-                return result and oldPredicate(bagId, slotIndex)
-            end
-
-            -- Begin original function
-            local list = PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BACKPACK, predicate)
-            PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, list)
-            PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_CRAFT_BAG, predicate, list)
-
-            ZO_ClearTable(self.itemCounts)
-
-            local questSV, questItems
-            if isEnchanting == true then
-                questSV = self.savedVars.shouldFilterQuests
-                questItems = self.questRunes
-            elseif isAlchemy == true then
-                self.owner:UpdatePotentialQuestItems(list, self.alchemyQuestInfo)
-                questSV = self.savedVars.shouldFilterQuests
-                questItems = self.owner.questItems
-            elseif isSmithing == true then
-                questSV = nil
-                questItems = nil
-            end
-
-			local filteredDataTable = {}
-			for itemId, itemInfo in pairs(list) do
-				if not filterFunction or filterFunction(itemInfo.bag, itemInfo.index, filterType, questSV, questItems) then
-					filteredDataTable[#filteredDataTable + 1] = self:GenerateCraftingInventoryEntryData(itemInfo.bag, itemInfo.index, itemInfo.stack)
-				end
-				self.itemCounts[itemId] = itemInfo.stack
-			end
-			self:AddFilteredDataToList(filteredDataTable)
-			return list
-        end,
-    },
-}
-
---enable LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT for gamepad mode
-helpers["GAMEPAD_SMITHING_Extraction/Improvement_Inventory:GetIndividualInventorySlotsAndAddToScrollData"] = {
-    version = 1,
-    locations = {
-        [1] = ZO_GamepadExtractionInventory,
-        [2] = ZO_GamepadImprovementInventory,
-    },
-    helper = {
-        funcName = "GetIndividualInventorySlotsAndAddToScrollData",
-        func = function(self, predicate, filterFunction, filterType, data, useWornBag, excludeBankedItems)
-            local oldPredicate = predicate
-            predicate = function(itemData)
-                local result = true
-
-                result = checkAndRundAdditionalFiltersBag(self, itemData.bagId, itemData.slotIndex, result)
-
-                return oldPredicate(itemData) and result
-            end
-
-            -- Begin original function ZO_CraftingInventory:GetIndividualInventorySlotsAndAddToScrollData
-            --local bagsToUse = useWornBag and ZO_ALL_CRAFTING_INVENTORY_BAGS_AND_WORN or ZO_ALL_CRAFTING_INVENTORY_BAGS_WITHOUT_WORN
-            local bagsToUse = { BAG_BACKPACK }
-            if useWornBag then
-                table.insert(bagsToUse, BAG_WORN)
-            end
-            -- Expressly using double-negative here to maintain compatibility
-            if not excludeBankedItems then
-                table.insert(bagsToUse, BAG_BANK)
-                table.insert(bagsToUse, BAG_SUBSCRIBER_BANK)
-            end
-            local list = SHARED_INVENTORY:GenerateFullSlotData(predicate, unpack(bagsToUse))
-
-            ZO_ClearTable(self.itemCounts)
-
-			local filteredDataTable = {}
-			for i, slotData in ipairs(list) do
-				local bagId = slotData.bagId
-				local slotIndex = slotData.slotIndex
-				if not filterFunction or filterFunction(bagId, slotIndex, filterType) then
-					filteredDataTable[#filteredDataTable + 1] = self:GenerateCraftingInventoryEntryData(bagId, slotIndex, slotData.stackCount, slotData)
-				end
-				self.itemCounts[i] = slotData.stackCount
-			end
-			self:AddFilteredDataToList(filteredDataTable)
-			return list
-        end,
-    },
-}
-
---enable LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG for keyboard and gamepad mode --
-local origZO_SharedSmithingResearch_IsResearchableItem = ZO_SharedSmithingResearch.IsResearchableItem
-helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
-    version = 1,
-    locations = {
-        [1] = ZO_SharedSmithingResearch,
-    },
-    helper = {
-        funcName = "IsResearchableItem",
-        func = function(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
---d("ZO_SharedSmithingResearch.IsResearchableItem: " ..GetItemLink(bagId, slotIndex))
-            --Do original filters
-            local result = origZO_SharedSmithingResearch_IsResearchableItem(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
-
-            --If the gamepad research -> selected item for research scene is showing/shown
-            local gamePadMode = IsInGamepadPreferredMode()
-            if gamePadMode then
-                local sceneStatesAllowed = {
-                    [SCENE_SHOWING] = true,
-                    [SCENE_SHOWN]   = true,
-                }
-                local gpsmresc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
-                if gpsmresc and sceneStatesAllowed[gpsmresc:GetState()] then
-                    return checkAndRundAdditionalFiltersBag(gpsmresc, bagId, slotIndex, result)
-                end
-            else--if not gamePadMode then
-                local smReSe = SMITHING_RESEARCH_SELECT
-                if smReSe and not smReSe:IsHidden() then
-                    return checkAndRundAdditionalFiltersBag(smReSe, bagId, slotIndex, result)
-                end
-            end
-            return result
-        end
-    },
-}
-
 --enable LF_INVENTORY_COMPANION for gamepad mode
 helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not tested
     version = 1,
@@ -1133,7 +943,7 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
     },
 }
 
-local inventories =				PLAYER_INVENTORY.inventories
+local inventories = PLAYER_INVENTORY.inventories
 local bagList = { -- < rename?
 	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
 	[BAG_BANK]				= inventories[INVENTORY_BANK],
@@ -1165,7 +975,8 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 			local function doesItemPassFilter(questItemId)
 				local result = self:IsSlotInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
 				if result then
-					result = checkAndRundAdditionalFiltersBag(inventories[INVENTORY_QUEST_ITEM], ZO_QUEST_ITEMS_FILTER_BAG, questItemId, result)
+					local slotData = {bagId = ZO_QUEST_ITEMS_FILTER_BAG, slotIndex = questItemId}
+					result = checkAndRundAdditionalFilters(self.scene, slotData, result)
 				end
 				return result
 			end
@@ -1174,7 +985,7 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 		end
     },
 }
-
+--/script d(GAMEPAD_INVENTORY.questFilter)
 --enable LF_INVENTORY for gamepad mode
 helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
     version = 1,
@@ -1186,7 +997,8 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
         func = function(self, filteredEquipSlot, nonEquipableFilterType)
 --d( 'GAMEPAD_INVENTORY:GetItemDataFilterComparator')
 			return function(itemData)
-                if not checkAndRundAdditionalFilters(self, itemData, nil) then return end
+--				if not checkAndRundAdditionalFilters(self, itemData, nil) then return end
+				if not checkAndRundAdditionalFilters(bagList[BAG_BACKPACK], itemData, nil) then return end
                 if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
                     return false
                 end
@@ -1223,7 +1035,7 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
 					result = self.itemFilterFunction(slotData)
 				end
 				if result then
-                    result = checkAndRundAdditionalFilters(self, slotData, result)
+                    result = checkAndRundAdditionalFilters(bagList[inventoryType], slotData, result)
 				end
 				return result
 			end
@@ -1242,57 +1054,6 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
 		end
     },
 }
-
---]]
-
---[[
---enable LF_INVENTORY/LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG for gamepad mode
-helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = { -- not tested
-    version = 1,
-    locations = {
-        [1] = GAMEPAD_INVENTORY.itemList,
-        [2] = GAMEPAD_INVENTORY.craftBagList,
-        [3] = GAMEPAD_BANKING.depositList,
-        [4] = GAMEPAD_BANKING.withdrawList,
-        [5] = GAMEPAD_GUILD_BANK.depositList,
-        [6] = GAMEPAD_GUILD_BANK.withdrawList,
-        [7] = ZO_MailSend_Gamepad.inventoryList,
-    },
-    helper = {
-        funcName = "AddSlotDataToTable",
-        func = function(slotsTable, inventoryType, slotIndex)
---d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
-			local function shouldInclude(slotData)
-				local result = true
-				if self.itemFilterFunction then
-					result = self.itemFilterFunction(slotData)
-				end
-				if result then
-					local additionalFilter = self.additionalFilter or bagList[inventoryType].additionalFilter
-					if type(additionalFilter) == "function" then
-						result = additionalFilter(slotData)
-					end
-				end
-				return result
-			end
-			
-			
-			local itemFilterFunction = self.itemFilterFunction
-			local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
-			local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
-			
-			if slotData then
-				if shouldInclude(slotData) then
-					-- itemData is shared in several places and can write their own value of bestItemCategoryName.
-					-- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
-					slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
-					table.insert(slotsTable, slotData)
-				end
-			end
-		end
-    },
-}
---]]
 
 ------------------------------------------------------------------------------------------------------------------------
  -- -^- GAMEPAD ONLY

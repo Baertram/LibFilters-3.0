@@ -203,45 +203,43 @@ local inventories =				playerInv.inventories
 --Backpack
 local invBackpack =				inventories[invTypeBackpack]
 local invBackpackFragment =		BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
-local invBackpack_GP =			GAMEPAD_INVENTORY
-local invBank_GP = 				GAMEPAD_BANKING
-local invGuildBank_GP = 		GAMEPAD_GUILD_BANK
+local invBackpackFragment_GP =		BACKPACK_INVENTORY_GAMEPAD_FRAGMENT
+local invBackpack_GP =			GAMEPAD_INVENTORY				--
+local invBank_GP = 				GAMEPAD_BANKING					-- can remove not in use
+local invGuildBank_GP = 		GAMEPAD_GUILD_BANK				-- can remove not in use 
 
 --Craftbag
 local craftBagClass = 			ZO_CraftBag
 local invCraftbag =				inventories[invTypeCraftBag]
-local invCraftbag_GP =			inventories[invTypeCraftBag]
+local invCraftbag_GP =			inventories[invTypeCraftBag]		--remove using invCraftbag
 
 --Quest items
 local invQuests =				inventories[invTypeQuest]
-local invQuests_GP =			inventories[invTypeQuest]
+local invQuests_GP =			invBackpack_GP.scene				--remove using invQuests
 
 --Quickslots
 local quickslots =				QUICKSLOT_WINDOW
-local quickslots_GP =			GAMEPAD_QUICKSLOT
+local quickslots_GP =			GAMEPAD_QUICKSLOT					--remove does not exist for gamepad
 
 
 --[Banks]
 --Player bank
 local invBankDeposit =			BACKPACK_BANK_LAYOUT_FRAGMENT
---local invBankDeposit_GP =		GAMEPAD_BANKING.depositList
-local invBankDeposit_GP = 		BACKPACK_BANK_GAMEPAD_FRAGMENT
+local invBankDeposit_GP = 		BACKPACK_BANK_GAMEPAD_FRAGMENT		--
 local invBankWithdraw =			inventories[invTypeBank]
-local invBankWithdraw_GP =		invBank_GP.withdrawList
+local invBankWithdraw_GP =		invBank_GP.withdrawList				--remove using invBankWithdraw
 
 --Guild bank
 local invGuildBankDeposit =   	BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
---local invGuildBankDeposit_GP =	GAMEPAD_GUILD_BANK.depositList
-local invGuildBankDeposit_GP = 	BACKPACK_GUILD_BANK_GAMEPAD_FRAGMENT
+local invGuildBankDeposit_GP = 	BACKPACK_GUILD_BANK_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
 local invGuildBankWithdraw =	inventories[invTypeGuildBank]
-local invGuildBankWithdraw_GP = invGuildBank_GP.withdrawList
+local invGuildBankWithdraw_GP = invGuildBank_GP.withdrawList		--remove using invGuildBankWithdraw
 
 --House bank
 local invHouseBankDeposit = 	BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
---local invHouseBankDeposit_GP =	GAMEPAD_BANKING.depositList
-local invHouseBankDeposit_GP = 	BACKPACK_HOUSE_BANK_GAMEPAD_FRAGMENT    -- verify by getting scene name while using
+local invHouseBankDeposit_GP = 	BACKPACK_HOUSE_BANK_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
 local invHouseBankWithdraw =	inventories[invTypeHouseBank]
-local invHouseBankWithdraw_GP =	invBank_GP.withdrawList
+local invHouseBankWithdraw_GP =	invBank_GP.withdrawList 			--remove using invHouseBankWithdraw
 
 --[Vendor]
 ----Buy
@@ -273,23 +271,24 @@ local invFenceSell_GP =			ZO_GamepadFenceSell
 local guildStoreBuy 			--not supported by LibFilters yet
 local guildStoreBuy_GP			--not supported by LibFilters yet
 local guildStoreSell = 			BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
-local guildStoreSell_GP = 		BACKPACK_TRADING_HOUSE_GAMEPAD_FRAGMENT
+local guildStoreSell_GP = 		BACKPACK_TRADING_HOUSE_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
 
 
 --[Mail]
 local mailSend =				BACKPACK_MAIL_LAYOUT_FRAGMENT
-local mailSend_GP = 			BACKPACK_MAIL_GAMEPAD_FRAGMENT
+local mailSend_GP = 			BACKPACK_MAIL_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
 
 
 --[Player 2 player trade]
 local player2playerTrade = 		BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
-local player2playerTrade_GP = 	BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT
+local player2playerTrade_GP = 	BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
 
 
 --[Companion]
 local companionEquipment = 		COMPANION_EQUIPMENT_KEYBOARD
 local companionEquipment_GP = 	COMPANION_EQUIPMENT_GAMEPAD
 
+--[[testing combining filters for instances where self or other specific variable is not used or required to attain additionalFilter for correct LF_*
 
 --[Crafting]
 local smithing = 				SMITHING
@@ -326,7 +325,8 @@ local enchantingCreate_GP = 	GAMEPAD_ENCHANTING_CREATION_SCENE
 local enchantingExtract_GP = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 
 --Alchemy
-local alchemy = 				ALCHEMY
+--local alchemy = 				ALCHEMY
+local alchemy = 				ALCHEMY_SCENE
 local alchemy_GP = 				GAMEPAD_ALCHEMY
 
 --Retrait
@@ -337,11 +337,51 @@ local retrait_GP = 				ZO_RETRAIT_STATION_GAMEPAD
 --Reconstruction
 local reconstruct = 			ZO_RECONSTRUCT_KEYBOARD
 local reconstruct_GP = 			ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+]]
 
+--[Crafting]
+local smithing = 				SMITHING
+local smithing_GP = 			SMITHING_GAMEPAD
+
+--Refinement
+local refinementPanel =	  		smithing.refinementPanel
+
+--Create
+local creationPanel =	  		smithing.creationPanel	
+
+--Deconstruction
+local deconstructionPanel = 	smithing.deconstructionPanel
+local deconstructionPanel_GP = 	smithing_GP.deconstructionPanel
+
+--Improvement
+local improvementPanel =	 	smithing.improvementPanel
+
+--Research
+local researchPanel =		 	smithing.researchPanel
+local researchChooseItemDialog= SMITHING_RESEARCH_SELECT
+local researchPanel_GP =		smithing_GP.researchPanel
+local researchChooseItemDialog_GP= GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
+
+--Enchanting
+local enchantingCreate_GP = 	GAMEPAD_ENCHANTING_CREATION_SCENE
+local enchantingExtract_GP = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE
+
+--Alchemy
+--local alchemy = 				ALCHEMY
+local alchemy = 				ALCHEMY_SCENE
+
+--Retrait
+--local retraitClass =		  	 ZO_RetraitStation_Retrait_Base
+local retrait =				 	ZO_RETRAIT_KEYBOARD
+
+--Reconstruction
+local reconstruct = 			ZO_RECONSTRUCT_KEYBOARD
 
 ------------------------------------------------------------------------------------------------------------------------
 --MAPPING
 ------------------------------------------------------------------------------------------------------------------------
+													-- NOT calling additional functions for enchanting --
+
 --[Mapping for crafting]
 --Enchaning (used to determine the correct LF_* filterType constant at enchanting tables, as they share the same inventory
 --ENCHANTING.inventory. Gamepad mode uses different scenes for enchating creation and extraction so there are used
@@ -364,8 +404,8 @@ local standardSceneSpecialHookFunc = "HookAdditionalFilterSceneSpecial" --LibFil
 -->See mapping table table "LF_ConstantToAdditionalFilterControlSceneFragmentUserdata" below
 local LF_ConstantToAdditionalFilterSpecialHook = {
 	[LF_ENCHANTING_CREATION] = { --this will also apply the filters for LF_ENCHANTING_EXTRACTION
-		[false] = {funcName = standardSpecialHookFunc, 	params = {"enchanting"}}, --Keyboard mode
-		[true] 	= {funcName = standardSceneSpecialHookFunc, params = {"enchanting_GamePad"}},
+--		[false] = {funcName = standardSpecialHookFunc, 	params = {"enchanting"}}, --Keyboard mode
+--		[true] 	= {funcName = standardSceneSpecialHookFunc, params = {"enchanting_GamePad"}},
 	},
 	[LF_ENCHANTING_EXTRACTION] = {
 		--[false] = {}, --> See LF_ENCHANTING_CREATION above!
@@ -402,41 +442,41 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_GUILDSTORE_SELL]          = { guildStoreSell },
 		[LF_MAIL_SEND]                = { mailSend },
 		[LF_TRADE]                    = { player2playerTrade },
-		[LF_SMITHING_REFINE]          = { refinementPanel.inventory },
+		[LF_SMITHING_REFINE]          = { refinementPanel },
 		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel.inventory },
-		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel.inventory },
+		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel },
+		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel },
 		[LF_SMITHING_RESEARCH]        = { researchPanel },
 		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog },
-		[LF_JEWELRY_REFINE]           = { refinementPanel.inventory },
+		[LF_JEWELRY_REFINE]           = { refinementPanel },
 		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel.inventory },
-		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel.inventory },
+		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel },
+		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel },
 		[LF_JEWELRY_RESEARCH]         = { researchPanel },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog },
-		[LF_ALCHEMY_CREATION]         = { alchemy.inventory },
+		[LF_ALCHEMY_CREATION]         = { alchemy },
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_RETRAIT]                  = { retrait },
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
-		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
-		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
+--		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
+--		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
 	},
 
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY]                = { invBackpack_GP },
+		[LF_INVENTORY]                = { invBackpackFragment_GP },
 		[LF_INVENTORY_QUEST]          = { invQuests_GP },
-		[LF_CRAFTBAG]                 = { invCraftbag_GP },
+		[LF_CRAFTBAG]                 = { invCraftbag_GP },	--using inventories[invType]
 		[LF_INVENTORY_COMPANION]      = { companionEquipment_GP },
-		[LF_QUICKSLOT]                = { quickslots_GP },
-		[LF_BANK_WITHDRAW]            = { invBankWithdraw_GP },
-		[LF_BANK_DEPOSIT]             = { invBankDeposit_GP },
-		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw_GP },
-		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit_GP },
-		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw_GP },
-		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit_GP },
+--		[LF_QUICKSLOT]                = { quickslots_GP }, --not in gamepad mode
+		[LF_BANK_WITHDRAW]            = { invBankWithdraw_GP },	--using inventories[invType]
+		[LF_BANK_DEPOSIT]             = { invBankDeposit_GP },	--using inventories[invType]
+		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw_GP },	--using inventories[invType]
+		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit_GP },	--using inventories[invType]
+		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw_GP },	--using inventories[invType]
+		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit_GP },	--using inventories[invType]
 		[LF_VENDOR_BUY]               = { vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { vendorSell_GP },
 		[LF_VENDOR_BUYBACK]           = { vendorBuyBack_GP },
@@ -444,29 +484,29 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_FENCE_SELL]               = { invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { invFenceLaunder_GP },
 		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_GUILDSTORE_SELL]          = { guildStoreSell_GP },
+		[LF_GUILDSTORE_SELL]          = { guildStoreSell_GP },	--using inventories[invType]
 		[LF_MAIL_SEND]                = { mailSend_GP },
 		[LF_TRADE]                    = { player2playerTrade_GP },
-		[LF_SMITHING_REFINE]          = { refinementPanel_GP.inventory },
-		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel_GP.inventory },
-		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel_GP.inventory },
+--		[LF_SMITHING_REFINE]          = { refinementPanel_GP },
+--		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel_GP },
+--		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel_GP },
 		[LF_SMITHING_RESEARCH]        = { researchPanel_GP },
 		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog_GP },
-		[LF_JEWELRY_REFINE]           = { refinementPanel_GP.inventory },
-		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel_GP.inventory },
-		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel_GP.inventory },
+--		[LF_JEWELRY_REFINE]           = { refinementPanel_GP },
+--		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel_GP },
+--		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel_GP },
 		[LF_JEWELRY_RESEARCH]         = { researchPanel_GP },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP },
-		[LF_ALCHEMY_CREATION]         = { alchemy_GP.inventory },
+--		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP },
+--		[LF_ALCHEMY_CREATION]         = { alchemy_GP },
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_RETRAIT]                  = { retrait_GP },
+--		[LF_RETRAIT]                  = { retrait_GP },
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
-		--[LF_ENCHANTING_CREATION]	  = {enchantingCreate_GP},
-		--[LF_ENCHANTING_EXTRACTION]    = {enchantingExtract_GP},
+		 [LF_ENCHANTING_CREATION]	  = {enchantingCreate_GP},
+		 [LF_ENCHANTING_EXTRACTION]    = {enchantingExtract_GP},
 
 	},
 }
@@ -934,6 +974,7 @@ function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	------------------------------------------------------------------------------------------------------------------------
 	--Should the LF constant be hooked by any special function of LibFilters?
 	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
+	--[[
 	local inventoriesToHookForLFConstant
 	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterLFConstant]
 	if hookSpecialFunctionDataOfLFConstant ~= nil then
@@ -956,7 +997,7 @@ function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		end
 	end
 	inventoriesToHookForLFConstant = nil
-
+--]]
 	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
 	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
 	--the .additionalFilter to the correct gamepad enchanting inventory
