@@ -16,7 +16,6 @@
 ------------------------------------------------------------------------------------------------------------------------
 -- Local speed-up variables
 ------------------------------------------------------------------------------------------------------------------------
-local SM = SCENE_MANAGER
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -28,11 +27,12 @@ local libFilters = LibFilters3
 --Overall constants
 local constants = 					libFilters.constants
 local inventoryTypes = 				constants.inventoryTypes
-local playerInventoryType = inventoryTypes["player"] -- INVENTORY_BACKPACK
+local playerInventoryType = 		inventoryTypes["player"] -- INVENTORY_BACKPACK
+local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 
 --Keyboard
 local keyboardConstants = 			constants.keyboard
-local palyerInventory = keyboardConstants.playerInv
+local palyerInventory = 			keyboardConstants.playerInv
 
 --Gamepad
 local gamepadConstants = 			constants.gamepad
@@ -161,14 +161,24 @@ _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDe
 -- Add the created fragments to the LibFilters gamepad fragment constants so they are not nil anymore in
 -- LibFilters-3.0.lua. See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
 ------------------------------------------------------------------------------------------------------------------------
-local customFragmentsUpdteRef = libFilters.constants.gamepad.customFragments
-customFragmentsUpdteRef[LF_INVENTORY].fragment = 			gamepadLibFiltersInventoryDepositFragment
-customFragmentsUpdteRef[LF_BANK_DEPOSIT].fragment = 		gamepadLibFiltersBankDepositFragment
-customFragmentsUpdteRef[LF_GUILD_BANK_DEPOSIT].fragment = 	gamepadLibFiltersGuildBankDepositFragment
-customFragmentsUpdteRef[LF_HOUSE_BANK_DEPOSIT].fragment = 	gamepadLibFiltersHouseBankDepositFragment
-customFragmentsUpdteRef[LF_GUILD_STORE_SELL].fragment = 	gamepadLibFiltersGuildStoreSellFragment
-customFragmentsUpdteRef[LF_MAIL_SEND].fragment = 			gamepadLibFiltersMaiLSendFragment
-customFragmentsUpdteRef[LF_TRADE].fragment = 				gamepadLibFiltersPlayerTradeFragment
+local customFragmentsUpdateRef                           = libFilters.constants.gamepad.customFragments
+customFragmentsUpdateRef[LF_INVENTORY].fragment          = gamepadLibFiltersInventoryDepositFragment
+customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment       = gamepadLibFiltersBankDepositFragment
+customFragmentsUpdateRef[LF_GUILD_BANK_DEPOSIT].fragment = gamepadLibFiltersGuildBankDepositFragment
+customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment = gamepadLibFiltersHouseBankDepositFragment
+customFragmentsUpdateRef[LF_GUILD_STORE_SELL].fragment   = gamepadLibFiltersGuildStoreSellFragment
+customFragmentsUpdateRef[LF_MAIL_SEND].fragment          = gamepadLibFiltersMaiLSendFragment
+customFragmentsUpdateRef[LF_TRADE].fragment              = gamepadLibFiltersPlayerTradeFragment
+--Update the table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata for the gamepad mode fragments
+-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_INVENTORY] 			= { gamepadLibFiltersInventoryDepositFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_BANK_DEPOSIT] 		= { gamepadLibFiltersBankDepositFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILD_BANK_DEPOSIT] 	= { gamepadLibFiltersGuildBankDepositFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_HOUSE_BANK_DEPOSIT] 	= { gamepadLibFiltersHouseBankDepositFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILD_STORE_SELL] 	= { gamepadLibFiltersGuildStoreSellFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_MAIL_SEND] 			= { gamepadLibFiltersMaiLSendFragment }
+LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_TRADE] 				= { gamepadLibFiltersPlayerTradeFragment }
+
 
 
 ------------------------------------------------------------------------------------------------------------------------

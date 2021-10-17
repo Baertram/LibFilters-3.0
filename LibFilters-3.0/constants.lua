@@ -150,6 +150,7 @@ local inventories = keyboardConstants.inventories
 
 --Backpack
 keyboardConstants.invBackpack  = 				inventories[invTypeBackpack]
+local invBackpack = keyboardConstants.invBackpack
 keyboardConstants.invBackpackFragment  = 		BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
 
 --Craftbag
@@ -252,7 +253,6 @@ keyboardConstants.reconstruct = 				ZO_RECONSTRUCT_KEYBOARD
 --[Inventories]
 
 --Backpack
-local invBackpack =								inventories[invTypeBackpack]
 gamepadConstants.invBackpack_GP =				GAMEPAD_INVENTORY
 gamepadConstants.invBank_GP = 					GAMEPAD_BANKING
 gamepadConstants.invGuildBank_GP = 				GAMEPAD_GUILD_BANK
@@ -358,7 +358,9 @@ gamepadConstants.alchemy = 						ALCHEMY_SCENE
 -->They will be nil here at the time constant.lua is parsed as the custom gamepad fragments were not created yet!
 --> The file /Gamepad/gamepadCustomFragments.lua needs some constants fo this file first!
 ---->But they will be added later to the constants table "gamepadConstants", as they were created in file
----->/Gamepad/gamepadCustomFragments.lua
+---->/Gamepad/gamepadCustomFragments.lua table customFragmentsUpdateRef
+-->Important: The variables are updated to table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata,
+-->which is used for libFilters:HookAdditionalFilters!
 --[[
 local invBackpackFragment_GP =	nil --customFragments_GP[LF_INVENTORY].fragment
 local invBankDeposit_GP = 		nil --customFragments_GP[LF_BANK_DEPOSIT].fragment
@@ -386,8 +388,8 @@ local enchantingModeToFilterType = {
 libFilters.enchantingModeToFilterType = enchantingModeToFilterType
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
-local standardSpecialHookFunc = "HookAdditionalFilterSpecial" --LibFilters:HookAdditionalFilterSpecial
-local standardSceneSpecialHookFunc = "HookAdditionalFilterSceneSpecial" --LibFilters:HookAdditionalFilterSceneSpecial
+local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
+local standardSceneSpecialHookFunc = 	"HookAdditionalFilterSceneSpecial"	--LibFilters:HookAdditionalFilterSceneSpecial
 
 -->The mapping between the LF_* filterType constant and a LibFilters function name (funcName of _G["LibFilters"])
 -->plus the parameters to pass to the function
@@ -410,6 +412,8 @@ libFilters.LF_ConstantToAdditionalFilterSpecialHook = LF_ConstantToAdditionalFil
 -->the control, scene, fragment, userdata to use to store the .additionalFilters table addition to.
 -->The controls/fregments/scenes can be many. Each entry in the value table will be applying .additionalFilters
 -->Used in function LibFilters:HookAdditionalFilter(filterType_LF_Constant)
+--> This table's gamepad entries of some fragments (custom created ones!) will be updated via file
+--> /Gamepad/gamepadCustomFragments.lua,
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 	--Keyboard mode
 	[false] = {
@@ -458,17 +462,17 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY]                = { gamepadConstants.invBackpackFragment_GP },
+		[LF_INVENTORY]                = {  }, --Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
 		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },	--using inventories[invType]
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
 --		[LF_QUICKSLOT]                = { quickslots_GP }, --not in gamepad mode
 		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },	--using inventories[invType]
-		[LF_BANK_DEPOSIT]             = { gamepadConstants.invBankDeposit_GP },	--using inventories[invType]
+		[LF_BANK_DEPOSIT]             = {  },		--Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },	--using inventories[invType]
-		[LF_GUILDBANK_DEPOSIT]        = { gamepadConstants.invGuildBankDeposit_GP },	--using inventories[invType]
+		[LF_GUILDBANK_DEPOSIT]        = {  },	--Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },	--using inventories[invType]
-		[LF_HOUSE_BANK_DEPOSIT]       = { gamepadConstants.invHouseBankDeposit_GP },	--using inventories[invType]
+		[LF_HOUSE_BANK_DEPOSIT]       = {  },	--Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_VENDOR_BUY]               = { gamepadConstants.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gamepadConstants.vendorSell_GP },
 		[LF_VENDOR_BUYBACK]           = { gamepadConstants.vendorBuyBack_GP },
@@ -476,9 +480,9 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_FENCE_SELL]               = { gamepadConstants.invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { gamepadConstants.invFenceLaunder_GP },
 		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_GUILDSTORE_SELL]          = { gamepadConstants.guildStoreSell_GP },	--using inventories[invType]
-		[LF_MAIL_SEND]                = { gamepadConstants.mailSend_GP },
-		[LF_TRADE]                    = { gamepadConstants.player2playerTrade_GP },
+		[LF_GUILDSTORE_SELL]          = { },		--Updated in file /gamepad/gamepadCustomFragments.lua
+		[LF_MAIL_SEND]                = { },			--Updated in file /gamepad/gamepadCustomFragments.lua
+		[LF_TRADE]                    = {  },			--Updated in file /gamepad/gamepadCustomFragments.lua
 --		[LF_SMITHING_REFINE]          = { refinementPanel_GP },
 --		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = { gamepadConstants.deconstructionPanel_GP },
