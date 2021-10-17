@@ -28,7 +28,8 @@ local libFilters = LibFilters3
 local constants = 					libFilters.constants
 local inventoryTypes = 				constants.inventoryTypes
 local playerInventoryType = 		inventoryTypes["player"] -- INVENTORY_BACKPACK
-local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local mapping = 					libFilters.mapping
+local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 
 --Keyboard
 local keyboardConstants = 			constants.keyboard

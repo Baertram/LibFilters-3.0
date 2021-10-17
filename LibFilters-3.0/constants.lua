@@ -87,7 +87,7 @@ for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 	--Create empty table for each filter constant LF_*
 	filters[_G[filterConstantName]] = {}
 end
-libFilters.filterTypes = libFiltersFilterConstants
+libFilters.FilterTypes = libFiltersFilterConstants
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN					= LF_INVENTORY
@@ -375,6 +375,9 @@ local player2playerTrade_GP = 	nil --[customFragments_GP[LF_TRADE].fragment
 ------------------------------------------------------------------------------------------------------------------------
 --MAPPING
 ------------------------------------------------------------------------------------------------------------------------
+libFilters.mapping = {}
+local mapping = libFilters.mapping
+
 --[Mapping for crafting]
 --Enchaning (used to determine the correct LF_* filterType constant at enchanting tables, as they share the same inventory
 --ENCHANTING.inventory. Gamepad mode uses different scenes for enchating creation and extraction so there are used
@@ -385,7 +388,7 @@ local enchantingModeToFilterType = {
 	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
 	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
 }
-libFilters.enchantingModeToFilterType = enchantingModeToFilterType
+mapping.EnchantingModeToFilterType = enchantingModeToFilterType
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
@@ -410,7 +413,7 @@ local LF_ConstantToAdditionalFilterSpecialHook = {
 	},
 	]]
 }
-libFilters.LF_ConstantToAdditionalFilterSpecialHook = LF_ConstantToAdditionalFilterSpecialHook
+mapping.LF_ConstantToAdditionalFilterSpecialHook = LF_ConstantToAdditionalFilterSpecialHook
 
 --[Mapping GamePad/Keyboard control/scene/fragment/userdate/etc. .additionalFilter entry to the LF_* constant]
 -->This table contains the mapping between GamePad and Keyboard mode, and the LibFilters constant LF_* to
@@ -542,7 +545,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_ENCHANTING_EXTRACTION]    = {gamepadConstants.enchantingExtract_GP},
 	},
 }
-libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 
 --[Mapping for update of inventories]
 --The fixed updater names for the LibFilters unique updater string -> See table inventoryUpdaters below -> The key is
@@ -564,6 +567,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION"
 }
+mapping.FilterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -608,6 +612,7 @@ local filterTypeToUpdaterNameDynamic = {
 		  [LF_ENCHANTING_EXTRACTION]=true,
 	 },
 }
+mapping.FilterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
 --The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
 local filterTypeToUpdaterName = {}
 --Add the fixed updaterNames of the filtertypes
@@ -622,5 +627,5 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 		  end
 	 end
 end
-libFilters.FilterTypeToUpdaterName = filterTypeToUpdaterName
+mapping.FilterTypeToUpdaterName = filterTypeToUpdaterName
 

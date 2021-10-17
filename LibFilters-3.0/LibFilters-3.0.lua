@@ -31,7 +31,8 @@ local IsGamepad = IsInGamepadPreferredMode
 --LibFilters local speedup and reference variables
 --Overall constants
 local constants = 					libFilters.constants
-local libFiltersFilterConstants = 	libFilters.filterTypes
+local mapping = 					libFilters.mapping
+local libFiltersFilterConstants = 	libFilters.FilterTypes
 local inventoryTypes = 				constants.inventoryTypes
 local invTypeBackpack = 			inventoryTypes["player"]
 local invTypeQuest =				inventoryTypes["quest"]
@@ -40,10 +41,10 @@ local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
 
-local enchantingModeToFilterType = 	libFilters.enchantingModeToFilterType
-local filterTypeToUpdaterName = 	libFilters.FilterTypeToUpdaterName
-local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
-local LF_ConstantToAdditionalFilterSpecialHook = 					libFilters.LF_ConstantToAdditionalFilterSpecialHook
+local enchantingModeToFilterType = 	mapping.EnchantingModeToFilterType
+local filterTypeToUpdaterName = 	mapping.FilterTypeToUpdaterName
+local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
 
 --Keyboard
 local keyboardConstants = 			constants.keyboard
@@ -183,7 +184,7 @@ local inventoryUpdaters = {
 		if IsGamepad() then
 			updateGamepadInventoryList(gamepadConstants.invBackpack_GP)
 		else
-			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeBackpack)
+			updateKeyboardPlayerInventoryType(invTypeBackpack)
 		end
 	end,
 	INVENTORY_COMPANION = function()
@@ -197,14 +198,14 @@ local inventoryUpdaters = {
 		if IsGamepad() then
 			gamepadConstants.invBackpack_GP:RefreshCraftBagList()
 		else
-			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeCraftBag)
+			updateKeyboardPlayerInventoryType(invTypeCraftBag)
 		end
 	end,
 	INVENTORY_QUEST = function()
 		if IsGamepad() then
 			--TODO
 		else
-			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeQuest)
+			updateKeyboardPlayerInventoryType(invTypeQuest)
 		end
 	end,
 	QUICKSLOT = function()
@@ -218,21 +219,21 @@ local inventoryUpdaters = {
 		if IsGamepad() then
 			updateGamepadInventoryList(gamepadConstants.invBankWithdraw_GP)
 		else
-			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeBank)
+			updateKeyboardPlayerInventoryType(invTypeBank)
 		end
 	end,
 	GUILDBANK_WITHDRAW = function()
 		if IsGamepad() then
 			updateGamepadInventoryList(gamepadConstants.invGuildBankWithdraw_GP)
 		else
-			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeGuildBank)
+			updateKeyboardPlayerInventoryType(invTypeGuildBank)
 		end
 	end,
 	HOUSE_BANK_WITHDRAW = function()
 		if IsGamepad() then
 			updateGamepadInventoryList(gamepadConstants.invHouseBankWithdraw_GP)
 		else
-			updateKeyboardPlayerInventoryType(keyboardConstants.invTypeHouseBank)
+			updateKeyboardPlayerInventoryType(invTypeHouseBank)
 		end
 	end,
 	VENDOR_BUY = function()
@@ -724,7 +725,7 @@ end
 --**********************************************************************************************************************
 -- Filter update
 function libFilters:RequestUpdate(filterType)
---d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
+d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
 	 local updaterName = filterTypeToUpdaterName[filterType]
 	 if not updaterName or updaterName == "" then
 		  dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tos(filterType))
