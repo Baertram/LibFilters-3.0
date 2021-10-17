@@ -30,13 +30,13 @@ Looks like the code that's specific to the repair window is being executed outsi
 --	 all of sudden no items are shown anymore.
 
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.0
+local libFilters = LibFilters3
+local MAJOR      = libFilters.name
+local filters    = libFilters.filters
 
---Was the library loaded already?
-if _G[GlobalLibName] ~= nil then return end
 
 ------------------------------------------------------------------------------------------------------------------------
---LOCAL SPEED UP VARIABLE REFERENCES
+--LOCAL SPEED UP VARIABLES & REFERENCES
 ------------------------------------------------------------------------------------------------------------------------
 --lua API functions
 local tos = tostring
@@ -48,34 +48,35 @@ local EM = EVENT_MANAGER
 local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
 
---LibFilters local speedup
+--LibFilters local speedup and reference variables
+local constants = libFilters.constants
+local keyboardConstants = libFilters.constants.keyboard
+local gamepadConstants = libFilters.constants.gamepad
+local libFiltersFilterConstants = libFilters.filterTypes
+local customFragments = gamepadConstants.customFragments
+
+--Local pre-defiend function name
 local hookAdditionalFilter
 
 
 ------------------------------------------------------------------------------------------------------------------------
---LIBRARY VARIABLES
+--HOOK state variables
 ------------------------------------------------------------------------------------------------------------------------
---Local library variable
-local LibFilters = {}
-LibFilters.filters = {}
-local filters = LibFilters.filters
-LibFilters.isInitialized = false
-
---Global library constant
-_G[GlobalLibName]	= LibFilters
-LibFilters.name	  = MAJOR
-LibFilters.version  = MINOR
+--Special hooks
+local specialHooksDone = {
+	 ["enchanting"] = false,
+}
 
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
 ------------------------------------------------------------------------------------------------------------------------
 --LibDebugLogger
 if LibDebugLogger then
-	 if not not LibFilters.logger then
-		  LibFilters.logger = LibDebugLogger(MAJOR)
+	 if not not libFilters.logger then
+		  libFilters.logger = LibDebugLogger(MAJOR)
 	 end
 end
-local logger = LibFilters.logger
+local logger = libFilters.logger
 
 --Debugging output
 local function debugMessage(text, textType)
@@ -117,489 +118,6 @@ end
 local function dfe(...)
 	debugMessageCaller('E', ...)
 end
-
-------------------------------------------------------------------------------------------------------------------------
---LF_* FILTER PANEL IDS
-------------------------------------------------------------------------------------------------------------------------
--- LibFilters filterPanel constants [value number] = "name"
---The possible libFilters filterPanelIds
-local libFiltersFilterConstants = {
-	 [1]	= "LF_INVENTORY",
-	 [2]	= "LF_BANK_WITHDRAW",
-	 [3]	= "LF_BANK_DEPOSIT",
-	 [4]	= "LF_GUILDBANK_WITHDRAW",
-	 [5]	= "LF_GUILDBANK_DEPOSIT",
-	 [6]	= "LF_VENDOR_BUY",
-	 [7]	= "LF_VENDOR_SELL",
-	 [8]	= "LF_VENDOR_BUYBACK",
-	 [9]	= "LF_VENDOR_REPAIR",
-	 [10]  	= "LF_GUILDSTORE_BROWSE",
-	 [11]  	= "LF_GUILDSTORE_SELL",
-	 [12]  	= "LF_MAIL_SEND",
-	 [13]  	= "LF_TRADE",
-	 [14]  	= "LF_SMITHING_REFINE",
-	 [15]  	= "LF_SMITHING_CREATION",
-	 [16]  	= "LF_SMITHING_DECONSTRUCT",
-	 [17]  	= "LF_SMITHING_IMPROVEMENT",
-	 [18]  	= "LF_SMITHING_RESEARCH",
-	 [19]  	= "LF_ALCHEMY_CREATION",
-	 [20]  	= "LF_ENCHANTING_CREATION",
-	 [21]  	= "LF_ENCHANTING_EXTRACTION",
-	 [22]  	= "LF_PROVISIONING_COOK",
-	 [23]  	= "LF_PROVISIONING_BREW",
-	 [24]  	= "LF_FENCE_SELL",
-	 [25]  	= "LF_FENCE_LAUNDER",
-	 [26]  	= "LF_CRAFTBAG",
-	 [27]  	= "LF_QUICKSLOT",
-	 [28]  	= "LF_RETRAIT",
-	 [29]  	= "LF_HOUSE_BANK_WITHDRAW",
-	 [30]  	= "LF_HOUSE_BANK_DEPOSIT",
-	 [31]  	= "LF_JEWELRY_REFINE",
-	 [32]  	= "LF_JEWELRY_CREATION",
-	 [33]  	= "LF_JEWELRY_DECONSTRUCT",
-	 [34]  	= "LF_JEWELRY_IMPROVEMENT",
-	 [35]  	= "LF_JEWELRY_RESEARCH",
-	 [36]  	= "LF_SMITHING_RESEARCH_DIALOG",
-	 [37]  	= "LF_JEWELRY_RESEARCH_DIALOG",
-	 [38]  	= "LF_INVENTORY_QUEST",
-	 [39]  	= "LF_INVENTORY_COMPANION",
-	 --Add new lines here and make sure you also take care of the control of the inventory needed in tables "LibFilters.filters",
-	 --the updater name in table "filterTypeToUpdaterName*" and updaterFunction in table "inventoryUpdaters",
-	 --as well as the way to hook to the inventory.additionalFilters in function "HookAdditionalFilters",
-	 --or via a fragment in table "fragmentToFilterType",
-	 --and maybe an overwritten "filter enable function" (which respects the entries of the added additionalFilters) in
-	 --file "helpers.lua"
-	 --[<number constant>] = "LF_...",
-}
---register the filterConstants for the filterpanels in the global table _G
-for value, filterConstantName in ipairs(libFiltersFilterConstants) do
-	 _G[filterConstantName] = value
-
-	--Create empty table for each filter constant LF_*
-	filters[_G[filterConstantName]] = {}
-end
-LibFilters.filterTypes = libFiltersFilterConstants
-
---Get the min and max filterPanelIds
-LF_FILTER_MIN					= LF_INVENTORY
-LF_FILTER_MAX					= #libFiltersFilterConstants
-
-
-------------------------------------------------------------------------------------------------------------------------
---CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
-------------------------------------------------------------------------------------------------------------------------
---[Inventory types]
-local invTypeBackpack =			INVENTORY_BACKPACK
-local invTypeQuest = 			INVENTORY_QUEST_ITEM
-local invTypeBank =				INVENTORY_BANK
-local invTypeGuildBank =		INVENTORY_GUILD_BANK
-local invTypeHouseBank =		INVENTORY_HOUSE_BANK
-local invTypeCraftBag = 		INVENTORY_CRAFT_BAG
-
---[Inventories]
-local playerInv = 		    	PLAYER_INVENTORY
-local inventories =				playerInv.inventories
-
---Backpack
-local invBackpack =				inventories[invTypeBackpack]
-local invBackpackFragment =		BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
-local invBackpackFragment_GP =		BACKPACK_INVENTORY_GAMEPAD_FRAGMENT
-local invBackpack_GP =			GAMEPAD_INVENTORY				--
-local invBank_GP = 				GAMEPAD_BANKING					-- can remove not in use
-local invGuildBank_GP = 		GAMEPAD_GUILD_BANK				-- can remove not in use 
-
---Craftbag
-local craftBagClass = 			ZO_CraftBag
-local invCraftbag =				inventories[invTypeCraftBag]
-local invCraftbag_GP =			inventories[invTypeCraftBag]		--remove using invCraftbag
-
---Quest items
-local invQuests =				inventories[invTypeQuest]
-local invQuests_GP =			invBackpack_GP.scene				--remove using invQuests
-
---Quickslots
-local quickslots =				QUICKSLOT_WINDOW
-local quickslots_GP =			GAMEPAD_QUICKSLOT					--remove does not exist for gamepad
-
-
---[Banks]
---Player bank
-local invBankDeposit =			BACKPACK_BANK_LAYOUT_FRAGMENT
-local invBankDeposit_GP = 		BACKPACK_BANK_GAMEPAD_FRAGMENT		--
-local invBankWithdraw =			inventories[invTypeBank]
-local invBankWithdraw_GP =		invBank_GP.withdrawList				--remove using invBankWithdraw
-
---Guild bank
-local invGuildBankDeposit =   	BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
-local invGuildBankDeposit_GP = 	BACKPACK_GUILD_BANK_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
-local invGuildBankWithdraw =	inventories[invTypeGuildBank]
-local invGuildBankWithdraw_GP = invGuildBank_GP.withdrawList		--remove using invGuildBankWithdraw
-
---House bank
-local invHouseBankDeposit = 	BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
-local invHouseBankDeposit_GP = 	BACKPACK_HOUSE_BANK_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
-local invHouseBankWithdraw =	inventories[invTypeHouseBank]
-local invHouseBankWithdraw_GP =	invBank_GP.withdrawList 			--remove using invHouseBankWithdraw
-
---[Vendor]
-----Buy
-local store =					STORE_WINDOW
-local store_GP = 				STORE_WINDOW_GAMEPAD
-local vendorBuy_GP = 			ZO_GamepadStoreBuy 			--store_GP.components[ZO_MODE_STORE_BUY].list
----Sell
-local vendorSell = 				BACKPACK_STORE_LAYOUT_FRAGMENT
-local vendorSell_GP = 			ZO_GamepadStoreSell 		--store_GP.components[ZO_MODE_STORE_SELL].list
----Buy back
-local vendorBuyBack =			BUY_BACK_WINDOW
-local vendorBuyBack_GP = 		ZO_GamepadStoreBuyback 		--store_GP.components[ZO_MODE_STORE_BUY_BACK].list
----Repair
-local vendorRepair =			REPAIR_WINDOW
-local vendorRepair_GP =			ZO_GamepadStoreRepair 		--store_GP.components[ZO_MODE_STORE_REPAIR].list
-
-
---[Fence]
---Fence launder
-local invFenceLaunder =			BACKPACK_LAUNDER_LAYOUT_FRAGMENT
-local invFenceLaunder_GP =		ZO_GamepadFenceLaunder
-
---Fence sell
-local invFenceSell = 			BACKPACK_FENCE_LAYOUT_FRAGMENT
-local invFenceSell_GP =			ZO_GamepadFenceSell
-
-
---[Guild store]
-local guildStoreBuy 			--not supported by LibFilters yet
-local guildStoreBuy_GP			--not supported by LibFilters yet
-local guildStoreSell = 			BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
-local guildStoreSell_GP = 		BACKPACK_TRADING_HOUSE_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
-
-
---[Mail]
-local mailSend =				BACKPACK_MAIL_LAYOUT_FRAGMENT
-local mailSend_GP = 			BACKPACK_MAIL_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
-
-
---[Player 2 player trade]
-local player2playerTrade = 		BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
-local player2playerTrade_GP = 	BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT	-- can remove. the fragment is setting inventory to correct filter
-
-
---[Companion]
-local companionEquipment = 		COMPANION_EQUIPMENT_KEYBOARD
-local companionEquipment_GP = 	COMPANION_EQUIPMENT_GAMEPAD
-
---[[testing combining filters for instances where self or other specific variable is not used or required to attain additionalFilter for correct LF_*
-
---[Crafting]
-local smithing = 				SMITHING
-local smithing_GP = 			SMITHING_GAMEPAD
-
---Refinement
-local refinementPanel =	  		smithing.refinementPanel
-local refinementPanel_GP =	  	smithing_GP.refinementPanel
-
---Create
-local creationPanel =	  		smithing.creationPanel		---not "officially" supported by LibFilters yet
-local creationPanel_GP =	  	smithing_GP.creationPanel	---not "officially" supported by LibFilters yet
-
---Deconstruction
-local deconstructionPanel = 	smithing.deconstructionPanel
-local deconstructionPanel_GP = 	smithing_GP.deconstructionPanel
-
---Improvement
-local improvementPanel =	 	smithing.improvementPanel
-local improvementPanel_GP =	 	smithing_GP.improvementPanel
-
---Research
-local researchPanel =		 	smithing.researchPanel
-local researchChooseItemDialog= SMITHING_RESEARCH_SELECT
-local researchPanel_GP =		smithing_GP.researchPanel
-local researchChooseItemDialog_GP= GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
-
---Enchanting
-local enchantingClass =	  		ZO_Enchanting
-local enchantingClass_GP = 		ZO_GamepadEnchanting
-local enchanting =			 	ENCHANTING
-local enchanting_GP = 			GAMEPAD_ENCHANTING
-local enchantingCreate_GP = 	GAMEPAD_ENCHANTING_CREATION_SCENE
-local enchantingExtract_GP = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE
-
---Alchemy
---local alchemy = 				ALCHEMY
-local alchemy = 				ALCHEMY_SCENE
-local alchemy_GP = 				GAMEPAD_ALCHEMY
-
---Retrait
---local retraitClass =		  	 ZO_RetraitStation_Retrait_Base
-local retrait =				 	ZO_RETRAIT_KEYBOARD
-local retrait_GP = 				ZO_RETRAIT_STATION_GAMEPAD
-
---Reconstruction
-local reconstruct = 			ZO_RECONSTRUCT_KEYBOARD
-local reconstruct_GP = 			ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
-]]
-
---[Crafting]
-local smithing = 				SMITHING
-local smithing_GP = 			SMITHING_GAMEPAD
-
---Refinement
-local refinementPanel =	  		smithing.refinementPanel
-
---Create
-local creationPanel =	  		smithing.creationPanel	
-
---Deconstruction
-local deconstructionPanel = 	smithing.deconstructionPanel
-local deconstructionPanel_GP = 	smithing_GP.deconstructionPanel
-
---Improvement
-local improvementPanel =	 	smithing.improvementPanel
-
---Research
-local researchPanel =		 	smithing.researchPanel
-local researchChooseItemDialog= SMITHING_RESEARCH_SELECT
-local researchPanel_GP =		smithing_GP.researchPanel
-local researchChooseItemDialog_GP= GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
-
---Enchanting
-local enchantingCreate_GP = 	GAMEPAD_ENCHANTING_CREATION_SCENE
-local enchantingExtract_GP = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE
-
---Alchemy
---local alchemy = 				ALCHEMY
-local alchemy = 				ALCHEMY_SCENE
-
---Retrait
---local retraitClass =		  	 ZO_RetraitStation_Retrait_Base
-local retrait =				 	ZO_RETRAIT_KEYBOARD
-
---Reconstruction
-local reconstruct = 			ZO_RECONSTRUCT_KEYBOARD
-
-------------------------------------------------------------------------------------------------------------------------
---MAPPING
-------------------------------------------------------------------------------------------------------------------------
-													-- NOT calling additional functions for enchanting --
-
---[Mapping for crafting]
---Enchaning (used to determine the correct LF_* filterType constant at enchanting tables, as they share the same inventory
---ENCHANTING.inventory. Gamepad mode uses different scenes for enchating creation and extraction so there are used
---callbacks to these scenes' state to se the appropriate LF_ENCHANTING_* constant
--->Used in function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
-local enchantingModeToFilterType = {
-	 [ENCHANTING_MODE_CREATION]		= LF_ENCHANTING_CREATION,
-	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
-	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
-}
-LibFilters.enchantingModeToFilterType = enchantingModeToFilterType
-
---[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
-local standardSpecialHookFunc = "HookAdditionalFilterSpecial" --LibFilters:HookAdditionalFilterSpecial
-local standardSceneSpecialHookFunc = "HookAdditionalFilterSceneSpecial" --LibFilters:HookAdditionalFilterSceneSpecial
-
--->The mapping between the LF_* filterType constant and a LibFilters function name (funcName of _G["LibFilters"])
--->plus the parameters to pass to the function
--->Any entry with LF* in this table will NOT use LibFilters:HookAdditionalFilter below!
--->See mapping table table "LF_ConstantToAdditionalFilterControlSceneFragmentUserdata" below
-local LF_ConstantToAdditionalFilterSpecialHook = {
-	[LF_ENCHANTING_CREATION] = { --this will also apply the filters for LF_ENCHANTING_EXTRACTION
---		[false] = {funcName = standardSpecialHookFunc, 	params = {"enchanting"}}, --Keyboard mode
---		[true] 	= {funcName = standardSceneSpecialHookFunc, params = {"enchanting_GamePad"}},
-	},
-	[LF_ENCHANTING_EXTRACTION] = {
-		--[false] = {}, --> See LF_ENCHANTING_CREATION above!
-		--[true] = {}, --> See LF_ENCHANTING_CREATION above!
-	},
-}
-
---[Mapping GamePad/Keyboard control/scene/fragment/userdate/etc. .additionalFilter entry to the LF_* constant]
--->This table contains the mapping between GamePad and Keyboard mode, and the LibFilters constant LF_* to
--->the control, scene, fragment, userdata to use to store the .additionalFilters table addition to.
--->The controls/fregments/scenes can be many. Each entry in the value table will be applying .additionalFilters
--->Used in function LibFilters:HookAdditionalFilter(filterType_LF_Constant)
-local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
-	--Keyboard mode
-	[false] = {
-		[LF_INVENTORY]                = { invBackpack, invBackpackFragment },
-		[LF_INVENTORY_QUEST]          = { invQuests },
-		[LF_CRAFTBAG]                 = { invCraftbag },
-		[LF_INVENTORY_COMPANION]      = { companionEquipment },
-		[LF_QUICKSLOT]                = { quickslots },
-		[LF_BANK_WITHDRAW]            = { invBankWithdraw },
-		[LF_BANK_DEPOSIT]             = { invBankDeposit },
-		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw },
-		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit },
-		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw },
-		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit },
-		[LF_VENDOR_BUY]               = { store },
-		[LF_VENDOR_SELL]              = { vendorSell },
-		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
-		[LF_VENDOR_REPAIR]            = { vendorRepair },
-		[LF_FENCE_SELL]               = { invFenceSell },
-		[LF_FENCE_LAUNDER]            = { invFenceLaunder },
-		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_GUILDSTORE_SELL]          = { guildStoreSell },
-		[LF_MAIL_SEND]                = { mailSend },
-		[LF_TRADE]                    = { player2playerTrade },
-		[LF_SMITHING_REFINE]          = { refinementPanel },
-		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel },
-		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel },
-		[LF_SMITHING_RESEARCH]        = { researchPanel },
-		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog },
-		[LF_JEWELRY_REFINE]           = { refinementPanel },
-		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel },
-		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel },
-		[LF_JEWELRY_RESEARCH]         = { researchPanel },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog },
-		[LF_ALCHEMY_CREATION]         = { alchemy },
-		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_RETRAIT]                  = { retrait },
-
-		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
---		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
---		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
-	},
-
-	--Gamepad mode
-	[true]  = {
-		[LF_INVENTORY]                = { invBackpackFragment_GP },
-		[LF_INVENTORY_QUEST]          = { invQuests_GP },
-		[LF_CRAFTBAG]                 = { invCraftbag_GP },	--using inventories[invType]
-		[LF_INVENTORY_COMPANION]      = { companionEquipment_GP },
---		[LF_QUICKSLOT]                = { quickslots_GP }, --not in gamepad mode
-		[LF_BANK_WITHDRAW]            = { invBankWithdraw_GP },	--using inventories[invType]
-		[LF_BANK_DEPOSIT]             = { invBankDeposit_GP },	--using inventories[invType]
-		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw_GP },	--using inventories[invType]
-		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit_GP },	--using inventories[invType]
-		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw_GP },	--using inventories[invType]
-		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit_GP },	--using inventories[invType]
-		[LF_VENDOR_BUY]               = { vendorBuy_GP },
-		[LF_VENDOR_SELL]              = { vendorSell_GP },
-		[LF_VENDOR_BUYBACK]           = { vendorBuyBack_GP },
-		[LF_VENDOR_REPAIR]            = { vendorRepair_GP },
-		[LF_FENCE_SELL]               = { invFenceSell_GP },
-		[LF_FENCE_LAUNDER]            = { invFenceLaunder_GP },
-		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_GUILDSTORE_SELL]          = { guildStoreSell_GP },	--using inventories[invType]
-		[LF_MAIL_SEND]                = { mailSend_GP },
-		[LF_TRADE]                    = { player2playerTrade_GP },
---		[LF_SMITHING_REFINE]          = { refinementPanel_GP },
---		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel_GP },
---		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel_GP },
-		[LF_SMITHING_RESEARCH]        = { researchPanel_GP },
-		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog_GP },
---		[LF_JEWELRY_REFINE]           = { refinementPanel_GP },
---		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel_GP },
---		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel_GP },
-		[LF_JEWELRY_RESEARCH]         = { researchPanel_GP },
---		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP },
---		[LF_ALCHEMY_CREATION]         = { alchemy_GP },
-		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
---		[LF_RETRAIT]                  = { retrait_GP },
-
-		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
-		 [LF_ENCHANTING_CREATION]	  = {enchantingCreate_GP},
-		 [LF_ENCHANTING_EXTRACTION]    = {enchantingExtract_GP},
-
-	},
-}
-LibFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
-
---[Mapping for update of inventories]
---The fixed updater names for the LibFilters unique updater string -> See table inventoryUpdaters below -> The key is
---the value of this table here, e.g. BANK_WITHDRAW
-local filterTypeToUpdaterNameFixed = {
-	 [LF_BANK_WITHDRAW]				= "BANK_WITHDRAW",
-	 [LF_GUILDBANK_WITHDRAW]		= "GUILDBANK_WITHDRAW",
-	 [LF_VENDOR_BUY]				= "VENDOR_BUY",
-	 [LF_VENDOR_BUYBACK]			= "VENDOR_BUYBACK",
-	 [LF_VENDOR_REPAIR]				= "VENDOR_REPAIR",
-	 [LF_GUILDSTORE_BROWSE]			= "GUILDSTORE_BROWSE",
-	 [LF_ALCHEMY_CREATION]			= "ALCHEMY_CREATION",
-	 [LF_PROVISIONING_COOK]			= "PROVISIONING_COOK",
-	 [LF_PROVISIONING_BREW]			= "PROVISIONING_BREW",
-	 [LF_CRAFTBAG]					= "CRAFTBAG",
-	 [LF_QUICKSLOT]					= "QUICKSLOT",
-	 [LF_RETRAIT]					= "RETRAIT",
-	 [LF_HOUSE_BANK_WITHDRAW]		= "HOUSE_BANK_WITHDRAW",
-	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
-	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION"
-}
-
---The updater names which are shared with others
-local filterTypeToUpdaterNameDynamic = {
-	 ["INVENTORY"] = {
-		  [LF_INVENTORY]=true,
-		  [LF_BANK_DEPOSIT]=true,
-		  [LF_GUILDBANK_DEPOSIT]=true,
-		  [LF_VENDOR_SELL]=true,
-		  [LF_GUILDSTORE_SELL]=true,
-		  [LF_MAIL_SEND]=true,
-		  [LF_TRADE]=true,
-		  [LF_FENCE_SELL]=true,
-		  [LF_FENCE_LAUNDER]=true,
-		  [LF_HOUSE_BANK_DEPOSIT]=true,
-	 },
-	 ["SMITHING_REFINE"] = {
-		  [LF_SMITHING_REFINE]=true,
-		  [LF_JEWELRY_REFINE]=true,
-	 },
-	 ["SMITHING_CREATION"] = {
-		  [LF_SMITHING_CREATION]=true,
-		  [LF_JEWELRY_CREATION]=true,
-	 },
-	 ["SMITHING_DECONSTRUCT"] = {
-		  [LF_SMITHING_DECONSTRUCT]=true,
-		  [LF_JEWELRY_DECONSTRUCT]=true,
-	 },
-	 ["SMITHING_IMPROVEMENT"] = {
-		  [LF_SMITHING_IMPROVEMENT]=true,
-		  [LF_JEWELRY_IMPROVEMENT]=true,
-	 },
-	 ["SMITHING_RESEARCH"] = {
-		  [LF_SMITHING_RESEARCH]=true,
-		  [LF_JEWELRY_RESEARCH]=true,
-	 },
-	 ["SMITHING_RESEARCH_DIALOG"] = {
-		  [LF_SMITHING_RESEARCH_DIALOG]=true,
-		  [LF_JEWELRY_RESEARCH_DIALOG]=true,
-	 },
-	 ["ENCHANTING"] = {
-		  [LF_ENCHANTING_CREATION]=true,
-		  [LF_ENCHANTING_EXTRACTION]=true,
-	 },
-}
---The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
-local filterTypeToUpdaterName = {}
---Add the fixed updaterNames of the filtertypes
-filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
---Then dynamically add the other updaterNames from the above table filterTypeToUpdaterNameDynamic
-for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDynamic) do
-	 if updaterName ~= "" then
-		  for filterType, isEnabled in pairs(filterTypesTableForUpdater) do
-				if isEnabled then
-					 filterTypeToUpdaterName[filterType] = updaterName
-				end
-		  end
-	 end
-end
-LibFilters.filterTypeToUpdaterName = filterTypeToUpdaterName
-
-
-------------------------------------------------------------------------------------------------------------------------
---HOOK state variables
-------------------------------------------------------------------------------------------------------------------------
---Special hooks
-local specialHooksDone = {
-	 ["enchanting"] = false,
-}
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -809,7 +327,7 @@ local inventoryUpdaters = {
 		end
 	end,
 }
-LibFilters.inventoryUpdaters = inventoryUpdaters
+libFilters.inventoryUpdaters = inventoryUpdaters
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -825,21 +343,22 @@ local function runFilters(filterType, ...)
 	 end
 	 return true
 end
-LibFilters.RunFilters = runFilters
+libFilters.RunFilters = runFilters
 
 
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK VARIABLEs TO ADD .additionalFilters to them
 ------------------------------------------------------------------------------------------------------------------------
---Hook all the filters at the different inventory panels (LibFilters filterPanelIds) now
-local function HookAdditionalFilters()
+--Hook the different inventory panels (LibFilters filterPanelIds) now and add the .additionalFilter entry to each panel's
+--control/scene/fragment/...
+local function ApplyAdditionalFilterHooks()
 
 	--For each LF constant hook the filters now to add the .additionalFilters entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
 	for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 		-->HookAdditionalFilterSpecial will be done automatically in HookAdditionalFilter, via the table
 		-->LF_ConstantToAdditionalFilterSpecialHook
-		hookAdditionalFilter(LibFilters, value, true) --value = the same as _G[filterConstantName], eg. LF_INVENTORY
+		hookAdditionalFilter(libFilters, value, true) --value = the same as _G[filterConstantName], eg. LF_INVENTORY
 	end
 end
 
@@ -855,30 +374,30 @@ end
 -- Filter types
 --**********************************************************************************************************************
 --Returns the minimum possible filteType
-function LibFilters:GetMinFilterType()
+function libFilters:GetMinFilterType()
 	 return LF_FILTER_MIN
 end
-LibFilters.GetMinFilter = LibFilters.GetMinFilterType
+libFilters.GetMinFilter = libFilters.GetMinFilterType
 
 --Returns the maxium possible filterType
-function LibFilters:GetMaxFilterType()
+function libFilters:GetMaxFilterType()
 	 return LF_FILTER_MAX
 end
-LibFilters.GetMaxFilter = LibFilters.GetMaxFilterType
+libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 
 --Returns the LibFilters LF* filterType connstants table: value = "name"
-function LibFilters:GetFilterTypes()
+function libFilters:GetFilterTypes()
 	 return libFiltersFilterConstants
 end
 
 --Returns the LibFilters LF* filterType connstant's name
-function LibFilters:GetFilterTypeName(libFiltersFilterType)
+function libFilters:GetFilterTypeName(libFiltersFilterType)
 	 return libFiltersFilterConstants[libFiltersFilterType] or ""
 end
 
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK, or a SCENE or a control
-function LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
+function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 	--Get the layoutData from the fragment. If no fragment: Abort
 	if inventoryType == invTypeBackpack then --INVENTORY_BACKPACK
 		local layoutData = playerInv.appliedLayout
@@ -933,21 +452,21 @@ end
 --> apply the entry .additionalFilter to from the constants table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 --> at the beginning of this file!
 --> As the table could contain multiple variables to hook into per LF_* constant there needs to be a loop over the entries
-function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepadMode)
+function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepadMode)
 	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s", tos(LibFilters:GetFilterTypeName(filterLFConstant)) .. " [" .. tos(filterLFConstant) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s", tos(libFilters:GetFilterTypeName(filterLFConstant)) .. " [" .. tos(filterLFConstant) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
 		local funcName = inventoriesToHookForLFConstant_Table.funcName
-		if funcName ~= nil and funcName ~= "" and LibFilters[funcName] ~= nil then
+		if funcName ~= nil and funcName ~= "" and libFilters[funcName] ~= nil then
 			local params = inventoriesToHookForLFConstant_Table.params
-			LibFilters[funcName](LibFilters, unpack(params)) --pass LibFilters as 1st param "self" TODO: needed?
+			libFilters[funcName](libFilters, unpack(params)) --pass LibFilters as 1st param "self" TODO: needed?
 		end
 	end
 	local function hookNow(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s", tos(LibFilters:GetFilterTypeName(filterLFConstant)) .. " [" .. tos(filterLFConstant) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s", tos(libFilters:GetFilterTypeName(filterLFConstant)) .. " [" .. tos(filterLFConstant) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
 		if #inventoriesToHookForLFConstant_Table == 0 then return end
@@ -1023,13 +542,13 @@ function LibFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		end
 	end
 end
-hookAdditionalFilter = LibFilters.HookAdditionalFilter
+hookAdditionalFilter = libFilters.HookAdditionalFilter
 
 
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
 local specialHooksLibFiltersDataRegistered = {}
-function LibFilters:HookAdditionalFilterSpecial(specialType)
+function libFilters:HookAdditionalFilterSpecial(specialType)
 	if specialHooksDone[specialType] == true then return end
 
 	--ENCHANTING keyboard
@@ -1072,7 +591,7 @@ end
 
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
 -- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType
-function LibFilters:HookAdditionalFilterSceneSpecial(specialType)
+function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	if specialHooksDone[specialType] == true then return end
 
 	--ENCHANTING gamepad
@@ -1112,7 +631,7 @@ function LibFilters:HookAdditionalFilterSceneSpecial(specialType)
 		    --for GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData (see helpers.lua)
 			enchantingSceneGamepad:RegisterCallback("StateChange", function(oldState, newState)
 				if newState == SCENE_SHOWING then
-d("[LF3]GamePadEnchanting " ..tostring(LibFilters:GetFilterTypeName(libFiltersEnchantingFilterType)) .." Scene:Showing")
+d("[LF3]GamePadEnchanting " ..tostring(libFilters:GetFilterTypeName(libFiltersEnchantingFilterType)) .." Scene:Showing")
 					updateLibFilters3_filterTypeAtGamepadEnchantingInventory(enchanting_GP)
 				end
 			end)
@@ -1124,13 +643,13 @@ end
 
 --**********************************************************************************************************************
 -- Filter callback and un/register
-function LibFilters:GetFilterCallback(filterTag, filterType)
+function libFilters:GetFilterCallback(filterTag, filterType)
 	 if not self:IsFilterRegistered(filterTag, filterType) then return end
 
 	 return filters[filterType][filterTag]
 end
 
-function LibFilters:IsFilterRegistered(filterTag, filterType)
+function libFilters:IsFilterRegistered(filterTag, filterType)
 	 if filterType == nil then
 		  --check whether there's any filter with this tag
 		  for _, callbacks in pairs(filters) do
@@ -1148,7 +667,7 @@ function LibFilters:IsFilterRegistered(filterTag, filterType)
 	 end
 end
 
-function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
+function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
 	 local callbacks = filters[filterType]
 
 	 if not filterTag or not callbacks or type(filterCallback) ~= "function" then
@@ -1166,7 +685,7 @@ function LibFilters:RegisterFilter(filterTag, filterType, filterCallback)
 	 callbacks[filterTag] = filterCallback
 end
 
-function LibFilters:UnregisterFilter(filterTag, filterType)
+function libFilters:UnregisterFilter(filterTag, filterType)
 	 if not filterTag or filterTag == "" then
 		  dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tos(filterTag), tos(filterType))
 		  return
@@ -1190,7 +709,7 @@ end
 
 --**********************************************************************************************************************
 -- Filter update
-function LibFilters:RequestUpdate(filterType)
+function libFilters:RequestUpdate(filterType)
 --d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
 	 local updaterName = filterTypeToUpdaterName[filterType]
 	 if not updaterName or updaterName == "" then
@@ -1213,7 +732,7 @@ end
 
 --**********************************************************************************************************************
 -- Special API
-function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
+function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
 	 local craftingType = GetCraftingInteractionType()
 	 if craftingType == CRAFTING_TYPE_INVALID then return false end
 	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
@@ -1221,7 +740,7 @@ function LibFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
 	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
 		  toResearchLineIndex = numSmithingResearchLines
 	 end
-	 local helpers = LibFilters.helpers
+	 local helpers = libFilters.helpers
 	 if not helpers then return end
 	 local smithingResearchPanel = helpers["SMITHING.researchPanel:Refresh"].locations[1]
 	 if smithingResearchPanel then
@@ -1246,8 +765,8 @@ end
 --These helper funmctions might overwrite original ESO functions in order to use their own "predicate" or
 -- "filterFunction".  So check them if the orig functions update, and upate them as well.
 --> See file helper.lua
-LibFilters.helpers = {}
-local helpers = LibFilters.helpers
+libFilters.helpers = {}
+local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
 local function InstallHelpers()
@@ -1279,7 +798,7 @@ local function ApplyFixes()
 	--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
 		if craftBagClass:IsHidden() then return end
 		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-		hookAdditionalFilter(LibFilters, LF_CRAFTBAG)
+		hookAdditionalFilter(libFilters, LF_CRAFTBAG)
 	end)
 end
 
@@ -1288,12 +807,12 @@ end
 --**********************************************************************************************************************
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
-function LibFilters:InitializeLibFilters()
+function libFilters:InitializeLibFilters()
 	 if self.isInitialized then return end
 	 self.isInitialized = true
 
 	 InstallHelpers()
-	 HookAdditionalFilters()
+	 ApplyAdditionalFilterHooks()
 end
 
 --______________________________________________________________________________________________________________________
