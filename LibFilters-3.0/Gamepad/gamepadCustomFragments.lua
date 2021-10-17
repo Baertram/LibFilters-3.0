@@ -63,7 +63,7 @@ local gamepadLibFiltersPlayerTradeFragment
 ------------------------------------------------------------------------------------------------------------------------
 --Add the fragment prefix and return the fragment
 local function getCustomLibFiltersFragmentName(libFiltersFilterType)
-	local fragmentName = customFragments_GP[libFiltersFilterType]
+	local fragmentName = customFragments_GP[libFiltersFilterType].name
 	return fragmentPrefix .. fragmentName
 end
 libFilters.GetCustomLibFiltersFragmentName = getCustomLibFiltersFragmentName
