@@ -322,10 +322,10 @@ gamepadConstants.smithing_GP = 					SMITHING_GAMEPAD
 local smithing_GP = gamepadConstants.smithing_GP
 
 --Refinement
-gamepadConstants.refinementPanel =	  			smithing_GP.refinementPanel
+gamepadConstants.refinementPanel_GP =	  			smithing_GP.refinementPanel
 
 --Create
-gamepadConstants.creationPanel =	  			smithing_GP.creationPanel
+gamepadConstants.creationPanel_GP =	  			smithing_GP.creationPanel
 
 --Deconstruction
 gamepadConstants.deconstructionPanel_GP = 		smithing_GP.deconstructionPanel
@@ -342,7 +342,7 @@ gamepadConstants.enchantingCreate_GP = 			GAMEPAD_ENCHANTING_CREATION_SCENE
 gamepadConstants.enchantingExtract_GP = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 
 --Alchemy
-gamepadConstants.alchemy = 						ALCHEMY_SCENE
+gamepadConstants.alchemy_GP = 						ALCHEMY_SCENE
 
 --Retrait
 --gamepadConstants.retrait = --
@@ -483,22 +483,22 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_GUILDSTORE_SELL]          = { },		--Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_MAIL_SEND]                = { },			--Updated in file /gamepad/gamepadCustomFragments.lua
 		[LF_TRADE]                    = {  },			--Updated in file /gamepad/gamepadCustomFragments.lua
---		[LF_SMITHING_REFINE]          = { refinementPanel_GP },
+		[LF_SMITHING_REFINE]          = { gamepadConstants.refinementPanel_GP },
 --		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = { gamepadConstants.deconstructionPanel_GP },
---		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel_GP },
+		[LF_SMITHING_IMPROVEMENT]     = { gamepadConstants.improvementPanel_GP },
 		[LF_SMITHING_RESEARCH]        = { gamepadConstants.researchPanel_GP },
 		[LF_SMITHING_RESEARCH_DIALOG] = { gamepadConstants.researchChooseItemDialog_GP },
---		[LF_JEWELRY_REFINE]           = { refinementPanel_GP },
+		[LF_JEWELRY_REFINE]           = { gamepadConstants.refinementPanel_GP },
 --		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_DECONSTRUCT]      = { gamepadConstants.deconstructionPanel_GP },
---		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel_GP },
+		[LF_JEWELRY_IMPROVEMENT]      = { gamepadConstants.improvementPanel_GP },
 		[LF_JEWELRY_RESEARCH]         = { gamepadConstants.researchPanel_GP },
---		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP },
---		[LF_ALCHEMY_CREATION]         = { alchemy_GP },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { gamepadConstants.researchChooseItemDialog_GP },
+		[LF_ALCHEMY_CREATION]         = { gamepadConstants.alchemy_GP },
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
---		[LF_RETRAIT]                  = { retrait_GP },
+		[LF_RETRAIT]                  = { gamepadConstants.retrait_GP },
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
 		 [LF_ENCHANTING_CREATION]	  = {gamepadConstants.enchantingCreate_GP},

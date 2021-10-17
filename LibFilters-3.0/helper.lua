@@ -515,10 +515,6 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
 			-- get objectVar for LF_SMITHING_RESEARCH_DIALOG or LF_JEWELRY_RESEARCH_DIALOG
             local base = SMITHING_RESEARCH_SELECT
 			
-			local function DoesNotBlockResearch(bagId, slotIndex)
-				return not IsItemPlayerLocked(bagId, slotIndex) and GetItemTraitInformation(bagId, slotIndex) ~= ITEM_TRAIT_INFORMATION_RETRAITED and GetItemTraitInformation(bagId, slotIndex) ~= ITEM_TRAIT_INFORMATION_RECONSTRUCTED
-			end
-
 			local function doesItemPassFilter(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
 				return CanItemBeSmithingTraitResearched(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
 						and DoesNotBlockResearch(bagId, slotIndex)
@@ -541,6 +537,7 @@ helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
     helper = {
         funcName = "ZO_RetraitStation_DoesItemPassFilter",
         func = function(bagId, slotIndex, filterType)
+            -- get objectVar for LF_RETRAIT -> Use keyboard mode variable for gamepad mode as well
             local base = ZO_RETRAIT_KEYBOARD
 			
 			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
@@ -559,9 +556,9 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
     helper = {
         funcName = "ZO_SharedSmithingExtraction_DoesItemPassFilter",
         func = function(bagId, slotIndex, filterType)
-			-- get objectVar for LF_SMITHING_REFINE or LF_JEWELRY_REFINE
-            local base = SMITHING.deconstructionPanel
-			
+			-- get objectVar for LF_SMITHING_REFINE/LF_JEWELRY_REFINE, or LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT-> Use keyboard mode variable for gamepad mode as well
+            local base = filterType == SMITHING_FILTER_TYPE_RAW_MATERIALS and SMITHING.refinementPanel or SMITHING.deconstructionPanel
+
 			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
 			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
         end,
@@ -578,7 +575,7 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
     helper = {
         funcName = "ZO_SharedSmithingImprovement_DoesItemPassFilter",
         func = function(bagId, slotIndex, filterType)
-			-- get objectVar for LF_SMITHING_IMPROVEMENT or LF_JEWELRY_IMPROVEMENT
+			-- get objectVar for LF_SMITHING_IMPROVEMENT or LF_JEWELRY_IMPROVEMENT -> Use keyboard mode variable for gamepad mode as well
             local base = SMITHING.improvementPanel
 			
 			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
@@ -995,7 +992,6 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 }
 
 
---/script d(GAMEPAD_INVENTORY.questFilter)
 --enable LF_INVENTORY for gamepad mode
 local inventories = PLAYER_INVENTORY.inventories
 local bagList = { -- < rename?
