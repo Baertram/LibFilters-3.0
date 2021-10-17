@@ -1,3 +1,36 @@
+--This library is used to filter inventory items (show/hide) at the different panels/inventories -> Libfilters uses the
+--term "filterType" for the different filter panels. Each filterType is represented by the help of a constant starting
+--with LF_<panelName> (e.g. LF_INVENTORY, LF_BANK_WITHDRAW), which is used to add filterFunctions of different addons
+--to this inventory. See table libFiltersFilterConstants for the value = "filterPanel name" constants.
+--
+--The registered filterFunctions will run as the inventories are refreshed/updated, either by internal update routines as
+--the inventory's "dirty" flag was set to true. Or via function SafeUpdateList (see below), or via some other update/refresh/
+--ShouldAddItemToSlot function (some of them are overwriting vanilla UI source code in the file helpers.lua).
+--LibFilters3 will use the inventory/fragment (normal hooks), or some special hooks (e.g. ENCHANTING -> OnModeUpdated) to
+--add the LF* constant to the inventory/fragment/variables.
+--With the addition of Gamepad support the special hoks like enchanting were even changed to use the gamepad scenes of
+--enchanting as "object to store the" the .additionalFilter entry for the LibFilters filter functions.
+--
+--The filterFunctions will be placed at the inventory.additionalFilter entry, and will enhance existing functions, so
+--that filter funtions summarize (e.g. addon1 registers a "Only show stolen filter" and addon2 registers "only show level
+--10 items filter" -> Only level 10 stolen items will be shown then).
+--
+--The function InstallHelpers below will call special code from the file "helper.lua". In this file you define the
+--variable(s) and function name(s) which LibFilters should "REPLACE" -> Means it will overwrite those functions to add
+--the call to the LibFilters internal filterFunctions (e.g. at SMITHING crafting tables, function
+--EnumerateInventorySlotsAndAddToScrollData -> ZOs vanilla UI code + usage of self.additionalFilter where Libfilters
+--added it's filterFunctions).
+--
+--The files in the Gamepad folder define the custom fragments which were created for the Gamepad scenes to try to keep it
+--similar to the keyboard fragments (as inventory shares the same PLAYER_INVENTORY variables for e.g. player inventory,
+--bank/guild bank/house bank deposit, mail send and player2player trade there needs to be one unique object per panel to
+--store the .additionalFilter entry. And this are the fragments in keyboard mode, and now custom fragemnts starting with
+--LIBFILTERS3_ in gamepad mode.
+--
+--[Important]
+--You need to call LibFilters3:InitializeLibFilters() once in any of the addons that use LibFilters, to
+--create the hooks and init the library properly!
+
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0
 ------------------------------------------------------------------------------------------------------------------------
@@ -458,7 +491,7 @@ end
 ]]
 
 
---Hook the inventory layout or inventory contro, a fragment, scene or userdata to apply the .additionalFilter entry for
+--Hook the inventory layout or inventory control, a fragment, scene or userdata to apply the .additionalFilter entry for
 --the filter functions registered via LibFilters:RegisterFilter("uniqueName," LF_*constant, callbackFilterFunction)
 --> Using only 1 parameter "filterLFConstant" now, to determine the correct control/inventory/scene/fragment/userdata to
 --> apply the entry .additionalFilter to from the constants table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
@@ -725,7 +758,7 @@ end
 --**********************************************************************************************************************
 -- Filter update
 function libFilters:RequestUpdate(filterType)
-d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
+--d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
 	 local updaterName = filterTypeToUpdaterName[filterType]
 	 if not updaterName or updaterName == "" then
 		  dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tos(filterType))
