@@ -7,8 +7,9 @@ local libFilters = LibFilters3
 ------------------------------------------------------------------------------------------------------------------------
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
-local enchantingModeToFilterType = libFilters.enchantingModeToFilterType
-local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local mapping = libFilters.mapping
+local enchantingModeToFilterType = mapping.enchantingModeToFilterType
+local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 local getCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeForInventory
 
 
