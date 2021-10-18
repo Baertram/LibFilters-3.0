@@ -215,7 +215,7 @@ local function updateGamepadVenderList(component)
 	local function updateGamepadInventoryItemList(gpInvVar)
 		gpInvVar:RefreshItemList()
 		if gpInvVar.itemList:IsEmpty() then
-			gpInvVar:SwitchActiveList(INVENTORY_CATEGORY_LIST)
+			gpInvVar:SwitchActiveList("categoryList")
 		else
 			gpInvVar:UpdateRightTooltip()
 			gpInvVar:RefreshItemActions()
@@ -231,7 +231,7 @@ local function updateGamepadVenderList(component)
 		gpInvVar:RefreshList()
 	end
 	local function updateGamepadCraftingInventory(gpInvVar)
-		-- can be added directly to each object using it
+		-- can be added directly to each object using it in inventoryUpdaters
 		gpInvVar:PerformFullRefresh()
 	end
 	
@@ -266,7 +266,7 @@ local function updateGamepadVenderList(component)
 		end,
 		QUICKSLOT = function()
 			if IsGamepad() then
-		--		SafeUpdateList(quickslots_GP) --TODO
+		--		Does not exist
 			else
 				SafeUpdateList(keyboardConstants.quickslots)
 			end
@@ -357,7 +357,7 @@ local function updateGamepadVenderList(component)
 		end,
 		SMITHING_RESEARCH_DIALOG = function()
 			if IsGamepad() then
-				gamepadConstants.researchPanel_GP:LibFilters_Refresh()
+				-- must override "StateChange" callback and create a refresh function
 			else
 				dialogUpdaterFunc(researchChooseItemDialog)
 			end
