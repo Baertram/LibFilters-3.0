@@ -341,6 +341,7 @@ gamepadConstants.researchChooseItemDialog_GP= 	GAMEPAD_SMITHING_RESEARCH_CONFIRM
 --Enchanting
 gamepadConstants.enchantingCreate_GP = 			GAMEPAD_ENCHANTING_CREATION_SCENE
 gamepadConstants.enchantingExtract_GP = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
+gamepadConstants.enchanting_GP =				GAMEPAD_ENCHANTING
 
 --Alchemy
 gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE

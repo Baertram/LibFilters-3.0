@@ -334,14 +334,14 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_RESEARCH_DIALOG = function()
 		if IsGamepad() then
-			--TODO
+			dialogUpdaterFunc(researchChooseItemDialog)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
 		end
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(gamepadConstants.alchemyInv_GP) --TODO
+			updateGamepadInventoryList(gamepadConstants.alchemyInv_GP) --TODO GAMEPAD_ALCHEMY.modeList:RefreshVisible() ???
 		else
 			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
 		end
