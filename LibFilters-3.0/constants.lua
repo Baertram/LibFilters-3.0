@@ -238,6 +238,7 @@ keyboardConstants.enchantingClass = 			ZO_Enchanting
 keyboardConstants.enchanting = 					ENCHANTING
 --Alchemy
 keyboardConstants.alchemy  =  					ALCHEMY_SCENE
+keyboardConstants.alchemyInv = 					ALCHEMY.inventory
 
 --Retrait
 --keyboardConstants.retraitClass  = 		  	 ZO_RetraitStation_Retrait_Base
@@ -343,6 +344,7 @@ gamepadConstants.enchantingExtract_GP = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 
 --Alchemy
 gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
+gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY.inventory
 
 --Retrait
 --gamepadConstants.retrait = --

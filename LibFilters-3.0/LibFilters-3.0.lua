@@ -341,9 +341,9 @@ local inventoryUpdaters = {
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gamepadConstants.alchemy_GP.inventory) --TODO
+			updateGamepadInventoryList(gamepadConstants.alchemyInv_GP) --TODO
 		else
-			updateCraftingInventoryDirty(keyboardConstants.alchemy.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
 		end
 	end,
 	ENCHANTING = function()
