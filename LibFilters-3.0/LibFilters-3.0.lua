@@ -357,7 +357,7 @@ local function updateGamepadVenderList(component)
 		end,
 		SMITHING_RESEARCH_DIALOG = function()
 			if IsGamepad() then
-				-- must override "StateChange" callback and create a refresh function
+				GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks("StateChange",  nil, SCENE_SHOWING)
 			else
 				dialogUpdaterFunc(researchChooseItemDialog)
 			end
