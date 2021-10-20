@@ -10,7 +10,7 @@ libFiltersTest = {}
 -- /script d(#libFiltersTest[7])
 -- /script libFiltersTest = {}
 --	/script LibFilters3:RequestUpdate(LF_SMITHING_RESEARCH)
-SLASH_COMMANDS["/testfilters"] = function()
+SLASH_COMMANDS["/lftestfilters"] = function()
 	local filterTag = "TEST"
 	local filterTypes = {
 		LF_INVENTORY, 
@@ -124,7 +124,7 @@ SLASH_COMMANDS["/testfilters"] = function()
 end
 
 --depends on Item Saver by Randactyl
-SLASH_COMMANDS["/testenchant"] = function()
+SLASH_COMMANDS["/lftestenchant"] = function()
 	local filterTag = "TestEnchant"
 	local isRegistered = libFilters:IsFilterRegistered(filterTag, LF_ENCHANTING_CREATION)
 
@@ -163,12 +163,82 @@ end
 -->refresh of the scene's list contents
 --> See here: esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
 -->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
-GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
-	d("GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [2] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
-end)
-local origStateChangeFunc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1]
-GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1] = function(...)
-	local oldState, newState = select(1, ...)
-	d("OGIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
-	origStateChangeFunc(...)
+local researchConfirmSceneCallbackAdded = false
+SLASH_COMMANDS["/lftestresearchdialog"] = function()
+	if researchConfirmSceneCallbackAdded then return end
+	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
+		d("GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [2] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
+	end)
+	local origStateChangeFunc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1]
+	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1] = function(...)
+		local oldState, newState = select(1, ...)
+		d("OGIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
+		origStateChangeFunc(...)
+	end
+	d("[LibFilters3]Test scene callback for Gamepad research confirm scene was added! ReloadUI to remove it.")
+	researchConfirmSceneCallbackAdded = true
+end
+
+--Alchemy
+SLASH_COMMANDS["/lftestalchemy"] = function()
+	--Test - Toogle a filter function for alchemy
+	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_ALCHEMY_CREATION", LF_ALCHEMY_CREATION) then
+		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_ALCHEMY_CREATION", LF_ALCHEMY_CREATION)
+		d("<[LibFilters3]Test filter for alchemy unregistered!")
+	else
+		libFilters:RegisterFilter("LibFilters3_TestFilters_LF_ALCHEMY_CREATION", LF_ALCHEMY_CREATION, function(bagId, slotIndex)
+			d("[LibFilters3]Alchemy item: " .. GetItemLink(bagId, slotIndex))
+			return false --simulate "not allowed" -> filtered
+		end)
+		d(">[LibFilters3]Test filter for alchemy registered!")
+	end
+end
+
+
+--Inventory
+SLASH_COMMANDS["/lftestinv"] = function()
+	--Test - Toogle a filter function for alchemy
+	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_INVENTORY", LF_INVENTORY) then
+		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_INVENTORY", LF_INVENTORY)
+		d("<[LibFilters3]Test filter for inventory unregistered!")
+	else
+		libFilters:RegisterFilter("LibFilters3_TestFilters_LF_INVENTORY", LF_INVENTORY, function(inventorySlot)
+			local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+			d("[LibFilters3]Inventory item: " .. GetItemLink(bagId, slotIndex))
+			return false --simulate "not allowed" -> filtered
+		end)
+		d(">[LibFilters3]Test filter for inventory registered!")
+	end
+end
+
+--Bank withdraw
+SLASH_COMMANDS["/lftestbankwithdraw"] = function()
+	--Test - Toogle a filter function for alchemy
+	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_BANK_WITHDRAW", LF_BANK_WITHDRAW) then
+		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_BANK_WITHDRAW", LF_BANK_WITHDRAW)
+		d("<[LibFilters3]Test filter for bank withdraw unregistered!")
+	else
+		libFilters:RegisterFilter("LibFilters3_TestFilters_LF_BANK_WITHDRAW", LF_BANK_WITHDRAW, function(inventorySlot)
+			local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+			d("[LibFilters3]Bank item: " .. GetItemLink(bagId, slotIndex))
+			return false --simulate "not allowed" -> filtered
+		end)
+		d(">[LibFilters3]Test filter for bank withdraw registered!")
+	end
+end
+
+--Guild Bank withdraw
+SLASH_COMMANDS["/lftestguildbankwithdraw"] = function()
+	--Test - Toogle a filter function for alchemy
+	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_GUILDBANK_WITHDRAW", LF_GUILDBANK_WITHDRAW) then
+		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_GUILDBANK_WITHDRAW", LF_GUILDBANK_WITHDRAW)
+		d("<[LibFilters3]Test filter for guild bank withdraw unregistered!")
+	else
+		libFilters:RegisterFilter("LibFilters3_TestFilters_LF_GUILDBANK_WITHDRAW", LF_GUILDBANK_WITHDRAW, function(inventorySlot)
+			local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+			d("[LibFilters3]Guild bank item: " .. GetItemLink(bagId, slotIndex))
+			return false --simulate "not allowed" -> filtered
+		end)
+		d(">[LibFilters3]Test filter for guild bank withdraw registered!")
+	end
 end

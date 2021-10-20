@@ -30,6 +30,41 @@
 --[Important]
 --You need to call LibFilters3:InitializeLibFilters() once in any of the addons that use LibFilters, to
 --create the hooks and init the library properly!
+--
+--
+--[Example filter functions]
+--Here is the mapping which filterId constant LF* uses which type of filter function: inventorySlot or bagdId & slotIndex
+--Example filter functions:
+--[[
+--Filter function with inventorySlot
+local function FilterSavedItemsForSlot(inventorySlot)
+  return true -- show the item in the list / false = hide item
+end
+
+--Filter function with bagId and slotIndex (often used at crafting tables)
+local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
+  return true -- show the item in the list / false = hide item
+end
+--
+--All LF_ constants except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
+--are using the InventorySlot filter function!
+--
+--Filter function with bagId and slotIndex (most of them are crafting related ones)
+--[LF_SMITHING_REFINE]                        = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_DECONSTRUCT]                   = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_IMPROVEMENT]                   = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_RESEARCH]                      = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_RESEARCH_DIALOG]               = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_REFINE]                         = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_DECONSTRUCT]                    = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_IMPROVEMENT]                    = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_RESEARCH]                       = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_RESEARCH_DIALOG]                = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_ENCHANTING_CREATION]                    = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_ENCHANTING_EXTRACTION]                  = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_RETRAIT]                                = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_ALCHEMY_CREATION]                       = FilterSavedItemsForBagIdAndSlotIndex,
+]]
 
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0
@@ -354,7 +389,7 @@ local inventoryUpdaters = {
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(gamepadConstants.alchemyInv_GP) --TODO GAMEPAD_ALCHEMY.modeList:RefreshVisible() ???
+			updateCraftingInventoryDirty(gamepadConstants.alchemyInv_GP)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
 		end
