@@ -24,6 +24,7 @@ libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
 ------------------------------------------------------------------------------------------------------------------------
 
+libFilters.constants = {}
 
 ------------------------------------------------------------------------------------------------------------------------
 --LF_* FILTER PANEL ID constants
@@ -32,6 +33,8 @@ libFilters.globalLibName    = GlobalLibName
 --The possible libFilters filterPanelIds
 --!!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
+libFilters.constants.filterTypes = {}
+
 local libFiltersFilterConstants = {
 	 [1]	= "LF_INVENTORY",
 	 [2]	= "LF_BANK_WITHDRAW",
@@ -88,6 +91,7 @@ for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 	filters[_G[filterConstantName]] = {}
 end
 libFilters.FilterTypes = libFiltersFilterConstants
+libFilters.constants.filterTypes = libFilters.FilterTypes
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN					= LF_INVENTORY
@@ -97,8 +101,6 @@ LF_FILTER_MAX					= #libFiltersFilterConstants
 ------------------------------------------------------------------------------------------------------------------------
 --ZOs / ESOUI CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
-libFilters.constants = {}
-
 libFilters.constants.keyboard = {}
 local keyboardConstants = libFilters.constants.keyboard
 
@@ -383,31 +385,38 @@ local mapping = libFilters.mapping
 libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
 local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
 libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
-local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 
 libFilters.mapping.filterTypeToFilterFunctionType = {}
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
 --The following filterTypes use bagId and slotIndex
-local filterTypeToFilterFunctionType = {
-	[LF_SMITHING_REFINE]                        = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_SMITHING_DECONSTRUCT]                   = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_SMITHING_IMPROVEMENT]                   = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_SMITHING_RESEARCH]                      = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_SMITHING_RESEARCH_DIALOG]               = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_JEWELRY_REFINE]                         = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_JEWELRY_DECONSTRUCT]                    = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_JEWELRY_IMPROVEMENT]                    = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_JEWELRY_RESEARCH]                       = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_JEWELRY_RESEARCH_DIALOG]                = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_ENCHANTING_CREATION]                    = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_ENCHANTING_EXTRACTION]                  = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_RETRAIT]                                = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
-	[LF_ALCHEMY_CREATION]                       = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+local filterTypesUsingBagIdAndSlotIndexFilterFunction = {
+	[LF_SMITHING_REFINE]			= true,
+	[LF_SMITHING_DECONSTRUCT]     	= true,
+	[LF_SMITHING_IMPROVEMENT]     	= true,
+	[LF_SMITHING_RESEARCH]        	= true,
+	[LF_SMITHING_RESEARCH_DIALOG] 	= true,
+	[LF_JEWELRY_REFINE]           	= true,
+	[LF_JEWELRY_DECONSTRUCT]     	= true,
+	[LF_JEWELRY_IMPROVEMENT]      	= true,
+	[LF_JEWELRY_RESEARCH]         	= true,
+	[LF_JEWELRY_RESEARCH_DIALOG]  	= true,
+	[LF_ENCHANTING_CREATION]      	= true,
+	[LF_ENCHANTING_EXTRACTION]    	= true,
+	[LF_RETRAIT]                  	= true,
+	[LF_ALCHEMY_CREATION]         	= true,
 }
---Now add all other filterTypes which were not added yet, with the constant LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-for _, filterTypeValue in pairs(libFiltersFilterConstants) do
+libFilters.constants.filterTypes.UsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
+--Add them to the table libFilters.mapping.filterTypeToFilterFunctionType
+for filterTypeValue, _  in pairs(filterTypesUsingBagIdAndSlotIndexFilterFunction) do
+	filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+end
+--Now add all other missing filterTypes which were not added yet, with the constant LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+libFilters.constants.filterTypes.UsingInventorySlotFilterFunction = {}
+for filterTypeValue, _  in pairs(libFiltersFilterConstants) do
 	if filterTypeToFilterFunctionType[filterTypeValue] == nil then
 		filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+		libFilters.constants.filterTypes.UsingInventorySlotFilterFunction[filterTypeValue] = true
 	end
 end
 

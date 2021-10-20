@@ -37,7 +37,7 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 		libFilters:UnregisterFilter(filterTag, filterType)
 		d("<[LibFilters3]Test filter for \'" .. filterTypeName .. "\'  unregistered!")
 	else
-		libFilters:RegisterFilter(filterTag, filterType, filterFunc)
+		libFilters:RegisterFilter(filterTag, filterType, function(...) filterFunc(...) end)
 		d(">[LibFilters3]Test filter for \'" .. filterTypeName .. "\' registered!")
 	end
 	if noUpdate then return end
