@@ -210,191 +210,191 @@ end
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)
 local function updateGamepadVenderList(component)
 	-- updateGamepadVenderList(ZO_MODE_STORE_SELL) -- added here to save for if VENDOR_SELL is added to refresh
-		STORE_WINDOW_GAMEPAD.components[component].list:UpdateList()
-	end
-	local function updateGamepadInventoryItemList(gpInvVar)
-		gpInvVar:RefreshItemList()
-		if gpInvVar.itemList:IsEmpty() then
-			gpInvVar:SwitchActiveList("categoryList")
-		else
-			gpInvVar:UpdateRightTooltip()
-			gpInvVar:RefreshItemActions()
-		end
-	end
-	local function updateGamepadCraftBagList(gpInvVar)
-		gpInvVar:RefreshCraftBagList()
+	STORE_WINDOW_GAMEPAD.components[component].list:UpdateList()
+end
+local function updateGamepadInventoryItemList(gpInvVar)
+	gpInvVar:RefreshItemList()
+	if gpInvVar.itemList:IsEmpty() then
+		gpInvVar:SwitchActiveList("categoryList")
+	else
+		gpInvVar:UpdateRightTooltip()
 		gpInvVar:RefreshItemActions()
 	end
-	local function updateGamepadSharedInventoryList(gpInvVar)
-		-- prevent UI errors for lists created OnDeferredInitialization
-		if not gpInvVar.list then return end
-		gpInvVar:RefreshList()
-	end
-	local function updateGamepadCraftingInventory(gpInvVar)
-		-- can be added directly to each object using it in inventoryUpdaters
-		gpInvVar:PerformFullRefresh()
-	end
-	
-	local inventoryUpdaters = {
-		INVENTORY = function()
-			if IsGamepad() then
-				updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
-			else
-				updateKeyboardPlayerInventoryType(invTypeBackpack)
-			end
-		end,
-		INVENTORY_COMPANION = function()
-			if IsGamepad() then
-				updateGamepadInventoryItemList(gamepadConstants.companionEquipment_GP)
-			else
-				SafeUpdateList(keyboardConstants.companionEquipment, nil)
-			end
-		end,
-		CRAFTBAG = function()
-			if IsGamepad() then
-				updateGamepadCraftBagList(gamepadConstants.invBackpack_GP)
-			else
-				updateKeyboardPlayerInventoryType(invTypeCraftBag)
-			end
-		end,
-		INVENTORY_QUEST = function()
-			if IsGamepad() then
-				updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
-			else
-				updateKeyboardPlayerInventoryType(invTypeQuest)
-			end
-		end,
-		QUICKSLOT = function()
-			if IsGamepad() then
-		--		Does not exist
-			else
-				SafeUpdateList(keyboardConstants.quickslots)
-			end
-		end,
-		BANK_WITHDRAW = function()
-			if IsGamepad() then
-				updateGamepadSharedInventoryList(gamepadConstants.invBankWithdraw_GP)
-			else
-				updateKeyboardPlayerInventoryType(invTypeBank)
-			end
-		end,
-		GUILDBANK_WITHDRAW = function()
-			if IsGamepad() then
-				updateGamepadSharedInventoryList(gamepadConstants.invGuildBankWithdraw_GP)
-			else
-				updateKeyboardPlayerInventoryType(invTypeGuildBank)
-			end
-		end,
-		HOUSE_BANK_WITHDRAW = function()
-			if IsGamepad() then
-				updateGamepadSharedInventoryList(gamepadConstants.invHouseBankWithdraw_GP)
-			else
-				updateKeyboardPlayerInventoryType(invTypeHouseBank)
-			end
-		end,
-		VENDOR_BUY = function()
-			if IsGamepad() then
-				updateGamepadVenderList(ZO_MODE_STORE_BUY)
-			else
-				if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
-					local store = keyboardConstants.store
-					store:GetStoreItems()
-					SafeUpdateList(store)
-				end
-			end
-		end,
-		VENDOR_BUYBACK = function()
-			if IsGamepad() then
-				updateGamepadVenderList(ZO_MODE_STORE_BUY_BACK)
-			else
-				SafeUpdateList(keyboardConstants.vendorBuyBack)
-			end
-		end,
-		VENDOR_REPAIR = function()
-			if IsGamepad() then
-				updateGamepadVenderList(ZO_MODE_STORE_REPAIR)
-			else
-				SafeUpdateList(keyboardConstants.vendorRepair)
-			end
-		end,
-		GUILDSTORE_BROWSE = function()
-		end,
-		SMITHING_REFINE = function()
-			if IsGamepad() then
-				updateGamepadCraftingInventory(gamepadConstants.refinementPanel_GP.inventory)
-			else
-				updateCraftingInventoryDirty(keyboardConstants.refinementPanel.inventory)
-			end
-		end,
-		SMITHING_CREATION = function()
-		--[[
-		--Not supported yet
+end
+local function updateGamepadCraftBagList(gpInvVar)
+	gpInvVar:RefreshCraftBagList()
+	gpInvVar:RefreshItemActions()
+end
+local function updateGamepadSharedInventoryList(gpInvVar)
+	-- prevent UI errors for lists created OnDeferredInitialization
+	if not gpInvVar.list then return end
+	gpInvVar:RefreshList()
+end
+local function updateGamepadCraftingInventory(gpInvVar)
+	-- can be added directly to each object using it in inventoryUpdaters
+	gpInvVar:PerformFullRefresh()
+end
+
+local inventoryUpdaters = {
+	INVENTORY = function()
 		if IsGamepad() then
+			updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
 		else
+			updateKeyboardPlayerInventoryType(invTypeBackpack)
 		end
-		]]
-		end,
-		SMITHING_DECONSTRUCT = function()
-			if IsGamepad() then
-				updateGamepadCraftingInventory(gamepadConstants.deconstructionPanel_GP.inventory)
-			else
-				updateCraftingInventoryDirty(keyboardConstants.deconstructionPanel.inventory)
+	end,
+	INVENTORY_COMPANION = function()
+		if IsGamepad() then
+			updateGamepadInventoryItemList(gamepadConstants.companionEquipment_GP)
+		else
+			SafeUpdateList(keyboardConstants.companionEquipment, nil)
+		end
+	end,
+	CRAFTBAG = function()
+		if IsGamepad() then
+			updateGamepadCraftBagList(gamepadConstants.invBackpack_GP)
+		else
+			updateKeyboardPlayerInventoryType(invTypeCraftBag)
+		end
+	end,
+	INVENTORY_QUEST = function()
+		if IsGamepad() then
+			updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
+		else
+			updateKeyboardPlayerInventoryType(invTypeQuest)
+		end
+	end,
+	QUICKSLOT = function()
+		if IsGamepad() then
+	--		Does not exist
+		else
+			SafeUpdateList(keyboardConstants.quickslots)
+		end
+	end,
+	BANK_WITHDRAW = function()
+		if IsGamepad() then
+			updateGamepadSharedInventoryList(gamepadConstants.invBankWithdraw_GP)
+		else
+			updateKeyboardPlayerInventoryType(invTypeBank)
+		end
+	end,
+	GUILDBANK_WITHDRAW = function()
+		if IsGamepad() then
+			updateGamepadSharedInventoryList(gamepadConstants.invGuildBankWithdraw_GP)
+		else
+			updateKeyboardPlayerInventoryType(invTypeGuildBank)
+		end
+	end,
+	HOUSE_BANK_WITHDRAW = function()
+		if IsGamepad() then
+			updateGamepadSharedInventoryList(gamepadConstants.invHouseBankWithdraw_GP)
+		else
+			updateKeyboardPlayerInventoryType(invTypeHouseBank)
+		end
+	end,
+	VENDOR_BUY = function()
+		if IsGamepad() then
+			updateGamepadVenderList(ZO_MODE_STORE_BUY)
+		else
+			if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
+				local store = keyboardConstants.store
+				store:GetStoreItems()
+				SafeUpdateList(store)
 			end
-		end,
-		SMITHING_IMPROVEMENT = function()
-			if IsGamepad() then
-				updateGamepadCraftingInventory(gamepadConstants.improvementPanel_GP.inventory)
-			else
-				updateCraftingInventoryDirty(keyboardConstants.improvementPanel.inventory)
-			end
-		end,
-		SMITHING_RESEARCH = function()
-			if IsGamepad() then
-				gamepadConstants.researchPanel_GP:Refresh()
-			else
-				keyboardConstants.researchPanel:Refresh()
-			end
-		end,
-		SMITHING_RESEARCH_DIALOG = function()
-			if IsGamepad() then
-				GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks("StateChange",  nil, SCENE_SHOWING)
-			else
-				dialogUpdaterFunc(researchChooseItemDialog)
-			end
-		end,
-		ALCHEMY_CREATION = function()
-			if IsGamepad() then
-				updateGamepadCraftingInventory(gamepadConstants.alchemyInv_GP.inventory)
-			else
-				updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
-			end
-		end,
-		ENCHANTING = function()
-			if IsGamepad() then
-				updateGamepadCraftingInventory(gamepadConstants.enchanting_GP)
-			else
-				updateCraftingInventoryDirty(keyboardConstants.enchanting.inventory)
-			end
-		end,
-		PROVISIONING_COOK = function()
-		end,
-		PROVISIONING_BREW = function()
-		end,
-		RETRAIT = function()
-			if IsGamepad() then
-				ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh()
-			else
-				updateCraftingInventoryDirty(keyboardConstants.retrait.inventory)
-			end
-		end,
-		RECONSTRUCTION = function()
-			if IsGamepad() then
-				ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems()
-			else
-				updateCraftingInventoryDirty(keyboardConstants.reconstruct.inventory)
-			end
-		end,
-	}
+		end
+	end,
+	VENDOR_BUYBACK = function()
+		if IsGamepad() then
+			updateGamepadVenderList(ZO_MODE_STORE_BUY_BACK)
+		else
+			SafeUpdateList(keyboardConstants.vendorBuyBack)
+		end
+	end,
+	VENDOR_REPAIR = function()
+		if IsGamepad() then
+			updateGamepadVenderList(ZO_MODE_STORE_REPAIR)
+		else
+			SafeUpdateList(keyboardConstants.vendorRepair)
+		end
+	end,
+	GUILDSTORE_BROWSE = function()
+	end,
+	SMITHING_REFINE = function()
+		if IsGamepad() then
+			updateGamepadCraftingInventory(gamepadConstants.refinementPanel_GP.inventory)
+		else
+			updateCraftingInventoryDirty(keyboardConstants.refinementPanel.inventory)
+		end
+	end,
+	SMITHING_CREATION = function()
+	--[[
+	--Not supported yet
+	if IsGamepad() then
+	else
+	end
+	]]
+	end,
+	SMITHING_DECONSTRUCT = function()
+		if IsGamepad() then
+			updateGamepadCraftingInventory(gamepadConstants.deconstructionPanel_GP.inventory)
+		else
+			updateCraftingInventoryDirty(keyboardConstants.deconstructionPanel.inventory)
+		end
+	end,
+	SMITHING_IMPROVEMENT = function()
+		if IsGamepad() then
+			updateGamepadCraftingInventory(gamepadConstants.improvementPanel_GP.inventory)
+		else
+			updateCraftingInventoryDirty(keyboardConstants.improvementPanel.inventory)
+		end
+	end,
+	SMITHING_RESEARCH = function()
+		if IsGamepad() then
+			gamepadConstants.researchPanel_GP:Refresh()
+		else
+			keyboardConstants.researchPanel:Refresh()
+		end
+	end,
+	SMITHING_RESEARCH_DIALOG = function()
+		if IsGamepad() then
+			GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks("StateChange",  nil, SCENE_SHOWING)
+		else
+			dialogUpdaterFunc(researchChooseItemDialog)
+		end
+	end,
+	ALCHEMY_CREATION = function()
+		if IsGamepad() then
+			updateGamepadCraftingInventory(gamepadConstants.alchemyInv_GP.inventory)
+		else
+			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
+		end
+	end,
+	ENCHANTING = function()
+		if IsGamepad() then
+			updateGamepadCraftingInventory(gamepadConstants.enchanting_GP)
+		else
+			updateCraftingInventoryDirty(keyboardConstants.enchanting.inventory)
+		end
+	end,
+	PROVISIONING_COOK = function()
+	end,
+	PROVISIONING_BREW = function()
+	end,
+	RETRAIT = function()
+		if IsGamepad() then
+			ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh()
+		else
+			updateCraftingInventoryDirty(keyboardConstants.retrait.inventory)
+		end
+	end,
+	RECONSTRUCTION = function()
+		if IsGamepad() then
+			ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems()
+		else
+			updateCraftingInventoryDirty(keyboardConstants.reconstruct.inventory)
+		end
+	end,
+}
 	
 libFilters.inventoryUpdaters = inventoryUpdaters
 
