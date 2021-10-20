@@ -212,11 +212,12 @@ local function updateGamepadInventoryList(gpInvVar)
 end
 
 local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, callbackNrToUse, ...)
+	--df("sceneStateChangeCallbackUpdater - %s, oldState: %s, newSate: %s, callbackNrToUse: %s", tostring(sceneToUse.name), tostring(oldState), tostring(newState), tostring(callbackNrToUse))
 	if not sceneToUse or not sceneToUse.callbackRegistry or not sceneToUse.callbackRegistry.StateChange then return end
 	callbackNrToUse = callbackNrToUse or 1
 	local sceneCallbackFunc = sceneToUse.callbackRegistry.StateChange[callbackNrToUse][1] --should be the function
 	if not sceneCallbackFunc then return end
-	sceneCallbackFunc(sceneToUse, oldState, newState, ...)
+	sceneCallbackFunc(oldState, newState, ...)
 end
 
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)

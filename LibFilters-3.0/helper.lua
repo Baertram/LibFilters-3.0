@@ -513,6 +513,7 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     helper = {
         funcName = "IsResearchableItem",
         func = function(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+--d("[LibFilters3]IsResearchableItem: " ..GetItemLink(bagId, slotIndex))
 			-- get objectVar for LF_SMITHING_RESEARCH_DIALOG or LF_JEWELRY_RESEARCH_DIALOG
             local base = SMITHING_RESEARCH_SELECT
 			
