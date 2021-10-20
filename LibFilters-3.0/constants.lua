@@ -529,15 +529,15 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
 		--> or keyboard mode, and only hook teh active one!
-		--[LF_SMITHING_DECONSTRUCT]     = { gamepadConstants.deconstructionPanel_GP },
-		--[LF_SMITHING_IMPROVEMENT]     = { gamepadConstants.improvementPanel_GP },
-		--[LF_SMITHING_RESEARCH]        = { gamepadConstants.researchPanel_GP },
-		--[LF_JEWELRY_REFINE]           = { gamepadConstants.refinementPanel_GP },
-		--[LF_JEWELRY_DECONSTRUCT]      = { gamepadConstants.deconstructionPanel_GP },
-		--[LF_JEWELRY_IMPROVEMENT]      = { gamepadConstants.improvementPanel_GP },
-		--[LF_JEWELRY_RESEARCH]         = { gamepadConstants.researchPanel_GP },
-		--[LF_ALCHEMY_CREATION]         = { gamepadConstants.alchemy_GP },
-		--[LF_RETRAIT]                  = { gamepadConstants.retrait_GP },
+		[LF_SMITHING_DECONSTRUCT]     = {  },
+		[LF_SMITHING_IMPROVEMENT]     = {  },
+		[LF_SMITHING_RESEARCH]        = {  },
+		[LF_JEWELRY_REFINE]           = {  },
+		[LF_JEWELRY_DECONSTRUCT]      = {  },
+		[LF_JEWELRY_IMPROVEMENT]      = {  },
+		[LF_JEWELRY_RESEARCH]         = {  },
+		[LF_ALCHEMY_CREATION]         = {  },
+		[LF_RETRAIT]                  = {  },
 
 
 		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
