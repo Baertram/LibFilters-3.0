@@ -483,8 +483,9 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->Currently disalbed as the Gamepad mode Scenes for enchatning create/extract are used to store the filters in
 		-->.additionalFilter and the helper function ZO_Enchanting_DoesEnchantingItemPassFilter will be used to read the
 		-->scenes for both, keyboard AND gamepad mode
---		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
---		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
+		 --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_ENCHANTING_CREATION]	  = {  },
+		[LF_ENCHANTING_EXTRACTION]    = {  },
 	},
 
 	--Gamepad mode
@@ -492,7 +493,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
 		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
---		[LF_QUICKSLOT]                = { gamepadConstants.quickslots_GP }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ...
+		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },
 		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },
 		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },
@@ -529,6 +530,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
 		--> or keyboard mode, and only hook teh active one!
+		 --implemented special, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = {  },
 		[LF_SMITHING_IMPROVEMENT]     = {  },
 		[LF_SMITHING_RESEARCH]        = {  },
