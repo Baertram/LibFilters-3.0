@@ -287,6 +287,11 @@ local inventoryUpdaters = {
 	end,
 	QUICKSLOT = function()
 		if IsGamepad() then
+			--[[
+				--Not supported yet as quickslots in gamepad mode are totally different from keyboard mode. One would
+				--have to add filter possibilities not only in inventory consumables but also directly in the collections
+				--somehow
+			]]
 	--		SafeUpdateList(quickslots_GP) --TODO
 		else
 			SafeUpdateList(keyboardConstants.quickslots)
@@ -339,6 +344,12 @@ local inventoryUpdaters = {
 		end
 	end,
 	GUILDSTORE_BROWSE = function()
+	--[[
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
+	]]
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
@@ -349,10 +360,10 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_CREATION = function()
 	--[[
-	--Not supported yet
-	if IsGamepad() then
-	else
-	end
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
 	]]
 	end,
 	SMITHING_DECONSTRUCT = function()
@@ -402,8 +413,20 @@ local inventoryUpdaters = {
 		end
 	end,
 	PROVISIONING_COOK = function()
+	--[[
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
+	]]
 	end,
 	PROVISIONING_BREW = function()
+	--[[
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
+	]]
 	end,
 	RETRAIT = function()
 		if IsGamepad() then

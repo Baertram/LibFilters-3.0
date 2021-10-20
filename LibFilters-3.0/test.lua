@@ -3,15 +3,9 @@ if not libFilters then return end
 libFilters:InitializeLibFilters()
 
 libFilters.test = {}
-libFiltersTest = {}
+local filterTag = "LibFilters3_TestFilters_"
 
--- /script d(libFiltersTest)
--- /script d(#libFiltersTest)
--- /script d(#libFiltersTest[7])
--- /script libFiltersTest = {}
---	/script LibFilters3:RequestUpdate(LF_SMITHING_RESEARCH)
 SLASH_COMMANDS["/lftestfilters"] = function()
-	local filterTag = "TEST"
 	local filterTypes = {
 		LF_INVENTORY, 
 		LF_INVENTORY_QUEST,
@@ -80,10 +74,8 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 
 	for _, filterType in pairs(filterTypes) do
 		libFilters.test[filterType] = {}
-		libFiltersTest[filterType] = {}
 
 		local function filterCallback(slotOrBagId, slotIndex)
-	--		table.insert(libFiltersTest[filterType], {...})
 			if slotIndex then
 				local bagId = slotOrBagId
 				local itemLink = GetItemLink(bagId, slotIndex)
@@ -111,22 +103,23 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 			end
 		end
 
-		if libFilters:IsFilterRegistered(filterTag, filterType) then
-			d("Unregistering " .. filterType)
-			libFilters:UnregisterFilter(filterTag, filterType)
-	 --	   libFilters:RequestUpdate(filterType)
+		local filterTypeName = libFilters:GetFilterTypeName(filterType)
+		local filterTagToCheck = filterTag .. filterTypeName
+		if libFilters:IsFilterRegistered(filterTagToCheck, filterType) then
+			d("[LibFilters3]Unregistering " .. filterTypeName)
+			libFilters:UnregisterFilter(filterTagToCheck, filterType)
 		else
-			d("Registering " .. filterType)
-			libFilters:RegisterFilter(filterTag, filterType, filterCallback)
-	 --	   libFilters:RequestUpdate(filterType)
+			d("[LibFilters3]Registering " .. filterTypeName)
+			libFilters:RegisterFilter(filterTagToCheck, filterType, filterCallback)
 		end
+ 	    libFilters:RequestUpdate(filterType)
 	end
 end
 
 --depends on Item Saver by Randactyl
 SLASH_COMMANDS["/lftestenchant"] = function()
-	local filterTag = "TestEnchant"
-	local isRegistered = libFilters:IsFilterRegistered(filterTag, LF_ENCHANTING_CREATION)
+	local filterTagEnchanting = filterTag .. "ENCHANTING"
+	local isRegistered = libFilters:IsFilterRegistered(filterTagEnchanting, LF_ENCHANTING_CREATION)
 
 	local function filterCallback(slotOrBagId, slotIndex)
 		local bagId
@@ -145,14 +138,14 @@ SLASH_COMMANDS["/lftestenchant"] = function()
 	end
 
 	if not isRegistered then
-		libFilters:RegisterFilter(filterTag, LF_ENCHANTING_CREATION, filterCallback)
+		libFilters:RegisterFilter(filterTagEnchanting, LF_ENCHANTING_CREATION, filterCallback)
 		libFilters:RequestUpdate(LF_ENCHANTING_CREATION)
-		libFilters:RegisterFilter(filterTag, LF_ENCHANTING_EXTRACTION, filterCallback)
+		libFilters:RegisterFilter(filterTagEnchanting, LF_ENCHANTING_EXTRACTION, filterCallback)
 		libFilters:RequestUpdate(LF_ENCHANTING_EXTRACTION)
 	else
-		libFilters:UnregisterFilter(filterTag, LF_ENCHANTING_CREATION)
+		libFilters:UnregisterFilter(filterTagEnchanting, LF_ENCHANTING_CREATION)
 		libFilters:RequestUpdate(LF_ENCHANTING_CREATION)
-		libFilters:UnregisterFilter(filterTag, LF_ENCHANTING_EXTRACTION)
+		libFilters:UnregisterFilter(filterTagEnchanting, LF_ENCHANTING_EXTRACTION)
 		libFilters:RequestUpdate(LF_ENCHANTING_EXTRACTION)
 	end
 end
@@ -195,7 +188,6 @@ SLASH_COMMANDS["/lftestalchemy"] = function()
 	libFilters:RequestUpdate(LF_ALCHEMY_CREATION)
 end
 
-
 --Inventory
 SLASH_COMMANDS["/lftestinv"] = function()
 	--Test - Toogle a filter function for alchemy
@@ -213,9 +205,27 @@ SLASH_COMMANDS["/lftestinv"] = function()
 	libFilters:RequestUpdate(LF_INVENTORY)
 end
 
+--Inventory
+SLASH_COMMANDS["/lftestcraftbag"] = function()
+	--Test - Toogle a filter function for craftbag
+	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_CRAFTBAG", LF_CRAFTBAG) then
+		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_CRAFTBAG", LF_CRAFTBAG)
+		d("<[LibFilters3]Test filter for craftbag unregistered!")
+	else
+		libFilters:RegisterFilter("LibFilters3_TestFilters_LF_CRAFTBAG", LF_CRAFTBAG, function(inventorySlot)
+			local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+			d("[LibFilters3]Craftbag item: " .. GetItemLink(bagId, slotIndex))
+			return false --simulate "not allowed" -> filtered
+		end)
+		d(">[LibFilters3]Test filter for craftbag registered!")
+	end
+	libFilters:RequestUpdate(LF_CRAFTBAG)
+end
+
+
 --Bank withdraw
 SLASH_COMMANDS["/lftestbankwithdraw"] = function()
-	--Test - Toogle a filter function for alchemy
+	--Test - Toogle a filter function for bank withdraw
 	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_BANK_WITHDRAW", LF_BANK_WITHDRAW) then
 		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_BANK_WITHDRAW", LF_BANK_WITHDRAW)
 		d("<[LibFilters3]Test filter for bank withdraw unregistered!")
@@ -232,7 +242,7 @@ end
 
 --Guild Bank withdraw
 SLASH_COMMANDS["/lftestguildbankwithdraw"] = function()
-	--Test - Toogle a filter function for alchemy
+	--Test - Toogle a filter function for guild bank withdraw
 	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_GUILDBANK_WITHDRAW", LF_GUILDBANK_WITHDRAW) then
 		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_GUILDBANK_WITHDRAW", LF_GUILDBANK_WITHDRAW)
 		d("<[LibFilters3]Test filter for guild bank withdraw unregistered!")
@@ -249,7 +259,7 @@ end
 
 --House bank withdraw
 SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
-	--Test - Toogle a filter function for alchemy
+	--Test - Toogle a filter function for house bank withdraw
 	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_HOUSE_BANK_WITHDRAW", LF_HOUSE_BANK_WITHDRAW) then
 		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_HOUSE_BANK_WITHDRAW", LF_HOUSE_BANK_WITHDRAW)
 		d("<[LibFilters3]Test filter for house bank withdraw unregistered!")
