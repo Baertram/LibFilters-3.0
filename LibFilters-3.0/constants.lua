@@ -378,6 +378,41 @@ local player2playerTrade_GP = 	nil --[customFragments_GP[LF_TRADE].fragment
 libFilters.mapping = {}
 local mapping = libFilters.mapping
 
+--[Mapping for filter type to filter function type: inventorySlot or crafting with bagId, slotIndex]
+--Constants of the possible filter function types of LibFilters
+libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
+local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
+local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+
+libFilters.mapping.filterTypeToFilterFunctionType = {}
+local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
+--The following filterTypes use bagId and slotIndex
+local filterTypeToFilterFunctionType = {
+	[LF_SMITHING_REFINE]                        = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_SMITHING_DECONSTRUCT]                   = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_SMITHING_IMPROVEMENT]                   = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_SMITHING_RESEARCH]                      = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_SMITHING_RESEARCH_DIALOG]               = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_JEWELRY_REFINE]                         = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_JEWELRY_DECONSTRUCT]                    = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_JEWELRY_IMPROVEMENT]                    = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_JEWELRY_RESEARCH]                       = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_JEWELRY_RESEARCH_DIALOG]                = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_ENCHANTING_CREATION]                    = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_ENCHANTING_EXTRACTION]                  = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_RETRAIT]                                = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+	[LF_ALCHEMY_CREATION]                       = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX,
+}
+--Now add all other filterTypes which were not added yet, with the constant LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+for _, filterTypeValue in pairs(libFiltersFilterConstants) do
+	if filterTypeToFilterFunctionType[filterTypeValue] == nil then
+		filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+	end
+end
+
+
+
 --[Mapping for crafting]
 --Enchaning (used to determine the correct LF_* filterType constant at enchanting tables, as they share the same inventory
 --ENCHANTING.inventory. Gamepad mode uses different scenes for enchating creation and extraction so there are used
