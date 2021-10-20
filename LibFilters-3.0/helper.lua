@@ -414,12 +414,17 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     helper = {
         funcName = "Refresh",
         func = function(self)
+            --Test: Always use SMITHING.researchPanel as self, even in gamepad mode, so registered filter functions at
+            --will be read from .additionalFilter!
+            local base = SMITHING.researchPanel
+
 
 --d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
-            -- Our filter function to insert LibFilter rules
+            -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
             local function predicate(bagId, slotIndex)
                 local result = DoesNotBlockResearch(bagId, slotIndex)
-                result = checkAndRundAdditionalFiltersBag(self, bagId, slotIndex, result)
+                --result = checkAndRundAdditionalFiltersBag(self, bagId, slotIndex, result)
+                result = checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
                 return result
             end
 
