@@ -242,8 +242,8 @@ local function updateCraftingInventoryDirty(craftingInventory)
 	craftingInventory:HandleDirtyEvent()
 end
 
-local function updateGamepadInventoryList(gpInvVar)
-	gpInvVar:RefreshItemList()
+local function updateGamepadInventoryList(gpInvVarList)
+	gpInvVarList:RefreshList()
 end
 
 local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, callbackNrToUse, ...)
@@ -259,7 +259,7 @@ end
 local inventoryUpdaters = {
 	INVENTORY = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(gamepadConstants.invBackpack_GP)
+			gamepadConstants.invBackpack_GP:RefreshItemList() --TODO
 		else
 			updateKeyboardPlayerInventoryType(invTypeBackpack)
 		end
@@ -273,7 +273,7 @@ local inventoryUpdaters = {
 	end,
 	CRAFTBAG = function()
 		if IsGamepad() then
-			gamepadConstants.invBackpack_GP:RefreshCraftBagList()
+			gamepadConstants.invBackpack_GP:RefreshCraftBagList() --TODO
 		else
 			updateKeyboardPlayerInventoryType(invTypeCraftBag)
 		end
@@ -294,21 +294,21 @@ local inventoryUpdaters = {
 	end,
 	BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(gamepadConstants.invBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invBank_GP.withdrawList) --GAMEPAD_BANKING.withdrawList:RefreshList() TODO
 		else
 			updateKeyboardPlayerInventoryType(invTypeBank)
 		end
 	end,
 	GUILDBANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(gamepadConstants.invGuildBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invGuildBank_GP.withdrawList) --GAMEPAD_GUILD_BANK.withdrawList:RefreshList() TODO
 		else
 			updateKeyboardPlayerInventoryType(invTypeGuildBank)
 		end
 	end,
 	HOUSE_BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadInventoryList(gamepadConstants.invHouseBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invBank_GP.withdrawList) --GAMEPAD_BANKING.withdrawList:RefreshList() TODO
 		else
 			updateKeyboardPlayerInventoryType(invTypeHouseBank)
 		end

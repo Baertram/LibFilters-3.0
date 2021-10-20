@@ -272,14 +272,11 @@ gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--remove does not exis
 --[Banks]
 --Player bank
 local invBank_GP = gamepadConstants.invBank_GP
-gamepadConstants.invBankWithdraw_GP =			invBank_GP.withdrawList				--remove using invBankWithdraw
 
 --Guild bank
-gamepadConstants.invGuildBankWithdraw_GP = 		gamepadConstants.invGuildBank_GP.withdrawList		--remove using invGuildBankWithdraw
 gamepadConstants.invGuildBankDepositScene_GP =  GAMEPAD_GUILD_BANK_SCENE
 
 --House bank
-gamepadConstants.invHouseBankWithdraw_GP =		invBank_GP.withdrawList 			--remove using invHouseBankWithdraw
 
 --[Vendor]
 ----Buy

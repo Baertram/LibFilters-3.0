@@ -192,6 +192,7 @@ SLASH_COMMANDS["/lftestalchemy"] = function()
 		end)
 		d(">[LibFilters3]Test filter for alchemy registered!")
 	end
+	libFilters:RequestUpdate(LF_ALCHEMY_CREATION)
 end
 
 
@@ -209,6 +210,7 @@ SLASH_COMMANDS["/lftestinv"] = function()
 		end)
 		d(">[LibFilters3]Test filter for inventory registered!")
 	end
+	libFilters:RequestUpdate(LF_INVENTORY)
 end
 
 --Bank withdraw
@@ -225,6 +227,7 @@ SLASH_COMMANDS["/lftestbankwithdraw"] = function()
 		end)
 		d(">[LibFilters3]Test filter for bank withdraw registered!")
 	end
+	libFilters:RequestUpdate(LF_BANK_WITHDRAW)
 end
 
 --Guild Bank withdraw
@@ -241,4 +244,22 @@ SLASH_COMMANDS["/lftestguildbankwithdraw"] = function()
 		end)
 		d(">[LibFilters3]Test filter for guild bank withdraw registered!")
 	end
+	libFilters:RequestUpdate(LF_GUILDBANK_WITHDRAW)
+end
+
+--House bank withdraw
+SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
+	--Test - Toogle a filter function for alchemy
+	if libFilters:IsFilterRegistered("LibFilters3_TestFilters_LF_HOUSE_BANK_WITHDRAW", LF_HOUSE_BANK_WITHDRAW) then
+		libFilters:UnregisterFilter("LibFilters3_TestFilters_LF_HOUSE_BANK_WITHDRAW", LF_HOUSE_BANK_WITHDRAW)
+		d("<[LibFilters3]Test filter for house bank withdraw unregistered!")
+	else
+		libFilters:RegisterFilter("LibFilters3_TestFilters_LF_HOUSE_BANK_WITHDRAW", LF_HOUSE_BANK_WITHDRAW, function(inventorySlot)
+			local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+			d("[LibFilters3]House bank item: " .. GetItemLink(bagId, slotIndex))
+			return false --simulate "not allowed" -> filtered
+		end)
+		d(">[LibFilters3]Test filter for house bank withdraw registered!")
+	end
+	libFilters:RequestUpdate(LF_HOUSE_BANK_WITHDRAW)
 end
