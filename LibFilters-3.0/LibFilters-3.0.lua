@@ -211,6 +211,14 @@ local function updateGamepadInventoryList(gpInvVar)
 	gpInvVar:RefreshItemList()
 end
 
+local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, callbackNrToUse, ...)
+	if not sceneToUse or not sceneToUse.callbackRegistry or not sceneToUse.callbackRegistry.StateChange then return end
+	callbackNrToUse = callbackNrToUse or 1
+	local sceneCallbackFunc = sceneToUse.callbackRegistry.StateChange[callbackNrToUse][1] --should be the function
+	if not sceneCallbackFunc then return end
+	sceneCallbackFunc(sceneToUse, oldState, newState, ...)
+end
+
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)
 local inventoryUpdaters = {
 	INVENTORY = function()
@@ -334,7 +342,11 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_RESEARCH_DIALOG = function()
 		if IsGamepad() then
-			dialogUpdaterFunc(researchChooseItemDialog)
+			-->The index [1] in GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange is the original state change of ZOs vailla UI and should trigger the
+			-->refresh of the scene's list contents
+			--> See here: esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
+			-->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
+			sceneStateChangeCallbackUpdater(gamepadConstants.researchChooseItemDialog_GP, SCENE_HIDDEN, SCENE_SHOWING, 1, nil)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
 		end

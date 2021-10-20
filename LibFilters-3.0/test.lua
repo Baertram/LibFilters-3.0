@@ -156,3 +156,15 @@ SLASH_COMMANDS["/testenchant"] = function()
 		libFilters:RequestUpdate(LF_ENCHANTING_EXTRACTION)
 	end
 end
+
+
+--[[
+--testing Gamepad research dialog confirm scene: Add [2] to GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange
+-->The index [1] in GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange is the original state change of ZOs vailla UI and should trigger the
+-->refresh of the scene's list contents
+--> See here: esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
+-->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
+GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
+	d("GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [2] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
+end)
+]]
