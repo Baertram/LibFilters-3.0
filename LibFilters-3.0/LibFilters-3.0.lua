@@ -30,6 +30,41 @@
 --[Important]
 --You need to call LibFilters3:InitializeLibFilters() once in any of the addons that use LibFilters, to
 --create the hooks and init the library properly!
+--
+--
+--[Example filter functions]
+--Here is the mapping which filterId constant LF* uses which type of filter function: inventorySlot or bagdId & slotIndex
+--Example filter functions:
+--[[
+--Filter function with inventorySlot
+local function FilterSavedItemsForSlot(inventorySlot)
+  return true -- show the item in the list / false = hide item
+end
+
+--Filter function with bagId and slotIndex (often used at crafting tables)
+local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
+  return true -- show the item in the list / false = hide item
+end
+--
+--All LF_ constants except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
+--are using the InventorySlot filter function!
+--
+--Filter function with bagId and slotIndex (most of them are crafting related ones)
+--[LF_SMITHING_REFINE]                        = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_DECONSTRUCT]                   = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_IMPROVEMENT]                   = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_RESEARCH]                      = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_SMITHING_RESEARCH_DIALOG]               = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_REFINE]                         = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_DECONSTRUCT]                    = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_IMPROVEMENT]                    = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_RESEARCH]                       = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_JEWELRY_RESEARCH_DIALOG]                = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_ENCHANTING_CREATION]                    = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_ENCHANTING_EXTRACTION]                  = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_RETRAIT]                                = FilterSavedItemsForBagIdAndSlotIndex,
+--[LF_ALCHEMY_CREATION]                       = FilterSavedItemsForBagIdAndSlotIndex,
+]]
 
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0
@@ -225,7 +260,7 @@ local function updateGamepadCraftBagList(gpInvVar)
 	gpInvVar:RefreshCraftBagList()
 	gpInvVar:RefreshItemActions()
 end
-local function updateGamepadSharedInventoryList(gpInvVar)
+local function updateGamepadInventoryList(gpInvVar)
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar.list then return end
 	gpInvVar:RefreshList()
@@ -233,6 +268,14 @@ end
 local function updateGamepadCraftingInventory(gpInvVar)
 	-- can be added directly to each object using it in inventoryUpdaters
 	gpInvVar:PerformFullRefresh()
+end
+local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, callbackNrToUse, ...)
+	--df("sceneStateChangeCallbackUpdater - %s, oldState: %s, newSate: %s, callbackNrToUse: %s", tostring(sceneToUse.name), tostring(oldState), tostring(newState), tostring(callbackNrToUse))
+	if not sceneToUse or not sceneToUse.callbackRegistry or not sceneToUse.callbackRegistry.StateChange then return end
+	callbackNrToUse = callbackNrToUse or 1
+	local sceneCallbackFunc = sceneToUse.callbackRegistry.StateChange[callbackNrToUse][1] --should be the function
+	if not sceneCallbackFunc then return end
+	sceneCallbackFunc(oldState, newState, ...)
 end
 
 local inventoryUpdaters = {
@@ -266,28 +309,33 @@ local inventoryUpdaters = {
 	end,
 	QUICKSLOT = function()
 		if IsGamepad() then
-	--		Does not exist
+			--[[
+				--Not supported yet as quickslots in gamepad mode are totally different from keyboard mode. One would
+				--have to add filter possibilities not only in inventory consumables but also directly in the collections
+				--somehow
+			]]
+	--		SafeUpdateList(quickslots_GP) --TODO
 		else
 			SafeUpdateList(keyboardConstants.quickslots)
 		end
 	end,
 	BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadSharedInventoryList(gamepadConstants.invBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invBank_GP.withdrawList)
 		else
 			updateKeyboardPlayerInventoryType(invTypeBank)
 		end
 	end,
 	GUILDBANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadSharedInventoryList(gamepadConstants.invGuildBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invGuildBank_GP.withdrawList)
 		else
 			updateKeyboardPlayerInventoryType(invTypeGuildBank)
 		end
 	end,
 	HOUSE_BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateGamepadSharedInventoryList(gamepadConstants.invHouseBankWithdraw_GP)
+			updateGamepadInventoryList(gamepadConstants.invBank_GP.withdrawList)
 		else
 			updateKeyboardPlayerInventoryType(invTypeHouseBank)
 		end
@@ -318,6 +366,12 @@ local inventoryUpdaters = {
 		end
 	end,
 	GUILDSTORE_BROWSE = function()
+	--[[
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
+	]]
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
@@ -328,10 +382,10 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_CREATION = function()
 	--[[
-	--Not supported yet
-	if IsGamepad() then
-	else
-	end
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
 	]]
 	end,
 	SMITHING_DECONSTRUCT = function()
@@ -365,6 +419,7 @@ local inventoryUpdaters = {
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
 			updateGamepadCraftingInventory(gamepadConstants.alchemyInv_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.alchemyInv_GP)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
 		end
@@ -377,8 +432,20 @@ local inventoryUpdaters = {
 		end
 	end,
 	PROVISIONING_COOK = function()
+	--[[
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
+	]]
 	end,
 	PROVISIONING_BREW = function()
+	--[[
+		--Not supported yet
+		if IsGamepad() then
+		else
+		end
+	]]
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
@@ -592,20 +659,20 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	--Hook normal via the given control/scene/fragment etc. -> See table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 	if hookKeyboardAndGamepadMode == true then
 		--Keyboard
-		inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[false][filterLFConstant]
 		if not hookSpecialFunctionDataOfLFConstant then
+			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[false][filterLFConstant]
 			hookNow(inventoriesToHookForLFConstant, false)
 		end
 		--Gamepad
-		inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][filterLFConstant]
 		if not hookSpecialFunctionDataOfLFConstant then
+			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][filterLFConstant]
 			hookNow(inventoriesToHookForLFConstant, true)
 		end
 	else
 		--Only currently detected mode, gamepad or keyboard
-		local gamepadMode = IsGamepad()
-		inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode][filterLFConstant]
 		if not hookSpecialFunctionDataOfLFConstant then
+			local gamepadMode = IsGamepad()
+			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode][filterLFConstant]
 			hookNow(inventoriesToHookForLFConstant, gamepadMode)
 		end
 	end
