@@ -123,6 +123,9 @@ local researchChooseItemDialog = 	keyboardConstants.researchChooseItemDialog
 --Gamepad
 local gamepadConstants = 			constants.gamepad
 local customFragments_GP = 			gamepadConstants.customFragments
+local store_GP = 					gamepadConstants.store_GP
+local store_componentsGP = 			store_GP.components
+
 --Get the updated constants values of the gamepad fragments, created after constants.lua was called, in file
 --Gamepad/gamepadCustomFragments.lua
 local invBackpackFragment_GP =	customFragments_GP[LF_INVENTORY].fragment
@@ -243,10 +246,17 @@ local function updateCraftingInventoryDirty(craftingInventory)
 end
 
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)
-local function updateGamepadVenderList(component)
+local function updateGamepadVendorList(component)
 	-- updateGamepadVenderList(ZO_MODE_STORE_SELL) -- added here to save for if VENDOR_SELL is added to refresh
-	STORE_WINDOW_GAMEPAD.components[component].list:UpdateList()
+	store_componentsGP[component].list:UpdateList() --STORE_WINDOW_GAMEPAD.components
 end
+
+local function updateGamepadInventoryList(gpInvVar)
+	-- prevent UI errors for lists created OnDeferredInitialization
+	if not gpInvVar.list then return end
+	gpInvVar:RefreshList()
+end
+
 local function updateGamepadInventoryItemList(gpInvVar)
 	gpInvVar:RefreshItemList()
 	if gpInvVar.itemList:IsEmpty() then
@@ -256,19 +266,19 @@ local function updateGamepadInventoryItemList(gpInvVar)
 		gpInvVar:RefreshItemActions()
 	end
 end
+
 local function updateGamepadCraftBagList(gpInvVar)
 	gpInvVar:RefreshCraftBagList()
 	gpInvVar:RefreshItemActions()
 end
-local function updateGamepadInventoryList(gpInvVar)
-	-- prevent UI errors for lists created OnDeferredInitialization
-	if not gpInvVar.list then return end
-	gpInvVar:RefreshList()
-end
+
 local function updateGamepadCraftingInventory(gpInvVar)
 	-- can be added directly to each object using it in inventoryUpdaters
 	gpInvVar:PerformFullRefresh()
 end
+
+--[[
+--Function to get the number callbackNrToUse of a StateChange callback table of a scene, and run it with the desired oldState, newState
 local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, callbackNrToUse, ...)
 	--df("sceneStateChangeCallbackUpdater - %s, oldState: %s, newSate: %s, callbackNrToUse: %s", tostring(sceneToUse.name), tostring(oldState), tostring(newState), tostring(callbackNrToUse))
 	if not sceneToUse or not sceneToUse.callbackRegistry or not sceneToUse.callbackRegistry.StateChange then return end
@@ -277,7 +287,10 @@ local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, c
 	if not sceneCallbackFunc then return end
 	sceneCallbackFunc(oldState, newState, ...)
 end
+]]
 
+--The updater functions used within LibFilters:RequestUpdate() for the LF_* constants
+--Will call a refresh or update of the inventory lists, or scenes, or set a "isdirty" flag and update the crafting lists, etc.
 local inventoryUpdaters = {
 	INVENTORY = function()
 		if IsGamepad() then
@@ -342,7 +355,7 @@ local inventoryUpdaters = {
 	end,
 	VENDOR_BUY = function()
 		if IsGamepad() then
-			updateGamepadVenderList(ZO_MODE_STORE_BUY)
+			updateGamepadVendorList(ZO_MODE_STORE_BUY)
 		else
 			if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
 				local store = keyboardConstants.store
@@ -353,14 +366,14 @@ local inventoryUpdaters = {
 	end,
 	VENDOR_BUYBACK = function()
 		if IsGamepad() then
-			updateGamepadVenderList(ZO_MODE_STORE_BUY_BACK)
+			updateGamepadVendorList(ZO_MODE_STORE_BUY_BACK)
 		else
 			SafeUpdateList(keyboardConstants.vendorBuyBack)
 		end
 	end,
 	VENDOR_REPAIR = function()
 		if IsGamepad() then
-			updateGamepadVenderList(ZO_MODE_STORE_REPAIR)
+			updateGamepadVendorList(ZO_MODE_STORE_REPAIR)
 		else
 			SafeUpdateList(keyboardConstants.vendorRepair)
 		end
@@ -424,7 +437,7 @@ local inventoryUpdaters = {
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
 			updateGamepadCraftingInventory(gamepadConstants.alchemyInv_GP.inventory)
-			updateCraftingInventoryDirty(gamepadConstants.alchemyInv_GP)
+			--updateCraftingInventoryDirty(gamepadConstants.alchemyInv_GP)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
 		end
