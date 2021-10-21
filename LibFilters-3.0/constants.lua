@@ -347,10 +347,10 @@ gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
 gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY.inventory
 
 --Retrait
---gamepadConstants.retrait = --
+gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 
 --Reconstruction
---gamepadConstants.reconstruct = --
+gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
 

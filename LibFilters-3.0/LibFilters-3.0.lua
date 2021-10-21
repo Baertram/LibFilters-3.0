@@ -467,14 +467,14 @@ local inventoryUpdaters = {
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
-			ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh()
+			gamepadConstants.retrait:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.retrait.inventory)
 		end
 	end,
 	RECONSTRUCTION = function()
 		if IsGamepad() then
-			ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems()
+			gamepadConstants.reconstruct:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.reconstruct.inventory)
 		end
