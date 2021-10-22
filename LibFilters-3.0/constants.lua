@@ -24,6 +24,7 @@ libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
 ------------------------------------------------------------------------------------------------------------------------
 
+libFilters.constants = {}
 
 ------------------------------------------------------------------------------------------------------------------------
 --LF_* FILTER PANEL ID constants
@@ -32,6 +33,8 @@ libFilters.globalLibName    = GlobalLibName
 --The possible libFilters filterPanelIds
 --!!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
+libFilters.constants.filterTypes = {}
+
 local libFiltersFilterConstants = {
 	 [1]	= "LF_INVENTORY",
 	 [2]	= "LF_BANK_WITHDRAW",
@@ -88,6 +91,7 @@ for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 	filters[_G[filterConstantName]] = {}
 end
 libFilters.FilterTypes = libFiltersFilterConstants
+libFilters.constants.filterTypes = libFilters.FilterTypes
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN					= LF_INVENTORY
@@ -97,8 +101,6 @@ LF_FILTER_MAX					= #libFiltersFilterConstants
 ------------------------------------------------------------------------------------------------------------------------
 --ZOs / ESOUI CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
-libFilters.constants = {}
-
 libFilters.constants.keyboard = {}
 local keyboardConstants = libFilters.constants.keyboard
 
@@ -272,14 +274,11 @@ gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--remove does not exis
 --[Banks]
 --Player bank
 local invBank_GP = gamepadConstants.invBank_GP
-gamepadConstants.invBankWithdraw_GP =			invBank_GP.withdrawList				--remove using invBankWithdraw
 
 --Guild bank
-gamepadConstants.invGuildBankWithdraw_GP = 		gamepadConstants.invGuildBank_GP.withdrawList		--remove using invGuildBankWithdraw
 gamepadConstants.invGuildBankDepositScene_GP =  GAMEPAD_GUILD_BANK_SCENE
 
 --House bank
-gamepadConstants.invHouseBankWithdraw_GP =		invBank_GP.withdrawList 			--remove using invHouseBankWithdraw
 
 --[Vendor]
 ----Buy
@@ -380,6 +379,48 @@ local player2playerTrade_GP = 	nil --[customFragments_GP[LF_TRADE].fragment
 ------------------------------------------------------------------------------------------------------------------------
 libFilters.mapping = {}
 local mapping = libFilters.mapping
+
+--[Mapping for filter type to filter function type: inventorySlot or crafting with bagId, slotIndex]
+--Constants of the possible filter function types of LibFilters
+libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
+local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
+local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+
+libFilters.mapping.filterTypeToFilterFunctionType = {}
+local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
+--The following filterTypes use bagId and slotIndex
+local filterTypesUsingBagIdAndSlotIndexFilterFunction = {
+	[LF_SMITHING_REFINE]			= true,
+	[LF_SMITHING_DECONSTRUCT]     	= true,
+	[LF_SMITHING_IMPROVEMENT]     	= true,
+	[LF_SMITHING_RESEARCH]        	= true,
+	[LF_SMITHING_RESEARCH_DIALOG] 	= true,
+	[LF_JEWELRY_REFINE]           	= true,
+	[LF_JEWELRY_DECONSTRUCT]     	= true,
+	[LF_JEWELRY_IMPROVEMENT]      	= true,
+	[LF_JEWELRY_RESEARCH]         	= true,
+	[LF_JEWELRY_RESEARCH_DIALOG]  	= true,
+	[LF_ENCHANTING_CREATION]      	= true,
+	[LF_ENCHANTING_EXTRACTION]    	= true,
+	[LF_RETRAIT]                  	= true,
+	[LF_ALCHEMY_CREATION]         	= true,
+}
+libFilters.constants.filterTypes.UsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
+--Add them to the table libFilters.mapping.filterTypeToFilterFunctionType
+for filterTypeValue, _  in pairs(filterTypesUsingBagIdAndSlotIndexFilterFunction) do
+	filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+end
+--Now add all other missing filterTypes which were not added yet, with the constant LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+libFilters.constants.filterTypes.UsingInventorySlotFilterFunction = {}
+for filterTypeValue, _  in pairs(libFiltersFilterConstants) do
+	if filterTypeToFilterFunctionType[filterTypeValue] == nil then
+		filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+		libFilters.constants.filterTypes.UsingInventorySlotFilterFunction[filterTypeValue] = true
+	end
+end
+
+
 
 --[Mapping for crafting]
 --Enchaning (used to determine the correct LF_* filterType constant at enchanting tables, as they share the same inventory
@@ -483,8 +524,9 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->Currently disalbed as the Gamepad mode Scenes for enchatning create/extract are used to store the filters in
 		-->.additionalFilter and the helper function ZO_Enchanting_DoesEnchantingItemPassFilter will be used to read the
 		-->scenes for both, keyboard AND gamepad mode
---		[LF_ENCHANTING_CREATION]	  = {}, --implemented special, leave empty (not NIL!) to prevent error messages
---		[LF_ENCHANTING_EXTRACTION]    = {}, --implemented special, leave empty (not NIL!) to prevent error messages
+		 --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_ENCHANTING_CREATION]	  = {  },
+		[LF_ENCHANTING_EXTRACTION]    = {  },
 	},
 
 	--Gamepad mode
@@ -492,7 +534,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
 		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
---		[LF_QUICKSLOT]                = { gamepadConstants.quickslots_GP }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ...
+		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },
 		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },
 		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },
@@ -529,15 +571,16 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
 		--> or keyboard mode, and only hook teh active one!
-		--[LF_SMITHING_DECONSTRUCT]     = { gamepadConstants.deconstructionPanel_GP },
-		--[LF_SMITHING_IMPROVEMENT]     = { gamepadConstants.improvementPanel_GP },
-		--[LF_SMITHING_RESEARCH]        = { gamepadConstants.researchPanel_GP },
-		--[LF_JEWELRY_REFINE]           = { gamepadConstants.refinementPanel_GP },
-		--[LF_JEWELRY_DECONSTRUCT]      = { gamepadConstants.deconstructionPanel_GP },
-		--[LF_JEWELRY_IMPROVEMENT]      = { gamepadConstants.improvementPanel_GP },
-		--[LF_JEWELRY_RESEARCH]         = { gamepadConstants.researchPanel_GP },
-		--[LF_ALCHEMY_CREATION]         = { gamepadConstants.alchemy_GP },
-		--[LF_RETRAIT]                  = { gamepadConstants.retrait_GP },
+		 --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_DECONSTRUCT]     = {  },
+		[LF_SMITHING_IMPROVEMENT]     = {  },
+		[LF_SMITHING_RESEARCH]        = {  },
+		[LF_JEWELRY_REFINE]           = {  },
+		[LF_JEWELRY_DECONSTRUCT]      = {  },
+		[LF_JEWELRY_IMPROVEMENT]      = {  },
+		[LF_JEWELRY_RESEARCH]         = {  },
+		[LF_ALCHEMY_CREATION]         = {  },
+		[LF_RETRAIT]                  = {  },
 
 
 		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
@@ -631,4 +674,3 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 	 end
 end
 mapping.FilterTypeToUpdaterName = filterTypeToUpdaterName
-
