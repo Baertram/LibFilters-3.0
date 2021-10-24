@@ -31,7 +31,7 @@ libFilters.constants = {}
 ------------------------------------------------------------------------------------------------------------------------
 -- LibFilters filterPanel constants [value number] = "name"
 --The possible libFilters filterPanelIds
---!!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
+-- !!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
 libFilters.constants.filterTypes = {}
 
