@@ -307,10 +307,12 @@ gamepadConstants.invGuildStoreSellScene_GP =  	TRADING_HOUSE_GAMEPAD_SCENE
 
 --[Mail]
 gamepadConstants.invMailSendScene_GP = 			SM:GetScene("mailManagerGamepad")
+gamepadConstants.invMailSend_GP = 				MAIL_MANAGER_GAMEPAD.send
 
 
 --[Player 2 player trade]
 gamepadConstants.invPlayerTradeScene_GP = 		SM:GetScene("gamepadTrade")
+gamepadConstants.invPlayerTrade_GP = 			GAMEPAD_TRADE.inventoryList
 
 
 --[Companion]
@@ -344,7 +346,7 @@ gamepadConstants.enchanting_GP =				GAMEPAD_ENCHANTING
 
 --Alchemy
 gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
-gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY.inventory
+gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY
 
 --Retrait
 gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
@@ -353,6 +355,72 @@ gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
+------------------------------------------------------------------------------------------------------------------------
+--Gamepad dynamic "INVENTORY" upadte functions
+------------------------------------------------------------------------------------------------------------------------
+gamepadConstants.InvnetoryUpdateFunctions = {}
+local TRIGGER_CALLBACK = true
+local function updateFunction_GP_BankDeposit(gpInvVar)
+	if not gpInvVar.depositList then return end
+	gpInvVar.depositList:RefreshList(TRIGGER_CALLBACK)
+	
+	gpInvVar:UpdateKeybinds()
+	local list = gpInvVar:GetCurrentList()
+	if list:IsEmpty() then
+		gpInvVar:RequestEnterHeader()
+	end
+end
+
+local storeComponents_GP = gamepadConstants.store_GP.components
+local function updateFunction_GP_Vendor(component)
+	if not storeComponents_GP or not storeComponents_GP[component] then return end
+	storeComponents_GP[component].list:UpdateList()
+end
+
+gamepadConstants.InvnetoryUpdateFunctions[LF_INVENTORY] = function()
+	local gpInvVar = gamepadConstants.invBackpack_GP
+	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
+	gpInvVar:RefreshItemList()
+	if gpInvVar.itemList:IsEmpty() then
+		gpInvVar:SwitchActiveList("categoryList")
+	else
+		gpInvVar:UpdateRightTooltip()
+		gpInvVar:RefreshItemActions()
+	end
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_BANK_DEPOSIT] = function()
+	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_GUILDBANK_DEPOSIT] = function()
+	updateFunction_GP_BankDeposit(gamepadConstants.invGuildBank_GP)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_HOUSE_BANK_DEPOSIT] = function()
+	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_GUILDSTORE_SELL] = function()
+	-- must be difined here since GAMEPAD_TRADING_HOUSE_SELL is nil until first time accessed
+	local gpInvVar = GAMEPAD_TRADING_HOUSE_SELL
+	if not gpInvVar then return end
+	
+	gpInvVar:UpdateList()
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_VENDOR_SELL] = function()
+	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_FENCE_SELL] = function()
+	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_STOLEN)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_FENCE_LAUNDER] = function()
+	updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_MAIL_SEND] = function()
+	if not gamepadConstants.invMailSend_GP.inventoryList then return end
+	gamepadConstants.invMailSend_GP.inventoryList:RefreshList(TRIGGER_CALLBACK)
+end
+gamepadConstants.InvnetoryUpdateFunctions[LF_TRADE] = function()
+	if not gamepadConstants.invPlayerTrade_GP then return end
+	gamepadConstants.invPlayerTrade_GP:RefreshList(TRIGGER_CALLBACK)
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
@@ -674,4 +742,3 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 	 end
 end
 mapping.FilterTypeToUpdaterName = filterTypeToUpdaterName
-

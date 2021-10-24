@@ -253,11 +253,14 @@ end
 
 local function updateGamepadInventoryList(gpInvVar)
 	-- prevent UI errors for lists created OnDeferredInitialization
-	if not gpInvVar.list then return end
+	if not gpInvVar then return end
 	gpInvVar:RefreshList()
 end
 
 local function updateGamepadInventoryItemList(gpInvVar)
+	d( gpInvVar:GetCurrentList())
+	if not gpInvVar:GetCurrentList() then d(gpInvVar) end
+	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
 	gpInvVar:RefreshItemList()
 	if gpInvVar.itemList:IsEmpty() then
 		gpInvVar:SwitchActiveList("categoryList")
@@ -268,12 +271,13 @@ local function updateGamepadInventoryItemList(gpInvVar)
 end
 
 local function updateGamepadCraftBagList(gpInvVar)
+	if not gpInvVar.craftBagList then return end
 	gpInvVar:RefreshCraftBagList()
 	gpInvVar:RefreshItemActions()
 end
 
 local function updateGamepadCraftingInventory(gpInvVar)
-	-- can be added directly to each object using it in inventoryUpdaters
+	if not gpInvVar then return end
 	gpInvVar:PerformFullRefresh()
 end
 
@@ -287,14 +291,16 @@ local function sceneStateChangeCallbackUpdater(sceneToUse, oldState, newState, c
 	if not sceneCallbackFunc then return end
 	sceneCallbackFunc(oldState, newState, ...)
 end
+
+/script GAMEPAD_INVENTORY:RefreshItemList()
 ]]
 
 --The updater functions used within LibFilters:RequestUpdate() for the LF_* constants
 --Will call a refresh or update of the inventory lists, or scenes, or set a "isdirty" flag and update the crafting lists, etc.
 local inventoryUpdaters = {
-	INVENTORY = function()
+	INVENTORY = function(filterType)
 		if IsGamepad() then
-			updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
+			gamepadConstants.InvnetoryUpdateFunctions[filterType]()
 		else
 			updateKeyboardPlayerInventoryType(invTypeBackpack)
 		end
@@ -417,6 +423,7 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_RESEARCH = function()
 		if IsGamepad() then
+			if not gamepadConstants.researchPanel_GP.researchLineList then return end
 			gamepadConstants.researchPanel_GP:Refresh()
 		else
 			keyboardConstants.researchPanel:Refresh()
@@ -429,6 +436,7 @@ local inventoryUpdaters = {
 			--> See here: esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
 			-->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 			--sceneStateChangeCallbackUpdater(gamepadConstants.researchChooseItemDialog_GP, SCENE_HIDDEN, SCENE_SHOWING, 1, nil)
+			if not gamepadConstants.researchPanel_GP.confirmList then return end
 			gamepadConstants.researchChooseItemDialog_GP:FireCallbacks("StateChange", nil, SCENE_SHOWING)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
@@ -444,7 +452,7 @@ local inventoryUpdaters = {
 	end,
 	ENCHANTING = function()
 		if IsGamepad() then
-			updateGamepadCraftingInventory(gamepadConstants.enchanting_GP)
+			updateGamepadCraftingInventory(gamepadConstants.enchanting_GP.inventory)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.enchanting.inventory)
 		end
@@ -877,7 +885,7 @@ function libFilters:RequestUpdate(filterType)
 	 local function Update()
 --d(">[LibFilters3]RequestUpdate->Update called")
 		  EM:UnregisterForUpdate(callbackName)
-		  inventoryUpdaters[updaterName]()
+		  inventoryUpdaters[updaterName](filterType)
 	 end
 
 	 --cancel previously scheduled update if any
