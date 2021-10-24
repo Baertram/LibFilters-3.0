@@ -356,7 +356,7 @@ gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
 ------------------------------------------------------------------------------------------------------------------------
---Gamepad dynamic "INVENTORY" upadte functions
+--Gamepad dynamic "INVENTORY" update functions
 ------------------------------------------------------------------------------------------------------------------------
 gamepadConstants.InvnetoryUpdateFunctions = {}
 local TRIGGER_CALLBACK = true
