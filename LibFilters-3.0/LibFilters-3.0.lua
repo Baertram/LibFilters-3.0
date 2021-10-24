@@ -445,7 +445,6 @@ local inventoryUpdaters = {
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
 			updateGamepadCraftingInventory(gamepadConstants.alchemyInv_GP.inventory)
-			--updateCraftingInventoryDirty(gamepadConstants.alchemyInv_GP)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
 		end
