@@ -344,7 +344,7 @@ gamepadConstants.enchanting_GP =				GAMEPAD_ENCHANTING
 
 --Alchemy
 gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
-gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY.inventory
+gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY
 
 --Retrait
 gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
