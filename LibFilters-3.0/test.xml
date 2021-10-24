@@ -1,0 +1,19 @@
+<GuiXml>
+	<Controls>
+		<Control name="LibFilters3_Test_Template" tier="HIGH" virtual="true">
+			<Dimensions x="345" y="60"/>
+			<OnInitialized> 
+				self.slotControlType = "listSlot" 
+			</OnInitialized>
+			<Controls>
+				<Button name="$(parent)Button" override="true" tier="HIGH" inherits="ZO_DefaultButton">
+				<Dimensions x="340" y="50"/>
+					<Anchor point="CENTER" relativePoint="CENTER" offsetX="0" offsetY="0"/>
+				</Button>
+				<Label name="$(parent)Name" tier="MEDIUM" override="true" mouseEnabled="false">
+					<Anchor point="TOPLEFT" offsetX="0" offsetY="0"/>
+				</Label>
+			</Controls>
+		</Control>
+	</Controls>
+</GuiXml>

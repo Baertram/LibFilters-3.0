@@ -307,6 +307,7 @@ local inventoryUpdaters = {
 	end,
 	INVENTORY_COMPANION = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadInventoryItemList(gamepadConstants.companionEquipment_GP)
 		else
 			SafeUpdateList(keyboardConstants.companionEquipment, nil)
@@ -314,6 +315,7 @@ local inventoryUpdaters = {
 	end,
 	CRAFTBAG = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadCraftBagList(gamepadConstants.invBackpack_GP)
 		else
 			updateKeyboardPlayerInventoryType(invTypeCraftBag)
@@ -321,6 +323,7 @@ local inventoryUpdaters = {
 	end,
 	INVENTORY_QUEST = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
 		else
 			updateKeyboardPlayerInventoryType(invTypeQuest)
@@ -340,6 +343,7 @@ local inventoryUpdaters = {
 	end,
 	BANK_WITHDRAW = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadInventoryList(gamepadConstants.invBank_GP.withdrawList)
 		else
 			updateKeyboardPlayerInventoryType(invTypeBank)
@@ -347,6 +351,7 @@ local inventoryUpdaters = {
 	end,
 	GUILDBANK_WITHDRAW = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadInventoryList(gamepadConstants.invGuildBank_GP.withdrawList)
 		else
 			updateKeyboardPlayerInventoryType(invTypeGuildBank)
@@ -354,6 +359,7 @@ local inventoryUpdaters = {
 	end,
 	HOUSE_BANK_WITHDRAW = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadInventoryList(gamepadConstants.invBank_GP.withdrawList)
 		else
 			updateKeyboardPlayerInventoryType(invTypeHouseBank)
@@ -361,6 +367,7 @@ local inventoryUpdaters = {
 	end,
 	VENDOR_BUY = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadVendorList(ZO_MODE_STORE_BUY)
 		else
 			if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
@@ -372,6 +379,7 @@ local inventoryUpdaters = {
 	end,
 	VENDOR_BUYBACK = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadVendorList(ZO_MODE_STORE_BUY_BACK)
 		else
 			SafeUpdateList(keyboardConstants.vendorBuyBack)
@@ -379,6 +387,7 @@ local inventoryUpdaters = {
 	end,
 	VENDOR_REPAIR = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadVendorList(ZO_MODE_STORE_REPAIR)
 		else
 			SafeUpdateList(keyboardConstants.vendorRepair)
@@ -394,6 +403,7 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadCraftingInventory(gamepadConstants.refinementPanel_GP.inventory)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.refinementPanel.inventory)
@@ -409,6 +419,7 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_DECONSTRUCT = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadCraftingInventory(gamepadConstants.deconstructionPanel_GP.inventory)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.deconstructionPanel.inventory)
@@ -416,6 +427,7 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_IMPROVEMENT = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadCraftingInventory(gamepadConstants.improvementPanel_GP.inventory)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.improvementPanel.inventory)
@@ -444,6 +456,7 @@ local inventoryUpdaters = {
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
+			-- confirmed
 			updateGamepadCraftingInventory(gamepadConstants.alchemyInv_GP.inventory)
 		else
 			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
@@ -474,6 +487,7 @@ local inventoryUpdaters = {
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
+			-- confirmed
 			gamepadConstants.retrait:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.retrait.inventory)
@@ -481,6 +495,7 @@ local inventoryUpdaters = {
 	end,
 	RECONSTRUCTION = function()
 		if IsGamepad() then
+			-- not sure how reconstruct works, how it would be filtered.
 			gamepadConstants.reconstruct:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.reconstruct.inventory)
