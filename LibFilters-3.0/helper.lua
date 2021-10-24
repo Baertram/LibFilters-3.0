@@ -414,6 +414,12 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     helper = {
         funcName = "Refresh",
         func = function(self)
+			if self.panelContent:GetName() == "ZO_GamepadSmithingTopLevelMaskResearch" then
+				-- if Gamepad researchPanel has not been initialized yet, stop.
+				if not self.researchLineList then 
+					return 
+				end
+			end
             --Test: Always use SMITHING.researchPanel as self, even in gamepad mode, so registered filter functions at
             --will be read from .additionalFilter!
             local base = SMITHING.researchPanel

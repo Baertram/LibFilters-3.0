@@ -94,9 +94,7 @@ function LibFilters_InventoryLayoutFragment:Show()
 end
 function LibFilters_InventoryLayoutFragment:Hide()
 	self:OnHidden()
-	if invBackpack_GP.layoutData then
-	end
-		self:ApplyInventoryLayout(gamepadLibFiltersInventoryDepositFragment.layoutData)
+	self:ApplyInventoryLayout(gamepadLibFiltersInventoryDepositFragment.layoutData)
 end
 
 --Use the same layoutData as within Keyboard mode. If the fragments are shown the layoutData, which contains the
