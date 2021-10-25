@@ -246,10 +246,6 @@ local function updateCraftingInventoryDirty(craftingInventory)
 end
 
 --The updater functions for the different inventories. Called via LibFilters:RequestForUpdate(LF_*)
-local function updateGamepadVendorList(component)
-	-- updateGamepadVenderList(ZO_MODE_STORE_SELL) -- added here to save for if VENDOR_SELL is added to refresh
-	store_componentsGP[component].list:UpdateList() --STORE_WINDOW_GAMEPAD.components
-end
 
 local function updateGamepadInventoryList(gpInvVar, callbackFunc)
 	-- prevent UI errors for lists created OnDeferredInitialization
@@ -438,7 +434,7 @@ local inventoryUpdaters = {
 	VENDOR_BUY = function()
 		if IsGamepad() then
 			-- confirmed
-			updateGamepadVendorList(ZO_MODE_STORE_BUY)
+			updateFunction_GP_Vendor(ZO_MODE_STORE_BUY)
 		else
 			if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
 				local store = keyboardConstants.store
@@ -450,7 +446,7 @@ local inventoryUpdaters = {
 	VENDOR_BUYBACK = function()
 		if IsGamepad() then
 			-- confirmed
-			updateGamepadVendorList(ZO_MODE_STORE_BUY_BACK)
+			updateFunction_GP_Vendor(ZO_MODE_STORE_BUY_BACK)
 		else
 			SafeUpdateList(keyboardConstants.vendorBuyBack)
 		end
@@ -458,7 +454,7 @@ local inventoryUpdaters = {
 	VENDOR_REPAIR = function()
 		if IsGamepad() then
 			-- confirmed
-			updateGamepadVendorList(ZO_MODE_STORE_REPAIR)
+			updateFunction_GP_Vendor(ZO_MODE_STORE_REPAIR)
 		else
 			SafeUpdateList(keyboardConstants.vendorRepair)
 		end
