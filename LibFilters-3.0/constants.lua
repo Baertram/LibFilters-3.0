@@ -262,13 +262,13 @@ gamepadConstants.invGuildBank_GP = 				GAMEPAD_GUILD_BANK
 gamepadConstants.invRootScene = 				GAMEPAD_INVENTORY_ROOT_SCENE
 
 --Craftbag
-gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag]		--remove using invCraftbag
+gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag]
 
 --Quest items
-gamepadConstants.invQuests_GP =					gamepadConstants.invBackpack_GP.scene				--remove using invQuests
+gamepadConstants.invQuests_GP =					gamepadConstants.invBackpack_GP.scene
 
 --Quickslots
-gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--remove does not exist for gamepad
+gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
 
 
 --[Banks]
@@ -312,7 +312,7 @@ gamepadConstants.invMailSend_GP = 				MAIL_MANAGER_GAMEPAD.send
 
 --[Player 2 player trade]
 gamepadConstants.invPlayerTradeScene_GP = 		SM:GetScene("gamepadTrade")
-gamepadConstants.invPlayerTrade_GP = 			GAMEPAD_TRADE.inventoryList
+gamepadConstants.invPlayerTrade_GP = 			GAMEPAD_TRADE
 
 
 --[Companion]
@@ -324,7 +324,7 @@ gamepadConstants.smithing_GP = 					SMITHING_GAMEPAD
 local smithing_GP = gamepadConstants.smithing_GP
 
 --Refinement
-gamepadConstants.refinementPanel_GP =	  			smithing_GP.refinementPanel
+gamepadConstants.refinementPanel_GP =	  		smithing_GP.refinementPanel
 
 --Create
 gamepadConstants.creationPanel_GP =	  			smithing_GP.creationPanel
@@ -359,68 +359,6 @@ gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 --Gamepad dynamic "INVENTORY" update functions
 ------------------------------------------------------------------------------------------------------------------------
 gamepadConstants.InventoryUpdateFunctions = {}
-local TRIGGER_CALLBACK = true
-local function updateFunction_GP_BankDeposit(gpInvVar)
-	if not gpInvVar.depositList then return end
-	gpInvVar.depositList:RefreshList(TRIGGER_CALLBACK)
-	
-	gpInvVar:UpdateKeybinds()
-	local list = gpInvVar:GetCurrentList()
-	if list:IsEmpty() then
-		gpInvVar:RequestEnterHeader()
-	end
-end
-
-local storeComponents_GP = gamepadConstants.store_GP.components
-local function updateFunction_GP_Vendor(component)
-	if not storeComponents_GP or not storeComponents_GP[component] then return end
-	storeComponents_GP[component].list:UpdateList()
-end
-
-gamepadConstants.InventoryUpdateFunctions[LF_INVENTORY] = function()
-	local gpInvVar = gamepadConstants.invBackpack_GP
-	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
-	gpInvVar:RefreshItemList()
-	if gpInvVar.itemList:IsEmpty() then
-		gpInvVar:SwitchActiveList("categoryList")
-	else
-		gpInvVar:UpdateRightTooltip()
-		gpInvVar:RefreshItemActions()
-	end
-end
-gamepadConstants.InventoryUpdateFunctions[LF_BANK_DEPOSIT] = function()
-	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_GUILDBANK_DEPOSIT] = function()
-	updateFunction_GP_BankDeposit(gamepadConstants.invGuildBank_GP)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_HOUSE_BANK_DEPOSIT] = function()
-	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_GUILDSTORE_SELL] = function()
-	-- must be difined here since GAMEPAD_TRADING_HOUSE_SELL is nil until first time accessed
-	local gpInvVar = GAMEPAD_TRADING_HOUSE_SELL
-	if not gpInvVar then return end
-	
-	gpInvVar:UpdateList()
-end
-gamepadConstants.InventoryUpdateFunctions[LF_VENDOR_SELL] = function()
-	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_FENCE_SELL] = function()
-	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_STOLEN)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_FENCE_LAUNDER] = function()
-	updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_MAIL_SEND] = function()
-	if not gamepadConstants.invMailSend_GP.inventoryList then return end
-	gamepadConstants.invMailSend_GP.inventoryList:RefreshList(TRIGGER_CALLBACK)
-end
-gamepadConstants.InventoryUpdateFunctions[LF_TRADE] = function()
-	if not gamepadConstants.invPlayerTrade_GP then return end
-	gamepadConstants.invPlayerTrade_GP:RefreshList(TRIGGER_CALLBACK)
-end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua

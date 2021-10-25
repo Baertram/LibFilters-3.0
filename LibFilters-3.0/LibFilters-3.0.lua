@@ -251,10 +251,10 @@ local function updateGamepadVendorList(component)
 	store_componentsGP[component].list:UpdateList() --STORE_WINDOW_GAMEPAD.components
 end
 
-local function updateGamepadInventoryList(gpInvVar)
+local function updateGamepadInventoryList(gpInvVar, callbackFunc)
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar then return end
-	gpInvVar:RefreshList()
+	gpInvVar:RefreshList(callbackFunc)
 end
 
 local function updateGamepadInventoryItemList(gpInvVar)
@@ -295,12 +295,82 @@ end
 /script GAMEPAD_INVENTORY:RefreshItemList()
 ]]
 
+
+local TRIGGER_CALLBACK = true
+local function updateFunction_GP_BankDeposit(gpInvVar)
+	if not gpInvVar.depositList then return end
+	gpInvVar.depositList:RefreshList(TRIGGER_CALLBACK)
+
+	gpInvVar:UpdateKeybinds()
+	local list = gpInvVar:GetCurrentList()
+	if list:IsEmpty() then
+		gpInvVar:RequestEnterHeader()
+	end
+end
+
+local storeComponents_GP = gamepadConstants.store_GP.components
+local function updateFunction_GP_Vendor(component)
+	if not storeComponents_GP or not storeComponents_GP[component] then return end
+	storeComponents_GP[component].list:UpdateList()
+end
+
+--[[
+gamepadConstants.InventoryUpdateFunctions[LF_INVENTORY]          = function()
+	local gpInvVar = gamepadConstants.invBackpack_GP
+	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
+	gpInvVar:RefreshItemList()
+	if gpInvVar.itemList:IsEmpty() then
+		gpInvVar:SwitchActiveList("categoryList")
+	else
+		gpInvVar:UpdateRightTooltip()
+		gpInvVar:RefreshItemActions()
+	end
+end
+]]
+gamepadConstants.InventoryUpdateFunctions[LF_INVENTORY]          = function()
+  updateGamepadInventoryItemList(gamepadConstants.invBackpack_GP)
+end
+
+gamepadConstants.InventoryUpdateFunctions[LF_BANK_DEPOSIT]       = function()
+	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_GUILDBANK_DEPOSIT]  = function()
+	updateFunction_GP_BankDeposit(gamepadConstants.invGuildBank_GP)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_HOUSE_BANK_DEPOSIT] = function()
+	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_GUILDSTORE_SELL]    = function()
+	-- must be difined here since GAMEPAD_TRADING_HOUSE_SELL is nil until first time accessed
+	local gpInvVar = GAMEPAD_TRADING_HOUSE_SELL
+	if not gpInvVar then return end
+
+	gpInvVar:UpdateList()
+end
+gamepadConstants.InventoryUpdateFunctions[LF_VENDOR_SELL]        = function()
+	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_FENCE_SELL]         = function()
+	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_STOLEN)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_FENCE_LAUNDER]      = function()
+	updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_MAIL_SEND]          = function()
+	updateGamepadInventoryList(gamepadConstants.invMailSend_GP.inventoryList, TRIGGER_CALLBACK)
+end
+gamepadConstants.InventoryUpdateFunctions[LF_TRADE]              = function()
+	updateGamepadInventoryList(gamepadConstants.invPlayerTrade_GP.inventoryList, TRIGGER_CALLBACK)
+end
+local InventoryUpdateFunctions_GP = gamepadConstants.InventoryUpdateFunctions
+
+
 --The updater functions used within LibFilters:RequestUpdate() for the LF_* constants
 --Will call a refresh or update of the inventory lists, or scenes, or set a "isdirty" flag and update the crafting lists, etc.
 local inventoryUpdaters = {
 	INVENTORY = function(filterType)
 		if IsGamepad() then
-			gamepadConstants.InvnetoryUpdateFunctions[filterType]()
+			InventoryUpdateFunctions_GP[filterType]()
 		else
 			updateKeyboardPlayerInventoryType(invTypeBackpack)
 		end
