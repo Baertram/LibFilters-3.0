@@ -31,7 +31,7 @@ libFilters.constants = {}
 ------------------------------------------------------------------------------------------------------------------------
 -- LibFilters filterPanel constants [value number] = "name"
 --The possible libFilters filterPanelIds
---!!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
+-- !!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
 libFilters.constants.filterTypes = {}
 
@@ -262,13 +262,13 @@ gamepadConstants.invGuildBank_GP = 				GAMEPAD_GUILD_BANK
 gamepadConstants.invRootScene = 				GAMEPAD_INVENTORY_ROOT_SCENE
 
 --Craftbag
-gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag]		--remove using invCraftbag
+gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag]
 
 --Quest items
-gamepadConstants.invQuests_GP =					gamepadConstants.invBackpack_GP.scene				--remove using invQuests
+gamepadConstants.invQuests_GP =					gamepadConstants.invBackpack_GP.scene
 
 --Quickslots
-gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--remove does not exist for gamepad
+gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
 
 
 --[Banks]
@@ -307,10 +307,12 @@ gamepadConstants.invGuildStoreSellScene_GP =  	TRADING_HOUSE_GAMEPAD_SCENE
 
 --[Mail]
 gamepadConstants.invMailSendScene_GP = 			SM:GetScene("mailManagerGamepad")
+gamepadConstants.invMailSend_GP = 				MAIL_MANAGER_GAMEPAD.send
 
 
 --[Player 2 player trade]
 gamepadConstants.invPlayerTradeScene_GP = 		SM:GetScene("gamepadTrade")
+gamepadConstants.invPlayerTrade_GP = 			GAMEPAD_TRADE
 
 
 --[Companion]
@@ -322,7 +324,7 @@ gamepadConstants.smithing_GP = 					SMITHING_GAMEPAD
 local smithing_GP = gamepadConstants.smithing_GP
 
 --Refinement
-gamepadConstants.refinementPanel_GP =	  			smithing_GP.refinementPanel
+gamepadConstants.refinementPanel_GP =	  		smithing_GP.refinementPanel
 
 --Create
 gamepadConstants.creationPanel_GP =	  			smithing_GP.creationPanel
@@ -344,7 +346,7 @@ gamepadConstants.enchanting_GP =				GAMEPAD_ENCHANTING
 
 --Alchemy
 gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
-gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY.inventory
+gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY
 
 --Retrait
 gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
@@ -352,6 +354,11 @@ gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 --Reconstruction
 gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
+
+------------------------------------------------------------------------------------------------------------------------
+--Gamepad dynamic "INVENTORY" update functions
+------------------------------------------------------------------------------------------------------------------------
+gamepadConstants.InventoryUpdateFunctions = {}
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -674,4 +681,3 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 	 end
 end
 mapping.FilterTypeToUpdaterName = filterTypeToUpdaterName
-
