@@ -1,6 +1,6 @@
 <GuiXml>
 	<Controls>
-		<Control name="LibFilters3_Test_Template" tier="HIGH" virtual="true">
+		<Control name="LibFilters_Test_Template" tier="HIGH" virtual="true">
 			<Dimensions x="345" y="60"/>
 			<OnInitialized> 
 				self.slotControlType = "listSlot" 

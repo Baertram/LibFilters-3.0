@@ -593,13 +593,13 @@ libFilters.RunFilters = runFilters
 
 
 ------------------------------------------------------------------------------------------------------------------------
---HOOK VARIABLEs TO ADD .additionalFilters to them
+--HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
 --Hook the different inventory panels (LibFilters filterPanelIds) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
 local function ApplyAdditionalFilterHooks()
 
-	--For each LF constant hook the filters now to add the .additionalFilters entry
+	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
 	for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 		-->HookAdditionalFilterSpecial will be done automatically in HookAdditionalFilter, via the table

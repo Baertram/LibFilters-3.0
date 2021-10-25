@@ -122,7 +122,7 @@ gamepadConstants.customFragments = {
 	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
 	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
 }
-local customFragments_GP = gamepadConstants.customFragments
+--local customFragments_GP = gamepadConstants.customFragments
 
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)

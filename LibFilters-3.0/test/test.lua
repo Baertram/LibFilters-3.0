@@ -9,7 +9,7 @@ libFilters:InitializeLibFilters()
 ------------------------------------------------------------------------------------------------------------------------
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
-local testUItemplate = prefix .. "_Test_Template"
+local testUItemplate = "LibFilters_Test_Template"
 
 local filterTag = prefix .."_TestFilters_"
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
