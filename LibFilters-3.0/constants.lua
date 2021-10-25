@@ -358,6 +358,7 @@ gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad dynamic "INVENTORY" upadte functions
 ------------------------------------------------------------------------------------------------------------------------
+gamepadConstants.InventoryUpdateFunctions = {}
 local TRIGGER_CALLBACK = true
 local function updateFunction_GP_BankDeposit(gpInvVar)
 	if not gpInvVar.depositList then return end
@@ -376,6 +377,7 @@ local function updateFunction_GP_Vendor(component)
 	storeComponents_GP[component].list:UpdateList()
 end
 
+gamepadConstants.InventoryUpdateFunctions[LF_INVENTORY] = function()
 	local gpInvVar = gamepadConstants.invBackpack_GP
 	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
 	gpInvVar:RefreshItemList()
@@ -386,27 +388,36 @@ end
 		gpInvVar:RefreshItemActions()
 	end
 end
+gamepadConstants.InventoryUpdateFunctions[LF_BANK_DEPOSIT] = function()
 	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_GUILDBANK_DEPOSIT] = function()
 	updateFunction_GP_BankDeposit(gamepadConstants.invGuildBank_GP)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_HOUSE_BANK_DEPOSIT] = function()
 	updateFunction_GP_BankDeposit(gamepadConstants.invBank_GP)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_GUILDSTORE_SELL] = function()
 	-- must be difined here since GAMEPAD_TRADING_HOUSE_SELL is nil until first time accessed
 	local gpInvVar = GAMEPAD_TRADING_HOUSE_SELL
 	if not gpInvVar then return end
 	
 	gpInvVar:UpdateList()
 end
+gamepadConstants.InventoryUpdateFunctions[LF_VENDOR_SELL] = function()
 	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_FENCE_SELL] = function()
 	updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_STOLEN)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_FENCE_LAUNDER] = function()
 	updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_MAIL_SEND] = function()
 	if not gamepadConstants.invMailSend_GP.inventoryList then return end
 	gamepadConstants.invMailSend_GP.inventoryList:RefreshList(TRIGGER_CALLBACK)
 end
+gamepadConstants.InventoryUpdateFunctions[LF_TRADE] = function()
 	if not gamepadConstants.invPlayerTrade_GP then return end
 	gamepadConstants.invPlayerTrade_GP:RefreshList(TRIGGER_CALLBACK)
 end
@@ -627,6 +638,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
 		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
+		--> or keyboard mode, and only hook the active one!
 		 --implemented special, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = {  },
 		[LF_SMITHING_IMPROVEMENT]     = {  },
