@@ -31,7 +31,7 @@ libFilters.constants = {}
 ------------------------------------------------------------------------------------------------------------------------
 -- LibFilters filterPanel constants [value number] = "name"
 --The possible libFilters filterPanelIds
---!!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
+-- !!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
 libFilters.constants.filterTypes = {}
 
@@ -356,7 +356,7 @@ gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
 ------------------------------------------------------------------------------------------------------------------------
---Gamepad dynamic "INVENTORY" upadte functions
+--Gamepad dynamic "INVENTORY" update functions
 ------------------------------------------------------------------------------------------------------------------------
 gamepadConstants.InventoryUpdateFunctions = {}
 local TRIGGER_CALLBACK = true

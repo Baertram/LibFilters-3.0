@@ -45,7 +45,7 @@ end
 local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
   return true -- show the item in the list / false = hide item
 end
---
+-- 
 --All LF_ constants except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
 --are using the InventorySlot filter function!
 --
