@@ -19,7 +19,7 @@ libFilters.test = {}
 
 local tlw
 local tlc
-
+local btnFilter
 --filter function for inventories
 local function filterFuncForInventories(inventorySlot)
 	local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -49,63 +49,166 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 	libFilters:RequestUpdate(filterType)
 end
 
-
+--	LibFilters3_Test_TLC
 ------------------------------------------------------------------------------------------------------------------------
 -- Custom SLASH COMMANDS for tests
 ------------------------------------------------------------------------------------------------------------------------
 local filterTypes = {
-	LF_INVENTORY,
-	LF_INVENTORY_QUEST,
-	LF_CRAFTBAG,
-	LF_INVENTORY_COMPANION,
-
-	LF_QUICKSLOT,
-	
-	LF_BANK_WITHDRAW,
-	LF_BANK_DEPOSIT,
-	LF_GUILDBANK_WITHDRAW,
-	LF_GUILDBANK_DEPOSIT,
-	LF_HOUSE_BANK_WITHDRAW,
-	LF_HOUSE_BANK_DEPOSIT,
-	LF_GUILDSTORE_SELL,
-
-	LF_VENDOR_BUY,
-	LF_VENDOR_SELL,
-	LF_VENDOR_BUYBACK,
-	LF_VENDOR_REPAIR,
-	LF_FENCE_SELL,
-	LF_FENCE_LAUNDER,
-	LF_MAIL_SEND,
-	LF_TRADE,
-
-	LF_SMITHING_REFINE,
-	LF_SMITHING_CREATION,
-	LF_SMITHING_DECONSTRUCT,
-	LF_SMITHING_IMPROVEMENT,
-	LF_SMITHING_RESEARCH,
-	LF_SMITHING_RESEARCH_DIALOG,
-
-	LF_JEWELRY_REFINE,
-	LF_JEWELRY_CREATION,
-	LF_JEWELRY_DECONSTRUCT,
-	LF_JEWELRY_IMPROVEMENT,
-	LF_JEWELRY_RESEARCH,
-	LF_JEWELRY_RESEARCH_DIALOG,
-
-	LF_ALCHEMY_CREATION,
-	LF_ENCHANTING_CREATION,
-	LF_ENCHANTING_EXTRACTION,
-
-	LF_RETRAIT,
+	[1] = {
+		['filterType'] = LF_INVENTORY,
+		['category'] = 'Inventory',
+	},
+	[2] = {
+		['filterType'] = LF_INVENTORY_QUEST,
+		['category'] = 'Inventory',
+	},
+	[3] = {
+		['filterType'] = LF_CRAFTBAG,
+		['category'] = 'Inventory',
+	},
+	[4] = {
+		['filterType'] = LF_INVENTORY_COMPANION,
+		['category'] = 'Inventory',
+	},
+	[5] = {
+		['filterType'] = LF_QUICKSLOT,
+		['category'] = 'Inventory',
+	},
+	[6] = {
+		['filterType'] = LF_BANK_WITHDRAW,
+		['category'] = 'Banking',
+	},
+	[7] = {
+		['filterType'] = LF_BANK_DEPOSIT,
+		['category'] = 'Banking',
+	},
+	[8] = {
+		['filterType'] = LF_GUILDBANK_WITHDRAW,
+		['category'] = 'Banking',
+	},
+	[9] = {
+		['filterType'] = LF_GUILDBANK_DEPOSIT,
+		['category'] = 'Banking',
+	},
+	[10] = {
+		['filterType'] = LF_HOUSE_BANK_WITHDRAW,
+		['category'] = 'Banking',
+	},
+	[11] = {
+		['filterType'] = LF_HOUSE_BANK_DEPOSIT,
+		['category'] = 'Banking',
+	},
+	[12] = {
+		['filterType'] = LF_GUILDSTORE_SELL,
+		['category'] = 'Banking',
+	},
+	[13] = {
+		['filterType'] = LF_VENDOR_BUY,
+		['category'] = 'Vendor',
+	},
+	[14] = {
+		['filterType'] = LF_VENDOR_SELL,
+		['category'] = 'Vendor',
+	},
+	[15] = {
+		['filterType'] = LF_VENDOR_BUYBACK,
+		['category'] = 'Vendor',
+	},
+	[16] = {
+		['filterType'] = LF_VENDOR_REPAIR,
+		['category'] = 'Vendor',
+	},
+	[17] = {
+		['filterType'] = LF_FENCE_SELL,
+		['category'] = 'Vendor',
+	},
+	[18] = {
+		['filterType'] = LF_FENCE_LAUNDER,
+		['category'] = 'Vendor',
+	},
+	[19] = {
+		['filterType'] = LF_MAIL_SEND,
+		['category'] = 'Trade',
+	},
+	[20] = {
+		['filterType'] = LF_TRADE,
+		['category'] = 'Trade',
+	},
+	[21] = {
+		['filterType'] = LF_ALCHEMY_CREATION,
+		['category'] = 'Crafting',
+	},
+	[22] = {
+		['filterType'] = LF_ENCHANTING_CREATION,
+		['category'] = 'Crafting',
+	},
+	[23] = {
+		['filterType'] = LF_ENCHANTING_EXTRACTION,
+		['category'] = 'Crafting',
+	},
+	[24] = {
+		['filterType'] = LF_RETRAIT,
+		['category'] = 'Crafting',
+	},
+	[25] = {
+		['filterType'] = LF_SMITHING_REFINE,
+		['category'] = 'Smithing',
+	},
+	[26] = {
+		['filterType'] = LF_SMITHING_CREATION,
+		['category'] = 'Smithing',
+	},
+	[27] = {
+		['filterType'] = LF_SMITHING_DECONSTRUCT,
+		['category'] = 'Smithing',
+	},
+	[28] = {
+		['filterType'] = LF_SMITHING_IMPROVEMENT,
+		['category'] = 'Smithing',
+	},
+	[29] = {
+		['filterType'] = LF_SMITHING_RESEARCH,
+		['category'] = 'Smithing',
+	},
+	[30] = {
+		['filterType'] = LF_SMITHING_RESEARCH_DIALOG,
+		['category'] = 'Smithing',
+	},
+	[31] = {
+		['filterType'] = LF_JEWELRY_REFINE,
+		['category'] = 'Jeweler',
+	},
+	[32] = {
+		['filterType'] = LF_JEWELRY_CREATION,
+		['category'] = 'Jeweler',
+	},
+	[33] = {
+		['filterType'] = LF_JEWELRY_DECONSTRUCT,
+		['category'] = 'Jeweler',
+	},
+	[34] = {
+		['filterType'] = LF_JEWELRY_IMPROVEMENT,
+		['category'] = 'Jeweler',
+	},
+	[35] = {
+		['filterType'] = LF_JEWELRY_RESEARCH,
+		['category'] = 'Jeweler',
+	},
+	[36] = {
+		['filterType'] = LF_JEWELRY_RESEARCH_DIALOG,
+		['category'] = 'Jeweler',
+	}
 }
-
 
 local enabledFilters = {}
 local LIST_TYPE = 1
+local HEADER_TYPE = 2
 local enableList = {}
 local updateList = {}
+local useFilter = false
 
 local function doesItemPassFilter(bagId, slotIndex, stackCount)
+	if not useFilter then return true end
 	local itemType,  specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
@@ -171,7 +274,8 @@ local function registerFilter(filterType, filterTypeName)
 end
 
 local function refresh(dataList)
-	for _, filterType in pairs(filterTypes) do
+	for _, filterData in pairs(filterTypes) do
+		local filterType = filterData.filterType
 		local isRegistered = libFilters:IsFilterRegistered(filterTag, filterType)
 		local filterTypeName = libFilters:GetFilterTypeName(filterType)
 		
@@ -203,19 +307,39 @@ local function refreshUpdateList()
 end
 
 local function refreshEnableList()
+	local lastCategory = ''
+	
 	ZO_ScrollList_Clear(enableList)
 	local dataList = ZO_ScrollList_GetDataList(enableList)
-	for _, filterType in pairs(filterTypes) do
+	for _, filterData in pairs(filterTypes) do
+		local listType = LIST_TYPE
+		local filterType = filterData.filterType
 		local filterTypeName = libFilters:GetFilterTypeName(filterType)
+		
 		local data = {
 			['filterType'] = filterType,
 			['name'] = filterTypeName
 		}
 		
-		local newData = ZO_ScrollList_CreateDataEntry(LIST_TYPE, data)
+		if lastCategory ~= filterData.category then
+			lastCategory = filterData.category
+			listType = HEADER_TYPE
+			data.header = filterData.category
+		end
+			
+		local newData = ZO_ScrollList_CreateDataEntry(listType, data)
 		table.insert(dataList, newData)
 	end
 	ZO_ScrollList_Commit(enableList)
+	
+end
+
+local function setButtonToggleColor(control, filtered)
+	if filtered then
+		control:SetAlpha(1)
+	else
+		control:SetAlpha(0.5)
+	end
 end
 
 local function clearAll()
@@ -226,6 +350,9 @@ local function clearAll()
 	end
 	refreshEnableList()
 	refreshUpdateList()
+	
+	useFilter = false
+	setButtonToggleColor(btnFilter, useFilter)
 end
 
 local function intialize()
@@ -253,6 +380,7 @@ local function intialize()
 	enableList:SetDimensions(345, adjustedHeight * 0.5)
 	enableList:SetAnchor(TOPLEFT, tlc, nil, 0, 25)
 	
+
 --	/lftestfilters
 	-- button container for clear and refresh
 	local buttons = CreateControl("$(parent)Buttons", tlc, CT_CONTROL)	
@@ -266,59 +394,75 @@ local function intialize()
 	local btnClear = CreateControlFromVirtual("$(parent)ClearButton", buttons, "ZO_DefaultButton")
 	btnClear:SetHidden(false)
 	btnClear:SetText("Clear")
-	btnClear:SetDimensions(100, 50)
-	btnClear:SetAnchor(TOPLEFT, buttons, TOPLEFT, 10, 5)
+	btnClear:SetDimensions(100, 40)
+	btnClear:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
 	btnClear:SetHandler("OnMouseUp", function(btn)
 		clearAll()
 	end)
-	
+
+	-- create Filter button
+	-- enable/disable active filters to allow various update results
+	btnFilter = CreateControlFromVirtual("$(parent)FilterButton", buttons, "ZO_DefaultButton")
+	btnFilter:SetHidden(false)
+	btnFilter:SetText("Filter")
+	btnFilter:SetDimensions(100, 40)
+	btnFilter:SetAnchor(TOP, buttons, TOP, -20, 8)
+	setButtonToggleColor(btnFilter, useFilter)
+	btnFilter:SetHandler("OnMouseUp", function(btn)
+		useFilter = not useFilter
+		setButtonToggleColor(btnFilter, useFilter)
+	end)
+
 	-- create Refresh button
 	-- refresh list of LF_constants update functions and enable/disable LF_constants filters based on selections in enableList
 	local btnRefresh = CreateControlFromVirtual("$(parent)RefreshButton", buttons, "ZO_DefaultButton")
 	btnRefresh:SetHidden(false)
 	btnRefresh:SetText("Refresh")
-	btnRefresh:SetDimensions(150, 50)
-	btnRefresh:SetAnchor(TOPRIGHT, buttons, TOPRIGHT, -10, 5)
+	btnRefresh:SetDimensions(150, 40)
+	btnRefresh:SetAnchor(TOPRIGHT, buttons, TOPRIGHT, 0, 8)
 	btnRefresh:SetHandler("OnMouseUp", function(btn)
 		refreshUpdateList()
 	end)
 	
 	-- create list for LF_constants update functions
-	local ul_Hight = tlc:GetBottom() -  buttons:GetBottom() - 20
+	local ul_Hight = tlc:GetBottom() -  buttons:GetBottom() - 15
 	updateList = CreateControlFromVirtual("$(parent)UpdateList", tlc, "ZO_ScrollList")
 	updateList:SetDimensions(345, ul_Hight)
-	updateList:SetAnchor(TOP, buttons, BOTTOM, 0, 15)
+	updateList:SetAnchor(TOP, buttons, BOTTOM, 0, 0)
 	
 	-- initialize lists
 	ZO_ScrollList_Initialize(enableList)
+	enableList:SetMouseEnabled(true)
 	ZO_ScrollList_Initialize(updateList)
 	
 --	tlc:SetHidden(true)
 end
 
-local function setupUsableAndLockedColor(control, locked)
-	if locked then
-		control:SetAlpha(0.3)
-	else
-		control:SetAlpha(1)
-	end
-end
 local function setupRow(rowControl, data, onMouseUp)
 	rowControl.data = data
 	local row = rowControl:GetNamedChild("Button")
 	row:SetText(data.name)
 	
 	rowControl:SetHidden(false)
-	setupUsableAndLockedColor(rowControl, not enabledFilters[data.filterType])
+	setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[data.filterType])
 	
 	row:SetHandler("OnMouseUp", onMouseUp)
 end
 
 local function addListDataTypes()
- 	local function setupEnableRow(rowControl, data)
+	local function setupEnableRowWithHeader(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
+		local header = rowControl:GetNamedChild('Header')
+		header:SetText(data.header)
+		header:SetHidden(false)
 		setupRow(rowControl, data, function(btn)
-			setupUsableAndLockedColor(rowControl, enabledFilters[data.filterType])
 			enabledFilters[data.filterType] = not enabledFilters[data.filterType]
+			setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[data.filterType])
+		end)
+	end
+	local function setupEnableRow(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
+		setupRow(rowControl, data, function(btn)
+			enabledFilters[data.filterType] = not enabledFilters[data.filterType]
+			setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[data.filterType])
 		end)
 	end
 
@@ -327,9 +471,10 @@ local function addListDataTypes()
 			libFilters:RequestUpdate(data.filterType)
 		end)
 	end
-	
-	ZO_ScrollList_AddDataType(enableList, LIST_TYPE, testUItemplate, 50, setupEnableRow)
+		
 	ZO_ScrollList_AddDataType(updateList, LIST_TYPE, testUItemplate, 50, setupUpdateRow)
+	ZO_ScrollList_AddDataType(enableList, LIST_TYPE, testUItemplate, 50, setupEnableRow)
+	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 100, setupEnableRowWithHeader)
 end
 
 
