@@ -494,6 +494,7 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 
 	if not tlc:IsHidden() then
 		tlw:SetHidden(true)
+		clearAll()
 		ZO_ScrollList_Clear(enableList)
 		ZO_ScrollList_Commit(enableList)
 		return
