@@ -245,12 +245,11 @@ local function updateCraftingInventoryDirty(craftingInventory)
 	craftingInventory:HandleDirtyEvent()
 end
 
-
-local TRIGGER_CALLBACK = true
 -- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar or not gpInvVar[list] then return end
+	local TRIGGER_CALLBACK = true
 	gpInvVar[list]:RefreshList(TRIGGER_CALLBACK)
 	
 	if callbackFunc then callbackFunc() end
