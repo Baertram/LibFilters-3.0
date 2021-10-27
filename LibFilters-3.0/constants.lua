@@ -441,7 +441,7 @@ local enchantingModeToFilterType = {
 	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
 	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
 }
-mapping.EnchantingModeToFilterType = enchantingModeToFilterType
+mapping.enchantingModeToFilterType = enchantingModeToFilterType
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
@@ -627,7 +627,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION"
 }
-mapping.FilterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
+mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -672,7 +672,8 @@ local filterTypeToUpdaterNameDynamic = {
 		  [LF_ENCHANTING_EXTRACTION]=true,
 	 },
 }
-mapping.FilterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
+mapping.filterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
+
 --The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
 local filterTypeToUpdaterName = {}
 --Add the fixed updaterNames of the filtertypes
@@ -687,4 +688,8 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 		  end
 	 end
 end
-mapping.FilterTypeToUpdaterName = filterTypeToUpdaterName
+mapping.filterTypeToUpdaterName = filterTypeToUpdaterName
+
+--Will be filled within file LibFilters-3.0.lua with the above strings and their related updater function (divived by
+--keyboard and gamepad mode)
+mapping.inventoryUpdaters = { }

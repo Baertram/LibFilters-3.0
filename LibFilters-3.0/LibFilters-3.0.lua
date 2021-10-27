@@ -64,13 +64,19 @@ end
 --[LF_ENCHANTING_EXTRACTION]                  = FilterSavedItemsForBagIdAndSlotIndex,
 --[LF_RETRAIT]                                = FilterSavedItemsForBagIdAndSlotIndex,
 --[LF_ALCHEMY_CREATION]                       = FilterSavedItemsForBagIdAndSlotIndex,
+--
+-- See constants.lua -> table libFilters.constants.filterTypes.UsingBagIdAndSlotIndexFilterFunction and table
+-- libFilters.constants.filterTypes.UsingInventorySlotFilterFunction
+-- to dynamically determine the functionType to use. The following constants for the functionTypes exist:
+-- libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
+-- libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
 ]]
 
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0
 ------------------------------------------------------------------------------------------------------------------------
 --Known bugs: 0
---Last update: 2021-10-17, Baertram
+--Last update: 2021-10-27, Baertram
 --
 --
 
@@ -97,9 +103,10 @@ local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
 
 --LibFilters local speedup and reference variables
---Overall constants
+--Overall constants & mapping
 local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
+
 local libFiltersFilterConstants = 	constants.filterTypes
 local inventoryTypes = 				constants.inventoryTypes
 local invTypeBackpack = 			inventoryTypes["player"]
@@ -109,8 +116,8 @@ local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
 
---local enchantingModeToFilterType = 	mapping.EnchantingModeToFilterType
-local filterTypeToUpdaterName = 	mapping.FilterTypeToUpdaterName
+--local enchantingModeToFilterType = 	mapping.enchantingModeToFilterType
+local filterTypeToUpdaterName = 	mapping.filterTypeToUpdaterName
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
 
@@ -137,7 +144,7 @@ local researchPanel_GP = 			gamepadConstants.researchPanel_GP
 --Special hooks done? Add the possible special hook names in this table so that function libFilters:HookAdditionalFilterSpecial
 --will not register the special hooks more than once
 local specialHooksDone = {
-	 ["enchanting"] = false,
+	 --["enchanting"] = false, --example entry
 }
 
 --Local pre-defined function names. Code will be added further down in this file. Only created here already to be re-used
@@ -200,7 +207,7 @@ end
 
 
 ------------------------------------------------------------------------------------------------------------------------
---UPDATERS (of inventories)
+--KEYBOARD updater functions
 ------------------------------------------------------------------------------------------------------------------------
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
@@ -235,13 +242,21 @@ local function updateKeyboardPlayerInventoryType(invType)
 	SafeUpdateList(playerInv, invType)
 end
 
+
+------------------------------------------------------------------------------------------------------------------------
+--KEYBOARD & GAMEPAD updater functions
+------------------------------------------------------------------------------------------------------------------------
+--Updater function for a crafting inventory in keyboard and gamepad mode
 local function updateCraftingInventoryDirty(craftingInventory)
 	craftingInventory.inventory:HandleDirtyEvent()
 end
 
 
+------------------------------------------------------------------------------------------------------------------------
+--GAMEPAD updater functions
+------------------------------------------------------------------------------------------------------------------------
 local TRIGGER_CALLBACK = true
--- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
+-- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW  gamepad
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar or not gpInvVar[list] then return end
@@ -250,20 +265,20 @@ local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbac
 	if callbackFunc then callbackFunc() end
 end
 
--- update for LF_GUILDSTORE_SELL/LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER
+-- update for LF_GUILDSTORE_SELL/LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
 local function updateFunction_GP_UpdateList(gpInvVar)
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar then return end
 	gpInvVar:UpdateList()
 end
 
--- step function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER
+-- update function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
 local function updateFunction_GP_Vendor(component)
 	if not store_componentsGP then return end
 	updateFunction_GP_UpdateList(store_componentsGP[component].list)
 end
 
--- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST
+-- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST gamepad
 local function updateFunction_GP_ItemList(gpInvVar)
 	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
 	gpInvVar:RefreshItemList()
@@ -275,14 +290,14 @@ local function updateFunction_GP_ItemList(gpInvVar)
 	end
 end
 
--- update for LF_CRAFTBAG
+-- update for LF_CRAFTBAG gamepad
 local function updateFunction_GP_CraftBagList(gpInvVar)
 	if not gpInvVar.craftBagList then return end
 	gpInvVar:RefreshCraftBagList()
 	gpInvVar:RefreshItemActions()
 end
 
--- update for LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION
+-- update for LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION gamepad
 local function updateFunction_GP_CraftingInventory(craftingInventory)
 	if not craftingInventory then return end
 	craftingInventory:PerformFullRefresh()
@@ -323,6 +338,10 @@ gamepadConstants.InventoryUpdateFunctions = {
 }
 local InventoryUpdateFunctions_GP = gamepadConstants.InventoryUpdateFunctions
 
+
+------------------------------------------------------------------------------------------------------------------------
+--KEYBOARD & GAMEPAD updater string to updater function
+------------------------------------------------------------------------------------------------------------------------
 --The updater functions used within LibFilters:RequestUpdate() for the LF_* constants
 --Will call a refresh or update of the inventory lists, or scenes, or set a "isdirty" flag and update the crafting lists, etc.
 local inventoryUpdaters = {
@@ -515,8 +534,7 @@ local inventoryUpdaters = {
 		end
 	end,
 }
-
-libFilters.inventoryUpdaters = inventoryUpdaters
+libFilters.mapping.inventoryUpdaters = inventoryUpdaters
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -579,7 +597,7 @@ function libFilters:GetFilterTypes()
 	 return libFiltersFilterConstants
 end
 
---Returns the LibFilters LF* filterType connstant's name
+--Returns the LibFilters LF* filterType constant's name
 function libFilters:GetFilterTypeName(libFiltersFilterType)
 	 return libFiltersFilterConstants[libFiltersFilterType] or ""
 end
@@ -737,7 +755,7 @@ hookAdditionalFilter = libFilters.HookAdditionalFilter
 --extra fragment for the different modes (creation, extraction).
 local specialHooksLibFiltersDataRegistered = {}
 function libFilters:HookAdditionalFilterSpecial(specialType)
-	if specialHooksDone[specialType] == true then return end
+	if specialHooksDone[specialType] then return end
 
 	--ENCHANTING keyboard
 	--[[
@@ -782,7 +800,7 @@ end
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
 -- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType
 function libFilters:HookAdditionalFilterSceneSpecial(specialType)
-	if specialHooksDone[specialType] == true then return end
+	if specialHooksDone[specialType] then return end
 
 	--ENCHANTING gamepad
 	--[[
