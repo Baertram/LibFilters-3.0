@@ -222,8 +222,9 @@ local enableList = {}
 local updateList = {}
 local useFilter = false
 
-local function doesItemPassFilter(bagId, slotIndex, stackCount)
-	if not useFilter then return true end
+local additionalFilter
+
+local function defaultFilter(bagId, slotIndex, stackCount)
 	local itemType,  specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
@@ -252,11 +253,12 @@ end
 
 local function registerFilter(filterType, filterTypeName)
 	local function filterBagIdAndSlotIndexCallback(bagId, slotIndex)
+		if not useFilter then return true end
 		local itemLink = GetItemLink(bagId, slotIndex)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = doesItemPassFilter(bagId, slotIndex, stackCount)
+		local result = additionalFilter(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
 			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
@@ -265,12 +267,13 @@ local function registerFilter(filterType, filterTypeName)
 	end
 
 	local function filterSlotDataCallback(slotData)
+		if not useFilter then return true end
 		local bagId, slotIndex = slotData.bagId, slotData.slotIndex
 		local itemLink = bagId == nil and GetQuestItemLink(slotIndex) or GetItemLink(bagId, slotIndex)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = doesItemPassFilter(bagId, slotIndex, stackCount)
+		local result = additionalFilter(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
 			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
@@ -518,11 +521,17 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 100, setupEnableRowWithHeader)
 end
 
+local function getFilterFromArgs(args)
+	if args ~= '' then 
+		local argsFilter = _G[args]
+		return type(argsFilter) == 'function' and argsFilter or nil
+	end
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SLASH COMMAND for filter UI
 ------------------------------------------------------------------------------------------------------------------------
-SLASH_COMMANDS["/lftestfilters"] = function()
+SLASH_COMMANDS["/lftestfilters"] = function(args)
 --[[ is there a way to check if a virtual control exists?
 	-- is test.xml enabled
 	if not LibFilters3_Test_Template then
@@ -535,16 +544,24 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 		addFilterUIListDataTypes()
 	end
 
+	local argsFilter = getFilterFromArgs(args)
+	
 	if not tlc:IsHidden() then
 		clearAll()
-		tlw:SetHidden(true)
-		return
+		if not argsFilter then
+			tlw:SetHidden(true)
+			return
+		end
 	end
+	
+	additionalFilter = argsFilter or defaultFilter
+	
 	tlw:SetHidden(false)
 
 	refreshEnableList()
 end
-
+--	/script testFilter = function(bagId, slotIndex) if slotIndex == 1 then return false end return true end
+--	/lftestfilters testFilter
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Custom SLASH COMMANDS for tests
