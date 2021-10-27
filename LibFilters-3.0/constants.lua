@@ -122,7 +122,7 @@ gamepadConstants.customFragments = {
 	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
 	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
 }
---local customFragments_GP = gamepadConstants.customFragments
+local customFragments_GP = gamepadConstants.customFragments
 
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
@@ -360,7 +360,6 @@ gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 ------------------------------------------------------------------------------------------------------------------------
 gamepadConstants.InventoryUpdateFunctions = {}
 
-
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
 -----------------------------------------------------------------------------------------------------------------------
@@ -577,7 +576,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
 		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
-		--> or keyboard mode, and only hook teh active one!
+		--> or keyboard mode, and only hook the active one!
 		 --implemented special, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = {  },
 		[LF_SMITHING_IMPROVEMENT]     = {  },
