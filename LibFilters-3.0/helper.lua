@@ -3,6 +3,11 @@
 ------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
 
+--Helper variables of the library
+local constants = libFilters.constants
+local keyboardConstants = constants.keyboard
+
+local inventories = keyboardConstants.inventories
 
 ------------------------------------------------------------------------------------------------------------------------
 --Local LibFilters speed-up variables and references
@@ -1006,7 +1011,6 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 
 
 --enable LF_INVENTORY for gamepad mode
-local inventories = PLAYER_INVENTORY.inventories
 local bagList = { -- < rename?
 	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
 	[BAG_BANK]				= inventories[INVENTORY_BANK],
@@ -1066,6 +1070,7 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
         funcName = "AddSlotDataToTable",
         func = function(self, slotsTable, inventoryType, slotIndex)
 --d( 'ZO_GamepadInventoryList:AddSlotDataToTable')
+            --inventoryType = bagId
 			local function shouldInclude(slotData)
 				local result = true
 

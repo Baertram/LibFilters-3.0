@@ -238,9 +238,10 @@ keyboardConstants.researchChooseItemDialog  = 	SMITHING_RESEARCH_SELECT
 --Enchanting
 keyboardConstants.enchantingClass = 			ZO_Enchanting
 keyboardConstants.enchanting = 					ENCHANTING
+
 --Alchemy
-keyboardConstants.alchemy  =  					ALCHEMY_SCENE
-keyboardConstants.alchemyInv = 					ALCHEMY.inventory
+keyboardConstants.alchemy = 					ALCHEMY
+keyboardConstants.alchemyScene  =				ALCHEMY_SCENE
 
 --Retrait
 --keyboardConstants.retraitClass  = 		  	 ZO_RetraitStation_Retrait_Base
@@ -257,7 +258,6 @@ keyboardConstants.reconstruct = 				ZO_RECONSTRUCT_KEYBOARD
 
 --Backpack
 gamepadConstants.invBackpack_GP =				GAMEPAD_INVENTORY
-gamepadConstants.invBank_GP = 					GAMEPAD_BANKING
 gamepadConstants.invGuildBank_GP = 				GAMEPAD_GUILD_BANK
 gamepadConstants.invRootScene = 				GAMEPAD_INVENTORY_ROOT_SCENE
 
@@ -273,12 +273,20 @@ gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quicks
 
 --[Banks]
 --Player bank
-local invBank_GP = gamepadConstants.invBank_GP
+gamepadConstants.invBank_GP = 					GAMEPAD_BANKING
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
 
 --Guild bank
 gamepadConstants.invGuildBankDepositScene_GP =  GAMEPAD_GUILD_BANK_SCENE
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
 
 --House bank
+--Control/scene is same as normal player bank
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
+
 
 --[Vendor]
 ----Buy
@@ -345,8 +353,8 @@ gamepadConstants.enchantingExtract_GP = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 gamepadConstants.enchanting_GP =				GAMEPAD_ENCHANTING
 
 --Alchemy
-gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
-gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY
+gamepadConstants.alchemy_GP = 					GAMEPAD_ALCHEMY
+gamepadConstants.alchemySecene_GP = 			ALCHEMY_SCENE
 
 --Retrait
 gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
@@ -522,7 +530,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_JEWELRY_DECONSTRUCT]      = { keyboardConstants.deconstructionPanel },
 		[LF_JEWELRY_IMPROVEMENT]      = { keyboardConstants.improvementPanel },
 		[LF_JEWELRY_RESEARCH]         = { keyboardConstants.researchPanel },
-		[LF_ALCHEMY_CREATION]         = { keyboardConstants.alchemy },
+		[LF_ALCHEMY_CREATION]         = { keyboardConstants.alchemyScene },
 		[LF_RETRAIT]                  = { keyboardConstants.retrait },
 
 
@@ -540,21 +548,20 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
 		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
-		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
-		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },
-		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },
-		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },
 		[LF_VENDOR_BUY]               = { gamepadConstants.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gamepadConstants.vendorSell_GP },
 		[LF_VENDOR_BUYBACK]           = { gamepadConstants.vendorBuyBack_GP },
 		[LF_VENDOR_REPAIR]            = { gamepadConstants.vendorRepair_GP },
 		[LF_FENCE_SELL]               = { gamepadConstants.invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { gamepadConstants.invFenceLaunder_GP },
-		[LF_SMITHING_REFINE]          = { gamepadConstants.refinementPanel_GP },
 		[LF_SMITHING_RESEARCH_DIALOG] = { gamepadConstants.researchChooseItemDialog_GP },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { gamepadConstants.researchChooseItemDialog_GP },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { gamepadConstants.researchChooseItemDialog_GP }, --duplicate needed comapred to LF_SMITHING_RESEARCH_DIALOG ?
 
 
+		--Not given in gamepad mode
+		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
+
+		
 		--Not implemented yet
 		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
@@ -578,14 +585,22 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
 		--> or keyboard mode, and only hook the active one!
 		 --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_BANK_WITHDRAW]            = {  },
+		[LF_GUILDBANK_WITHDRAW]       = {  },
+		[LF_HOUSE_BANK_WITHDRAW]      = {  },
+
+		[LF_SMITHING_REFINE]          = {  }, --todo: test if this works, or add "gamepadConstants.refinementPanel_GP" again above!
 		[LF_SMITHING_DECONSTRUCT]     = {  },
 		[LF_SMITHING_IMPROVEMENT]     = {  },
 		[LF_SMITHING_RESEARCH]        = {  },
+
 		[LF_JEWELRY_REFINE]           = {  },
 		[LF_JEWELRY_DECONSTRUCT]      = {  },
 		[LF_JEWELRY_IMPROVEMENT]      = {  },
 		[LF_JEWELRY_RESEARCH]         = {  },
+
 		[LF_ALCHEMY_CREATION]         = {  },
+
 		[LF_RETRAIT]                  = {  },
 
 

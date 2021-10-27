@@ -242,7 +242,7 @@ local function updateKeyboardPlayerInventoryType(invType)
 end
 
 local function updateCraftingInventoryDirty(craftingInventory)
-	craftingInventory:HandleDirtyEvent()
+	craftingInventory.inventory:HandleDirtyEvent()
 end
 
 
@@ -295,6 +295,7 @@ local function updateFunction_GP_CraftingInventory(craftingInventory)
 	craftingInventory:PerformFullRefresh()
 end
 
+--Update functions for the gamepad inventory
 gamepadConstants.InventoryUpdateFunctions = {
 	[LF_INVENTORY] = function()
 	  updateFunction_GP_ItemList(gamepadConstants.invBackpack_GP)
@@ -429,9 +430,9 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gamepadConstants.refinementPanel_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.refinementPanel_GP)
 		else
-			updateCraftingInventoryDirty(keyboardConstants.refinementPanel.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.refinementPanel)
 		end
 	end,
 	SMITHING_CREATION = function()
@@ -444,16 +445,16 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_DECONSTRUCT = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gamepadConstants.deconstructionPanel_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.deconstructionPanel_GP)
 		else
-			updateCraftingInventoryDirty(keyboardConstants.deconstructionPanel.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.deconstructionPanel)
 		end
 	end,
 	SMITHING_IMPROVEMENT = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gamepadConstants.improvementPanel_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.improvementPanel_GP)
 		else
-			updateCraftingInventoryDirty(keyboardConstants.improvementPanel.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.improvementPanel)
 		end
 	end,
 	SMITHING_RESEARCH = function()
@@ -479,16 +480,16 @@ local inventoryUpdaters = {
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gamepadConstants.alchemyInv_GP.inventory)
+			updateCraftingInventoryDirty(gamepadConstants.alchemy_GP)
 		else
-			updateCraftingInventoryDirty(keyboardConstants.alchemyInv)
+			updateCraftingInventoryDirty(keyboardConstants.alchemy)
 		end
 	end,
 	ENCHANTING = function()
 		if IsGamepad() then
-			updateFunction_GP_CraftingInventory(gamepadConstants.enchanting_GP.inventory)
+			updateFunction_GP_CraftingInventory(gamepadConstants.enchanting_GP)
 		else
-			updateCraftingInventoryDirty(keyboardConstants.enchanting.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.enchanting)
 		end
 	end,
 	PROVISIONING_COOK = function()
@@ -511,7 +512,7 @@ local inventoryUpdaters = {
 		if IsGamepad() then
 			gamepadConstants.retrait:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
-			updateCraftingInventoryDirty(keyboardConstants.retrait.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.retrait)
 		end
 	end,
 	RECONSTRUCTION = function()
@@ -519,7 +520,7 @@ local inventoryUpdaters = {
 			-- not sure how reconstruct works, how it would be filtered.
 			gamepadConstants.reconstruct:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
-			updateCraftingInventoryDirty(keyboardConstants.reconstruct.inventory)
+			updateCraftingInventoryDirty(keyboardConstants.reconstruct)
 		end
 	end,
 }

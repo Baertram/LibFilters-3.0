@@ -38,10 +38,9 @@ local palyerInventory = 			keyboardConstants.playerInv
 --Gamepad
 local gamepadConstants = 			constants.gamepad
 local invRootScene = 				gamepadConstants.invRootScene
-local invBackpack_GP = 				gamepadConstants.invBackpack_GP
 local invBank_GP = 					gamepadConstants.invBank_GP
-local invGuildStoreSellScene_GP = 	gamepadConstants.invGuildStoreSellScene_GP
 local invGuildBankDepositScene_GP = gamepadConstants.invGuildBankDepositScene_GP
+local invGuildStoreSellScene_GP = 	gamepadConstants.invGuildStoreSellScene_GP
 local invMailSendScene_GP = 		gamepadConstants.invMailSendScene_GP
 local invPlayerTradeScene_GP = 		gamepadConstants.invPlayerTradeScene_GP
 
