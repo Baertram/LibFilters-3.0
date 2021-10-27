@@ -107,8 +107,6 @@ libFilters.constants.gamepad = {}
 local gamepadConstants = libFilters.constants.gamepad
 
 
-<<<<<<< Updated upstream
-=======
 --Custom created fragments for the gamepad mode
 --Prefix of these fragments
 gamepadConstants.customFragmentPrefix = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
@@ -125,7 +123,6 @@ gamepadConstants.customFragments = {
 }
 --local customFragments_GP = gamepadConstants.customFragments
 
->>>>>>> Stashed changes
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
 ------------------------------------------------------------------------------------------------------------------------
