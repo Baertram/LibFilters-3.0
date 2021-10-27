@@ -33,8 +33,6 @@ libFilters.constants = {}
 --The possible libFilters filterPanelIds
 -- !!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
-libFilters.constants.filterTypes = {}
-
 local libFiltersFilterConstants = {
 	 [1]	= "LF_INVENTORY",
 	 [2]	= "LF_BANK_WITHDRAW",
@@ -90,12 +88,13 @@ for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 	--Create empty table for each filter constant LF_*
 	filters[_G[filterConstantName]] = {}
 end
-libFilters.FilterTypes = libFiltersFilterConstants
-libFilters.constants.filterTypes = libFilters.FilterTypes
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN					= LF_INVENTORY
 LF_FILTER_MAX					= #libFiltersFilterConstants
+
+--Add the filterTypes to the constants
+libFilters.constants.filterTypes = libFiltersFilterConstants
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -107,22 +106,6 @@ local keyboardConstants = libFilters.constants.keyboard
 libFilters.constants.gamepad = {}
 local gamepadConstants = libFilters.constants.gamepad
 
-
---Custom created fragments for the gamepad mode
---Prefix of these fragments
-gamepadConstants.customFragmentPrefix = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
-local fragmentPrefix_GP = gamepadConstants.customFragmentPrefix
---The custom fragment names for the filter panelId
-gamepadConstants.customFragments = {
-	[LF_INVENTORY] 		= 		{name = fragmentPrefix_GP .. "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_BANK_DEPOSIT] 	= 		{name = fragmentPrefix_GP .. "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_HOUSE_BANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_GUILDBANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_GUILDSTORE_SELL] = 		{name = fragmentPrefix_GP .. "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
-}
-local customFragments_GP = gamepadConstants.customFragments
 
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
@@ -365,30 +348,39 @@ gamepadConstants.retrait_GP = 					ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 gamepadConstants.reconstruct_GP = 				ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
+
+------------------------------------------------------------------------------------------------------------------------
+--Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
+-----------------------------------------------------------------------------------------------------------------------
+--They will be nil (see table gamepadConstants.customFragments[LF_*] = {name=..., fragment=nil}) here at the time
+--constant.lua is parsed as the custom gamepad fragments were not created yet!
+--> The file /Gamepad/gamepadCustomFragments.lua needs some constants for this file first!
+---->But they will be added later to the constants table "gamepadConstants", as they were created in file
+---->/Gamepad/gamepadCustomFragments.lua table customFragmentsUpdateRef
+-->Important: The variables are updated to table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata,
+-->which is used for libFilters:HookAdditionalFilters!
+
+--Prefix of these fragments
+gamepadConstants.customFragmentPrefix = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
+local fragmentPrefix_GP = gamepadConstants.customFragmentPrefix
+
+--The custom fragment names for the filter panelId in gamepad mode, used in file /Gamepad/gamepadCustomFragments.lua
+gamepadConstants.customFragments = {
+	[LF_INVENTORY] 		= 		{name = fragmentPrefix_GP .. "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_BANK_DEPOSIT] 	= 		{name = fragmentPrefix_GP .. "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_HOUSE_BANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDBANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDSTORE_SELL] = 		{name = fragmentPrefix_GP .. "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
+}
+
+
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad dynamic "INVENTORY" update functions
 ------------------------------------------------------------------------------------------------------------------------
 --Will be filled in file LibFilters-3.0.lua, see "--Update functions for the gamepad inventory"
 gamepadConstants.InventoryUpdateFunctions = {}
-
-------------------------------------------------------------------------------------------------------------------------
---Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
------------------------------------------------------------------------------------------------------------------------
--->They will be nil here at the time constant.lua is parsed as the custom gamepad fragments were not created yet!
---> The file /Gamepad/gamepadCustomFragments.lua needs some constants fo this file first!
----->But they will be added later to the constants table "gamepadConstants", as they were created in file
----->/Gamepad/gamepadCustomFragments.lua table customFragmentsUpdateRef
--->Important: The variables are updated to table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata,
--->which is used for libFilters:HookAdditionalFilters!
---[[
-local invBackpackFragment_GP =	nil --customFragments_GP[LF_INVENTORY].fragment
-local invBankDeposit_GP = 		nil --customFragments_GP[LF_BANK_DEPOSIT].fragment
-local invGuildBankDeposit_GP = 	nil --customFragments_GP[LF_GUILDBANK_DEPOSIT].fragment
-local invHouseBankDeposit_GP = 	nil --customFragments_GP[LF_HOUSE_BANK_DEPOSIT].fragment
-local guildStoreSell_GP = 		nil --customFragments_GP[LF_GUILDSTORE_SELL].fragment
-local mailSend_GP = 			nil --customFragments_GP[LF_MAIL_SEND].fragment
-local player2playerTrade_GP = 	nil --[customFragments_GP[LF_TRADE].fragment
-]]
 
 
 ------------------------------------------------------------------------------------------------------------------------

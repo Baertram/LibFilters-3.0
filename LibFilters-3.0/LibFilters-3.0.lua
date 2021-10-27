@@ -100,7 +100,7 @@ local IsGamepad = IsInGamepadPreferredMode
 --Overall constants
 local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
-local libFiltersFilterConstants = 	libFilters.FilterTypes
+local libFiltersFilterConstants = 	constants.filterTypes
 local inventoryTypes = 				constants.inventoryTypes
 local invTypeBackpack = 			inventoryTypes["player"]
 local invTypeQuest =				inventoryTypes["quest"]
@@ -129,17 +129,6 @@ local invGuildBank_GP = 			gamepadConstants.invGuildBank_GP
 local store_GP = 					gamepadConstants.store_GP
 local store_componentsGP = 			store_GP.components
 local researchPanel_GP = 			gamepadConstants.researchPanel_GP
-
---Get the updated constants values of the gamepad fragments, created after constants.lua was called, in file
---Gamepad/gamepadCustomFragments.lua
---local customFragments_GP = 			gamepadConstants.customFragments
---local invBackpackFragment_GP =	customFragments_GP[LF_INVENTORY].fragment
---local invBankDeposit_GP = 		customFragments_GP[LF_BANK_DEPOSIT].fragment
---local invGuildBankDeposit_GP = 	customFragments_GP[LF_GUILDBANK_DEPOSIT].fragment
---local invHouseBankDeposit_GP = 	customFragments_GP[LF_HOUSE_BANK_DEPOSIT].fragment
---local guildStoreSell_GP = 		customFragments_GP[LF_GUILDSTORE_SELL].fragment
---local mailSend_GP = 			customFragments_GP[LF_MAIL_SEND].fragment
---local player2playerTrade_GP = 	customFragments_GP[LF_TRADE].fragment
 
 
 ------------------------------------------------------------------------------------------------------------------------
