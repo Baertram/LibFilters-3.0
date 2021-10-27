@@ -33,8 +33,6 @@ libFilters.constants = {}
 --The possible libFilters filterPanelIds
 -- !!!IMPORTANT !!! Do not change the order as these numbers were added over time and need to keep the same order !!!
 --> Else the constants do not match the correct values anymore and will filter the wrong panels!
-libFilters.constants.filterTypes = {}
-
 local libFiltersFilterConstants = {
 	 [1]	= "LF_INVENTORY",
 	 [2]	= "LF_BANK_WITHDRAW",
@@ -90,12 +88,13 @@ for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 	--Create empty table for each filter constant LF_*
 	filters[_G[filterConstantName]] = {}
 end
-libFilters.FilterTypes = libFiltersFilterConstants
-libFilters.constants.filterTypes = libFilters.FilterTypes
 
 --Get the min and max filterPanelIds
 LF_FILTER_MIN					= LF_INVENTORY
 LF_FILTER_MAX					= #libFiltersFilterConstants
+
+--Add the filterTypes to the constants
+libFilters.constants.filterTypes = libFiltersFilterConstants
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -107,22 +106,6 @@ local keyboardConstants = libFilters.constants.keyboard
 libFilters.constants.gamepad = {}
 local gamepadConstants = libFilters.constants.gamepad
 
-
---Custom created fragments for the gamepad mode
---Prefix of these fragments
-gamepadConstants.customFragmentPrefix = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
-local fragmentPrefix_GP = gamepadConstants.customFragmentPrefix
---The custom fragment names for the filter panelId
-gamepadConstants.customFragments = {
-	[LF_INVENTORY] 		= 		{name = fragmentPrefix_GP .. "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_BANK_DEPOSIT] 	= 		{name = fragmentPrefix_GP .. "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_HOUSE_BANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_GUILDBANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_GUILDSTORE_SELL] = 		{name = fragmentPrefix_GP .. "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
-}
-local customFragments_GP = gamepadConstants.customFragments
 
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
@@ -238,9 +221,10 @@ keyboardConstants.researchChooseItemDialog  = 	SMITHING_RESEARCH_SELECT
 --Enchanting
 keyboardConstants.enchantingClass = 			ZO_Enchanting
 keyboardConstants.enchanting = 					ENCHANTING
+
 --Alchemy
-keyboardConstants.alchemy  =  					ALCHEMY_SCENE
-keyboardConstants.alchemyInv = 					ALCHEMY.inventory
+keyboardConstants.alchemy = 					ALCHEMY
+keyboardConstants.alchemyScene  =				ALCHEMY_SCENE
 
 --Retrait
 --keyboardConstants.retraitClass  = 		  	 ZO_RetraitStation_Retrait_Base
@@ -257,28 +241,35 @@ keyboardConstants.reconstruct = 				ZO_RECONSTRUCT_KEYBOARD
 
 --Backpack
 gamepadConstants.invBackpack_GP =				GAMEPAD_INVENTORY
-gamepadConstants.invBank_GP = 					GAMEPAD_BANKING
 gamepadConstants.invGuildBank_GP = 				GAMEPAD_GUILD_BANK
 gamepadConstants.invRootScene = 				GAMEPAD_INVENTORY_ROOT_SCENE
 
 --Craftbag
-gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag]
+--gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true] again
 
 --Quest items
 gamepadConstants.invQuests_GP =					gamepadConstants.invBackpack_GP.scene
 
 --Quickslots
-gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
+--gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
 
 
 --[Banks]
 --Player bank
-local invBank_GP = gamepadConstants.invBank_GP
+gamepadConstants.invBank_GP = 					GAMEPAD_BANKING
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
 
 --Guild bank
 gamepadConstants.invGuildBankDepositScene_GP =  GAMEPAD_GUILD_BANK_SCENE
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
 
 --House bank
+--Control/scene is same as normal player bank
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
+
 
 --[Vendor]
 ----Buy
@@ -302,7 +293,9 @@ gamepadConstants.invFenceSell_GP =				ZO_GamepadFenceSell
 
 --[Guild store]
 --gamepadConstants.guildStoreBuy_GP			--not supported by LibFilters yet
+gamepadConstants.invGuildStoreSell_GP =			GAMEPAD_TRADING_HOUSE_SELL
 gamepadConstants.invGuildStoreSellScene_GP =  	TRADING_HOUSE_GAMEPAD_SCENE
+
 
 
 --[Mail]
@@ -345,39 +338,48 @@ gamepadConstants.enchantingExtract_GP = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 gamepadConstants.enchanting_GP =				GAMEPAD_ENCHANTING
 
 --Alchemy
-gamepadConstants.alchemy_GP = 					ALCHEMY_SCENE
-gamepadConstants.alchemyInv_GP = 				GAMEPAD_ALCHEMY
+gamepadConstants.alchemy_GP = 					GAMEPAD_ALCHEMY
+gamepadConstants.alchemySecene_GP = 			ALCHEMY_SCENE
 
 --Retrait
-gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
+gamepadConstants.retrait_GP = 					ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 
 --Reconstruction
-gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+gamepadConstants.reconstruct_GP = 				ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
+-----------------------------------------------------------------------------------------------------------------------
+--They will be nil (see table gamepadConstants.customFragments[LF_*] = {name=..., fragment=nil}) here at the time
+--constant.lua is parsed as the custom gamepad fragments were not created yet!
+--> The file /Gamepad/gamepadCustomFragments.lua needs some constants for this file first!
+---->But they will be added later to the constants table "gamepadConstants", as they were created in file
+---->/Gamepad/gamepadCustomFragments.lua table customFragmentsUpdateRef
+-->Important: The variables are updated to table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata,
+-->which is used for libFilters:HookAdditionalFilters!
+
+--Prefix of these fragments
+gamepadConstants.customFragmentPrefix = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
+local fragmentPrefix_GP = gamepadConstants.customFragmentPrefix
+
+--The custom fragment names for the filter panelId in gamepad mode, used in file /Gamepad/gamepadCustomFragments.lua
+gamepadConstants.customFragments = {
+	[LF_INVENTORY] 		= 		{name = fragmentPrefix_GP .. "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_BANK_DEPOSIT] 	= 		{name = fragmentPrefix_GP .. "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_HOUSE_BANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDBANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDSTORE_SELL] = 		{name = fragmentPrefix_GP .. "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
+}
 
 
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad dynamic "INVENTORY" update functions
 ------------------------------------------------------------------------------------------------------------------------
+--Will be filled in file LibFilters-3.0.lua, see "--Update functions for the gamepad inventory"
 gamepadConstants.InventoryUpdateFunctions = {}
-
-------------------------------------------------------------------------------------------------------------------------
---Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
------------------------------------------------------------------------------------------------------------------------
--->They will be nil here at the time constant.lua is parsed as the custom gamepad fragments were not created yet!
---> The file /Gamepad/gamepadCustomFragments.lua needs some constants fo this file first!
----->But they will be added later to the constants table "gamepadConstants", as they were created in file
----->/Gamepad/gamepadCustomFragments.lua table customFragmentsUpdateRef
--->Important: The variables are updated to table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata,
--->which is used for libFilters:HookAdditionalFilters!
---[[
-local invBackpackFragment_GP =	nil --customFragments_GP[LF_INVENTORY].fragment
-local invBankDeposit_GP = 		nil --customFragments_GP[LF_BANK_DEPOSIT].fragment
-local invGuildBankDeposit_GP = 	nil --customFragments_GP[LF_GUILDBANK_DEPOSIT].fragment
-local invHouseBankDeposit_GP = 	nil --customFragments_GP[LF_HOUSE_BANK_DEPOSIT].fragment
-local guildStoreSell_GP = 		nil --customFragments_GP[LF_GUILDSTORE_SELL].fragment
-local mailSend_GP = 			nil --customFragments_GP[LF_MAIL_SEND].fragment
-local player2playerTrade_GP = 	nil --[customFragments_GP[LF_TRADE].fragment
-]]
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -438,7 +440,7 @@ local enchantingModeToFilterType = {
 	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
 	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
 }
-mapping.EnchantingModeToFilterType = enchantingModeToFilterType
+mapping.enchantingModeToFilterType = enchantingModeToFilterType
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
@@ -506,12 +508,14 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_SMITHING_RESEARCH_DIALOG] = { keyboardConstants.researchChooseItemDialog },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { keyboardConstants.researchChooseItemDialog },
 
+
 		--Not implemented yet
 		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+
 
 		--Shared with gamepad mode -> See entry with LF_* at [true] (using gamepadConstants) below
 		[LF_SMITHING_REFINE]          = { keyboardConstants.refinementPanel },
@@ -522,7 +526,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_JEWELRY_DECONSTRUCT]      = { keyboardConstants.deconstructionPanel },
 		[LF_JEWELRY_IMPROVEMENT]      = { keyboardConstants.improvementPanel },
 		[LF_JEWELRY_RESEARCH]         = { keyboardConstants.researchPanel },
-		[LF_ALCHEMY_CREATION]         = { keyboardConstants.alchemy },
+		[LF_ALCHEMY_CREATION]         = { keyboardConstants.alchemyScene },
 		[LF_RETRAIT]                  = { keyboardConstants.retrait },
 
 
@@ -538,21 +542,19 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 	--Gamepad mode
 	[true]  = {
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
-		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
-		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
-		[LF_BANK_WITHDRAW]            = { gamepadConstants.invBankWithdraw_GP },
-		[LF_GUILDBANK_WITHDRAW]       = { gamepadConstants.invGuildBankWithdraw_GP },
-		[LF_HOUSE_BANK_WITHDRAW]      = { gamepadConstants.invHouseBankWithdraw_GP },
 		[LF_VENDOR_BUY]               = { gamepadConstants.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gamepadConstants.vendorSell_GP },
 		[LF_VENDOR_BUYBACK]           = { gamepadConstants.vendorBuyBack_GP },
 		[LF_VENDOR_REPAIR]            = { gamepadConstants.vendorRepair_GP },
 		[LF_FENCE_SELL]               = { gamepadConstants.invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { gamepadConstants.invFenceLaunder_GP },
-		[LF_SMITHING_REFINE]          = { gamepadConstants.refinementPanel_GP },
 		[LF_SMITHING_RESEARCH_DIALOG] = { gamepadConstants.researchChooseItemDialog_GP },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { gamepadConstants.researchChooseItemDialog_GP },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { gamepadConstants.researchChooseItemDialog_GP }, --duplicate needed comapred to LF_SMITHING_RESEARCH_DIALOG ?
+
+
+		--Not given in gamepad mode
+		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 
 
 		--Not implemented yet
@@ -578,6 +580,11 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
 		--> or keyboard mode, and only hook the active one!
 		 --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_CRAFTBAG]                 = {  }, --todo: test if this works, or add "gamepadConstants.invCraftbag_GP" again above!
+		[LF_BANK_WITHDRAW]            = {  },
+		[LF_GUILDBANK_WITHDRAW]       = {  },
+		[LF_HOUSE_BANK_WITHDRAW]      = {  },
+		[LF_SMITHING_REFINE]          = {  }, --todo: test if this works, or add "gamepadConstants.refinementPanel_GP" again above!
 		[LF_SMITHING_DECONSTRUCT]     = {  },
 		[LF_SMITHING_IMPROVEMENT]     = {  },
 		[LF_SMITHING_RESEARCH]        = {  },
@@ -619,7 +626,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION"
 }
-mapping.FilterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
+mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
 --The updater names which are shared with others
 local filterTypeToUpdaterNameDynamic = {
@@ -664,7 +671,8 @@ local filterTypeToUpdaterNameDynamic = {
 		  [LF_ENCHANTING_EXTRACTION]=true,
 	 },
 }
-mapping.FilterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
+mapping.filterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
+
 --The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
 local filterTypeToUpdaterName = {}
 --Add the fixed updaterNames of the filtertypes
@@ -679,4 +687,8 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 		  end
 	 end
 end
-mapping.FilterTypeToUpdaterName = filterTypeToUpdaterName
+mapping.filterTypeToUpdaterName = filterTypeToUpdaterName
+
+--Will be filled within file LibFilters-3.0.lua with the above strings and their related updater function (divived by
+--keyboard and gamepad mode)
+mapping.inventoryUpdaters = { }

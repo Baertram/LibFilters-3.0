@@ -2,11 +2,23 @@
 local libFilters = LibFilters3
 if not libFilters then return end
 libFilters:InitializeLibFilters()
- 
+
+
+------------------------------------------------------------------------------------------------------------------------
+-- LIBRARY VARIABLES
+------------------------------------------------------------------------------------------------------------------------
+local constants = libFilters.constants
+local filterTypes = constants.filterTypes
+local usingBagIdAndSlotIndexFilterFunction = filterTypes.UsingBagIdAndSlotIndexFilterFunction
+
 
 ------------------------------------------------------------------------------------------------------------------------
 -- HELPER VARIABLES AND FUNCTIONS FOR TESTS
 ------------------------------------------------------------------------------------------------------------------------
+--ZOs helpers
+local strfor = string.format
+local tos = tostring
+
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
 local testUItemplate = prefix .. "_Test_Template"
@@ -15,11 +27,14 @@ local filterTag = prefix .."_TestFilters_"
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
 local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
 
-libFilters.test = {}
 
+--UI
+libFilters.test = {}
 local tlw
 local tlc
 local btnFilter
+
+
 --filter function for inventories
 local function filterFuncForInventories(inventorySlot)
 	local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -51,152 +66,152 @@ end
 
 --	LibFilters3_Test_TLC
 ------------------------------------------------------------------------------------------------------------------------
--- Custom SLASH COMMANDS for tests
+-- HELPER UI
 ------------------------------------------------------------------------------------------------------------------------
-local filterTypes = {
-	[1] = {
+local filterTypesToCategory = {
+	{
 		['filterType'] = LF_INVENTORY,
 		['category'] = 'Inventory',
 	},
-	[2] = {
+	{
 		['filterType'] = LF_INVENTORY_QUEST,
 		['category'] = 'Inventory',
 	},
-	[3] = {
+	{
 		['filterType'] = LF_CRAFTBAG,
 		['category'] = 'Inventory',
 	},
-	[4] = {
+	{
 		['filterType'] = LF_INVENTORY_COMPANION,
 		['category'] = 'Inventory',
 	},
-	[5] = {
+	{
 		['filterType'] = LF_QUICKSLOT,
 		['category'] = 'Inventory',
 	},
-	[6] = {
+	{
 		['filterType'] = LF_BANK_WITHDRAW,
 		['category'] = 'Banking',
 	},
-	[7] = {
+	{
 		['filterType'] = LF_BANK_DEPOSIT,
 		['category'] = 'Banking',
 	},
-	[8] = {
+	{
 		['filterType'] = LF_GUILDBANK_WITHDRAW,
 		['category'] = 'Banking',
 	},
-	[9] = {
+	{
 		['filterType'] = LF_GUILDBANK_DEPOSIT,
 		['category'] = 'Banking',
 	},
-	[10] = {
+	{
 		['filterType'] = LF_HOUSE_BANK_WITHDRAW,
 		['category'] = 'Banking',
 	},
-	[11] = {
+	{
 		['filterType'] = LF_HOUSE_BANK_DEPOSIT,
 		['category'] = 'Banking',
 	},
-	[12] = {
+	{
 		['filterType'] = LF_GUILDSTORE_SELL,
 		['category'] = 'Banking',
 	},
-	[13] = {
+	{
 		['filterType'] = LF_VENDOR_BUY,
 		['category'] = 'Vendor',
 	},
-	[14] = {
+	{
 		['filterType'] = LF_VENDOR_SELL,
 		['category'] = 'Vendor',
 	},
-	[15] = {
+	{
 		['filterType'] = LF_VENDOR_BUYBACK,
 		['category'] = 'Vendor',
 	},
-	[16] = {
+	{
 		['filterType'] = LF_VENDOR_REPAIR,
 		['category'] = 'Vendor',
 	},
-	[17] = {
+	{
 		['filterType'] = LF_FENCE_SELL,
 		['category'] = 'Vendor',
 	},
-	[18] = {
+	{
 		['filterType'] = LF_FENCE_LAUNDER,
 		['category'] = 'Vendor',
 	},
-	[19] = {
+	{
 		['filterType'] = LF_MAIL_SEND,
 		['category'] = 'Trade',
 	},
-	[20] = {
+	{
 		['filterType'] = LF_TRADE,
 		['category'] = 'Trade',
 	},
-	[21] = {
+	{
 		['filterType'] = LF_ALCHEMY_CREATION,
 		['category'] = 'Crafting',
 	},
-	[22] = {
+	{
 		['filterType'] = LF_ENCHANTING_CREATION,
 		['category'] = 'Crafting',
 	},
-	[23] = {
+	{
 		['filterType'] = LF_ENCHANTING_EXTRACTION,
 		['category'] = 'Crafting',
 	},
-	[24] = {
+	{
 		['filterType'] = LF_RETRAIT,
 		['category'] = 'Crafting',
 	},
-	[25] = {
+	{
 		['filterType'] = LF_SMITHING_REFINE,
 		['category'] = 'Smithing',
 	},
-	[26] = {
+	{
 		['filterType'] = LF_SMITHING_CREATION,
 		['category'] = 'Smithing',
 	},
-	[27] = {
+	{
 		['filterType'] = LF_SMITHING_DECONSTRUCT,
 		['category'] = 'Smithing',
 	},
-	[28] = {
+	{
 		['filterType'] = LF_SMITHING_IMPROVEMENT,
 		['category'] = 'Smithing',
 	},
-	[29] = {
+	{
 		['filterType'] = LF_SMITHING_RESEARCH,
 		['category'] = 'Smithing',
 	},
-	[30] = {
+	{
 		['filterType'] = LF_SMITHING_RESEARCH_DIALOG,
 		['category'] = 'Smithing',
 	},
-	[31] = {
+	{
 		['filterType'] = LF_JEWELRY_REFINE,
-		['category'] = 'Jeweler',
+		['category'] = 'Jewelery',
 	},
-	[32] = {
+	{
 		['filterType'] = LF_JEWELRY_CREATION,
-		['category'] = 'Jeweler',
+		['category'] = 'Jewelery',
 	},
-	[33] = {
+	{
 		['filterType'] = LF_JEWELRY_DECONSTRUCT,
-		['category'] = 'Jeweler',
+		['category'] = 'Jewelery',
 	},
-	[34] = {
+	{
 		['filterType'] = LF_JEWELRY_IMPROVEMENT,
-		['category'] = 'Jeweler',
+		['category'] = 'Jewelery',
 	},
-	[35] = {
+	{
 		['filterType'] = LF_JEWELRY_RESEARCH,
-		['category'] = 'Jeweler',
+		['category'] = 'Jewelery',
 	},
-	[36] = {
+	{
 		['filterType'] = LF_JEWELRY_RESEARCH_DIALOG,
-		['category'] = 'Jeweler',
+		['category'] = 'Jewelery',
 	}
 }
 
@@ -244,7 +259,7 @@ local function registerFilter(filterType, filterTypeName)
 		local result = doesItemPassFilter(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
-			d(string.format("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterType, stackCount, itemLink))
+			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
 		end
 		return result
 	end
@@ -258,23 +273,19 @@ local function registerFilter(filterType, filterTypeName)
 		local result = doesItemPassFilter(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
-			d(string.format("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterType, stackCount, itemLink))
+			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
 		end
 		return result
 	end
 	
-	local usingBagAndSlot = libFilters.constants.filterTypes.UsingBagIdAndSlotIndexFilterFunction[filterType]
+	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
 	
 	d("["..prefix.."]Registering " .. filterTypeName)
-	if usingBagAndSlot then
-		libFilters:RegisterFilter(filterTag, filterType, filterBagIdAndSlotIndexCallback)
-	else
-		libFilters:RegisterFilter(filterTag, filterType, filterSlotDataCallback)
-	end
+	libFilters:RegisterFilter(filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
 end
 
 local function refresh(dataList)
-	for _, filterData in pairs(filterTypes) do
+	for _, filterData in pairs(filterTypesToCategory) do
 		local filterType = filterData.filterType
 		local isRegistered = libFilters:IsFilterRegistered(filterTag, filterType)
 		local filterTypeName = libFilters:GetFilterTypeName(filterType)
@@ -311,7 +322,7 @@ local function refreshEnableList()
 	
 	ZO_ScrollList_Clear(enableList)
 	local dataList = ZO_ScrollList_GetDataList(enableList)
-	for _, filterData in pairs(filterTypes) do
+	for _, filterData in pairs(filterTypesToCategory) do
 		local listType = LIST_TYPE
 		local filterType = filterData.filterType
 		local filterTypeName = libFilters:GetFilterTypeName(filterType)
@@ -335,11 +346,7 @@ local function refreshEnableList()
 end
 
 local function setButtonToggleColor(control, filtered)
-	if filtered then
-		control:SetAlpha(1)
-	else
-		control:SetAlpha(0.5)
-	end
+	control:SetAlpha((filtered and 1) or 0.5)
 end
 
 local function clearAll()
@@ -355,8 +362,8 @@ local function clearAll()
 	setButtonToggleColor(btnFilter, useFilter)
 end
 
-local function intialize()
-	local width, height = GuiRoot:GetDimensions()
+local function intializeFilterUI()
+	local _, height = GuiRoot:GetDimensions()
 	local adjustedHeight = (height * 0.75)
 	local y_Adj = (height - adjustedHeight) / 2
 	
@@ -380,8 +387,6 @@ local function intialize()
 	enableList:SetDimensions(345, adjustedHeight * 0.5)
 	enableList:SetAnchor(TOPLEFT, tlc, nil, 0, 25)
 	
-
---	/lftestfilters
 	-- button container for clear and refresh
 	local buttons = CreateControl("$(parent)Buttons", tlc, CT_CONTROL)	
 	buttons:SetDimensions(340, 60)
@@ -440,29 +445,33 @@ end
 
 local function setupRow(rowControl, data, onMouseUp)
 	rowControl.data = data
+	local filterType = data.filterType
 	local row = rowControl:GetNamedChild("Button")
-	row:SetText(data.name)
+	row:SetText(data.name .. " [" ..tos(filterType) .. "]")
 	
 	rowControl:SetHidden(false)
-	setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[data.filterType])
+	setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
 	
 	row:SetHandler("OnMouseUp", onMouseUp)
 end
 
-local function addListDataTypes()
+local function addFilterUIListDataTypes()
+	local function onMouseUpOnRow(rowControl, data)
+		local filterType = data.filterType
+		enabledFilters[filterType] = not enabledFilters[filterType]
+		setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
+	end
 	local function setupEnableRowWithHeader(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
 		local header = rowControl:GetNamedChild('Header')
 		header:SetText(data.header)
 		header:SetHidden(false)
 		setupRow(rowControl, data, function(btn)
-			enabledFilters[data.filterType] = not enabledFilters[data.filterType]
-			setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[data.filterType])
+			onMouseUpOnRow(rowControl, data)
 		end)
 	end
 	local function setupEnableRow(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
 		setupRow(rowControl, data, function(btn)
-			enabledFilters[data.filterType] = not enabledFilters[data.filterType]
-			setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[data.filterType])
+			onMouseUpOnRow(rowControl, data)
 		end)
 	end
 
@@ -478,6 +487,9 @@ local function addListDataTypes()
 end
 
 
+------------------------------------------------------------------------------------------------------------------------
+-- SLASH COMMAND for filter UI
+------------------------------------------------------------------------------------------------------------------------
 SLASH_COMMANDS["/lftestfilters"] = function()
 --[[ is there a way to check if a virtual control exists?
 	-- is test.xml enabled
@@ -486,10 +498,9 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 		return
 	end
 ]]
-
 	if not tlw then
-		intialize()
-		addListDataTypes()
+		intializeFilterUI()
+		addFilterUIListDataTypes()
 	end
 
 	if not tlc:IsHidden() then
@@ -504,6 +515,10 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 	refreshEnableList()
 end
 
+
+------------------------------------------------------------------------------------------------------------------------
+-- Custom SLASH COMMANDS for tests
+------------------------------------------------------------------------------------------------------------------------
 --depends on Item Saver by Randactyl
 SLASH_COMMANDS["/lftestenchant"] = function()
 	if not ItemSaver then return end
@@ -549,12 +564,12 @@ local researchConfirmSceneCallbackAdded = false
 SLASH_COMMANDS["/lftestresearchdialog"] = function()
 	if researchConfirmSceneCallbackAdded then return end
 	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
-		d("GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [2] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
+		d("GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [2] - StateChange: " ..strfor("oldState: %s, newState: %s", tos(oldState), tos(newState)))
 	end)
 	local origStateChangeFunc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1]
 	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1] = function(...)
 		local oldState, newState = select(1, ...)
-		d("OGIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..string.format("oldState: %s, newState: %s", tostring(oldState), tostring(newState)))
+		d("OGIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..strfor("oldState: %s, newState: %s", tos(oldState), tos(newState)))
 		origStateChangeFunc(...)
 	end
 	d("["..prefix.."]Test scene callback for Gamepad research confirm scene was added! ReloadUI to remove it.")
@@ -563,7 +578,7 @@ end
 
 
 ------------------------------------------------------------------------------------------------------------------------
--- SLASH COMMANDS for toggel & update tests
+-- SLASH COMMANDS for toggle & update tests
 ------------------------------------------------------------------------------------------------------------------------
 --Alchemy
 SLASH_COMMANDS["/lftestalchemy"] = function()

@@ -38,10 +38,9 @@ local palyerInventory = 			keyboardConstants.playerInv
 --Gamepad
 local gamepadConstants = 			constants.gamepad
 local invRootScene = 				gamepadConstants.invRootScene
-local invBackpack_GP = 				gamepadConstants.invBackpack_GP
 local invBank_GP = 					gamepadConstants.invBank_GP
-local invGuildStoreSellScene_GP = 	gamepadConstants.invGuildStoreSellScene_GP
 local invGuildBankDepositScene_GP = gamepadConstants.invGuildBankDepositScene_GP
+local invGuildStoreSellScene_GP = 	gamepadConstants.invGuildStoreSellScene_GP
 local invMailSendScene_GP = 		gamepadConstants.invMailSendScene_GP
 local invPlayerTradeScene_GP = 		gamepadConstants.invPlayerTradeScene_GP
 
@@ -158,7 +157,9 @@ _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDe
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Add the created fragments to the LibFilters gamepad fragment constants so they are not nil anymore in
--- LibFilters-3.0.lua. See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
+-- LibFilters-3.0.lua later on.
+-- See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
+--> [LF_*] = {name="...", fragment=nil},
 ------------------------------------------------------------------------------------------------------------------------
 local customFragmentsUpdateRef                           = libFilters.constants.gamepad.customFragments
 customFragmentsUpdateRef[LF_INVENTORY].fragment          = gamepadLibFiltersInventoryDepositFragment
@@ -177,7 +178,6 @@ LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_HOUSE_BANK_DE
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILDSTORE_SELL] 	= { gamepadLibFiltersGuildStoreSellFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_MAIL_SEND] 			= { gamepadLibFiltersMaiLSendFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_TRADE] 				= { gamepadLibFiltersPlayerTradeFragment }
-
 
 
 ------------------------------------------------------------------------------------------------------------------------
