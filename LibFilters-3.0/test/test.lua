@@ -521,11 +521,24 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 100, setupEnableRowWithHeader)
 end
 
-local function getFilterFromArgs(args)
-	if args ~= '' then 
-		local argsFilter = _G[args]
-		return type(argsFilter) == 'function' and argsFilter or nil
-	end
+local function parseArguments(args)
+    local elements = {}
+    for param in string.gmatch(args, "([^%s.]+)%s*") do
+        if (param ~= nil and param ~= "") then
+            table.insert(elements, param)
+        end
+    end
+    
+    local argsFilter = _G[elements[1]]
+    
+    if argsFilter and #elements > 1 then
+        for i=2, #elements do
+            argsFilter = argsFilter[elements[i]]
+            print(argsFilter ~= nil)
+        end
+    end
+    
+	return type(argsFilter) == 'function' and argsFilter or nil
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -539,12 +552,13 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 		return
 	end
 ]]
+
 	if not tlw then
 		intializeFilterUI()
 		addFilterUIListDataTypes()
 	end
 
-	local argsFilter = getFilterFromArgs(args)
+	local argsFilter = parseArguments(args)
 	
 	if not tlc:IsHidden() then
 		clearAll()
@@ -657,4 +671,3 @@ end
 SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
 	toggleFilterForFilterType(LF_HOUSE_BANK_WITHDRAW)
 end
-
