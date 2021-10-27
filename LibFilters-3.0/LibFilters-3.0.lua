@@ -109,7 +109,7 @@ local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
 
-local enchantingModeToFilterType = 	mapping.EnchantingModeToFilterType
+--local enchantingModeToFilterType = 	mapping.EnchantingModeToFilterType
 local filterTypeToUpdaterName = 	mapping.FilterTypeToUpdaterName
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
@@ -118,23 +118,28 @@ local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAddit
 local keyboardConstants = 			constants.keyboard
 local playerInv = 					keyboardConstants.playerInv
 local inventories = 				keyboardConstants.inventories
+local store = 						keyboardConstants.store
 local researchChooseItemDialog = 	keyboardConstants.researchChooseItemDialog
 
 --Gamepad
 local gamepadConstants = 			constants.gamepad
-local customFragments_GP = 			gamepadConstants.customFragments
+local invBackpack_GP = 				gamepadConstants.invBackpack_GP
+local invBank_GP = 					gamepadConstants.invBank_GP
+local invGuildBank_GP = 			gamepadConstants.invGuildBank_GP
 local store_GP = 					gamepadConstants.store_GP
 local store_componentsGP = 			store_GP.components
+local researchPanel_GP = 			gamepadConstants.researchPanel_GP
 
 --Get the updated constants values of the gamepad fragments, created after constants.lua was called, in file
 --Gamepad/gamepadCustomFragments.lua
-local invBackpackFragment_GP =	customFragments_GP[LF_INVENTORY].fragment
-local invBankDeposit_GP = 		customFragments_GP[LF_BANK_DEPOSIT].fragment
-local invGuildBankDeposit_GP = 	customFragments_GP[LF_GUILDBANK_DEPOSIT].fragment
-local invHouseBankDeposit_GP = 	customFragments_GP[LF_HOUSE_BANK_DEPOSIT].fragment
-local guildStoreSell_GP = 		customFragments_GP[LF_GUILDSTORE_SELL].fragment
-local mailSend_GP = 			customFragments_GP[LF_MAIL_SEND].fragment
-local player2playerTrade_GP = 	customFragments_GP[LF_TRADE].fragment
+--local customFragments_GP = 			gamepadConstants.customFragments
+--local invBackpackFragment_GP =	customFragments_GP[LF_INVENTORY].fragment
+--local invBankDeposit_GP = 		customFragments_GP[LF_BANK_DEPOSIT].fragment
+--local invGuildBankDeposit_GP = 	customFragments_GP[LF_GUILDBANK_DEPOSIT].fragment
+--local invHouseBankDeposit_GP = 	customFragments_GP[LF_HOUSE_BANK_DEPOSIT].fragment
+--local guildStoreSell_GP = 		customFragments_GP[LF_GUILDSTORE_SELL].fragment
+--local mailSend_GP = 			customFragments_GP[LF_MAIL_SEND].fragment
+--local player2playerTrade_GP = 	customFragments_GP[LF_TRADE].fragment
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -264,10 +269,9 @@ local function updateFunction_GP_UpdateList(gpInvVar)
 end
 
 -- step function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER
-local storeComponents_GP = gamepadConstants.store_GP.components
 local function updateFunction_GP_Vendor(component)
-	if not storeComponents_GP then return end
-	updateFunction_GP_UpdateList(storeComponents_GP[component].list)
+	if not store_componentsGP then return end
+	updateFunction_GP_UpdateList(store_componentsGP[component].list)
 end
 
 -- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST
@@ -298,16 +302,16 @@ end
 --Update functions for the gamepad inventory
 gamepadConstants.InventoryUpdateFunctions = {
 	[LF_INVENTORY] = function()
-	  updateFunction_GP_ItemList(gamepadConstants.invBackpack_GP)
+	  updateFunction_GP_ItemList(invBackpack_GP)
 	end,
 	[LF_BANK_DEPOSIT] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invBank_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "depositList")
 	end,
 	[LF_GUILDBANK_DEPOSIT]  = function()
-		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invGuildBank_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invGuildBank_GP, "depositList")
 	end,
 	[LF_HOUSE_BANK_DEPOSIT] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invBank_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "depositList")
 	end,
 	[LF_MAIL_SEND] = function()
 		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invMailSend_GP, "inventoryList")
@@ -316,7 +320,7 @@ gamepadConstants.InventoryUpdateFunctions = {
 		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invPlayerTrade_GP, "inventoryList")
 	end,
 	[LF_GUILDSTORE_SELL] = function()
-		updateFunction_GP_UpdateList(GAMEPAD_TRADING_HOUSE_SELL)
+		updateFunction_GP_UpdateList(gamepadConstants.invGuildStoreSell_GP)
 	end,
 	[LF_VENDOR_SELL] = function()
 		updateFunction_GP_Vendor(ZO_MODE_STORE_SELL)
@@ -328,7 +332,6 @@ gamepadConstants.InventoryUpdateFunctions = {
 		updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
 	end
 }
-
 local InventoryUpdateFunctions_GP = gamepadConstants.InventoryUpdateFunctions
 
 --The updater functions used within LibFilters:RequestUpdate() for the LF_* constants
@@ -350,14 +353,14 @@ local inventoryUpdaters = {
 	end,
 	CRAFTBAG = function()
 		if IsGamepad() then
-			updateFunction_GP_CraftBagList(gamepadConstants.invBackpack_GP)
+			updateFunction_GP_CraftBagList(invBackpack_GP)
 		else
 			updateKeyboardPlayerInventoryType(invTypeCraftBag)
 		end
 	end,
 	INVENTORY_QUEST = function()
 		if IsGamepad() then
-			updateFunction_GP_ItemList(gamepadConstants.invBackpack_GP)
+			updateFunction_GP_ItemList(invBackpack_GP)
 		else
 			updateKeyboardPlayerInventoryType(invTypeQuest)
 		end
@@ -376,21 +379,21 @@ local inventoryUpdaters = {
 	end,
 	BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invBank_GP, "withdrawList")
+			updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "withdrawList")
 		else
 			updateKeyboardPlayerInventoryType(invTypeBank)
 		end
 	end,
 	GUILDBANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invGuildBank_GP, "withdrawList")
+			updateFunction_GP_ZO_GamepadInventoryList(invGuildBank_GP, "withdrawList")
 		else
 			updateKeyboardPlayerInventoryType(invTypeGuildBank)
 		end
 	end,
 	HOUSE_BANK_WITHDRAW = function()
 		if IsGamepad() then
-			updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invBank_GP, "withdrawList")
+			updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "withdrawList")
 		else
 			updateKeyboardPlayerInventoryType(invTypeHouseBank)
 		end
@@ -400,7 +403,6 @@ local inventoryUpdaters = {
 			updateFunction_GP_Vendor(ZO_MODE_STORE_BUY)
 		else
 			if keyboardConstants.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
-				local store = keyboardConstants.store
 				store:GetStoreItems()
 				SafeUpdateList(store)
 			end
@@ -459,8 +461,8 @@ local inventoryUpdaters = {
 	end,
 	SMITHING_RESEARCH = function()
 		if IsGamepad() then
-			if not gamepadConstants.researchPanel_GP.researchLineList then return end
-			gamepadConstants.researchPanel_GP:Refresh()
+			if not researchPanel_GP.researchLineList then return end
+			researchPanel_GP:Refresh()
 		else
 			keyboardConstants.researchPanel:Refresh()
 		end
@@ -472,7 +474,7 @@ local inventoryUpdaters = {
 			--> See here: esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
 			-->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 			--sceneStateChangeCallbackUpdater(gamepadConstants.researchChooseItemDialog_GP, SCENE_HIDDEN, SCENE_SHOWING, 1, nil)
-			if not gamepadConstants.researchPanel_GP.confirmList then return end
+			if not researchPanel_GP.confirmList then return end
 			gamepadConstants.researchChooseItemDialog_GP:FireCallbacks("StateChange", nil, SCENE_SHOWING)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
@@ -510,7 +512,7 @@ local inventoryUpdaters = {
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
-			gamepadConstants.retrait:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
+			gamepadConstants.retrait_GP:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.retrait)
 		end
@@ -518,7 +520,7 @@ local inventoryUpdaters = {
 	RECONSTRUCTION = function()
 		if IsGamepad() then
 			-- not sure how reconstruct works, how it would be filtered.
-			gamepadConstants.reconstruct:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+			gamepadConstants.reconstruct_GP:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.reconstruct)
 		end

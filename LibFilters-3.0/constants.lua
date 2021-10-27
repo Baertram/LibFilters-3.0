@@ -262,13 +262,13 @@ gamepadConstants.invGuildBank_GP = 				GAMEPAD_GUILD_BANK
 gamepadConstants.invRootScene = 				GAMEPAD_INVENTORY_ROOT_SCENE
 
 --Craftbag
-gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag]
+--gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true] again
 
 --Quest items
 gamepadConstants.invQuests_GP =					gamepadConstants.invBackpack_GP.scene
 
 --Quickslots
-gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
+--gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
 
 
 --[Banks]
@@ -310,7 +310,9 @@ gamepadConstants.invFenceSell_GP =				ZO_GamepadFenceSell
 
 --[Guild store]
 --gamepadConstants.guildStoreBuy_GP			--not supported by LibFilters yet
+gamepadConstants.invGuildStoreSell_GP =			GAMEPAD_TRADING_HOUSE_SELL
 gamepadConstants.invGuildStoreSellScene_GP =  	TRADING_HOUSE_GAMEPAD_SCENE
+
 
 
 --[Mail]
@@ -357,15 +359,16 @@ gamepadConstants.alchemy_GP = 					GAMEPAD_ALCHEMY
 gamepadConstants.alchemySecene_GP = 			ALCHEMY_SCENE
 
 --Retrait
-gamepadConstants.retrait = 						ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
+gamepadConstants.retrait_GP = 					ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 
 --Reconstruction
-gamepadConstants.reconstruct = 					ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+gamepadConstants.reconstruct_GP = 				ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad dynamic "INVENTORY" update functions
 ------------------------------------------------------------------------------------------------------------------------
+--Will be filled in file LibFilters-3.0.lua, see "--Update functions for the gamepad inventory"
 gamepadConstants.InventoryUpdateFunctions = {}
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -514,12 +517,14 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		[LF_SMITHING_RESEARCH_DIALOG] = { keyboardConstants.researchChooseItemDialog },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { keyboardConstants.researchChooseItemDialog },
 
+
 		--Not implemented yet
 		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+
 
 		--Shared with gamepad mode -> See entry with LF_* at [true] (using gamepadConstants) below
 		[LF_SMITHING_REFINE]          = { keyboardConstants.refinementPanel },
@@ -546,7 +551,6 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 	--Gamepad mode
 	[true]  = {
 		[LF_INVENTORY_QUEST]          = { gamepadConstants.invQuests_GP },
-		[LF_CRAFTBAG]                 = { gamepadConstants.invCraftbag_GP },
 		[LF_INVENTORY_COMPANION]      = { gamepadConstants.companionEquipment_GP },
 		[LF_VENDOR_BUY]               = { gamepadConstants.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gamepadConstants.vendorSell_GP },
@@ -561,7 +565,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		--Not given in gamepad mode
 		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 
-		
+
 		--Not implemented yet
 		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
@@ -585,22 +589,19 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
 		--> or keyboard mode, and only hook the active one!
 		 --implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_CRAFTBAG]                 = {  }, --todo: test if this works, or add "gamepadConstants.invCraftbag_GP" again above!
 		[LF_BANK_WITHDRAW]            = {  },
 		[LF_GUILDBANK_WITHDRAW]       = {  },
 		[LF_HOUSE_BANK_WITHDRAW]      = {  },
-
 		[LF_SMITHING_REFINE]          = {  }, --todo: test if this works, or add "gamepadConstants.refinementPanel_GP" again above!
 		[LF_SMITHING_DECONSTRUCT]     = {  },
 		[LF_SMITHING_IMPROVEMENT]     = {  },
 		[LF_SMITHING_RESEARCH]        = {  },
-
 		[LF_JEWELRY_REFINE]           = {  },
 		[LF_JEWELRY_DECONSTRUCT]      = {  },
 		[LF_JEWELRY_IMPROVEMENT]      = {  },
 		[LF_JEWELRY_RESEARCH]         = {  },
-
 		[LF_ALCHEMY_CREATION]         = {  },
-
 		[LF_RETRAIT]                  = {  },
 
 
