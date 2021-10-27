@@ -146,6 +146,8 @@ local researchPanel_GP = 			gamepadConstants.researchPanel_GP
 local specialHooksDone = {
 	 --["enchanting"] = false, --example entry
 }
+--Used in function libFilters:HookAdditionalFilterSpecial
+local specialHooksLibFiltersDataRegistered = {}
 
 --Local pre-defined function names. Code will be added further down in this file. Only created here already to be re-used
 --in code prior to creation (functions using it won't be called before creation was done, but they are local and more
@@ -584,23 +586,29 @@ end
 function libFilters:GetMinFilterType()
 	 return LF_FILTER_MIN
 end
+--Compatibility function names
 libFilters.GetMinFilter = libFilters.GetMinFilterType
+
 
 --Returns the maxium possible filterType
 function libFilters:GetMaxFilterType()
 	 return LF_FILTER_MAX
 end
+--Compatibility function names
 libFilters.GetMaxFilter = libFilters.GetMaxFilterType
+
 
 --Returns the LibFilters LF* filterType connstants table: value = "name"
 function libFilters:GetFilterTypes()
 	 return libFiltersFilterConstants
 end
 
+
 --Returns the LibFilters LF* filterType constant's name
 function libFilters:GetFilterTypeName(libFiltersFilterType)
 	 return libFiltersFilterConstants[libFiltersFilterType] or ""
 end
+
 
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK, or a SCENE or a control
@@ -630,29 +638,10 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 	return inventory.LibFilters3_filterType
 end
 
+
 --**********************************************************************************************************************
---Hook the inventory layout or inventory to apply additional filter functions
---->Orig function until LibFilters 3.0r3.0, 2021-10-08. Changed to a more dynamic version below
---[[
-function LibFilters:HookAdditionalFilter(filterType, inventory)
-	 local layoutData = inventory.layoutData or inventory
-	 local originalFilter = layoutData.additionalFilter
-
-	 layoutData.LibFilters3_filterType = filterType
-	 local additionalFilterType = type(originalFilter)
-	 if additionalFilterType == "function" then
-		  layoutData.additionalFilter = function(...)
-				return originalFilter(...) and runFilters(filterType, ...)
-		  end
-	 else
-		  layoutData.additionalFilter = function(...)
-				return runFilters(filterType, ...)
-		  end
-	 end
-end
-]]
-
-
+-- HOOKS
+--**********************************************************************************************************************
 --Hook the inventory layout or inventory control, a fragment, scene or userdata to apply the .additionalFilter entry for
 --the filter functions registered via LibFilters:RegisterFilter("uniqueName," LF_*constant, callbackFilterFunction)
 --> Using only 1 parameter "filterLFConstant" now, to determine the correct control/inventory/scene/fragment/userdata to
@@ -753,7 +742,6 @@ hookAdditionalFilter = libFilters.HookAdditionalFilter
 
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
-local specialHooksLibFiltersDataRegistered = {}
 function libFilters:HookAdditionalFilterSpecial(specialType)
 	if specialHooksDone[specialType] then return end
 
@@ -796,6 +784,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType)
 	end
 	]]
 end
+
 
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
 -- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType
@@ -851,13 +840,16 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	]]
 end
 
+
 --**********************************************************************************************************************
--- Filter callback and un/register
+-- Filter callback, filter check and un/register
+--**********************************************************************************************************************
 function libFilters:GetFilterCallback(filterTag, filterType)
 	 if not self:IsFilterRegistered(filterTag, filterType) then return end
 
 	 return filters[filterType][filterTag]
 end
+
 
 function libFilters:IsFilterRegistered(filterTag, filterType)
 	 if filterType == nil then
@@ -877,6 +869,7 @@ function libFilters:IsFilterRegistered(filterTag, filterType)
 	 end
 end
 
+
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
 	 local callbacks = filters[filterType]
 
@@ -894,6 +887,7 @@ function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
 
 	 callbacks[filterTag] = filterCallback
 end
+
 
 function libFilters:UnregisterFilter(filterTag, filterType)
 	 if not filterTag or filterTag == "" then
@@ -917,8 +911,11 @@ function libFilters:UnregisterFilter(filterTag, filterType)
 	 end
 end
 
+
 --**********************************************************************************************************************
--- Filter update
+-- Filter update / refresh of (inventory/crafting/...) list
+--**********************************************************************************************************************
+--Will call the updater function of table inventoryUpdaters, depending on keyboard/gamepad mode
 function libFilters:RequestUpdate(filterType)
 --d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
 	 local updaterName = filterTypeToUpdaterName[filterType]
@@ -942,6 +939,10 @@ end
 
 --**********************************************************************************************************************
 -- Special API
+--**********************************************************************************************************************
+--Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
+--indices
+--Used in addon AdvancedFilters UPDATED e.g.
 function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
 	 local craftingType = GetCraftingInteractionType()
 	 if craftingType == CRAFTING_TYPE_INVALID then return false end
@@ -962,6 +963,7 @@ function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
 	 end
 end
 
+
 --**********************************************************************************************************************
 -- END LibFilters API functions END
 --**********************************************************************************************************************
@@ -970,10 +972,16 @@ end
 
 
 --**********************************************************************************************************************
+-- HELPERS
+--**********************************************************************************************************************
 --Register all the helper functions of LibFilters, for some special panels like the Research or ResearchDialog, or
 --even deconstruction and improvement, etc.
---These helper funmctions might overwrite original ESO functions in order to use their own "predicate" or
--- "filterFunction".  So check them if the orig functions update, and upate them as well.
+--These helper functions overwrite original ESO functions in order to use their own "predicate" or
+-- "filterFunction".
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- IMPORTANT: You need to check the funtion code and compare it to Zos vanilla code after updates as if ZOs code changes
+-- the helpers may need to change as well!
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 --> See file helper.lua
 libFilters.helpers = {}
 local helpers      = libFilters.helpers
@@ -994,7 +1002,7 @@ end
 
 
 --**********************************************************************************************************************
---**********************************************************************************************************************
+-- FIXES
 --**********************************************************************************************************************
 --Fixes which are needed
 local function ApplyFixes()
@@ -1014,7 +1022,7 @@ end
 
 
 --**********************************************************************************************************************
---**********************************************************************************************************************
+-- LIBRARY LOADING / INITIALIZATION
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
