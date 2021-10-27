@@ -1,3 +1,35 @@
+-- Use /lftestfilters to open testing UI
+-- To test a specific filter, you can specify a globally difined function
+
+-- Example
+--	/script testFilter = function(bagId, slotIndex) local quality = GetItemQuality(bagId, slotIndex) return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE end
+-- /lftestfilters testFilter
+
+--	
+--	addon.test.testFilter = function(bagId, slotIndex)
+--		local quality = GetItemQuality(bagId, slotIndex)
+--		return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+--	end
+
+-- /lftestfilters addon.test.testFilter
+
+------------------------------------------------------------------------------------------------------------------------
+-- Using testing UI
+------------------------------------------------------------------------------------------------------------------------
+
+-- Select any number of LF_* constants in the top list.
+-- Use "Refresh" button.
+-- The selected filters will be registered with libFilters and populate the update functions list (bottom list)
+-- At any time, LF_* constants can be added or removed.
+-- The "Filter" button enables/disables filtering of the registered filters.
+-- With a scene containing a filerable inventory, enable filtering and press the coresponding Update button.
+-- Disable filitering and update to return the list to normal.
+
+-- The "All" button, will enable/disable all LF_* constants
+-- Use /lftestfilters again to close the UI and unregister all registered LF_* constants
+
+
+
 --Init the library, if not already done
 local libFilters = LibFilters3
 if not libFilters then return end
