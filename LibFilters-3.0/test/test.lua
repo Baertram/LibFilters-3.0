@@ -349,9 +349,33 @@ local function setButtonToggleColor(control, filtered)
 	control:SetAlpha((filtered and 1) or 0.5)
 end
 
+local function hasUnenabledFilters()
+	for i=1, #filterTypesToCategory do
+		local filterType = filterTypesToCategory[i].filterType
+		if not enabledFilters[filterType] then
+			return true
+		end
+	end
+	return false
+end
+
+local function addAll()
+	for i=1, #filterTypesToCategory do
+		local filterType = filterTypesToCategory[i].filterType
+		if not enabledFilters[filterType] then
+			enabledFilters[filterType] = true
+		end
+	end
+	refreshEnableList()
+	refreshUpdateList()
+	
+	useFilter = false
+	setButtonToggleColor(btnFilter, useFilter)
+end
+
 local function clearAll()
-	for filterType, bool in pairs(enabledFilters) do
-		if bool then
+	for filterType, enabled in pairs(enabledFilters) do
+		if enabled then
 			enabledFilters[filterType] = false
 		end
 	end
@@ -360,6 +384,14 @@ local function clearAll()
 	
 	useFilter = false
 	setButtonToggleColor(btnFilter, useFilter)
+end
+
+local function allButtonToggle()
+	if hasUnenabledFilters() then
+		addAll()
+	else
+		clearAll()
+	end
 end
 
 local function intializeFilterUI()
@@ -394,15 +426,15 @@ local function intializeFilterUI()
     local buttonshBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
 	buttonshBackdrop:SetAnchorFill()
 	
-	-- create Clear button
-	-- resets enableList and clears updateList
-	local btnClear = CreateControlFromVirtual("$(parent)ClearButton", buttons, "ZO_DefaultButton")
-	btnClear:SetHidden(false)
-	btnClear:SetText("Clear")
-	btnClear:SetDimensions(100, 40)
-	btnClear:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
-	btnClear:SetHandler("OnMouseUp", function(btn)
-		clearAll()
+	-- create All button
+	-- enable all filters if any are not enabled, else disables all filters
+	local btnAll = CreateControlFromVirtual("$(parent)AllButton", buttons, "ZO_DefaultButton")
+	btnAll:SetHidden(false)
+	btnAll:SetText(GetString(SI_BUFFS_OPTIONS_ALL_ENABLED))
+	btnAll:SetDimensions(100, 40)
+	btnAll:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
+	btnAll:SetHandler("OnMouseUp", function(btn)
+		allButtonToggle()
 	end)
 
 	-- create Filter button
