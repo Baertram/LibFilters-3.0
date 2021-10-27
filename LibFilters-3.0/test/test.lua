@@ -2,7 +2,7 @@
 -- To test a specific filter, you can specify a globally difined function
 
 -- Example
---	/script testFilter = function(bagId, slotIndex) local quality = GetItemQuality(bagId, slotIndex) return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE end
+-- /script testFilter = function(bagId, slotIndex) local quality = GetItemQuality(bagId, slotIndex) return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE end
 -- /lftestfilters testFilter
 
 --	
