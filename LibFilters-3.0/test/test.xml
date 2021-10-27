@@ -1,6 +1,6 @@
 <GuiXml>
 	<Controls>
-		<Control name="LibFilters3_Test_Template" tier="MEDIUM" virtual="true">
+		<Control name="LibFilters_Test_Template" tier="MEDIUM" virtual="true">
 			<Dimensions x="345" y="50"/>
 			<OnInitialized> 
 				self.slotControlType = "listSlot" 
@@ -12,7 +12,7 @@
 				</Button>
 			</Controls>
 		</Control>
-		<Control name="LibFilters3_Test_Template_WithHeader" tier="MEDIUM" virtual="true">
+		<Control name="LibFilters_Test_Template_WithHeader" tier="MEDIUM" virtual="true">
 			<Dimensions x="345" y="100"/>
 			<OnInitialized> 
 				self.slotControlType = "listSlot" 

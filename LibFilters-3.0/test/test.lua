@@ -21,7 +21,7 @@ local tos = tostring
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
-local testUItemplate = prefix .. "_Test_Template"
+local testUItemplate = "LibFilters_Test_Template"
 
 local filterTag = prefix .."_TestFilters_"
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
@@ -367,11 +367,11 @@ local function intializeFilterUI()
 	local adjustedHeight = (height * 0.75)
 	local y_Adj = (height - adjustedHeight) / 2
 	
-    tlw = CreateTopLevelWindow(prefix .. "_Test_TLW")
+    tlw = CreateTopLevelWindow("LibFilters_Test_TLW")
 	libFilters.test.tlw = tlw
 	tlw:SetHidden(true)
 	
-	tlc = CreateControl(prefix .. "_Test_TLC", tlw, CT_TOPLEVELCONTROL)
+	tlc = CreateControl("LibFilters_Test_TLC", tlw, CT_TOPLEVELCONTROL)
 	libFilters.test.tlc = tlc
 	tlc:SetMouseEnabled(true)
 	tlc:SetMovable(true)

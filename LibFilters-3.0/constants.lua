@@ -107,6 +107,25 @@ libFilters.constants.gamepad = {}
 local gamepadConstants = libFilters.constants.gamepad
 
 
+<<<<<<< Updated upstream
+=======
+--Custom created fragments for the gamepad mode
+--Prefix of these fragments
+gamepadConstants.customFragmentPrefix = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
+local fragmentPrefix_GP = gamepadConstants.customFragmentPrefix
+--The custom fragment names for the filter panelId
+gamepadConstants.customFragments = {
+	[LF_INVENTORY] 		= 		{name = fragmentPrefix_GP .. "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_BANK_DEPOSIT] 	= 		{name = fragmentPrefix_GP .. "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_HOUSE_BANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDBANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDSTORE_SELL] = 		{name = fragmentPrefix_GP .. "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", fragment=nil},
+}
+--local customFragments_GP = gamepadConstants.customFragments
+
+>>>>>>> Stashed changes
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
 ------------------------------------------------------------------------------------------------------------------------
