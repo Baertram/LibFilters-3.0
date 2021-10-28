@@ -322,7 +322,7 @@ gamepadConstants.InventoryUpdateFunctions = {
 		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invPlayerTrade_GP, "inventoryList")
 	end,
 	[LF_GUILDSTORE_SELL] = function()
---		updateFunction_GP_UpdateList(GAMEPAD_TRADING_HOUSE_SELL)
+        gamepadConstants.invGuildStoreSell_GP = gamepadConstants.invGuildStoreSell_GP or GAMEPAD_TRADING_HOUSE_SELL
 		updateFunction_GP_UpdateList(gamepadConstants.invGuildStoreSell_GP)
 	end,
 	[LF_VENDOR_SELL] = function()
