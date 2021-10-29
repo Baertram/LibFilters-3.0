@@ -253,15 +253,11 @@ local function updateCraftingInventoryDirty(craftingInventory)
 	craftingInventory.inventory:HandleDirtyEvent()
 end
 
-
-------------------------------------------------------------------------------------------------------------------------
---GAMEPAD updater functions
-------------------------------------------------------------------------------------------------------------------------
-local TRIGGER_CALLBACK = true
--- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW  gamepad
+-- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar or not gpInvVar[list] then return end
+	local TRIGGER_CALLBACK = true
 	gpInvVar[list]:RefreshList(TRIGGER_CALLBACK)
 	
 	if callbackFunc then callbackFunc() end
@@ -326,6 +322,7 @@ gamepadConstants.InventoryUpdateFunctions = {
 		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invPlayerTrade_GP, "inventoryList")
 	end,
 	[LF_GUILDSTORE_SELL] = function()
+        gamepadConstants.invGuildStoreSell_GP = gamepadConstants.invGuildStoreSell_GP or GAMEPAD_TRADING_HOUSE_SELL
 		updateFunction_GP_UpdateList(gamepadConstants.invGuildStoreSell_GP)
 	end,
 	[LF_VENDOR_SELL] = function()
@@ -556,13 +553,13 @@ libFilters.RunFilters = runFilters
 
 
 ------------------------------------------------------------------------------------------------------------------------
---HOOK VARIABLEs TO ADD .additionalFilters to them
+--HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
 --Hook the different inventory panels (LibFilters filterPanelIds) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
 local function ApplyAdditionalFilterHooks()
 
-	--For each LF constant hook the filters now to add the .additionalFilters entry
+	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
 	for value, filterConstantName in ipairs(libFiltersFilterConstants) do
 		-->HookAdditionalFilterSpecial will be done automatically in HookAdditionalFilter, via the table

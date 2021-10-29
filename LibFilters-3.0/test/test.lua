@@ -1,3 +1,35 @@
+-- Use /lftestfilters to open testing UI
+-- To test a specific filter, you can specify a globally difined function
+
+-- Example
+-- /script testFilter = function(bagId, slotIndex) local quality = GetItemQuality(bagId, slotIndex) return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE end
+-- /lftestfilters testFilter
+
+--	
+--	addon.test.testFilter = function(bagId, slotIndex)
+--		local quality = GetItemQuality(bagId, slotIndex)
+--		return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
+--	end
+
+-- /lftestfilters addon.test.testFilter
+
+------------------------------------------------------------------------------------------------------------------------
+-- Using testing UI
+------------------------------------------------------------------------------------------------------------------------
+
+-- Select any number of LF_* constants in the top list.
+-- Use "Refresh" button.
+-- The selected filters will be registered with libFilters and populate the update functions list (bottom list)
+-- At any time, LF_* constants can be added or removed.
+-- The "Filter" button enables/disables filtering of the registered filters.
+-- With a scene containing a filerable inventory, enable filtering and press the coresponding Update button.
+-- Disable filitering and update to return the list to normal.
+
+-- The "All" button, will enable/disable all LF_* constants
+-- Use /lftestfilters again to close the UI and unregister all registered LF_* constants
+
+
+
 --Init the library, if not already done
 local libFilters = LibFilters3
 if not libFilters then return end
@@ -21,7 +53,7 @@ local tos = tostring
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
-local testUItemplate = prefix .. "_Test_Template"
+local testUItemplate = "LibFilters_Test_Template"
 
 local filterTag = prefix .."_TestFilters_"
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
@@ -64,7 +96,7 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 	libFilters:RequestUpdate(filterType)
 end
 
-
+--	LibFilters3_Test_TLC
 ------------------------------------------------------------------------------------------------------------------------
 -- HELPER UI
 ------------------------------------------------------------------------------------------------------------------------
@@ -222,8 +254,9 @@ local enableList = {}
 local updateList = {}
 local useFilter = false
 
-local function doesItemPassFilter(bagId, slotIndex, stackCount)
-	if not useFilter then return true end
+local additionalFilter
+
+local function defaultFilter(bagId, slotIndex, stackCount)
 	local itemType,  specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
@@ -252,11 +285,12 @@ end
 
 local function registerFilter(filterType, filterTypeName)
 	local function filterBagIdAndSlotIndexCallback(bagId, slotIndex)
+		if not useFilter then return true end
 		local itemLink = GetItemLink(bagId, slotIndex)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = doesItemPassFilter(bagId, slotIndex, stackCount)
+		local result = additionalFilter(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
 			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
@@ -265,12 +299,13 @@ local function registerFilter(filterType, filterTypeName)
 	end
 
 	local function filterSlotDataCallback(slotData)
+		if not useFilter then return true end
 		local bagId, slotIndex = slotData.bagId, slotData.slotIndex
 		local itemLink = bagId == nil and GetQuestItemLink(slotIndex) or GetItemLink(bagId, slotIndex)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = doesItemPassFilter(bagId, slotIndex, stackCount)
+		local result = additionalFilter(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
 			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
@@ -342,15 +377,40 @@ local function refreshEnableList()
 		table.insert(dataList, newData)
 	end
 	ZO_ScrollList_Commit(enableList)
+	
 end
 
 local function setButtonToggleColor(control, filtered)
 	control:SetAlpha((filtered and 1) or 0.5)
 end
 
+local function hasUnenabledFilters()
+	for i=1, #filterTypesToCategory do
+		local filterType = filterTypesToCategory[i].filterType
+		if not enabledFilters[filterType] then
+			return true
+		end
+	end
+	return false
+end
+
+local function addAll()
+	for i=1, #filterTypesToCategory do
+		local filterType = filterTypesToCategory[i].filterType
+		if not enabledFilters[filterType] then
+			enabledFilters[filterType] = true
+		end
+	end
+	refreshEnableList()
+	refreshUpdateList()
+	
+	useFilter = false
+	setButtonToggleColor(btnFilter, useFilter)
+end
+
 local function clearAll()
-	for filterType, bool in pairs(enabledFilters) do
-		if bool then
+	for filterType, enabled in pairs(enabledFilters) do
+		if enabled then
 			enabledFilters[filterType] = false
 		end
 	end
@@ -361,16 +421,24 @@ local function clearAll()
 	setButtonToggleColor(btnFilter, useFilter)
 end
 
+local function allButtonToggle()
+	if hasUnenabledFilters() then
+		addAll()
+	else
+		clearAll()
+	end
+end
+
 local function intializeFilterUI()
 	local _, height = GuiRoot:GetDimensions()
 	local adjustedHeight = (height * 0.75)
 	local y_Adj = (height - adjustedHeight) / 2
 	
-    tlw = CreateTopLevelWindow(prefix .. "_Test_TLW")
+    tlw = CreateTopLevelWindow("LibFilters_Test_TLW")
 	libFilters.test.tlw = tlw
 	tlw:SetHidden(true)
 	
-	tlc = CreateControl(prefix .. "_Test_TLC", tlw, CT_TOPLEVELCONTROL)
+	tlc = CreateControl("LibFilters_Test_TLC", tlw, CT_TOPLEVELCONTROL)
 	libFilters.test.tlc = tlc
 	tlc:SetMouseEnabled(true)
 	tlc:SetMovable(true)
@@ -393,15 +461,15 @@ local function intializeFilterUI()
     local buttonshBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
 	buttonshBackdrop:SetAnchorFill()
 	
-	-- create Clear button
-	-- resets enableList and clears updateList
-	local btnClear = CreateControlFromVirtual("$(parent)ClearButton", buttons, "ZO_DefaultButton")
-	btnClear:SetHidden(false)
-	btnClear:SetText("Clear")
-	btnClear:SetDimensions(100, 40)
-	btnClear:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
-	btnClear:SetHandler("OnMouseUp", function(btn)
-		clearAll()
+	-- create All button
+	-- enable all filters if any are not enabled, else disables all filters
+	local btnAll = CreateControlFromVirtual("$(parent)AllButton", buttons, "ZO_DefaultButton")
+	btnAll:SetHidden(false)
+	btnAll:SetText(GetString(SI_BUFFS_OPTIONS_ALL_ENABLED))
+	btnAll:SetDimensions(100, 40)
+	btnAll:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
+	btnAll:SetHandler("OnMouseUp", function(btn)
+		allButtonToggle()
 	end)
 
 	-- create Filter button
@@ -485,11 +553,30 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 100, setupEnableRowWithHeader)
 end
 
+local function parseArguments(args)
+    local elements = {}
+    for param in string.gmatch(args, "([^%s.]+)%s*") do
+        if (param ~= nil and param ~= "") then
+            table.insert(elements, param)
+        end
+    end
+    
+    local argsFilter = _G[elements[1]]
+    
+    if argsFilter and #elements > 1 then
+        for i=2, #elements do
+            argsFilter = argsFilter[elements[i]]
+            print(argsFilter ~= nil)
+        end
+    end
+    
+	return type(argsFilter) == 'function' and argsFilter or nil
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SLASH COMMAND for filter UI
 ------------------------------------------------------------------------------------------------------------------------
-SLASH_COMMANDS["/lftestfilters"] = function()
+SLASH_COMMANDS["/lftestfilters"] = function(args)
 --[[ is there a way to check if a virtual control exists?
 	-- is test.xml enabled
 	if not LibFilters3_Test_Template then
@@ -497,22 +584,30 @@ SLASH_COMMANDS["/lftestfilters"] = function()
 		return
 	end
 ]]
+
 	if not tlw then
 		intializeFilterUI()
 		addFilterUIListDataTypes()
 	end
 
+	local argsFilter = parseArguments(args)
+	
 	if not tlc:IsHidden() then
-		tlw:SetHidden(true)
-		ZO_ScrollList_Clear(enableList)
-		ZO_ScrollList_Commit(enableList)
-		return
+		clearAll()
+		if not argsFilter then
+			tlw:SetHidden(true)
+			return
+		end
 	end
+	
+	additionalFilter = argsFilter or defaultFilter
+	
 	tlw:SetHidden(false)
 
 	refreshEnableList()
 end
-
+--	/script testFilter = function(bagId, slotIndex) if slotIndex == 1 then return false end return true end
+--	/lftestfilters testFilter
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Custom SLASH COMMANDS for tests
@@ -608,4 +703,3 @@ end
 SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
 	toggleFilterForFilterType(LF_HOUSE_BANK_WITHDRAW)
 end
-
