@@ -950,7 +950,7 @@ function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
 	 end
 	 local helpers = libFilters.helpers
 	 if not helpers then return end
-	 local smithingResearchPanel = helpers["SMITHING.researchPanel:Refresh"].locations[1]
+	 local smithingResearchPanel = helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
 	 if smithingResearchPanel then
 		  smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
 				from		= fromResearchLineIndex,

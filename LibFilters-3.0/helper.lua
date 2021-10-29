@@ -419,7 +419,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     helper = {
         funcName = "Refresh",
         func = function(self)
-			if self.panelContent:GetName() == "ZO_GamepadSmithingTopLevelMaskResearch" then
+			if self.panelContent and self.panelContent:GetName() == "ZO_GamepadSmithingTopLevelMaskResearch" then
 				-- if Gamepad researchPanel has not been initialized yet, stop.
 				if not self.researchLineList then 
 					return 
