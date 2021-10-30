@@ -13,23 +13,6 @@
 
 -- /lftestfilters addon.test.testFilter
 
-------------------------------------------------------------------------------------------------------------------------
--- Using testing UI
-------------------------------------------------------------------------------------------------------------------------
-
--- Select any number of LF_* constants in the top list.
--- Use "Refresh" button.
--- The selected filters will be registered with libFilters and populate the update functions list (bottom list)
--- At any time, LF_* constants can be added or removed.
--- The "Filter" button enables/disables filtering of the registered filters.
--- With a scene containing a filerable inventory, enable filtering and press the coresponding Update button.
--- Disable filitering and update to return the list to normal.
-
--- The "All" button, will enable/disable all LF_* constants
--- Use /lftestfilters again to close the UI and unregister all registered LF_* constants
-
-
-
 --Init the library, if not already done
 local libFilters = LibFilters3
 if not libFilters then return end
@@ -51,10 +34,12 @@ local usingBagIdAndSlotIndexFilterFunction = filterTypes.UsingBagIdAndSlotIndexF
 local strfor = string.format
 local tos = tostring
 local strgm = string.gmatch
-local tins = table.insert
+local gTab = table
+local tins = gTab.insert
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
+local prefixBr = "[" .. prefix .. "]"
 local testUItemplate = "LibFilters_Test_Template"
 
 local filterTag = prefix .."_TestFilters_"
@@ -89,19 +74,36 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 
 	if libFilters:IsFilterRegistered(filterTag, filterType) then
 		libFilters:UnregisterFilter(filterTag, filterType)
-		d("<["..prefix.."]Test filter for \'" .. filterTypeName .. "\'  unregistered!")
+		d("<"..prefixBr .. "Test filter for \'" .. filterTypeName .. "\'  unregistered!")
 	else
 		libFilters:RegisterFilter(filterTag, filterType, function(...) filterFunc(...) end)
-		d(">["..prefix.."]Test filter for \'" .. filterTypeName .. "\' registered!")
+		d(">" ..prefixBr .. "Test filter for \'" .. filterTypeName .. "\' registered!")
 	end
 	if noUpdate then return end
 	libFilters:RequestUpdate(filterType)
 end
 
 --	LibFilters3_Test_TLC
+
 ------------------------------------------------------------------------------------------------------------------------
--- HELPER UI
+-- TEST UI
 ------------------------------------------------------------------------------------------------------------------------
+local helpUIInstructionsParts = {
+	"Select any number of LF_* constants in the top list. Clicking them will enable them. Clicking them again will disable them.",
+	"Use \'Refresh\' button to register the selected filters and populate the registered LF_* constants at the bottom list.",
+	"At any time, LF_* constants can be added or removed by clicking the LF_* constant in the top list and pressing refresh.",
+	"The \'Filter\' button enables/disables filtering of the registered filters.",
+	"The bottom list LF_* constants buttons will call the filter refresh for that button.",
+	"With a scene containing a filerable inventory, enable/disable filtering and press the according LF_* button in the bottom",
+	"list. Chat output will show you some information if the default filterFunction of test.lua is used (\'/test/test.lua/defaultFilterFunction\').",
+	"The \'All\' button, will enable/disable all LF_* constants",
+	"Use /lftestfilters without any parameters to open the test UI",
+	"Use /lftestfilters <LF_constant_to_add> <globalFilterFunctionToUseForThatLF_Constant> to register a special filterFunction for the provided LF_Constants",
+	"e.g. /lftestfilters LF_SMITHIG_REFINE MyGlobalAddonVar.filterFunctionForSmithingRefine",
+	"Use /lftestfilters without any parameter again to close the UI and unregister all registered LF_* constants",
+}
+local helpUIInstructions = gTab.concat(helpUIInstructionsParts, "\n")
+
 local filterTypesToCategory = {
 	{
 		['filterType'] = LF_INVENTORY,
@@ -262,6 +264,7 @@ local testAdditionalFilterFunctions = {
 	--[LF_INVENTORY] = globalFunctionNameFromSlashCommend_lftestfilters_parameter1
 	--If [LF_ALL] is added this is the filterFunction to use for all LF_ constants!
 }
+libFilters.test.additionalFilterFunctions = testAdditionalFilterFunctions
 
 --The default filter function to use. Generalized to be compatible with inventorySlots and bagId/slotIndex parameters (crafting tables e.g.)
 --Will filter depending on the itemType and hide items with quality below "blue"
@@ -269,7 +272,7 @@ local testAdditionalFilterFunctions = {
 --and poisons or potions or reagents by their stackCount <= 100
 local useDefaultFilterFunction = false
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
-	local itemType,  specializedItemType = GetItemType(bagId, slotIndex)
+	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
 	if itemType == ITEMTYPE_ENCHANTING_RUNE_ASPECT then
@@ -295,8 +298,19 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	return stackCount > 1
 end
 
+local filterChatOutputPerItemDefaultStr = "--test, itemLink: %s, stackCount:( %s ), bagId/slotIndex: (%s/%s), filterType:( %s )"
+local filterChatOutputPerItemCustomStr = "--test, itemLink: %s, bagId/slotIndex: (%s/%s), filterType:( %s )"
+local function resultCheckFunc(p_result, p_filterTypeName, p_useDefaultFilterFunction, p_bagId, p_slotIndex, p_itemLink, p_stackCount)
+	if p_result == true then return end
+	if p_useDefaultFilterFunction then
+		-- can take a moment to display for research, has a low filter threshold
+		d(strfor(filterChatOutputPerItemDefaultStr, p_itemLink, tos(p_stackCount), tos(p_bagId), tos(p_slotIndex), p_filterTypeName))
+	else
+		d(strfor(filterChatOutputPerItemCustomStr, p_itemLink, tos(p_bagId), tos(p_slotIndex), p_filterTypeName))
+	end
+end
+
 local function registerFilter(filterType, filterTypeName)
-	local filterChatOutputPerItemStr = "--test, itemLink: %s, stackCount:( %s ), bagId/slotIndex: (%s/%s), filterType:( %s )"
 	--Use the custom registered filterFunction for the LF_ filter constant, or a registered filterFunction for all LF_ constants,
 	--or use the default filterFunction "defaultFilterFunction" of this test file
 	local testAdditionalFilterFunctionToUse = testAdditionalFilterFunctions[filterType] or testAdditionalFilterFunctions[LF_FILTER_ALL]
@@ -314,10 +328,7 @@ local function registerFilter(filterType, filterTypeName)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
 		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
-		if result == false then
-			-- can take a moment to display for research, has a low filter threshold
-			d(strfor(filterChatOutputPerItemStr, itemLink, tos(stackCount), tos(bagId), tos(slotIndex), filterTypeName))
-		end
+		resultCheckFunc(result, filterTypeName, useDefaultFilterFunction, bagId, slotIndex, itemLink, stackCount)
 		return result
 	end
 
@@ -329,15 +340,12 @@ local function registerFilter(filterType, filterTypeName)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
 		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
-		if result == false then
-			-- can take a moment to display for research, has a low filter threshold
-			d(strfor(filterChatOutputPerItemStr, itemLink, tos(stackCount), tos(bagId), tos(slotIndex), filterTypeName))
-		end
+		resultCheckFunc(result, filterTypeName, useDefaultFilterFunction, bagId, slotIndex, itemLink, stackCount)
 		return result
 	end
 
 	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
-	d("[" .. prefix .. "]TEST - Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
+	d(prefixBr .. "TEST - Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
 	libFilters:RegisterFilter(filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
 end
 
@@ -357,7 +365,7 @@ local function refresh(dataList)
 				registerFilter(filterType, filterTypeName)
 			end
 		elseif isRegistered then
-			d("[" .. prefix .. "]TEST - Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
+			d(prefixBr .. "TEST - Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
 			libFilters:UnregisterFilter(filterTag, filterType)
 		end
 	end
@@ -460,7 +468,7 @@ local function intializeFilterUI()
     tlw = CreateTopLevelWindow("LibFilters_Test_TLW")
 	libFilters.test.tlw = tlw
 	tlw:SetHidden(true)
-	
+
 	tlc = CreateControl("LibFilters_Test_TLC", tlw, CT_TOPLEVELCONTROL)
 	libFilters.test.tlc = tlc
 	tlc:SetMouseEnabled(true)
@@ -470,7 +478,13 @@ local function intializeFilterUI()
 	tlc:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, nil, y_Adj)
     local backdrop = CreateControlFromVirtual("$(parent)Bg", tlc, "ZO_DefaultBackdrop")
 	backdrop:SetAnchorFill()
-	
+	tlc:SetHandler("OnMouseEnter", function()
+		ZO_Tooltips_ShowTextTooltip(tlc, LEFT, helpUIInstructions)
+	end)
+	tlc:SetHandler("OnMouseExit", function()
+		ZO_Tooltips_HideTextTooltip()
+	end)
+
 	-- create main LF_constants list
 	-- this list is used to enable/disable LF_constants filters
 	enableList = CreateControlFromVirtual("$(parent)EnableList", tlc, "ZO_ScrollList")
@@ -568,7 +582,7 @@ local function addFilterUIListDataTypes()
  	local function setupUpdateRow(rowControl, data)
 		setupRow(rowControl, data, function(btn)
 			local filterType = data.filterType
-			d("[" .. prefix .. "]TEST - Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
+			d(prefixBr .. "TEST - Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
 			libFilters:RequestUpdate(filterType)
 		end)
 	end
@@ -578,7 +592,7 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 80, setupEnableRowWithHeader)
 end
 
-local function parseArguments(args)
+local function parseArguments(args, slashCommand)
 	local retTab = {}
     local elements = {}
     for param in strgm(args, "([^%s.]+)%s*") do
@@ -590,22 +604,22 @@ local function parseArguments(args)
 	libFilters.test.slashCommandParams = elements
 
 	--Slash command check
-	if elements[1] == "lftestfilters" then
+	if slashCommand == "lftestfilters" then
 		local filterType, filterFunction
 		--Parameter checks
 		--No filterType is given, only a function was specified?
 		if numElements == 1 then
 			filterFunction = elements[1]
-			if filterFunction ~= nil and type(filterFunction) == "function" then
+			if filterFunction and type(filterFunction) == "function" then
 				retTab[1] = LF_FILTER_ALL --specify that the function is to be used for all LF_* constants
 				retTab[2] = filterFunction
 			end
-		--FilterType LF* and filterFunction were both given
+			--FilterType LF* and filterFunction were both given
 		elseif numElements == 2 then
 			filterType = elements[1]
 			filterFunction = elements[2]
 			if filterType ~= nil and type(filterType) == "number" and filterType <= LF_FILTER_MAX
-				and filterFunction ~= nil and type(filterFunction) == "function" then
+					and filterFunction ~= nil and type(filterFunction) == "function" then
 				retTab[1] = filterType
 				retTab[2] = filterFunction
 			end
@@ -617,6 +631,7 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- SLASH COMMAND for filter UI
 ------------------------------------------------------------------------------------------------------------------------
+local helpWasNotShownYet = true
 SLASH_COMMANDS["/lftestfilters"] = function(args)
 --[[ is there a way to check if a virtual control exists?
 	-- is test.xml enabled
@@ -633,7 +648,7 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 
 	--Parse the slash commands for LF_* filter constant (optional! If not given LF_FILTER_ALL will be used) and a
 	--custom global filterFunction to use
-	local retTab = parseArguments(args)
+	local retTab = parseArguments(args, "lftestfilters")
 	local numRetTab = #retTab
 	if retTab and numRetTab == 2 then
 		testAdditionalFilterFunctions[retTab[1]] = retTab[2]
@@ -648,6 +663,10 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 			tlw:SetHidden(true)
 			return
 		end
+	end
+	if helpWasNotShownYet then
+		d(prefixBr .. "==============================\n" .. helpUIInstructions .. "==============================\n")
+		helpWasNotShownYet = false
 	end
 
 	tlw:SetHidden(false)
@@ -713,7 +732,7 @@ SLASH_COMMANDS["/lftestresearchdialog"] = function()
 		d("OGIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..strfor("oldState: %s, newState: %s", tos(oldState), tos(newState)))
 		origStateChangeFunc(...)
 	end
-	d("["..prefix.."]Test scene callback for Gamepad research confirm scene was added! ReloadUI to remove it.")
+	d(prefixBr .. "Test scene callback for Gamepad research confirm scene was added! ReloadUI to remove it.")
 	researchConfirmSceneCallbackAdded = true
 end
 
