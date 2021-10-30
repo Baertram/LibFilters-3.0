@@ -50,6 +50,8 @@ local usingBagIdAndSlotIndexFilterFunction = filterTypes.UsingBagIdAndSlotIndexF
 --ZOs helpers
 local strfor = string.format
 local tos = tostring
+local strgm = string.gmatch
+local tins = table.insert
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
@@ -254,9 +256,19 @@ local enableList = {}
 local updateList = {}
 local useFilter = false
 
-local additionalFilter
+--Via slash command added filter functions for the LF_* constants
+local testAdditionalFilterFunctions = {
+	--example
+	--[LF_INVENTORY] = globalFunctionNameFromSlashCommend_lftestfilters_parameter1
+	--If [LF_ALL] is added this is the filterFunction to use for all LF_ constants!
+}
 
-local function defaultFilter(bagId, slotIndex, stackCount)
+--The default filter function to use. Generalized to be compatible with inventorySlots and bagId/slotIndex parameters (crafting tables e.g.)
+--Will filter depending on the itemType and hide items with quality below "blue"
+--and if weapons/armor also if it's locked by ZOs vanilla UI lock functionality and non companion items
+--and poisons or potions or reagents by their stackCount <= 100
+local useDefaultFilterFunction = false
+local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	local itemType,  specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
@@ -284,13 +296,23 @@ local function defaultFilter(bagId, slotIndex, stackCount)
 end
 
 local function registerFilter(filterType, filterTypeName)
+	--Use the custom registered filterFunction for the LF_ filter constant, or a registered filterFunction for all LF_ constants,
+	--or use the default filterFunction "defaultFilterFunction" of this test file
+	local testAdditionalFilterFunctionToUse = testAdditionalFilterFunctions[filterType] or testAdditionalFilterFunctions[LF_FILTER_ALL]
+	if testAdditionalFilterFunctionToUse == nil then
+		useDefaultFilterFunction = true
+		testAdditionalFilterFunctionToUse = defaultFilterFunction
+	else
+		useDefaultFilterFunction = false
+	end
+
 	local function filterBagIdAndSlotIndexCallback(bagId, slotIndex)
 		if not useFilter then return true end
 		local itemLink = GetItemLink(bagId, slotIndex)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = additionalFilter(bagId, slotIndex, stackCount)
+		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
 			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
@@ -305,17 +327,17 @@ local function registerFilter(filterType, filterTypeName)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = additionalFilter(bagId, slotIndex, stackCount)
+		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
 			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
 		end
 		return result
 	end
-	
+
 	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
-	
-	d("["..prefix.."]Registering " .. filterTypeName)
+
+	d("["..prefix.."]Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
 	libFilters:RegisterFilter(filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
 end
 
@@ -330,7 +352,7 @@ local function refresh(dataList)
 				['filterType'] = filterType,
 				['name'] = filterTypeName
 			}
-			table.insert(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
+			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
 			if not isRegistered then
 				registerFilter(filterType, filterTypeName)
 			end
@@ -374,7 +396,7 @@ local function refreshEnableList()
 		end
 			
 		local newData = ZO_ScrollList_CreateDataEntry(listType, data)
-		table.insert(dataList, newData)
+		tins(dataList, newData)
 	end
 	ZO_ScrollList_Commit(enableList)
 	
@@ -554,23 +576,39 @@ local function addFilterUIListDataTypes()
 end
 
 local function parseArguments(args)
+	local retTab = {}
     local elements = {}
-    for param in string.gmatch(args, "([^%s.]+)%s*") do
-        if (param ~= nil and param ~= "") then
-            table.insert(elements, param)
+    for param in strgm(args, "([^%s.]+)%s*") do
+        if param ~= nil and param ~= "" then
+            tins(elements, param)
         end
     end
-    
-    local argsFilter = _G[elements[1]]
-    
-    if argsFilter and #elements > 1 then
-        for i=2, #elements do
-            argsFilter = argsFilter[elements[i]]
-            print(argsFilter ~= nil)
-        end
-    end
-    
-	return type(argsFilter) == 'function' and argsFilter or nil
+	local numElements = #elements
+	libFilters.test.slashCommandParams = elements
+
+	--Slash command check
+	if elements[1] == "lftestfilters" then
+		local filterType, filterFunction
+		--Parameter checks
+		--No filterType is given, only a function was specified?
+		if numElements == 1 then
+			filterFunction = elements[1]
+			if filterFunction ~= nil and type(filterFunction) == "function" then
+				retTab[1] = LF_FILTER_ALL --specify that the function is to be used for all LF_* constants
+				retTab[2] = filterFunction
+			end
+		--FilterType LF* and filterFunction were both given
+		elseif numElements == 2 then
+			filterType = elements[1]
+			filterFunction = elements[2]
+			if filterType ~= nil and type(filterType) == "number" and filterType <= LF_FILTER_MAX
+				and filterFunction ~= nil and type(filterFunction) == "function" then
+				retTab[1] = filterType
+				retTab[2] = filterFunction
+			end
+		end
+	end
+	return retTab
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -590,18 +628,25 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 		addFilterUIListDataTypes()
 	end
 
-	local argsFilter = parseArguments(args)
+	--Parse the slash commands for LF_* filter constant (optional! If not given LF_FILTER_ALL will be used) and a
+	--custom global filterFunction to use
+	local retTab = parseArguments(args)
+	local numRetTab = #retTab
+	if retTab and numRetTab == 2 then
+		testAdditionalFilterFunctions[retTab[1]] = retTab[2]
+		useDefaultFilterFunction = false
+	else
+		useDefaultFilterFunction = true
+	end
 	
 	if not tlc:IsHidden() then
 		clearAll()
-		if not argsFilter then
+		if numRetTab < 2 then
 			tlw:SetHidden(true)
 			return
 		end
 	end
-	
-	additionalFilter = argsFilter or defaultFilter
-	
+
 	tlw:SetHidden(false)
 
 	refreshEnableList()

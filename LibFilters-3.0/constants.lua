@@ -92,6 +92,7 @@ end
 --Get the min and max filterPanelIds
 LF_FILTER_MIN					= LF_INVENTORY
 LF_FILTER_MAX					= #libFiltersFilterConstants
+LF_FILTER_ALL					= 9999
 
 --Add the filterTypes to the constants
 libFilters.constants.filterTypes = libFiltersFilterConstants
