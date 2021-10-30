@@ -1,13 +1,33 @@
 <GuiXml>
 	<Controls>
+		<Button name="LibFilters_Test_DefaultButton" font="ZoFontGameBold" endCapWidth="9" verticalAlignment="CENTER" mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound" virtual="true">
+            <Dimensions x="128" y="28" />
+            <PressedOffset x="1" y="1" />
+
+            <FontColors
+                normalColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_BATTLEGROUND_WINNER"
+                pressedColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_BATTLEGROUND_WINNER"
+                mouseOverColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_HIGHLIGHT"
+                disabledColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED"
+				disabledPressedColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED"
+            />
+
+            <Textures
+                normal="EsoUI/Art/Buttons/ESO_buttonLarge_normal.dds"
+                pressed="EsoUI/Art/Buttons/ESO_buttonlLarge_mouseDown.dds"
+                mouseOver="EsoUI/Art/Buttons/ESO_buttonLarge_mouseOver.dds"
+                disabled="EsoUI/Art/Buttons/ESO_buttonLarge_disabled.dds"
+            />
+        </Button>
+
 		<Control name="LibFilters_Test_Template" tier="MEDIUM" virtual="true">
-			<Dimensions x="345" y="50"/>
+			<Dimensions x="345" y="40"/>
 			<OnInitialized> 
 				self.slotControlType = "listSlot" 
 			</OnInitialized>
 			<Controls>
-				<Button name="$(parent)Button" override="true" tier="HIGH" inherits="ZO_DefaultButton">
-					<Dimensions x="340" y="50"/>
+				<Button name="$(parent)Button" override="true" tier="HIGH" inherits="LibFilters_Test_DefaultButton">
+					<Dimensions x="340" y="40"/>
 					<Anchor point="TOP" relativePoint="TOP" offsetX="0" offsetY="0"/>
 				</Button>
 			</Controls>
@@ -19,11 +39,11 @@
 			</OnInitialized>
 			<Controls>
 				<Label name="$(parent)Header" font="ZoFontWinH1" horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH" override="true" mouseEnabled="false">
-					<Dimensions x="340" y="50"/>
+					<Dimensions x="340" y="40"/>
 					<Anchor point="TOP" relativePoint="TOP" offsetX="0" offsetY="0"/>
 				</Label>
-				<Button name="$(parent)Button" override="true" inherits="ZO_DefaultButton">
-					<Dimensions x="340" y="50"/>
+				<Button name="$(parent)Button" override="true" inherits="LibFilters_Test_DefaultButton">
+					<Dimensions x="340" y="40"/>
 					<Anchor point="TOP" relativeTo="$(parent)Header" relativePoint="BOTTOM" offsetX="0" offsetY="0"/>
 				</Button>
 			</Controls>

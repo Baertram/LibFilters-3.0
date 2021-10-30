@@ -296,6 +296,7 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 end
 
 local function registerFilter(filterType, filterTypeName)
+	local filterChatOutputPerItemStr = "--test, itemLink: %s, stackCount:( %s ), bagId/slotIndex: (%s/%s), filterType:( %s )"
 	--Use the custom registered filterFunction for the LF_ filter constant, or a registered filterFunction for all LF_ constants,
 	--or use the default filterFunction "defaultFilterFunction" of this test file
 	local testAdditionalFilterFunctionToUse = testAdditionalFilterFunctions[filterType] or testAdditionalFilterFunctions[LF_FILTER_ALL]
@@ -315,7 +316,7 @@ local function registerFilter(filterType, filterTypeName)
 		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
-			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
+			d(strfor(filterChatOutputPerItemStr, itemLink, tos(stackCount), tos(bagId), tos(slotIndex), filterTypeName))
 		end
 		return result
 	end
@@ -330,14 +331,13 @@ local function registerFilter(filterType, filterTypeName)
 		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
 		if result == false then
 			-- can take a moment to display for research, has a low filter threshold
-			d(strfor("--	test, filterType:( %s ), stackCount:( %s ), itemLink: %s", filterTypeName, tos(stackCount), itemLink))
+			d(strfor(filterChatOutputPerItemStr, itemLink, tos(stackCount), tos(bagId), tos(slotIndex), filterTypeName))
 		end
 		return result
 	end
 
 	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
-
-	d("["..prefix.."]Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
+	d("[" .. prefix .. "]TEST - Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
 	libFilters:RegisterFilter(filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
 end
 
@@ -357,7 +357,7 @@ local function refresh(dataList)
 				registerFilter(filterType, filterTypeName)
 			end
 		elseif isRegistered then
-			d("["..prefix.."]Unregistering " .. filterTypeName)
+			d("[" .. prefix .. "]TEST - Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
 			libFilters:UnregisterFilter(filterTag, filterType)
 		end
 	end
@@ -403,7 +403,8 @@ local function refreshEnableList()
 end
 
 local function setButtonToggleColor(control, filtered)
-	control:SetAlpha((filtered and 1) or 0.5)
+libFilters.test.buttonControl = control
+	control:SetAlpha((filtered and 1) or 0.4)
 end
 
 local function hasUnenabledFilters()
@@ -496,7 +497,7 @@ local function intializeFilterUI()
 
 	-- create Filter button
 	-- enable/disable active filters to allow various update results
-	btnFilter = CreateControlFromVirtual("$(parent)FilterButton", buttons, "ZO_DefaultButton")
+	btnFilter = CreateControlFromVirtual("$(parent)FilterButton", buttons, "LibFilters_Test_DefaultButton")
 	btnFilter:SetHidden(false)
 	btnFilter:SetText("Filter")
 	btnFilter:SetDimensions(100, 40)
@@ -566,13 +567,15 @@ local function addFilterUIListDataTypes()
 
  	local function setupUpdateRow(rowControl, data)
 		setupRow(rowControl, data, function(btn)
-			libFilters:RequestUpdate(data.filterType)
+			local filterType = data.filterType
+			d("[" .. prefix .. "]TEST - Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
+			libFilters:RequestUpdate(filterType)
 		end)
 	end
 		
-	ZO_ScrollList_AddDataType(updateList, LIST_TYPE, testUItemplate, 50, setupUpdateRow)
-	ZO_ScrollList_AddDataType(enableList, LIST_TYPE, testUItemplate, 50, setupEnableRow)
-	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 100, setupEnableRowWithHeader)
+	ZO_ScrollList_AddDataType(updateList, LIST_TYPE, testUItemplate, 40, setupUpdateRow)
+	ZO_ScrollList_AddDataType(enableList, LIST_TYPE, testUItemplate, 40, setupEnableRow)
+	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 80, setupEnableRowWithHeader)
 end
 
 local function parseArguments(args)
