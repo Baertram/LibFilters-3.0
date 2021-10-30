@@ -9,6 +9,8 @@ local keyboardConstants = constants.keyboard
 
 local inventories = keyboardConstants.inventories
 
+local iigpm = IsInGamepadPreferredMode
+
 ------------------------------------------------------------------------------------------------------------------------
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
@@ -419,7 +421,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     helper = {
         funcName = "Refresh",
         func = function(self)
-			if self.panelContent and self.panelContent:GetName() == "ZO_GamepadSmithingTopLevelMaskResearch" then
+			if iigpm or (self.panelContent and self.panelContent == ZO_GamepadSmithingTopLevelMaskResearch) then
 				-- if Gamepad researchPanel has not been initialized yet, stop.
 				if not self.researchLineList then 
 					return 
