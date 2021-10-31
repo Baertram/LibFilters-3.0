@@ -22,9 +22,9 @@ libFilters:InitializeLibFilters()
 ------------------------------------------------------------------------------------------------------------------------
 -- LIBRARY VARIABLES
 ------------------------------------------------------------------------------------------------------------------------
-local constants = libFilters.constants
-local filterTypes = constants.filterTypes
-local usingBagIdAndSlotIndexFilterFunction = filterTypes.UsingBagIdAndSlotIndexFilterFunction
+--local constants = libFilters.constants
+local mapping = libFilters.mapping
+local usingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
 
 
 ------------------------------------------------------------------------------------------------------------------------

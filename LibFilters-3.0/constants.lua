@@ -431,17 +431,17 @@ local filterTypesUsingBagIdAndSlotIndexFilterFunction = {
 	[LF_RETRAIT]                  	= true,
 	[LF_ALCHEMY_CREATION]         	= true,
 }
-libFilters.constants.filterTypes.UsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
+libFilters.mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
 --Add them to the table libFilters.mapping.filterTypeToFilterFunctionType
 for filterTypeValue, _  in pairs(filterTypesUsingBagIdAndSlotIndexFilterFunction) do
 	filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 end
 --Now add all other missing filterTypes which were not added yet, with the constant LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-libFilters.constants.filterTypes.UsingInventorySlotFilterFunction = {}
+libFilters.mapping.filterTypesUsingInventorySlotFilterFunction = {}
 for filterTypeValue, _  in pairs(libFiltersFilterConstants) do
 	if filterTypeToFilterFunctionType[filterTypeValue] == nil then
 		filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-		libFilters.constants.filterTypes.UsingInventorySlotFilterFunction[filterTypeValue] = true
+		libFilters.mapping.filterTypesUsingInventorySlotFilterFunction[filterTypeValue] = true
 	end
 end
 
