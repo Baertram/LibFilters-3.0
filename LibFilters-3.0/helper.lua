@@ -346,10 +346,10 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
 			-- i used the gamepad scenes here since they were already set to be filters and required less changing
 			-- they also are both for what they are being used for ENCHANTING_CREATION/ENCHANTING_EXTRACTION
 			local usedInCraftingType, craftingSubItemType, runeType = GetItemCraftingInfo(bagId, slotIndex)
-			if filterType == EXTRACTION_FILTER then
+			if filterType == ENCHANTING_EXTRACTION_FILTER then
 				local result = craftingSubItemType == ITEMTYPE_GLYPH_WEAPON or craftingSubItemType == ITEMTYPE_GLYPH_ARMOR or craftingSubItemType == ITEMTYPE_GLYPH_JEWELRY
 				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_EXTRACTION_SCENE, bagId, slotIndex, result)
-			elseif filterType == NO_FILTER or filterType == runeType then
+			elseif filterType == ENCHANTING_NO_FILTER or filterType == runeType then
 				local function doesItemPassFilter(bagId, slotIndex, runeType, questFilterChecked)
 					if questFilterChecked then
 						local itemId = GetItemId(bagId, slotIndex)
@@ -369,7 +369,6 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
         end,
     }
 }
-
 
 --enable LF_ALCHEMY_CREATION
 helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {

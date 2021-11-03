@@ -614,7 +614,7 @@ local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = {
 
 
 		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
-		--But curerntly they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
+		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
 		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
 		-->Used for gamepad AND keyboard mode with these entries here !!!
 		[LF_ENCHANTING_CREATION]	  = {gamepadConstants.enchantingCreate_GP},
