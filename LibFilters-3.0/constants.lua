@@ -17,6 +17,9 @@ local filters = libFilters.filters
 -- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
 -- after EVENT_ADD_ON_LOADED
 libFilters.isInitialized = false
+--Use the LF_FILTER_ALL registered filters as fallback filterFunctions for all panels -> see file LibFilters-3.0.lua,
+--function runFilters, and API function libFilters:SetFilterAllState(boolean newState)
+libFilters.useFilterAllFallback = false
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3

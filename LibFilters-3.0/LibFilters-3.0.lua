@@ -1,7 +1,20 @@
---This library is used to filter inventory items (show/hide) at the different panels/inventories -> Libfilters uses the
---term "filterType" for the different filter panels. Each filterType is represented by the help of a constant starting
---with LF_<panelName> (e.g. LF_INVENTORY, LF_BANK_WITHDRAW), which is used to add filterFunctions of different addons
---to this inventory. See table libFiltersFilterConstants for the value = "filterPanel name" constants.
+--======================================================================================================================
+-- 													LibFilters 3.0
+--======================================================================================================================
+--This library is used to filter inventory items (show/hide) at the different panels/inventories -> LibFilters uses the
+--term "filterType" for the different filter panels. Each filterType is represented by the help of a number constant
+--starting with LF_<panelName> (e.g. LF_INVENTORY, LF_BANK_WITHDRAW), which is used to add filterFunctions of different
+--adddons to this inventory. See table libFiltersFilterConstants for the value = "filterPanel name" constants.
+--The number of the constant increases by 1 with each new added constant/panel.
+--The minimum valueis LF_FILTER_MIN (1) and the maximum is LF_FILTER_MAX (#libFiltersFilterConstants). There exists a
+--"fallback" constant LF_FILTER_ALL (9999) which can be used to register filters for ALL exisitng LF_* constants. If any
+--LF_* constant got no filterFunction registered, the entries in filters[LF_FILTER_ALL] will be used instead (if
+--existing, and the flag to use the LF_FILTER_ALL fallback is enabled (boolean true) via function
+--libFilters:SetFilterAllState(boolean newState)
+--
+--The filterType (LF_* constant) of the currently shown panel (see function libFilters:GetCurrentFilterTypeForInventory(inventoryType))
+--will be stored at the "LibFilters3_filterType" (constant saved at "defaultLibFiltersAttributeToStoreTheFilterType")
+--attribute at the inventory/layoutData/scene/control involved for the filtering. See function libFilters:HookAdditionalFilter
 --
 --The registered filterFunctions will run as the inventories are refreshed/updated, either by internal update routines as
 --the inventory's "dirty" flag was set to true. Or via function SafeUpdateList (see below), or via some other update/refresh/
@@ -15,10 +28,6 @@
 --The filterFunctions will be placed at the inventory.additionalFilter entry, and will enhance existing functions, so
 --that filter funtions summarize (e.g. addon1 registers a "Only show stolen filter" and addon2 registers "only show level
 --10 items filter" -> Only level 10 stolen items will be shown then).
---
---The filterType (LF_* constant) of the currently shown panel (see function libFilters:GetCurrentFilterTypeForInventory(inventoryType))
---will be stored at the "LibFilters3_filterType" (constant saved at "defaultLibFiltersAttributeToStoreTheFilterType")
---attribute at the inventory/layoutData/scene/control involved for the filtering. See function libFilters:HookAdditionalFilter
 --
 --The function InstallHelpers below will call special code from the file "helper.lua". In this file you define the
 --variable(s) and function name(s) which LibFilters should "REPLACE" -> Means it will overwrite those functions to add
@@ -119,6 +128,7 @@ local strmat = string.match
 local EM = EVENT_MANAGER
 local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
+local nccnt = NonContiguousCount
 
 --LibFilters local speedup and reference variables
 --Overall constants & mapping
@@ -567,17 +577,35 @@ libFilters.mapping.inventoryUpdaters = inventoryUpdaters
 ------------------------------------------------------------------------------------------------------------------------
 --RUN THE FILTERS
 ------------------------------------------------------------------------------------------------------------------------
---Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot or bagId & slotIndex)
+--Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters
+--(e.g. 1st parameter inventorySlot, or at e.g. carfting tables 1st parameter bagId & 2nd parameter slotIndex)
+--If libFilters:SetFilterAllState(boolean newState) is set to true (libFilters.useFilterAllFallback == true)
+--If the filterType got no registered filterTags with filterFunctions, the LF_FILTER_ALL "fallback" will be
+--checked (if existing) and run!
 --Returns true if all filter functions were run and their return value was true
 --Returns false if any of the run filter functions was returning false or nil
 local function runFilters(filterType, ...)
 --d("[LibFilters3]runFilters, filterType: " ..tos(filterType))
-	 for _, filter in pairs(filters[filterType]) do
-		  if not filter(...) then
+	local filterTagsDataWithFilterFunctions = filters[filterType]
+	--Use the LF_FILTER_ALL fallback filterFunctions?
+	if libFilters.useFilterAllFallback == true and
+			(filterTagsDataWithFilterFunctions == nil or nccnt(filterTagsDataWithFilterFunctions) == 0) then
+		local allFallbackFiltersTagDataAndFunctions = filters[LF_FILTER_ALL]
+		if allFallbackFiltersTagDataAndFunctions ~= nil then
+			for _, fallbackFilterFunc in pairs(allFallbackFiltersTagDataAndFunctions) do
+				if not fallbackFilterFunc(...) then
+					return false
+				end
+			end
+		end
+	else
+		for _, filterFunc in pairs(filterTagsDataWithFilterFunctions) do
+			if not filterFunc(...) then
 				return false
-		  end
-	 end
-	 return true
+			end
+		end
+	end
+	return true
 end
 libFilters.RunFilters = runFilters
 
@@ -623,6 +651,19 @@ function libFilters:GetMaxFilterType()
 end
 --Compatibility function names
 libFilters.GetMaxFilter = libFilters.GetMaxFilterType
+
+
+--Set the state of the LF_FILTER_ALL "fallback" filter possibilities.
+--If boolean newState is enabled: function runFilters will also check for LF_FILTER_ALL filter functions and run them
+--If boolean newState is disabled: function runFilters will NOT use LF_FILTER_ALL fallback functions
+function libFilters:SetFilterAllState(newState)
+	if newState == nil or type(newState) ~= "boolean" then
+		dfe("Invalid call to SetFilterAllState(%q).\n>Needed format is: boolean newState",
+			tos(newState))
+		return
+	end
+	libFilters.useFilterAllFallback = newState
+end
 
 
 --Returns table LibFilters LF* filterType connstants table { [1] = "LF_INVENTORY", [2] = "LF_BANK_WITHDRAW", ... }
@@ -700,7 +741,7 @@ end
 --**********************************************************************************************************************
 -- Filter check and un/register
 --**********************************************************************************************************************
---Check if a filter function at the String filterTag and OPTIONAL number filterType is already registered
+--Check if a filterFunction at the String filterTag and OPTIONAL number filterType is already registered
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterRegistered(filterTag, filterType)
 	if not filterTag then
@@ -723,6 +764,19 @@ function libFilters:IsFilterRegistered(filterTag, filterType)
 	end
 end
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
+
+
+--Check if the LF_FILTER_ALL filterFunction at the String filterTag is already registered
+--Returns boolean true if registered already, false if not
+function libFilters:IsAllFilterRegistered(filterTag)
+	if not filterTag then
+		dfe("Invalid arguments to IsAllFilterRegistered(%q).\n>Needed format is: String uniqueFilterTag",
+			tos(filterTag))
+		return
+	end
+	local callbacks = filters[LF_FILTER_ALL]
+	return callbacks[filterTag] ~= nil
+end
 
 
 local filterTagPatternErrorStr = "Invalid arguments to %s(%q, %s, %s).\n>Needed format is: String uniqueFilterTagLUAPattern, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase"
@@ -762,7 +816,9 @@ end
 
 
 local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType, function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables), OPTIONAL boolean noInUseError)"
---Register a filter function at the String filterTag and number filterType
+--Register a filter function at the String filterTag and number filterType.
+--If filterType LF_FILTER_ALL is used this filterFunction will be used for all available filterTypes of the filterTag, where no other filterFunction was explicitly registered
+--(as a kind of "fallback filter function").
 --Registering a filter function does NOT automatically call the refresh/update function at the panel!
 --You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
@@ -806,7 +862,8 @@ end
 
 
 --Unregister a filter function at the String filterTag and OPTIONAL number filterType.
---If filterType is left empty you are able to unregister all filterType of the filterTag.
+--If filterType is left empty you are able to unregister all filterTypes of the filterTag.
+--LF_FILTER_ALL will be unregistered if filterType is left empty, or if explicitly specified!
 --Unregistering a filter function does NOT automatically call the refresh/update function at the panel!
 --You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
 --Returns true if any filter function was unregistered
@@ -1007,6 +1064,7 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 	EM:RegisterForUpdate(callbackName, 10, updateFiltersNow)
 end
 local libFilters_RequestUpdateByName = libFilters.RequestUpdateByName
+
 
 --Will call the updater function of number filterType, read from table "libFilters.mapping.inventoryUpdaters", depending
 --on keyboard/gamepad mode.

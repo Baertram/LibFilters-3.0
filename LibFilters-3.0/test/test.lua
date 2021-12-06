@@ -267,7 +267,7 @@ local useFilter = false
 local testAdditionalFilterFunctions = {
 	--example
 	--[LF_INVENTORY] = globalFunctionNameFromSlashCommend_lftestfilters_parameter1
-	--If [LF_ALL] is added this is the filterFunction to use for all LF_ constants!
+	--If [LF_FILTER_ALL] is added this is the filterFunction to use for all LF_ constants!
 }
 libFilters.test.additionalFilterFunctions = testAdditionalFilterFunctions
 
