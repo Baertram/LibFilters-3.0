@@ -77,9 +77,9 @@ local libFiltersFilterConstants = {
 	 [39]  	= "LF_INVENTORY_COMPANION",
 	 --Add new lines here and make sure you also take care of the control of the inventory needed in tables "LibFilters.filters",
 	 --the updater name in table "filterTypeToUpdaterName*" and updaterFunction in table "inventoryUpdaters",
-	 --as well as the way to hook to the inventory.additionalFilters in function "HookAdditionalFilters",
+	 --as well as the way to hook to the inventory.additionalFilter in function "HookAdditionalFilters",
 	 --or via a fragment in table "fragmentToFilterType",
-	 --and maybe an overwritten "filter enable function" (which respects the entries of the added additionalFilters) in
+	 --and maybe an overwritten "filter enable function" (which respects the entries of the added additionalFilter) in
 	 --file "helpers.lua"
 	 --[<number constant>] = "LF_...",
 }
@@ -99,6 +99,18 @@ LF_FILTER_ALL					= 9999
 --Add the filterTypes to the constants
 libFilters.constants.filterTypes = libFiltersFilterConstants
 
+--The default attribute at an inventory/layoutData table where the filter functions of LiFilters should be added to
+--and where ZOS or other addons could have already added filter functions to -> See LibFilters-3.0.lua, function HookAdditionalFilters
+local defaultOriginalFilterAttributeAtLayoutData = "additionalFilter"
+libFilters.constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeAtLayoutData
+
+--Other attributes at an inventory/layoutData table where ZOs or other addons could have already added filter functions to
+--> See LibFilters-3.0.lua, function HookAdditionalFilters
+local otherOriginalFilterAttributesAtLayoutData_Table = {
+	[LF_CRAFTBAG] = "additionalCraftBagFilter"
+}
+libFilters.constants.otherAttributesToGetOriginalFilterFunctions = otherOriginalFilterAttributesAtLayoutData_Table
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --ZOs / ESOUI CONSTANTS
@@ -108,7 +120,6 @@ local keyboardConstants = libFilters.constants.keyboard
 
 libFilters.constants.gamepad = {}
 local gamepadConstants = libFilters.constants.gamepad
-
 
 --Custom created fragments for the gamepad mode
 --Prefix of these fragments

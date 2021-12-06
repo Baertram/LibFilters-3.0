@@ -9,7 +9,8 @@
 --LibFilters3 will use the inventory/fragment (normal hooks), or some special hooks (e.g. ENCHANTING -> OnModeUpdated) to
 --add the LF* constant to the inventory/fragment/variables.
 --With the addition of Gamepad support the special hoks like enchanting were even changed to use the gamepad scenes of
---enchanting as "object to store the" the .additionalFilter entry for the LibFilters filter functions.
+--enchanting as "object to store the" the .additionalFilter (constant saved at "defaultOriginalFilterAttributeAtLayoutData")
+--entry for the LibFilters filter functions.
 --
 --The filterFunctions will be placed at the inventory.additionalFilter entry, and will enhance existing functions, so
 --that filter funtions summarize (e.g. addon1 registers a "Only show stolen filter" and addon2 registers "only show level
@@ -127,6 +128,10 @@ local invTypeBank =					inventoryTypes["bank"]
 local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
+
+local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
+local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
+
 
 local filterTypesUsingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
 local filterTypesUsingInventorySlotFilterFunction = mapping.filterTypesUsingInventorySlotFilterFunction
@@ -664,6 +669,158 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 end
 
 
+
+--**********************************************************************************************************************
+-- Filter callback, filter check and un/register
+--**********************************************************************************************************************
+--Check if a filter function at the filterTag and filterType is already registered
+function libFilters:IsFilterRegistered(filterTag, filterType)
+	 if filterType == nil then
+		  --check whether there's any filter with this tag
+		  for _, callbacks in pairs(filters) do
+				if callbacks[filterTag] ~= nil then
+					 return true
+				end
+		  end
+
+		  return false
+	 else
+		  --check only the specified filter type
+		  local callbacks = filters[filterType]
+
+		  return callbacks[filterTag] ~= nil
+	 end
+end
+local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
+
+--Get the callback function of the filterTag and filterType
+function libFilters:GetFilterCallback(filterTag, filterType)
+	 if not libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then return end
+	 return filters[filterType][filterTag]
+end
+
+
+--Get all callback function of the filterType (of all addons)
+function libFilters:GetFilterTypeCallbacks(filterType)
+	return filters[filterType]
+end
+
+
+--Get all callback function of the filterTag (all of the addon)
+-->Returns a table retTab[filterTag] = { [filterType1] = filterFunction, [filterType2] = filterFunction, ... }
+function libFilters:GetFilterTagCallbacks(filterTag)
+	local retTab = {}
+	for filterType, filterTagsData in pairs(filters) do
+		for filterTagToCompare, filterFunction in pairs(filterTagsData) do
+			if filterTagToCompare and filterTagToCompare == filterTag then
+				retTab[filterTag] = retTab[filterTag] or {}
+				retTab[filterTag][filterType] = filterFunction
+			end
+		end
+	end
+	return retTab
+end
+
+
+--Register a filter function at the filterTag and filterType
+--> Registering a filter function does NOT automatically call the refresh/update function at the panel!
+--> You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
+function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
+	 local callbacks = filters[filterType]
+	 if not filterTag or not callbacks or type(filterCallback) ~= "function" then
+		  dfe("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
+				tos(filterTag), tos(filterType), tos(filterCallback))
+		  return
+	 end
+	 if callbacks[filterTag] ~= nil then
+		  dfe("filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
+				tos(filterTag), tos(filterType))
+		  return
+	 end
+	 callbacks[filterTag] = filterCallback
+end
+
+--Unregister a filter function at the filterTag and filterType
+--> Unregistering a filter function does NOT automatically call the refresh/update function at the panel!
+--> You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
+function libFilters:UnregisterFilter(filterTag, filterType)
+	 if not filterTag or filterTag == "" then
+		  dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tos(filterTag), tos(filterType))
+		  return
+	 end
+	 if filterType == nil then
+		  --unregister all filters with this tag
+		  for _, callbacks in pairs(filters) do
+				if callbacks[filterTag] ~= nil then
+					 callbacks[filterTag] = nil
+				end
+		  end
+	 else
+		  --unregister only the specified filter type
+		  local callbacks = filters[filterType]
+
+		  if callbacks[filterTag] ~= nil then
+				callbacks[filterTag] = nil
+		  end
+	 end
+end
+
+
+
+--**********************************************************************************************************************
+-- Filter update / refresh of (inventory/crafting/...) list
+--**********************************************************************************************************************
+--Will call the updater function of table inventoryUpdaters, depending on keyboard/gamepad mode
+function libFilters:RequestUpdate(filterType)
+--d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
+	 local updaterName = filterTypeToUpdaterName[filterType]
+	 if not updaterName or updaterName == "" then
+		  dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tos(filterType))
+		  return
+	 end
+	 local callbackName = "LibFilters_updateInventory_" .. updaterName
+	 local function Update()
+--d(">[LibFilters3]RequestUpdate->Update called")
+		  EM:UnregisterForUpdate(callbackName)
+		  inventoryUpdaters[updaterName](filterType)
+	 end
+
+	 --cancel previously scheduled update if any
+	 EM:UnregisterForUpdate(callbackName)
+	 --register a new one
+	 EM:RegisterForUpdate(callbackName, 10, Update)
+end
+
+
+
+--**********************************************************************************************************************
+-- Special API
+--**********************************************************************************************************************
+--Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
+--indices
+--Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
+--keyboard mode
+function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
+	 local craftingType = GetCraftingInteractionType()
+	 if craftingType == CRAFTING_TYPE_INVALID then return false end
+	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
+	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
+	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
+		  toResearchLineIndex = numSmithingResearchLines
+	 end
+	 local helpers = libFilters.helpers
+	 if not helpers then return end
+	 local smithingResearchPanel = helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
+	 if smithingResearchPanel then
+		  smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
+				from		= fromResearchLineIndex,
+				to			= toResearchLineIndex,
+				skipTable	= skipTable,
+		  }
+	 end
+end
+
+
 --**********************************************************************************************************************
 -- HOOKS
 --**********************************************************************************************************************
@@ -695,16 +852,49 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
 			if inventory ~= nil then
 				local layoutData = inventory.layoutData or inventory
-				local originalFilter = layoutData.additionalFilter
-
 				layoutData.LibFilters3_filterType = filterLFConstant
-				local additionalFilterType = type(originalFilter)
-				if additionalFilterType == "function" then
-					layoutData.additionalFilter = function(...)
+				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
+				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
+
+				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
+				--which were added to other fields than "additionalFilter".
+				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[filterLFConstant]
+				local otherOriginalFilter = layoutData[otherOriginalFilterAttributesAtLayoutData]
+				if otherOriginalFilter ~= nil then
+					local originalFilterNew
+					local typeOtherOriginalFilter = type(otherOriginalFilter)
+					if typeOtherOriginalFilter == "function" then
+						if originalFilter ~= nil then
+							originalFilterNew = function(...)
+								return originalFilter(...) and otherOriginalFilter(...)
+							end
+						else
+							originalFilterNew = otherOriginalFilter
+						end
+					elseif typeOtherOriginalFilter == "boolean" then
+						if originalFilter ~= nil then
+							originalFilterNew = function(...)
+								return otherOriginalFilter and originalFilter(...)
+							end
+						else
+							originalFilterNew = function(...) return otherOriginalFilter end
+						end
+					end
+					if originalFilterNew ~= nil then
+						originalFilter = originalFilterNew
+					end
+				end
+
+				local originalFilterType = type(originalFilter)
+				if originalFilterType == "function" then
+					--Set the .additionalFilter again with the filter function of the original and LibFilters
+					layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 						return originalFilter(...) and runFilters(filterLFConstant, ...)
 					end
 				else
-					layoutData.additionalFilter = function(...)
+					--Set the .additionalFilter again with the filter function of LibFilters only
+					layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 						return runFilters(filterLFConstant, ...)
 					end
 				end
@@ -868,132 +1058,6 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	end
 ]]
 end
-
-
---**********************************************************************************************************************
--- Filter callback, filter check and un/register
---**********************************************************************************************************************
---Get the callback function of the filter type
-function libFilters:GetFilterCallback(filterTag, filterType)
-	 if not libFilters:IsFilterRegistered(filterTag, filterType) then return end
-
-	 return filters[filterType][filterTag]
-end
-
-
-function libFilters:IsFilterRegistered(filterTag, filterType)
-	 if filterType == nil then
-		  --check whether there's any filter with this tag
-		  for _, callbacks in pairs(filters) do
-				if callbacks[filterTag] ~= nil then
-					 return true
-				end
-		  end
-
-		  return false
-	 else
-		  --check only the specified filter type
-		  local callbacks = filters[filterType]
-
-		  return callbacks[filterTag] ~= nil
-	 end
-end
-
-
-function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
-	 local callbacks = filters[filterType]
-
-	 if not filterTag or not callbacks or type(filterCallback) ~= "function" then
-		  dfe("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
-				tos(filterTag), tos(filterType), tos(filterCallback))
-		  return
-	 end
-
-	 if callbacks[filterTag] ~= nil then
-		  dfe("filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
-				tos(filterTag), tos(filterType))
-		  return
-	 end
-
-	 callbacks[filterTag] = filterCallback
-end
-
-
-function libFilters:UnregisterFilter(filterTag, filterType)
-	 if not filterTag or filterTag == "" then
-		  dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tos(filterTag), tos(filterType))
-		  return
-	 end
-	 if filterType == nil then
-		  --unregister all filters with this tag
-		  for _, callbacks in pairs(filters) do
-				if callbacks[filterTag] ~= nil then
-					 callbacks[filterTag] = nil
-				end
-		  end
-	 else
-		  --unregister only the specified filter type
-		  local callbacks = filters[filterType]
-
-		  if callbacks[filterTag] ~= nil then
-				callbacks[filterTag] = nil
-		  end
-	 end
-end
-
-
---**********************************************************************************************************************
--- Filter update / refresh of (inventory/crafting/...) list
---**********************************************************************************************************************
---Will call the updater function of table inventoryUpdaters, depending on keyboard/gamepad mode
-function libFilters:RequestUpdate(filterType)
---d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
-	 local updaterName = filterTypeToUpdaterName[filterType]
-	 if not updaterName or updaterName == "" then
-		  dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tos(filterType))
-		  return
-	 end
-	 local callbackName = "LibFilters_updateInventory_" .. updaterName
-	 local function Update()
---d(">[LibFilters3]RequestUpdate->Update called")
-		  EM:UnregisterForUpdate(callbackName)
-		  inventoryUpdaters[updaterName](filterType)
-	 end
-
-	 --cancel previously scheduled update if any
-	 EM:UnregisterForUpdate(callbackName)
-	 --register a new one
-	 EM:RegisterForUpdate(callbackName, 10, Update)
-end
-
-
---**********************************************************************************************************************
--- Special API
---**********************************************************************************************************************
---Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
---indices
---Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
---keyboard mode
-function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
-	 local craftingType = GetCraftingInteractionType()
-	 if craftingType == CRAFTING_TYPE_INVALID then return false end
-	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
-	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
-	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
-		  toResearchLineIndex = numSmithingResearchLines
-	 end
-	 local helpers = libFilters.helpers
-	 if not helpers then return end
-	 local smithingResearchPanel = helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
-	 if smithingResearchPanel then
-		  smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
-				from		= fromResearchLineIndex,
-				to			= toResearchLineIndex,
-				skipTable	= skipTable,
-		  }
-	 end
-end
-
 
 --**********************************************************************************************************************
 -- END LibFilters API functions END
