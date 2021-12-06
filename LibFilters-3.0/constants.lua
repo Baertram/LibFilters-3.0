@@ -701,6 +701,7 @@ mapping.filterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
 
 --The filterType to unique updater String table. Will be filled with the fixed updater names and the dynamic afterwards
 local filterTypeToUpdaterName = {}
+local updaterNameToFilterType = {}
 --Add the fixed updaterNames of the filtertypes
 filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
 --Then dynamically add the other updaterNames from the above table filterTypeToUpdaterNameDynamic
@@ -714,6 +715,10 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 	 end
 end
 mapping.filterTypeToUpdaterName = filterTypeToUpdaterName
+for filterType, updaterName in pairs(filterTypeToUpdaterName) do
+	updaterNameToFilterType[updaterName] = filterType
+end
+mapping.updaterNameToFilterType = updaterNameToFilterType
 
 --Will be filled within file LibFilters-3.0.lua with the above strings and their related updater function (divived by
 --keyboard and gamepad mode)

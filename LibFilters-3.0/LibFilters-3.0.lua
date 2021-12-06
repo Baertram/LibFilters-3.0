@@ -146,6 +146,7 @@ local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = constants.LIBFILTERS_FILTERF
 local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 
 local filterTypeToUpdaterName = 	mapping.filterTypeToUpdaterName
+local updaterNameToFilterType = 	mapping.updaterNameToFilterType
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
 
@@ -699,7 +700,7 @@ end
 --**********************************************************************************************************************
 -- Filter check and un/register
 --**********************************************************************************************************************
---Check if a filter function at the String filterTag and number filterType is already registered
+--Check if a filter function at the String filterTag and OPTIONAL number filterType is already registered
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterRegistered(filterTag, filterType)
 	if not filterTag then
@@ -724,14 +725,15 @@ end
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 
 
+local filterTagPatternErrorStr = "Invalid arguments to %s(%q, %s, %s).\n>Needed format is: String uniqueFilterTagLUAPattern, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase"
 --Check if a filter function at the String filterTagPattern (uses LUA regex pattern!) and number filterType is already registered.
 --Can be used to detect if any addon's tags have registered filters.
 --OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. The pattern will not be changed! Default: false
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, compareToLowerCase)
 	if not filterTagPattern then
-		dfe("Invalid arguments to IsFilterTagPatternRegistered(%q, %s, %s).\n>Needed format is: String uniqueFilterTagLUAPattern, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
-			tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
+		dfe(filterTagPatternErrorStr,
+			"IsFilterTagPatternRegistered", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
 		return
 	end
 	compareToLowerCase = compareToLowerCase or false
@@ -810,7 +812,8 @@ end
 --Returns true if any filter function was unregistered
 function libFilters:UnregisterFilter(filterTag, filterType)
 	if not filterTag or filterTag == "" then
-		dfe("Invalid arguments to UnregisterFilter(%q, %s).\n>Needed format is: String filterTag, OPTIONAL number LibFiltersLF_*FilterType", tos(filterTag), tos(filterType))
+		dfe("Invalid arguments to UnregisterFilter(%q, %s).\n>Needed format is: String filterTag, OPTIONAL number LibFiltersLF_*FilterType",
+			tos(filterTag), tos(filterType))
 		return
 	end
 	if filterType == nil then
@@ -842,7 +845,7 @@ end
 --**********************************************************************************************************************
 
 --Get the callback function of the String filterTag and number filterType
---Returns function
+--Returns function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables)
 function libFilters:GetFilterCallback(filterTag, filterType)
 	if not filterTag or not filterType then
 		dfe("Invalid arguments to GetFilterCallback(%q, %q).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType",
@@ -855,8 +858,8 @@ end
 
 
 --Get all callback function of the number filterType (of all addons which registered a filter)
---Returns nilable:table { 	[filterType1] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
---				  			[filterType2] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
+--Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
+--				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTypeCallbacks(filterType)
 	if not filterType then
 		dfe("Invalid arguments to GetFilterTypeCallbacks(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
@@ -869,8 +872,8 @@ end
 
 --Get all callback functions of the String filterTag (e.g. all registered functions of one special addon) and OPTIONAL number filterType
 --OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. Default: false
---Returns nilable:table { 	[filterType1] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
---				  			[filterType2] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
+--Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
+--				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerCase)
 	if not filterTag then
 		dfe("Invalid arguments to GetFilterTagCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
@@ -910,12 +913,12 @@ end
 
 --Get the callback functions matching to the String filterTagPattern (uses LUA regex pattern!) and OPTIONAL number filterType
 --OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. The pattern will not be changed! Default: false
---Returns nilable:table { 	[filterType1] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
---				  			[filterType2] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
+--Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
+--				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, compareToLowerCase)
 	if not filterTagPattern then
-		dfe("Invalid arguments to GetFilterTagPatternCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTagLUAPattern, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
-			tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
+		dfe(filterTagPatternErrorStr,
+			"GetFilterTagPatternCallbacks", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
 		return
 	end
 	compareToLowerCase = compareToLowerCase or false
@@ -955,13 +958,19 @@ end
 --on keyboard/gamepad mode.
 --It will overwrite updaters of the same filterType which have been called within 10 milliseconds, so that they are not
 --called multiple times shortly after another
---OPTIONAL parameter delay will add a delay to the call of the updater function
-function libFilters:RequestUpdate(filterType, delay)
-	--d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
-	local updaterName = filterTypeToUpdaterName[filterType]
-	if not filterType or not updaterName or updaterName == "" then
-		dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number LibFiltersLF_*FilterType", tos(filterType))
+--OPTIONAL parameter number delay will add a delay to the call of the updater function
+--OPTIONAL parameter number filterType maybe needed for the updater function call. If it's missing it's tried to be determined
+function libFilters:RequestUpdateByName(updaterName, delay, filterType)
+	--d("[LibFilters3]RequestUpdateByName-updaterName: " ..tos(updaterName))
+	if not not updaterName or updaterName == "" then
+		dfe("Invalid arguments to RequestUpdateByName(%q).\n>Needed format is: String updaterName",
+			tos(updaterName))
 		return
+	end
+
+	--Try to get the filterType, if not provided yet
+	if filterType == nil then
+		filterType = updaterNameToFilterType[updaterName]
 	end
 
 	local callbackName = updaterNamePrefix .. updaterName
@@ -984,7 +993,8 @@ function libFilters:RequestUpdate(filterType, delay)
 	--Should the call be delayed?
 	if delay then
 		if type(delay) ~= "number" then
-			dfe("Invalid OPTIONAL 2nd argument \'delay\' to RequestUpdate(%s).\n>Needed format is: number milliSecondsToDelay", tos(delay))
+			dfe("Invalid OPTIONAL 2nd argument \'delay\' to RequestUpdateByName(%s).\n>Needed format is: number milliSecondsToDelay",
+				tos(delay))
 			return
 		else
 			if delay > 0 then
@@ -996,24 +1006,132 @@ function libFilters:RequestUpdate(filterType, delay)
 	--Non delayed call
 	EM:RegisterForUpdate(callbackName, 10, updateFiltersNow)
 end
+local libFilters_RequestUpdateByName = libFilters.RequestUpdateByName
 
+--Will call the updater function of number filterType, read from table "libFilters.mapping.inventoryUpdaters", depending
+--on keyboard/gamepad mode.
+--It will overwrite updaters of the same filterType which have been called within 10 milliseconds, so that they are not
+--called multiple times shortly after another
+--OPTIONAL parameter number delay will add a delay to the call of the updater function
+function libFilters:RequestUpdate(filterType, delay)
+	--d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
+	local updaterName = filterTypeToUpdaterName[filterType]
+	if not filterType or not updaterName or updaterName == "" then
+		dfe("Invalid arguments to RequestUpdate(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
+			tos(filterType))
+		return
+	end
+	libFilters_RequestUpdateByName(libFilters, updaterName, delay, filterType)
+end
+
+
+-- Get the updater name of a number filterType
+-- returns String updateName
+function libFilters:GetFilterTypeUpdaterName(filterType)
+	if not filterType then
+		dfe("Invalid arguments to GetFilterTypeUpdaterName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
+			tos(filterType))
+		return
+	end
+	return filterTypeToUpdaterName[filterType] or ""
+end
+
+
+-- Get the updater name of a number filterType
+-- returns nilable:number filterType
+function libFilters:GetUpdaterNameFilterType(updaterName)
+	if updaterName == nil or updaterName == "" then
+		dfe("Invalid call to GetUpdaterNameFilterType(%q).\n>Needed format is: String updaterName",
+			tos(updaterName))
+		return
+	end
+	return updaterNameToFilterType[updaterName]
+end
+
+
+-- Get the updater keys and their functions used for updating/refresh of the inventories etc.
+-- returns table { ["updater_name"] = function updaterFunction(OPTIONAL filterType), ... }
+function libFilters:GetUpdaterCallbacks()
+	return inventoryUpdaters
+end
+
+
+-- Get the updater function used for updating/refresh of the inventories etc., by help of a String updaterName
+-- returns nilable:function updaterFunction(OPTIONAL filterType)
+function libFilters:GetUpdaterCallback(updaterName)
+	if updaterName == nil or updaterName == "" then
+		dfe("Invalid call to GetUpdaterCallback(%q).\n>Needed format is: String updaterName",
+			tos(updaterName))
+		return
+	end
+	return inventoryUpdaters[updaterName]
+end
+
+
+-- Get the updater function used for updating/refresh of the inventories etc., by help of a number filterType
+-- returns nilable:function updaterFunction(OPTIONAL filterType)
+function libFilters:GetFilterTypeUpdaterCallback(filterType)
+	if filterType == nil then
+		dfe("Invalid call to GetFilterTypeUpdaterCallback(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
+				tos(filterType))
+		return
+	end
+	local updaterName = filterTypeToUpdaterName[filterType]
+	if not updaterName then return end
+	return inventoryUpdaters[updaterName]
+end
 
 
 --**********************************************************************************************************************
--- API to get tables (inventory, layoutData, scene, control, userdata, ...) where filterTypes are adding their filterFunctions
--- to, via the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
+-- API to get tables, variables and other constants
 --**********************************************************************************************************************
 
 -- Get tables (inventory, layoutData, scene, controls, ---) where the number filterType ads it's filterFunction to, via
 -- the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
 -- returns table { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
-function libFilters:GetFilterBase(filterType, gamePadMode)
+function libFilters:GetFilterBase(filterType, isInGamepadMode)
 	if not filterType or filterType == "" then
-		dfe("Invalid arguments to GetFilterBase(%s).\n>Needed format is: number LibFiltersLF_*FilterType", tos(filterType))
+		dfe("Invalid arguments to GetFilterBase(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
+				tos(filterType))
 		return
 	end
-	gamePadMode = gamePadMode or false
-	return LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamePadMode][filterType]
+	isInGamepadMode = isInGamepadMode or IsGamepad()
+	return LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[isInGamepadMode][filterType]
+end
+
+
+-- Get constants used within keyboard filter hooks etc.
+-- returns table keyboardConstants
+function libFilters:GetKeyboardConstants()
+	return keyboardConstants
+end
+
+
+-- Get constants used within gamepad filter hooks etc.
+-- returns table gamepadConstants
+function libFilters:GetGamepadConstants()
+	return gamepadConstants
+end
+
+
+
+--**********************************************************************************************************************
+-- API of the logger
+--**********************************************************************************************************************
+-- Get the LibFilters logger reference
+-- returns table logger
+function libFilters:GetLogger()
+	return logger
+end
+
+
+--**********************************************************************************************************************
+-- API of the helpers
+--**********************************************************************************************************************
+-- Get the LibFilters helpers table
+-- returns table helpers
+function libFilters:GetHelpers()
+	return libFilters.helpers
 end
 
 
@@ -1318,16 +1436,17 @@ local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
 local function InstallHelpers()
-	 for _, package in pairs(helpers) do
-		  local funcName = package.helper.funcName
-		  local func = package.helper.func
+	for _, package in pairs(helpers) do
+		local helper = package.helper
+		local funcName = helper.funcName
+		local func = helper.func
 
-		  for _, location in pairs(package.locations) do
-				--e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
-				--function from helpers table, param "func"
-				location[funcName] = func
-		  end
-	 end
+		for _, location in pairs(package.locations) do
+			--e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
+			--function from helpers table, param "func"
+			location[funcName] = func
+		end
+	end
 end
 
 
