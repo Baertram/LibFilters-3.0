@@ -70,15 +70,27 @@ end
 -- to dynamically determine the functionType to use. The following constants for the functionTypes exist:
 -- libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
 -- libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
+--
+--
+--[Wording / Glossary]
+---filterTag = The string defined by an addon to uniquely describe and reference the filter in the internal tables
+----(e.g. "addonName1FilterForInventory")
+---filterType (or libFiltersFilterType) = The LF_* constant of the filter, describing the panel where it will be filtered (e.g. LF_INVENTORY)
+--
 ]]
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.0
+--Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Known bugs: 0
---Last update: 2021-10-27, Baertram
---
---
+--Bugs total: 				0
+--Feature requests total: 	0
+
+--[Bugs]
+-- #1) 2021-12-06, ESOUI addon comments, SantaClaus:	Merry christmas :-)
+
+
+--[Feature requests]
+-- #f1) 2021-12-06, ESOUI addon comments, SantaClaus:	Let the bells jingle
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -116,7 +128,11 @@ local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
 
---local enchantingModeToFilterType = 	mapping.enchantingModeToFilterType
+local filterTypesUsingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
+local filterTypesUsingInventorySlotFilterFunction = mapping.filterTypesUsingInventorySlotFilterFunction
+local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+
 local filterTypeToUpdaterName = 	mapping.filterTypeToUpdaterName
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
@@ -606,6 +622,19 @@ function libFilters:GetFilterTypeName(libFiltersFilterType)
 end
 
 
+--Returns the type of filter function used for the LibFilters LF* filterType constant
+--> Returns either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+--> or nil if no filter function type was determined
+function libFilters:GetFilterTypeFunctionType(libFiltersFilterType)
+	if filterTypesUsingBagIdAndSlotIndexFilterFunction[libFiltersFilterType] ~= nil then
+		return LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+	elseif filterTypesUsingInventorySlotFilterFunction[libFiltersFilterType] ~= nil then
+		return LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+	end
+	return nil
+end
+
+
 --Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
 --INVENTORY_BANK, or a SCENE or a control
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
@@ -738,11 +767,13 @@ hookAdditionalFilter = libFilters.HookAdditionalFilter
 
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
+--> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
+--> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSpecial(specialType)
 	if specialHooksDone[specialType] then return end
 
-	--ENCHANTING keyboard
 	--[[
+	--ENCHANTING keyboard
 	if specialType == "enchanting" then
 
 		local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
@@ -784,11 +815,13 @@ end
 
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
 -- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType
+--> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
+--> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	if specialHooksDone[specialType] then return end
 
+--[[
 	--ENCHANTING gamepad
-	--[[
 	if specialType == "enchanting_GamePad" then
 		--The enchanting scenes to hook into
 		local enchantingScenesGamepad = {
@@ -833,15 +866,16 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 
 		specialHooksDone[specialType] = true
 	end
-	]]
+]]
 end
 
 
 --**********************************************************************************************************************
 -- Filter callback, filter check and un/register
 --**********************************************************************************************************************
+--Get the callback function of the filter type
 function libFilters:GetFilterCallback(filterTag, filterType)
-	 if not self:IsFilterRegistered(filterTag, filterType) then return end
+	 if not libFilters:IsFilterRegistered(filterTag, filterType) then return end
 
 	 return filters[filterType][filterTag]
 end
@@ -938,7 +972,8 @@ end
 --**********************************************************************************************************************
 --Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
 --indices
---Used in addon AdvancedFilters UPDATED e.g.
+--Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
+--keyboard mode
 function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
 	 local craftingType = GetCraftingInteractionType()
 	 if craftingType == CRAFTING_TYPE_INVALID then return false end
@@ -1002,18 +1037,24 @@ end
 --**********************************************************************************************************************
 --Fixes which are needed
 local function ApplyFixes()
-	--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
 	--[[
+		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
 		 --Added lines with 7.0.4:
 		 local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
 		 craftBag.additionalFilter = layoutData.additionalFilter
+		 --Fix applied:
+		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+		--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
+			if keyboardConstants.craftBagClass:IsHidden() then return end
+			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
+			hookAdditionalFilter(libFilters, LF_CRAFTBAG)
+		end)
 	]]
-	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-	--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
-		if keyboardConstants.craftBagClass:IsHidden() then return end
-		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-		hookAdditionalFilter(libFilters, LF_CRAFTBAG)
-	end)
+	--[[
+		--Update 2021-12-06: Seems to be fixed prior with version 7.1.5: Usage of own layoutData.additionalCraftBagFilter now
+		local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
+		craftBag.additionalFilter = layoutData.additionalCraftBagFilter
+	]]
 end
 
 
