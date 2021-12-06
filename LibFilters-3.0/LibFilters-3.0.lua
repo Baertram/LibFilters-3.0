@@ -16,6 +16,10 @@
 --that filter funtions summarize (e.g. addon1 registers a "Only show stolen filter" and addon2 registers "only show level
 --10 items filter" -> Only level 10 stolen items will be shown then).
 --
+--The filterType (LF_* constant) of the currently shown panel (see function libFilters:GetCurrentFilterTypeForInventory(inventoryType))
+--will be stored at the "LibFilters3_filterType" (constant saved at "defaultLibFiltersAttributeToStoreTheFilterType")
+--attribute at the inventory/layoutData/scene/control involved for the filtering. See function libFilters:HookAdditionalFilter
+--
 --The function InstallHelpers below will call special code from the file "helper.lua". In this file you define the
 --variable(s) and function name(s) which LibFilters should "REPLACE" -> Means it will overwrite those functions to add
 --the call to the LibFilters internal filterFunctions (e.g. at SMITHING crafting tables, function
@@ -131,6 +135,7 @@ local invTypeCraftBag =				inventoryTypes["craftbag"]
 
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
+local defaultLibFiltersAttributeToStoreTheFilterType = libFilters.constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
 
 
 local filterTypesUsingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
@@ -559,10 +564,12 @@ libFilters.mapping.inventoryUpdaters = inventoryUpdaters
 ------------------------------------------------------------------------------------------------------------------------
 --RUN THE FILTERS
 ------------------------------------------------------------------------------------------------------------------------
---Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot)
+--Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters (e.g. inventorySlot or bagId & slotIndex)
+--Returns true if all filter functions were run and their return value was true
+--Returns false if any of the run filter functions was returning false or nil
 local function runFilters(filterType, ...)
 --d("[LibFilters3]runFilters, filterType: " ..tos(filterType))
-	 for tag, filter in pairs(filters[filterType]) do
+	 for _, filter in pairs(filters[filterType]) do
 		  if not filter(...) then
 				return false
 		  end
@@ -581,7 +588,7 @@ local function ApplyAdditionalFilterHooks()
 
 	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
-	for value, filterConstantName in ipairs(libFiltersFilterConstants) do
+	for value, _ in ipairs(libFiltersFilterConstants) do
 		-->HookAdditionalFilterSpecial will be done automatically in HookAdditionalFilter, via the table
 		-->LF_ConstantToAdditionalFilterSpecialHook
 		hookAdditionalFilter(libFilters, value, true) --value = the same as _G[filterConstantName], eg. LF_INVENTORY
@@ -599,7 +606,7 @@ end
 --**********************************************************************************************************************
 -- Filter types
 --**********************************************************************************************************************
---Returns the minimum possible filteType
+--Returns number the minimum possible filteType
 function libFilters:GetMinFilterType()
 	 return LF_FILTER_MIN
 end
@@ -607,7 +614,7 @@ end
 libFilters.GetMinFilter = libFilters.GetMinFilterType
 
 
---Returns the maxium possible filterType
+--Returns number the maxium possible filterType
 function libFilters:GetMaxFilterType()
 	 return LF_FILTER_MAX
 end
@@ -615,20 +622,20 @@ end
 libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 
 
---Returns the LibFilters LF* filterType connstants table: value = "name"
+--Returns table LibFilters LF* filterType connstants table: value = "LF_* name"
 function libFilters:GetFilterTypes()
 	 return libFiltersFilterConstants
 end
 
 
---Returns the LibFilters LF* filterType constant's name
+--Returns String LibFilters LF* filterType constant's name
 function libFilters:GetFilterTypeName(libFiltersFilterType)
 	 return libFiltersFilterConstants[libFiltersFilterType] or ""
 end
 
 
---Returns the type of filter function used for the LibFilters LF* filterType constant
---> Returns either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+--Returns number type of filter function used for the LibFilters LF* filterType constant
+--> Either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 --> or nil if no filter function type was determined
 function libFilters:GetFilterTypeFunctionType(libFiltersFilterType)
 	if filterTypesUsingBagIdAndSlotIndexFilterFunction[libFiltersFilterType] ~= nil then
@@ -640,14 +647,15 @@ function libFilters:GetFilterTypeFunctionType(libFiltersFilterType)
 end
 
 
---Get the current libFilters filterType for the inventoryType, where inventoryType would be e.g. INVENTORY_BACKPACK or
---INVENTORY_BANK, or a SCENE or a control
+--Returns number the current libFilters filterType for the inventoryType, where inventoryType would be e.g.
+--INVENTORY_BACKPACK, INVENTORY_BANK, ..., or a SCENE or a control given within table libFilters.mapping.
+--LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 	--Get the layoutData from the fragment. If no fragment: Abort
 	if inventoryType == invTypeBackpack then --INVENTORY_BACKPACK
 		local layoutData = playerInv.appliedLayout
-		if layoutData and layoutData.LibFilters3_filterType then
-			return layoutData.LibFilters3_filterType
+		if layoutData and layoutData[defaultLibFiltersAttributeToStoreTheFilterType] then --.LibFilters3_filterType
+			return layoutData[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
 		else
 			return
 		end
@@ -655,8 +663,8 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 	local invVarIsNumber = (type(inventoryType) == "number") or false
 	if not invVarIsNumber then
 		--Check if inventoryType is a SCENE, e.g. GAMEPAD_ENCHANTING_CREATION_SCENE
-		if inventoryType.sceneManager ~= nil and inventoryType.LibFilters3_filterType ~= nil then
-			return inventoryType.LibFilters3_filterType
+		if inventoryType.sceneManager ~= nil and inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] ~= nil then --.LibFilters3_filterType
+			return inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
 		end
 		--end
 	end
@@ -664,8 +672,8 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 	--Get the inventory from PLAYER_INVENTORY.inventories if the "number" check returns true,
 	--and else use inventoryType directly to support enchanting.inventory
 	local inventory = (invVarIsNumber and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
-	if inventory == nil or inventory.LibFilters3_filterType == nil then return end
-	return inventory.LibFilters3_filterType
+	if inventory == nil or inventory[defaultLibFiltersAttributeToStoreTheFilterType] == nil then return end --.LibFilters3_filterType
+	return inventory[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
 end
 
 
@@ -852,7 +860,9 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 		for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
 			if inventory ~= nil then
 				local layoutData = inventory.layoutData or inventory
-				layoutData.LibFilters3_filterType = filterLFConstant
+				--Store the filterType at the table to identify the panel
+				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterLFConstant --.LibFilters3_filterType
+
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
 				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
 
@@ -1004,7 +1014,7 @@ end
 
 
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
--- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType
+-- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType (constant: defaultLibFiltersAttributeToStoreTheFilterType)
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSceneSpecial(specialType)

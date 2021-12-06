@@ -99,6 +99,11 @@ LF_FILTER_ALL					= 9999
 --Add the filterTypes to the constants
 libFilters.constants.filterTypes = libFiltersFilterConstants
 
+--The default attribute at an inventory/layoutData/scene/control used within table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+--to store the libFilters 3.0 filterType "currently assigned to this panel", e.g.
+local defaultLibFiltersAttributeToStoreTheFilterType = "LibFilters3_filterType"
+libFilters.constants.defaultAttributeToStoreTheFilterType = defaultLibFiltersAttributeToStoreTheFilterType
+
 --The default attribute at an inventory/layoutData table where the filter functions of LiFilters should be added to
 --and where ZOS or other addons could have already added filter functions to -> See LibFilters-3.0.lua, function HookAdditionalFilters
 local defaultOriginalFilterAttributeAtLayoutData = "additionalFilter"

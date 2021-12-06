@@ -24,13 +24,14 @@ local iigpm = IsInGamepadPreferredMode
 --Local variables for the helpers
 ------------------------------------------------------------------------------------------------------------------------
 local helpers = {}
+local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --.additionalFilter
 
 
 ------------------------------------------------------------------------------------------------------------------------
 --Local functions for the helpers
 ------------------------------------------------------------------------------------------------------------------------
 local function doesAdditionalFilterFuncExist(objectVar)
-    return (objectVar and objectVar.additionalFilter and type(objectVar.additionalFilter) == "function") or false
+    return (objectVar and objectVar[defaultOriginalFilterAttributeAtLayoutData] and type(objectVar[defaultOriginalFilterAttributeAtLayoutData]) == "function") or false
 end
 
 --Check for .additionalFilter in an object and run it on the slotItem now
@@ -39,7 +40,7 @@ local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAddi
 	
     if doesAdditionalFilterFuncExist(objectVar) then
 		if resultIfNoAdditionalFilter then
-			resultIfNoAdditionalFilter = objectVar.additionalFilter(slotItem)
+			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
 		end
     end
 	return resultIfNoAdditionalFilter
@@ -51,7 +52,7 @@ local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, res
 	
     if doesAdditionalFilterFuncExist(objectVar) then
 		if resultIfNoAdditionalFilter then
-			resultIfNoAdditionalFilter = objectVar.additionalFilter(bagId, slotIndex)
+			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](bagId, slotIndex)
 		end
     end
 	return resultIfNoAdditionalFilter
@@ -298,7 +299,7 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
 
             local libFiltersQuickslotCollectiblesFilterFunc
             if doesAdditionalFilterFuncExist(self) then
-                libFiltersQuickslotCollectiblesFilterFunc = self.additionalFilter
+                libFiltersQuickslotCollectiblesFilterFunc = self[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
             end
             for i, collectibleData in ipairs(dataObjects) do
                 collectibleData.searchData =
