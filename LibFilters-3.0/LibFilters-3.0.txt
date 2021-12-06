@@ -2,9 +2,9 @@
 ## Author: Baertram, Randactyl, ingeniousclown, et al.
 ## Version: 3.0r3.0
 ## AddOnVersion: 330
-## APIVersion: 101031 101032
+## APIVersion: 101032 101033
 ## IsLibrary: true
-## OptionalDependsOn: LibDebugLogger>=217
+## OptionalDependsOn: LibDebugLogger>=220
 
 constants.lua
 Gamepad/gamepadCustomFragments.lua

@@ -154,7 +154,6 @@ local specialHooksLibFiltersDataRegistered = {}
 --DOWN in the lua file than the actual fucntion's creation is done -> lua interpreter wouldn't find it).
 local hookAdditionalFilter
 
-
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
 ------------------------------------------------------------------------------------------------------------------------
@@ -1023,8 +1022,8 @@ end
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
-	 if self.isInitialized then return end
-	 self.isInitialized = true
+	 if libFilters.isInitialized then return end
+	 libFilters.isInitialized = true
 
 	 InstallHelpers()
 	 ApplyAdditionalFilterHooks()

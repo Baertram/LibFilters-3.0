@@ -16,8 +16,11 @@
 --Init the library, if not already done
 local libFilters = LibFilters3
 if not libFilters then return end
-libFilters:InitializeLibFilters()
 
+local function checkIfInitDone()
+	if libFilters.isInitialized then return end
+	libFilters:InitializeLibFilters()
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LIBRARY VARIABLES
@@ -68,6 +71,8 @@ end
 
 --test function to register/unregister (toggle) a filterType, and update the inventory afterwards
 local function toggleFilterForFilterType(filterType, noUpdate)
+	checkIfInitDone()
+
 	noUpdate = noUpdate or false
 	local filterTypeName = libFilters:GetFilterTypeName(filterType)
 	local filterFunc = (filterTypeToFilterFunctionType[filterType] == LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT and filterFuncForInventories) or filterFuncForCrafting
@@ -642,6 +647,7 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 ]]
 
 	if not tlw then
+		checkIfInitDone()
 		intializeFilterUI()
 		addFilterUIListDataTypes()
 	end
@@ -682,6 +688,7 @@ end
 --depends on Item Saver by Randactyl
 SLASH_COMMANDS["/lftestenchant"] = function()
 	if not ItemSaver then return end
+	checkIfInitDone()
 
 	local isRegistered = libFilters:IsFilterRegistered(filterTag, LF_ENCHANTING_CREATION)
 
@@ -723,6 +730,7 @@ end
 local researchConfirmSceneCallbackAdded = false
 SLASH_COMMANDS["/lftestresearchdialog"] = function()
 	if researchConfirmSceneCallbackAdded then return end
+	checkIfInitDone()
 	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 		d("GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [2] - StateChange: " ..strfor("oldState: %s, newState: %s", tos(oldState), tos(newState)))
 	end)

@@ -14,6 +14,8 @@ local SM = SCENE_MANAGER
 local libFilters = {}
 libFilters.filters = {}
 local filters = libFilters.filters
+-- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
+-- after EVENT_ADD_ON_LOADED
 libFilters.isInitialized = false
 
 ------------------------------------------------------------------------------------------------------------------------
