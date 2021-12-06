@@ -116,6 +116,10 @@ local otherOriginalFilterAttributesAtLayoutData_Table = {
 }
 libFilters.constants.otherAttributesToGetOriginalFilterFunctions = otherOriginalFilterAttributesAtLayoutData_Table
 
+--The prefix for the updater name used in libFilters:RequestUpdate()
+local updaterNamePrefix = GlobalLibName .. "_updateInventory_"
+libFilters.constants.updaterNamePrefix = updaterNamePrefix
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --ZOs / ESOUI CONSTANTS

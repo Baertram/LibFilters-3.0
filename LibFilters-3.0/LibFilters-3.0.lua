@@ -113,6 +113,7 @@ local filters    = libFilters.filters
 local tos = tostring
 local strform = string.format
 local strup = string.upper
+local strmat = string.match
 
 --Game API local speedup
 local EM = EVENT_MANAGER
@@ -137,6 +138,7 @@ local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToA
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
 local defaultLibFiltersAttributeToStoreTheFilterType = libFilters.constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
 
+local updaterNamePrefix = libFilters.constants.updaterNamePrefix
 
 local filterTypesUsingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
 local filterTypesUsingInventorySlotFilterFunction = mapping.filterTypesUsingInventorySlotFilterFunction
@@ -582,7 +584,7 @@ libFilters.RunFilters = runFilters
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
---Hook the different inventory panels (LibFilters filterPanelIds) now and add the .additionalFilter entry to each panel's
+--Hook the different inventory panels (LibFilters filterTypes) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
 local function ApplyAdditionalFilterHooks()
 
@@ -622,25 +624,37 @@ end
 libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 
 
---Returns table LibFilters LF* filterType connstants table: value = "LF_* name"
+--Returns table LibFilters LF* filterType connstants table { [1] = "LF_INVENTORY", [2] = "LF_BANK_WITHDRAW", ... }
+--See file constants.lua, table "libFiltersFilterConstants"
 function libFilters:GetFilterTypes()
 	 return libFiltersFilterConstants
 end
 
 
---Returns String LibFilters LF* filterType constant's name
-function libFilters:GetFilterTypeName(libFiltersFilterType)
-	 return libFiltersFilterConstants[libFiltersFilterType] or ""
+--Returns String LibFilters LF* filterType constant's name for the number filterType
+function libFilters:GetFilterTypeName(filterType)
+	if not filterType then
+		dfe("Invalid argument to GetFilterTypeName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
+			tos(filterType))
+		return
+	end
+	return libFiltersFilterConstants[filterType] or ""
 end
+local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 
 
---Returns number type of filter function used for the LibFilters LF* filterType constant
---> Either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
---> or nil if no filter function type was determined
-function libFilters:GetFilterTypeFunctionType(libFiltersFilterType)
-	if filterTypesUsingBagIdAndSlotIndexFilterFunction[libFiltersFilterType] ~= nil then
+--Returns number typeOfFilterFunction used for the number LibFilters LF* filterType constant.
+--Either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+--or nil if error occured or no filter function type was determined
+function libFilters:GetFilterTypeFunctionType(filterType)
+	if not filterType then
+		dfe("Invalid argument to GetFilterTypeFunctionType(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
+			tos(filterType))
+		return
+	end
+	if filterTypesUsingBagIdAndSlotIndexFilterFunction[filterType] ~= nil then
 		return LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
-	elseif filterTypesUsingInventorySlotFilterFunction[libFiltersFilterType] ~= nil then
+	elseif filterTypesUsingInventorySlotFilterFunction[filterType] ~= nil then
 		return LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
 	end
 	return nil
@@ -651,6 +665,11 @@ end
 --INVENTORY_BACKPACK, INVENTORY_BANK, ..., or a SCENE or a control given within table libFilters.mapping.
 --LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
+	if not inventoryType then
+		dfe("Invalid arguments to GetCurrentFilterTypeForInventory(%q).\n>Needed format is: inventoryTypeNumber(e.g. INVENTORY_BACKPACK)/userdata/table/scene/control inventoryType",
+			tos(inventoryType))
+		return
+	end
 	--Get the layoutData from the fragment. If no fragment: Abort
 	if inventoryType == invTypeBackpack then --INVENTORY_BACKPACK
 		local layoutData = playerInv.appliedLayout
@@ -677,52 +696,211 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 end
 
 
-
 --**********************************************************************************************************************
--- Filter callback, filter check and un/register
+-- Filter check and un/register
 --**********************************************************************************************************************
---Check if a filter function at the filterTag and filterType is already registered
+--Check if a filter function at the String filterTag and number filterType is already registered
+--Returns boolean true if registered already, false if not
 function libFilters:IsFilterRegistered(filterTag, filterType)
-	 if filterType == nil then
-		  --check whether there's any filter with this tag
-		  for _, callbacks in pairs(filters) do
-				if callbacks[filterTag] ~= nil then
-					 return true
-				end
-		  end
-
-		  return false
-	 else
-		  --check only the specified filter type
-		  local callbacks = filters[filterType]
-
-		  return callbacks[filterTag] ~= nil
-	 end
+	if not filterTag then
+		dfe("Invalid arguments to IsFilterRegistered(%q, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType",
+			tos(filterTag), tos(filterType))
+		return
+	end
+	if filterType == nil then
+		--check whether there's any filter with this tag
+		for _, callbacks in pairs(filters) do
+			if callbacks[filterTag] ~= nil then
+				return true
+			end
+		end
+		return false
+	else
+		--check only the specified filter type
+		local callbacks = filters[filterType]
+		return callbacks[filterTag] ~= nil
+	end
 end
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 
---Get the callback function of the filterTag and filterType
-function libFilters:GetFilterCallback(filterTag, filterType)
-	 if not libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then return end
-	 return filters[filterType][filterTag]
+
+--Check if a filter function at the String filterTagPattern (uses LUA regex pattern!) and number filterType is already registered.
+--Can be used to detect if any addon's tags have registered filters.
+--OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. The pattern will not be changed! Default: false
+--Returns boolean true if registered already, false if not
+function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, compareToLowerCase)
+	if not filterTagPattern then
+		dfe("Invalid arguments to IsFilterTagPatternRegistered(%q, %s, %s).\n>Needed format is: String uniqueFilterTagLUAPattern, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
+			tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
+		return
+	end
+	compareToLowerCase = compareToLowerCase or false
+	if filterType == nil then
+		--check whether there's any filter with this tag's pattern
+		for _, callbacks in pairs(filters) do
+			for filterTag, _ in pairs(callbacks) do
+				local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
+				if strmat(filterTagToCompare, filterTagPattern) ~= nil then
+					return true
+				end
+			end
+		end
+	else
+	--check only the specified filter type
+		local callbacks = filters[filterType]
+		for filterTag, _ in pairs(callbacks) do
+			local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
+			if strmat(filterTagToCompare, filterTagPattern) ~= nil then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 
---Get all callback function of the filterType (of all addons)
+local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType, function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables), OPTIONAL boolean noInUseError)"
+--Register a filter function at the String filterTag and number filterType
+--Registering a filter function does NOT automatically call the refresh/update function at the panel!
+--You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
+--Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
+--Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
+function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
+	local callbacks = filters[filterType]
+	if not filterTag or not filterType or not callbacks or type(filterCallback) ~= "function" then
+		dfe(registerFilteParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+		return
+	end
+	noInUseError = noInUseError or false
+	if callbacks[filterTag] ~= nil then
+		if not noInUseError then
+			dfe("FilterTag \'%q\' filterType \'%q\' filterCallback function is already in use.\nPlease check via \'LibFilters:IsFilterRegistered(filterTag, filterType)\' before registering filters!", tos(filterTag), tos(filterType))
+		end
+		return false
+	end
+	callbacks[filterTag] = filterCallback
+	return true
+end
+local libFilters_RegisterFilter = libFilters.RegisterFilter
+
+
+--Check if a filter function at the String filterTag and number filterType is already registered, and if not: Register it. If it was already registered the return value will be false
+--Registering a filter function does NOT automatically call the refresh/update function at the panel!
+--You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
+--Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
+--Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
+function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
+	local callbacks = filters[filterType]
+	if not filterTag or not filterType or not callbacks or type(filterCallback) ~= "function" then
+		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+		return
+	end
+	noInUseError = noInUseError or false
+	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
+		return false
+	end
+	return libFilters_RegisterFilter(libFilters, filterTag, filterType, filterCallback, noInUseError)
+end
+
+
+--Unregister a filter function at the String filterTag and OPTIONAL number filterType.
+--If filterType is left empty you are able to unregister all filterType of the filterTag.
+--Unregistering a filter function does NOT automatically call the refresh/update function at the panel!
+--You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
+--Returns true if any filter function was unregistered
+function libFilters:UnregisterFilter(filterTag, filterType)
+	if not filterTag or filterTag == "" then
+		dfe("Invalid arguments to UnregisterFilter(%q, %s).\n>Needed format is: String filterTag, OPTIONAL number LibFiltersLF_*FilterType", tos(filterTag), tos(filterType))
+		return
+	end
+	if filterType == nil then
+		--unregister all filters with this tag
+		local unregisteredFilterFunctions = 0
+		for _, callbacks in pairs(filters) do
+			if callbacks[filterTag] ~= nil then
+				callbacks[filterTag] = nil
+				unregisteredFilterFunctions = unregisteredFilterFunctions + 1
+			end
+		end
+		if unregisteredFilterFunctions > 0 then
+			return true
+		end
+	else
+		--unregister only the specified filter type
+		local callbacks = filters[filterType]
+		if callbacks[filterTag] ~= nil then
+			callbacks[filterTag] = nil
+			return true
+		end
+	end
+	return false
+end
+
+
+--**********************************************************************************************************************
+-- Filter callback functions
+--**********************************************************************************************************************
+
+--Get the callback function of the String filterTag and number filterType
+--Returns function
+function libFilters:GetFilterCallback(filterTag, filterType)
+	if not filterTag or not filterType then
+		dfe("Invalid arguments to GetFilterCallback(%q, %q).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType",
+			tos(filterTag), tos(filterType))
+		return
+	end
+	if not libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then return end
+	return filters[filterType][filterTag]
+end
+
+
+--Get all callback function of the number filterType (of all addons which registered a filter)
+--Returns nilable:table { 	[filterType1] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
+--				  			[filterType2] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTypeCallbacks(filterType)
+	if not filterType then
+		dfe("Invalid arguments to GetFilterTypeCallbacks(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
+			tos(filterType))
+		return
+	end
 	return filters[filterType]
 end
 
 
---Get all callback function of the filterTag (all of the addon)
--->Returns a table retTab[filterTag] = { [filterType1] = filterFunction, [filterType2] = filterFunction, ... }
-function libFilters:GetFilterTagCallbacks(filterTag)
-	local retTab = {}
-	for filterType, filterTagsData in pairs(filters) do
-		for filterTagToCompare, filterFunction in pairs(filterTagsData) do
-			if filterTagToCompare and filterTagToCompare == filterTag then
-				retTab[filterTag] = retTab[filterTag] or {}
-				retTab[filterTag][filterType] = filterFunction
+--Get all callback functions of the String filterTag (e.g. all registered functions of one special addon) and OPTIONAL number filterType
+--OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. Default: false
+--Returns nilable:table { 	[filterType1] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
+--				  			[filterType2] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
+function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerCase)
+	if not filterTag then
+		dfe("Invalid arguments to GetFilterTagCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
+			tos(filterTag), tos(filterType), tos(compareToLowerCase))
+		return
+	end
+	compareToLowerCase = compareToLowerCase or false
+	local retTab
+	local filterTagToCompare = (compareToLowerCase == true and filterTag:lower()) or filterTag
+	if filterType == nil then
+		--check whether there's any filter with this tag's pattern
+		for lFilterType, callbacks in pairs(filters) do
+			for lFilterTag, filterFunction in pairs(callbacks) do
+				local lFilterTagToCompare = (compareToLowerCase == true and lFilterTag:lower()) or lFilterTag
+				if strmat(lFilterTagToCompare, filterTagToCompare) ~= nil then
+					retTab = retTab or {}
+					retTab[lFilterType] = retTab[lFilterType] or {}
+					retTab[lFilterType][lFilterTag] = filterFunction
+				end
+			end
+		end
+	else
+	--check only the specified filter type
+		local callbacks = filters[filterType]
+		for lFilterTag, filterFunction in pairs(callbacks) do
+			local lFilterTagToCompare = (compareToLowerCase == true and lFilterTag:lower()) or lFilterTag
+			if strmat(lFilterTagToCompare, filterTagToCompare) ~= nil then
+				retTab = retTab or {}
+				retTab[filterType] = retTab[filterType] or {}
+				retTab[filterType][lFilterTag] = filterFunction
 			end
 		end
 	end
@@ -730,73 +908,112 @@ function libFilters:GetFilterTagCallbacks(filterTag)
 end
 
 
---Register a filter function at the filterTag and filterType
---> Registering a filter function does NOT automatically call the refresh/update function at the panel!
---> You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
-function libFilters:RegisterFilter(filterTag, filterType, filterCallback)
-	 local callbacks = filters[filterType]
-	 if not filterTag or not callbacks or type(filterCallback) ~= "function" then
-		  dfe("Invalid arguments to RegisterFilter(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterPanelConstant, function filterCallbackFunction",
-				tos(filterTag), tos(filterType), tos(filterCallback))
-		  return
-	 end
-	 if callbacks[filterTag] ~= nil then
-		  dfe("filterTag \'%q\' filterType \'%s\' filterCallback function is already in use",
-				tos(filterTag), tos(filterType))
-		  return
-	 end
-	 callbacks[filterTag] = filterCallback
-end
-
---Unregister a filter function at the filterTag and filterType
---> Unregistering a filter function does NOT automatically call the refresh/update function at the panel!
---> You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
-function libFilters:UnregisterFilter(filterTag, filterType)
-	 if not filterTag or filterTag == "" then
-		  dfe("Invalid arguments to UnregisterFilter(%s, %s).\n>Needed format is: String filterTag, number filterPanelId", tos(filterTag), tos(filterType))
-		  return
-	 end
-	 if filterType == nil then
-		  --unregister all filters with this tag
-		  for _, callbacks in pairs(filters) do
-				if callbacks[filterTag] ~= nil then
-					 callbacks[filterTag] = nil
+--Get the callback functions matching to the String filterTagPattern (uses LUA regex pattern!) and OPTIONAL number filterType
+--OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. The pattern will not be changed! Default: false
+--Returns nilable:table { 	[filterType1] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
+--				  			[filterType2] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
+function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, compareToLowerCase)
+	if not filterTagPattern then
+		dfe("Invalid arguments to GetFilterTagPatternCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTagLUAPattern, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
+			tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
+		return
+	end
+	compareToLowerCase = compareToLowerCase or false
+	local retTab
+	if filterType == nil then
+		--check whether there's any filter with this tag's pattern
+		for lFilterType, callbacks in pairs(filters) do
+			for filterTag, filterFunction in pairs(callbacks) do
+				local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
+				if strmat(filterTagToCompare, filterTagPattern) ~= nil then
+					retTab = retTab or {}
+					retTab[lFilterType] = retTab[lFilterType] or {}
+					retTab[lFilterType][filterTag] = filterFunction
 				end
-		  end
-	 else
-		  --unregister only the specified filter type
-		  local callbacks = filters[filterType]
-
-		  if callbacks[filterTag] ~= nil then
-				callbacks[filterTag] = nil
-		  end
-	 end
+			end
+		end
+	else
+	--check only the specified filter type
+		local callbacks = filters[filterType]
+		for filterTag, filterFunction in pairs(callbacks) do
+			local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
+			if strmat(filterTagToCompare, filterTagPattern) ~= nil then
+				retTab = retTab or {}
+				retTab[filterType] = retTab[filterType] or {}
+				retTab[filterType][filterTag] = filterFunction
+			end
+		end
+	end
+	return retTab
 end
-
 
 
 --**********************************************************************************************************************
 -- Filter update / refresh of (inventory/crafting/...) list
 --**********************************************************************************************************************
---Will call the updater function of table inventoryUpdaters, depending on keyboard/gamepad mode
-function libFilters:RequestUpdate(filterType)
---d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
-	 local updaterName = filterTypeToUpdaterName[filterType]
-	 if not updaterName or updaterName == "" then
-		  dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number filterPanelId", tos(filterType))
-		  return
-	 end
-	 local callbackName = "LibFilters_updateInventory_" .. updaterName
-	 local function Update()
---d(">[LibFilters3]RequestUpdate->Update called")
-		  EM:UnregisterForUpdate(callbackName)
-		  inventoryUpdaters[updaterName](filterType)
-	 end
+--Will call the updater function of number filterType, read from table "libFilters.mapping.inventoryUpdaters", depending
+--on keyboard/gamepad mode.
+--It will overwrite updaters of the same filterType which have been called within 10 milliseconds, so that they are not
+--called multiple times shortly after another
+--OPTIONAL parameter delay will add a delay to the call of the updater function
+function libFilters:RequestUpdate(filterType, delay)
+	--d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
+	local updaterName = filterTypeToUpdaterName[filterType]
+	if not filterType or not updaterName or updaterName == "" then
+		dfe("Invalid arguments to RequestUpdate(%s).\n>Needed format is: number LibFiltersLF_*FilterType", tos(filterType))
+		return
+	end
 
-	 --cancel previously scheduled update if any
-	 EM:UnregisterForUpdate(callbackName)
-	 --register a new one
-	 EM:RegisterForUpdate(callbackName, 10, Update)
+	local callbackName = updaterNamePrefix .. updaterName
+	local function updateFiltersNow(delayByMs)
+		EM:UnregisterForUpdate(callbackName)
+		if not delayByMs then
+			--d(">[LibFilters3]RequestUpdate->Filter update called")
+			inventoryUpdaters[updaterName](filterType)
+		else
+			zo_callLater(function()
+				--d(">>[LibFilters3]RequestUpdate->Delayed filter update called, delay: " ..tostring(delayByMs))
+				inventoryUpdaters[updaterName](filterType)
+			end, delayByMs)
+		end
+	end
+
+	--Cancel previously scheduled update if any given
+	EM:UnregisterForUpdate(callbackName)
+	--Register a new updater
+	--Should the call be delayed?
+	if delay then
+		if type(delay) ~= "number" then
+			dfe("Invalid OPTIONAL 2nd argument \'delay\' to RequestUpdate(%s).\n>Needed format is: number milliSecondsToDelay", tos(delay))
+			return
+		else
+			if delay > 0 then
+				EM:RegisterForUpdate(callbackName, 10, function() updateFiltersNow(delay) end)
+				return
+			end
+		end
+	end
+	--Non delayed call
+	EM:RegisterForUpdate(callbackName, 10, updateFiltersNow)
+end
+
+
+
+--**********************************************************************************************************************
+-- API to get tables (inventory, layoutData, scene, control, userdata, ...) where filterTypes are adding their filterFunctions
+-- to, via the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
+--**********************************************************************************************************************
+
+-- Get tables (inventory, layoutData, scene, controls, ---) where the number filterType ads it's filterFunction to, via
+-- the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
+-- returns table { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
+function libFilters:GetFilterBase(filterType, gamePadMode)
+	if not filterType or filterType == "" then
+		dfe("Invalid arguments to GetFilterBase(%s).\n>Needed format is: number LibFiltersLF_*FilterType", tos(filterType))
+		return
+	end
+	gamePadMode = gamePadMode or false
+	return LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamePadMode][filterType]
 end
 
 
@@ -829,19 +1046,23 @@ function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
 end
 
 
+
 --**********************************************************************************************************************
 -- HOOKS
 --**********************************************************************************************************************
 --Hook the inventory layout or inventory control, a fragment, scene or userdata to apply the .additionalFilter entry for
---the filter functions registered via LibFilters:RegisterFilter("uniqueName," LF_*constant, callbackFilterFunction)
---> Using only 1 parameter "filterLFConstant" now, to determine the correct control/inventory/scene/fragment/userdata to
---> apply the entry .additionalFilter to from the constants table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
---> at the beginning of this file!
---> As the table could contain multiple variables to hook into per LF_* constant there needs to be a loop over the entries
-function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepadMode)
+--the filter functions registered via LibFilters:RegisterFilter("uniqueName," filterType, callbackFilterFunction)
+--Using only 1 parameter number filterType now, to determine the correct control/inventory/scene/fragment/userdata to
+--apply the entry .additionalFilter to from the constants table --> See file costants.lua, table
+--LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+--As the table could contain multiple variables to hook into per LF_* constant there needs to be a loop over the entries
+function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
+	local filterTypeName
 	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s", tos(libFilters:GetFilterTypeName(filterLFConstant)) .. " [" .. tos(filterLFConstant) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
+			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+					tos(filterTypeName) .. " [" .. tos(filterType) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
 		local funcName = inventoriesToHookForLFConstant_Table.funcName
@@ -852,7 +1073,9 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	end
 	local function hookNow(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s", tos(libFilters:GetFilterTypeName(filterLFConstant)) .. " [" .. tos(filterLFConstant) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
+			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+					tos(filterTypeName) .. " [" .. tos(filterType) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
 		if #inventoriesToHookForLFConstant_Table == 0 then return end
@@ -861,7 +1084,7 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 			if inventory ~= nil then
 				local layoutData = inventory.layoutData or inventory
 				--Store the filterType at the table to identify the panel
-				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterLFConstant --.LibFilters3_filterType
+				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
 
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
 				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
@@ -869,7 +1092,7 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
 				--which were added to other fields than "additionalFilter".
 				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
-				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[filterLFConstant]
+				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[filterType]
 				local otherOriginalFilter = layoutData[otherOriginalFilterAttributesAtLayoutData]
 				if otherOriginalFilter ~= nil then
 					local originalFilterNew
@@ -900,12 +1123,12 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 				if originalFilterType == "function" then
 					--Set the .additionalFilter again with the filter function of the original and LibFilters
 					layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
-						return originalFilter(...) and runFilters(filterLFConstant, ...)
+						return originalFilter(...) and runFilters(filterType, ...)
 					end
 				else
 					--Set the .additionalFilter again with the filter function of LibFilters only
 					layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
-						return runFilters(filterLFConstant, ...)
+						return runFilters(filterType, ...)
 					end
 				end
 			end
@@ -915,7 +1138,7 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	--Should the LF constant be hooked by any special function of LibFilters?
 	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
 	local inventoriesToHookForLFConstant
-	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterLFConstant]
+	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterType]
 	if hookSpecialFunctionDataOfLFConstant ~= nil then
 		if hookKeyboardAndGamepadMode == true then
 			--Keyboard
@@ -945,19 +1168,19 @@ function libFilters:HookAdditionalFilter(filterLFConstant, hookKeyboardAndGamepa
 	if hookKeyboardAndGamepadMode == true then
 		--Keyboard
 		if not hookSpecialFunctionDataOfLFConstant then
-			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[false][filterLFConstant]
+			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[false][filterType]
 			hookNow(inventoriesToHookForLFConstant, false)
 		end
 		--Gamepad
 		if not hookSpecialFunctionDataOfLFConstant then
-			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][filterLFConstant]
+			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][filterType]
 			hookNow(inventoriesToHookForLFConstant, true)
 		end
 	else
 		--Only currently detected mode, gamepad or keyboard
 		if not hookSpecialFunctionDataOfLFConstant then
 			local gamepadMode = IsGamepad()
-			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode][filterLFConstant]
+			inventoriesToHookForLFConstant = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode][filterType]
 			hookNow(inventoriesToHookForLFConstant, gamepadMode)
 		end
 	end
@@ -967,6 +1190,7 @@ hookAdditionalFilter = libFilters.HookAdditionalFilter
 
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
+--Uses String specialType to define which special hooks should be used
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSpecial(specialType)
@@ -1014,7 +1238,8 @@ end
 
 
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
--- using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType (constant: defaultLibFiltersAttributeToStoreTheFilterType)
+--using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType (constant: defaultLibFiltersAttributeToStoreTheFilterType)
+--Uses String specialType to define which special hooks should be used
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSceneSpecial(specialType)
@@ -1058,7 +1283,7 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 		    --for GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData (see helpers.lua)
 			enchantingSceneGamepad:RegisterCallback("StateChange", function(oldState, newState)
 				if newState == SCENE_SHOWING then
---d("[LF3]GamePadEnchanting " ..tostring(libFilters:GetFilterTypeName(libFiltersEnchantingFilterType)) .." Scene:Showing")
+--d("[LF3]GamePadEnchanting " ..tostring(libFilters_GetFilterTypeName(libFilters, libFiltersEnchantingFilterType)) .." Scene:Showing")
 					updateLibFilters3_filterTypeAtGamepadEnchantingInventory(gamepadConstants.enchanting_GP)
 				end
 			end)
