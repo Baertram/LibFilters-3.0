@@ -198,7 +198,7 @@ local hookAdditionalFilter
 ------------------------------------------------------------------------------------------------------------------------
 --LibDebugLogger
 if LibDebugLogger then
-	 if not not libFilters.logger then
+	 if not libFilters.logger then
 		  libFilters.logger = LibDebugLogger(MAJOR)
 	 end
 end
@@ -1019,7 +1019,7 @@ end
 --OPTIONAL parameter number filterType maybe needed for the updater function call. If it's missing it's tried to be determined
 function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 	--d("[LibFilters3]RequestUpdateByName-updaterName: " ..tos(updaterName))
-	if not not updaterName or updaterName == "" then
+	if not updaterName or updaterName == "" then
 		dfe("Invalid arguments to RequestUpdateByName(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
 		return
