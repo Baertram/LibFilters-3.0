@@ -11,6 +11,13 @@ local inventories = keyboardConstants.inventories
 
 local iigpm = IsInGamepadPreferredMode
 
+--Debugging
+local debugFunctions = libFilters.debugFunctions
+local dd = debugFunctions.dd
+
+local isDebugginEnabled = libFilters.debug
+if isDebugginEnabled then dd("LIBRARY HELPER FILE - START") end
+
 ------------------------------------------------------------------------------------------------------------------------
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
@@ -1116,3 +1123,5 @@ for name, package in pairs(helpers) do
     end
 end
 helpers = nil
+
+if isDebugginEnabled then dd("LIBRARY HELPER FILE - END") end

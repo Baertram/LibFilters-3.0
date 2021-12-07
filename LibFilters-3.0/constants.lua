@@ -8,6 +8,9 @@ local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.0
 if _G[GlobalLibName] ~= nil then return end
 
 --local lua speed-up variables
+local tos = tostring
+local strform = string.format
+local strup = string.upper
 local tins = table.insert
 
 --local ZOs speed-up variables
@@ -20,9 +23,90 @@ local filters = libFilters.filters
 -- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
 -- after EVENT_ADD_ON_LOADED
 libFilters.isInitialized = false
+
 --Use the LF_FILTER_ALL registered filters as fallback filterFunctions for all panels -> see file LibFilters-3.0.lua,
 --function runFilters, and API function libFilters:SetFilterAllState(boolean newState)
 libFilters.useFilterAllFallback = false
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Debugging output enabled/disabled: Changed via SLASH_COMMANDS /libfiltersdebug or /lfdebug
+libFilters.debug = false
+
+--LibDebugLogger & debugging functions
+libFilters.debugFunctions = {}
+local debugFunctions = libFilters.debugFunctions
+
+if LibDebugLogger then
+	 if not libFilters.logger then
+		  libFilters.logger = LibDebugLogger(MAJOR)
+	 end
+end
+local logger = libFilters.logger
+
+
+--Debugging output
+local function debugMessage(text, textType)
+	 if not text or text == "" then return end
+	 textType = textType or 'I'
+	 if logger ~= nil then
+		  if textType == 'D' then
+				logger:Debug(text)
+		  elseif textType == 'E' then
+				logger:Error(text)
+		  elseif textType == 'I' then
+				logger:Info(text)
+		  elseif textType == 'V' then
+				logger:Verbose(text)
+		  elseif textType == 'W' then
+				logger:Warn(text)
+		  end
+	 else
+		  local textTypeToPrefix = {
+				["D"] = "Debug",
+				["E"] = "Error",
+				["I"] = "Info",
+				["V"] = "Verbose",
+				["W"] = "Warning",
+		  }
+		  d("[".. MAJOR .."]" .. tos(textTypeToPrefix[textType]) .. ": ".. tos(text))
+	 end
+end
+debugFunctions.debugMessage = debugMessage
+
+
+--Debugging output
+local function debugMessageCaller(debugType, ...)
+	debugMessage(strform(...), strup(debugType))
+end
+debugFunctions.debugMessageCaller = debugMessageCaller
+
+--Debugging
+local function dd(...)
+	debugMessageCaller('D', ...)
+end
+debugFunctions.dd = dd
+
+--Information
+local function df(...)
+	debugMessageCaller('I', ...)
+end
+debugFunctions.df = df
+
+--Error message
+local function dfe(...)
+	debugMessageCaller('E', ...)
+end
+debugFunctions.dfe = dfe
+
+local function debugSlashToggle(args)
+	libFilters.debug = not libFilters.debug
+	df("Debugging %s", (not libFilters.debug and "disabled") or "enabled")
+end
+debugFunctions.debugSlashToggle = debugSlashToggle
+
+local isDebugginEnabled = libFilters.debug
+if isDebugginEnabled then dd("LIBRARY CONSTANTS FILE - START") end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
@@ -730,3 +814,5 @@ mapping.updaterNameToFilterType = updaterNameToFilterType
 --Will be filled within file LibFilters-3.0.lua with the above strings and their related updater function (divived by
 --keyboard and gamepad mode)
 mapping.inventoryUpdaters = { }
+
+if isDebugginEnabled then dd("LIBRARY CONSTANTS FILE - END") end

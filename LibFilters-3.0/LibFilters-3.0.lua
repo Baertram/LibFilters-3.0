@@ -120,8 +120,6 @@ local filters    = libFilters.filters
 ------------------------------------------------------------------------------------------------------------------------
 --lua API functions
 local tos = tostring
-local strform = string.format
-local strup = string.upper
 local strmat = string.match
 
 --Game API local speedup
@@ -196,55 +194,22 @@ local libFilters_hookAdditionalFilter
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
 ------------------------------------------------------------------------------------------------------------------------
---LibDebugLogger
-if LibDebugLogger then
-	 if not libFilters.logger then
-		  libFilters.logger = LibDebugLogger(MAJOR)
-	 end
-end
+--LibDebugLogger, or normal logger d() output
 local logger = libFilters.logger
+local debugFunctions = libFilters.debugFunctions
 
---Debugging output
-local function debugMessage(text, textType)
-	 if not text or text == "" then return end
-	 textType = textType or 'I'
-	 if logger ~= nil then
-		  if textType == 'D' then
-				logger:Debug(text)
-		  elseif textType == 'E' then
-				logger:Error(text)
-		  elseif textType == 'I' then
-				logger:Info(text)
-		  elseif textType == 'V' then
-				logger:Verbose(text)
-		  elseif textType == 'W' then
-				logger:Warn(text)
-		  end
-	 else
-		  local textTypeToPrefix = {
-				["D"] = "Debug",
-				["E"] = "Error",
-				["I"] = "Info",
-				["V"] = "Verbose",
-				["W"] = "Warning",
-		  }
-		  d("[".. MAJOR .."]" .. tos(textTypeToPrefix[textType]) .. ": ".. tos(text))
-	 end
-end
+local dd = debugFunctions.dd
+local df = debugFunctions.df
+local dfe = debugFunctions.dfe
 
-local function debugMessageCaller(debugType, ...)
-	debugMessage(strform(...), strup(debugType))
-end
+--Slash command to toggle the debug boolean true/false
+local debugSlashToggle = debugFunctions.debugSlashToggle
+SLASH_COMMANDS["/libfiltersdebug"] = 	debugSlashToggle
+SLASH_COMMANDS["/lfdebug"] = 			debugSlashToggle
 
---Information debug
-local function df(...)
-	debugMessageCaller('I', ...)
-end
---Error debug
-local function dfe(...)
-	debugMessageCaller('E', ...)
-end
+local isDebugginEnabled = libFilters.debug
 
+if isDebugginEnabled then dd("LIBRARY MAIN FILE - START") end
 
 ------------------------------------------------------------------------------------------------------------------------
 --KEYBOARD updater functions
@@ -252,15 +217,16 @@ end
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
---d("[LibFilters3]SafeUpdateList, inv: " ..tos(...))
-	 local isMouseVisible = SM:IsInUIMode()
-	 if isMouseVisible then HideMouse() end
-	 object:UpdateList(...)
-	 if isMouseVisible then ShowMouse() end
+	if isDebugginEnabled then dd("SafeUpdateList, inv: " ..tos(...)) end
+	local isMouseVisible = SM:IsInUIMode()
+	if isMouseVisible then HideMouse() end
+	object:UpdateList(...)
+	if isMouseVisible then ShowMouse() end
 end
 
 --Function to update a ZO_ListDialog1 dialog's list contents
 local function dialogUpdaterFunc(listDialogControl)
+	if isDebugginEnabled then dd("dialogUpdaterFunc, listDialogControl: %s", tos(listDialogControl:GetName())) end
 	 if listDialogControl == nil then return nil end
 	 --Get & Refresh the list dialog
 	 local listDialog = ZO_InventorySlot_GetItemListDialog()
@@ -279,7 +245,7 @@ end
 
 --Updater function for a normal inventory in keyboard mode
 local function updateKeyboardPlayerInventoryType(invType)
---d("[LibFilters3]updateKeyboardPlayerInventoryType - invType: " ..tos(invType))
+	if isDebugginEnabled then dd("updateKeyboardPlayerInventoryType - invType: %s", tos(invType)) end
 	SafeUpdateList(playerInv, invType)
 end
 
@@ -289,21 +255,23 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --Updater function for a crafting inventory in keyboard and gamepad mode
 local function updateCraftingInventoryDirty(craftingInventory)
+	if isDebugginEnabled then dd("updateCraftingInventoryDirty - craftingInventory: %s", tos(craftingInventory)) end
 	craftingInventory.inventory:HandleDirtyEvent()
 end
 
 -- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
+	if isDebugginEnabled then dd("updateFunction_GP_ZO_GamepadInventoryList - gpInvVar: %s, list: %s, callbackFunc: %s", tos(gpInvVar), tos(list), tos(callbackFunc)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar or not gpInvVar[list] then return end
 	local TRIGGER_CALLBACK = true
 	gpInvVar[list]:RefreshList(TRIGGER_CALLBACK)
-	
 	if callbackFunc then callbackFunc() end
 end
 
 -- update for LF_GUILDSTORE_SELL/LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
 local function updateFunction_GP_UpdateList(gpInvVar)
+	if isDebugginEnabled then dd("updateFunction_GP_UpdateList - gpInvVar: %s", tos(gpInvVar)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar then return end
 	gpInvVar:UpdateList()
@@ -311,12 +279,14 @@ end
 
 -- update function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
 local function updateFunction_GP_Vendor(component)
+	if isDebugginEnabled then dd("updateFunction_GP_Vendor - component: %s", tos(component)) end
 	if not store_componentsGP then return end
 	updateFunction_GP_UpdateList(store_componentsGP[component].list)
 end
 
 -- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST gamepad
 local function updateFunction_GP_ItemList(gpInvVar)
+	if isDebugginEnabled then dd("updateFunction_GP_ItemList - gpInvVar: %s", tos(gpInvVar)) end
 	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
 	gpInvVar:RefreshItemList()
 	if gpInvVar.itemList:IsEmpty() then
@@ -329,6 +299,7 @@ end
 
 -- update for LF_CRAFTBAG gamepad
 local function updateFunction_GP_CraftBagList(gpInvVar)
+	if isDebugginEnabled then dd("updateFunction_GP_CraftBagList - gpInvVar: %s", tos(gpInvVar)) end
 	if not gpInvVar.craftBagList then return end
 	gpInvVar:RefreshCraftBagList()
 	gpInvVar:RefreshItemActions()
@@ -336,6 +307,7 @@ end
 
 -- update for LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION gamepad
 local function updateFunction_GP_CraftingInventory(craftingInventory)
+	if isDebugginEnabled then dd("updateFunction_GP_CraftingInventory - craftingInventory: %s", tos(craftingInventory)) end
 	if not craftingInventory then return end
 	craftingInventory:PerformFullRefresh()
 end
@@ -361,6 +333,7 @@ gamepadConstants.InventoryUpdateFunctions = {
 		updateFunction_GP_ZO_GamepadInventoryList(gamepadConstants.invPlayerTrade_GP, "inventoryList")
 	end,
 	[LF_GUILDSTORE_SELL] = function()
+		if isDebugginEnabled and gamepadConstants.invGuildStoreSell_GP == nil then dd("updateFunction LF_GUILDSTORE_SELL: Added reference to GAMEPAD_TRADING_HOUSE_SELL") end
         gamepadConstants.invGuildStoreSell_GP = gamepadConstants.invGuildStoreSell_GP or GAMEPAD_TRADING_HOUSE_SELL
 		updateFunction_GP_UpdateList(gamepadConstants.invGuildStoreSell_GP)
 	end,
@@ -418,6 +391,7 @@ local inventoryUpdaters = {
 				--have to add filter possibilities not only in inventory consumables but also directly in the collections
 				--somehow
 			]]
+			if isDebugginEnabled then dd("updateFunction_GP_QUICKSLOT - Not supported yet!") end
 	--		SafeUpdateList(quickslots_GP) --TODO
 		else
 			SafeUpdateList(keyboardConstants.quickslots)
@@ -475,6 +449,7 @@ local inventoryUpdaters = {
 		else
 		end
 	]]
+		if isDebugginEnabled then dd("updateFunction GUILDSTORE_BROWSE: Not supported yet") end
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
@@ -490,6 +465,7 @@ local inventoryUpdaters = {
 		else
 		end
 	]]
+		if isDebugginEnabled then dd("updateFunction SMITHING_CREATION: Not supported yet") end
 	end,
 	SMITHING_DECONSTRUCT = function()
 		if IsGamepad() then
@@ -508,8 +484,10 @@ local inventoryUpdaters = {
 	SMITHING_RESEARCH = function()
 		if IsGamepad() then
 			if not researchPanel_GP.researchLineList then return end
+			if isDebugginEnabled then dd("updateFunction_GP_SMITHING_RESEARCH - SMITHING_GAMEPAD.researchPanel:Refresh() called") end
 			researchPanel_GP:Refresh()
 		else
+			if isDebugginEnabled then dd("updateFunction_Keyboard_SMITHING_RESEARCH - SMITHING.researchPanel:Refresh() called") end
 			keyboardConstants.researchPanel:Refresh()
 		end
 	end,
@@ -521,6 +499,7 @@ local inventoryUpdaters = {
 			-->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 			--sceneStateChangeCallbackUpdater(gamepadConstants.researchChooseItemDialog_GP, SCENE_HIDDEN, SCENE_SHOWING, 1, nil)
 			if not researchPanel_GP.confirmList then return end
+			if isDebugginEnabled then dd("updateFunction_GP_SMITHING_RESEARCH_DIALOG - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks(StateChange, nil, SCENE_SHOWING) called") end
 			gamepadConstants.researchChooseItemDialog_GP:FireCallbacks("StateChange", nil, SCENE_SHOWING)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
@@ -547,6 +526,7 @@ local inventoryUpdaters = {
 		else
 		end
 	]]
+		if isDebugginEnabled then dd("updateFunction PROVISIONING_COOK: Not supported yet") end
 	end,
 	PROVISIONING_BREW = function()
 	--[[
@@ -555,9 +535,11 @@ local inventoryUpdaters = {
 		else
 		end
 	]]
+		if isDebugginEnabled then dd("updateFunction PROVISIONING_BREW: Not supported yet") end
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
+			if isDebugginEnabled then dd("updateFunction_GP_RETRAIT: ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh() called") end
 			gamepadConstants.retrait_GP:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(keyboardConstants.retrait)
@@ -565,6 +547,7 @@ local inventoryUpdaters = {
 	end,
 	RECONSTRUCTION = function()
 		if IsGamepad() then
+			if isDebugginEnabled then dd("updateFunction_GP_RECONSTRUCTION: ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems() called") end
 			-- not sure how reconstruct works, how it would be filtered.
 			gamepadConstants.reconstruct_GP:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
@@ -617,7 +600,7 @@ libFilters.RunFilters = runFilters
 --Hook the different inventory panels (LibFilters filterTypes) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
 local function ApplyAdditionalFilterHooks()
-
+	if isDebugginEnabled then dd("ApplyAdditionalFilterHooks") end
 	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
 	for value, _ in ipairs(libFiltersFilterConstants) do
@@ -658,6 +641,7 @@ libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 --If boolean newState is enabled: function runFilters will also check for LF_FILTER_ALL filter functions and run them
 --If boolean newState is disabled: function runFilters will NOT use LF_FILTER_ALL fallback functions
 function libFilters:SetFilterAllState(newState)
+	if isDebugginEnabled then dd("SetFilterAllState-%s", tos(newState)) end
 	if newState == nil or type(newState) ~= "boolean" then
 		dfe("Invalid call to SetFilterAllState(%q).\n>Needed format is: boolean newState",
 			tos(newState))
@@ -676,6 +660,7 @@ end
 
 --Returns String LibFilters LF* filterType constant's name for the number filterType
 function libFilters:GetFilterTypeName(filterType)
+	if isDebugginEnabled then dd("GetFilterTypeName-%s", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid argument to GetFilterTypeName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -690,6 +675,7 @@ local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 --Either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 --or nil if error occured or no filter function type was determined
 function libFilters:GetFilterTypeFunctionType(filterType)
+	if isDebugginEnabled then dd("GetFilterTypeFunctionType-%s", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid argument to GetFilterTypeFunctionType(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -708,6 +694,7 @@ end
 --INVENTORY_BACKPACK, INVENTORY_BANK, ..., or a SCENE or a control given within table libFilters.mapping.
 --LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
+	if isDebugginEnabled then dd("GetCurrentFilterTypeForInventory-%s", tos(inventoryType)) end
 	if not inventoryType then
 		dfe("Invalid arguments to GetCurrentFilterTypeForInventory(%q).\n>Needed format is: inventoryTypeNumber(e.g. INVENTORY_BACKPACK)/userdata/table/scene/control inventoryType",
 			tos(inventoryType))
@@ -744,6 +731,7 @@ end
 --Check if a filterFunction at the String filterTag and OPTIONAL number filterType is already registered
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterRegistered(filterTag, filterType)
+	if isDebugginEnabled then dd("IsFilterRegistered-%q,%s", tos(filterTag), tos(filterType)) end
 	if not filterTag then
 		dfe("Invalid arguments to IsFilterRegistered(%q, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType",
 			tos(filterTag), tos(filterType))
@@ -769,6 +757,7 @@ local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 --Check if the LF_FILTER_ALL filterFunction at the String filterTag is already registered
 --Returns boolean true if registered already, false if not
 function libFilters:IsAllFilterRegistered(filterTag)
+	if isDebugginEnabled then dd("IsAllFilterRegistered-%q", tos(filterTag)) end
 	if not filterTag then
 		dfe("Invalid arguments to IsAllFilterRegistered(%q).\n>Needed format is: String uniqueFilterTag",
 			tos(filterTag))
@@ -785,6 +774,7 @@ local filterTagPatternErrorStr = "Invalid arguments to %s(%q, %s, %s).\n>Needed 
 --OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. The pattern will not be changed! Default: false
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, compareToLowerCase)
+	if isDebugginEnabled then dd("IsFilterTagPatternRegistered-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
 	if not filterTagPattern then
 		dfe(filterTagPatternErrorStr,
 			"IsFilterTagPatternRegistered", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
@@ -824,6 +814,7 @@ local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s)
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
+	if isDebugginEnabled then dd("RegisterFilter-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
 	local callbacks = filters[filterType]
 	if not filterTag or not filterType or not callbacks or type(filterCallback) ~= "function" then
 		dfe(registerFilteParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
@@ -848,6 +839,7 @@ local libFilters_RegisterFilter = libFilters.RegisterFilter
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
+	if isDebugginEnabled then dd("RegisterFilterIfUnregistered-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
 	local callbacks = filters[filterType]
 	if not filterTag or not filterType or not callbacks or type(filterCallback) ~= "function" then
 		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
@@ -868,6 +860,7 @@ end
 --You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
 --Returns true if any filter function was unregistered
 function libFilters:UnregisterFilter(filterTag, filterType)
+	if isDebugginEnabled then dd("UnregisterFilter-%q,%s", tos(filterTag), tos(filterType)) end
 	if not filterTag or filterTag == "" then
 		dfe("Invalid arguments to UnregisterFilter(%q, %s).\n>Needed format is: String filterTag, OPTIONAL number LibFiltersLF_*FilterType",
 			tos(filterTag), tos(filterType))
@@ -907,6 +900,7 @@ end
 --LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 --As the table could contain multiple variables to hook into per LF_* constant there needs to be a loop over the entries
 function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
+	if isDebugginEnabled then dd("HookAdditionalFilter-%q,%s", tos(filterType), tos(hookKeyboardAndGamepadMode)) end
 	local filterTypeName
 	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
@@ -918,6 +912,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		local funcName = inventoriesToHookForLFConstant_Table.funcName
 		if funcName ~= nil and funcName ~= "" and libFilters[funcName] ~= nil then
 			local params = inventoriesToHookForLFConstant_Table.params
+			if isDebugginEnabled then dd("HookAdditionalFilter > hookNowSpecial-%q,%s;%s", tos(filterType), tos(funcName), tos(params)) end
 			libFilters[funcName](libFilters, unpack(params)) --pass LibFilters as 1st param "self" TODO: needed?
 		end
 	end
@@ -934,7 +929,9 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 			if inventory ~= nil then
 				local layoutData = inventory.layoutData or inventory
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
+				local originalFilterCopy
 				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
+				if isDebugginEnabled then originalFilterCopy = originalFilter end
 
 				--Store the filterType at the table to identify the panel
 				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
@@ -942,7 +939,6 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
 				--which were added to other fields than "additionalFilter".
 				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
-				--[[
 				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[filterType]
 				local otherOriginalFilter = layoutData[otherOriginalFilterAttributesAtLayoutData]
 				if otherOriginalFilter ~= nil then
@@ -969,7 +965,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						originalFilter = originalFilterNew
 					end
 				end
-				]]
+				if isDebugginEnabled then dd("HookAdditionalFilter > hookNow-%q,%s,%s", tos(filterType), tos(otherOriginalFilter), tos(originalFilterCopy)) end
 
 				local originalFilterType = type(originalFilter)
 				if originalFilterType == "function" then
@@ -1046,6 +1042,7 @@ libFilters_hookAdditionalFilter = libFilters.HookAdditionalFilter
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSpecial(specialType)
+	if isDebugginEnabled then dd("HookAdditionalFilterSpecial-%q", tos(specialType)) end
 	if specialHooksDone[specialType] then return end
 
 	--[[
@@ -1095,6 +1092,7 @@ end
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSceneSpecial(specialType)
+	if isDebugginEnabled then dd("HookAdditionalFilterSceneSpecial-%q", tos(specialType)) end
 	if specialHooksDone[specialType] then return end
 
 --[[
@@ -1154,6 +1152,7 @@ end
 --Get the callback function of the String filterTag and number filterType
 --Returns function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables)
 function libFilters:GetFilterCallback(filterTag, filterType)
+	if isDebugginEnabled then dd("GetFilterCallback-%q,%q", tos(filterTag), tos(filterType)) end
 	if not filterTag or not filterType then
 		dfe("Invalid arguments to GetFilterCallback(%q, %q).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType",
 			tos(filterTag), tos(filterType))
@@ -1168,6 +1167,7 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTypeCallbacks(filterType)
+	if isDebugginEnabled then dd("GetFilterTypeCallbacks-%q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid arguments to GetFilterTypeCallbacks(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -1182,6 +1182,7 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerCase)
+	if isDebugginEnabled then dd("GetFilterTagCallbacks-%q,%s,%s", tos(filterTag), tos(filterType), tos(compareToLowerCase)) end
 	if not filterTag then
 		dfe("Invalid arguments to GetFilterTagCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
 			tos(filterTag), tos(filterType), tos(compareToLowerCase))
@@ -1223,6 +1224,7 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, compareToLowerCase)
+	if isDebugginEnabled then dd("GetFilterTagPatternCallbacks-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
 	if not filterTagPattern then
 		dfe(filterTagPatternErrorStr,
 			"GetFilterTagPatternCallbacks", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
@@ -1268,7 +1270,7 @@ end
 --OPTIONAL parameter number delay will add a delay to the call of the updater function
 --OPTIONAL parameter number filterType maybe needed for the updater function call. If it's missing it's tried to be determined
 function libFilters:RequestUpdateByName(updaterName, delay, filterType)
-	--d("[LibFilters3]RequestUpdateByName-updaterName: " ..tos(updaterName) .. ", delay: " ..tos(delay) .. ", filterType: " ..tos(filterType))
+	if isDebugginEnabled then dd("RequestUpdateByName-%q,%s,%s", tos(updaterName), tos(delay), tos(filterType)) end
 	if not updaterName or updaterName == "" then
 		dfe("Invalid arguments to RequestUpdateByName(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
@@ -1302,11 +1304,11 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 	else
 		delay = 10 --default value: 10ms
 	end
---d(">callbackName: " .. tos(callbackName) .. ", delay: " .. tos(delay))
+	if isDebugginEnabled then dd(">callbackName: %s, delay: %s", tos(callbackName), tos(delay)) end
 
 	local function updateFiltersNow()
 		EM:UnregisterForUpdate(callbackName)
---d(">>[LibFilters3]RequestUpdate->Filter update called, updaterName: " ..tos(updaterName) .. ", filterType: " ..tos(filterType) .. ", delay: " ..tostring(delay))
+		if isDebugginEnabled then dd("RequestUpdateByName->Filter update called, updaterName: %s, filterType: %s, delay: %s", tos(updaterName), tos(filterType), tos(delay)) end
 		inventoryUpdaters[updaterName](filterType)
 	end
 
@@ -1324,8 +1326,8 @@ local libFilters_RequestUpdateByName = libFilters.RequestUpdateByName
 --called multiple times shortly after another
 --OPTIONAL parameter number delay will add a delay to the call of the updater function
 function libFilters:RequestUpdate(filterType, delay)
-	--d("[LibFilters3]RequestUpdate-filterType: " ..tos(filterType))
 	local updaterName = filterTypeToUpdaterName[filterType]
+	if isDebugginEnabled then dd("RequestUpdate filterType: %q, updaterName: %s, delay: %s", tos(filterType), tos(updaterName), tos(delay)) end
 	if not filterType or not updaterName or updaterName == "" then
 		dfe("Invalid arguments to RequestUpdate(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -1338,6 +1340,7 @@ end
 -- Get the updater name of a number filterType
 -- returns String updateName
 function libFilters:GetFilterTypeUpdaterName(filterType)
+	if isDebugginEnabled then dd("GetFilterTypeUpdaterName filterType: %q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid arguments to GetFilterTypeUpdaterName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -1350,6 +1353,7 @@ end
 -- Get the updater filterTypes of a String updaterName
 -- returns nilable:table filterTypesOfUpdaterName { [1] = LF_INVENTORY, [2] = LF_..., [3] = ... }
 function libFilters:GetUpdaterNameFilterType(updaterName)
+	if isDebugginEnabled then dd("GetUpdaterNameFilterType updaterName: %q", tos(updaterName)) end
 	if updaterName == nil or updaterName == "" then
 		dfe("Invalid call to GetUpdaterNameFilterType(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
@@ -1369,6 +1373,7 @@ end
 -- Get the updater function used for updating/refresh of the inventories etc., by help of a String updaterName
 -- returns nilable:function updaterFunction(OPTIONAL filterType)
 function libFilters:GetUpdaterCallback(updaterName)
+	if isDebugginEnabled then dd("GetUpdaterCallback updaterName: %q", tos(updaterName)) end
 	if updaterName == nil or updaterName == "" then
 		dfe("Invalid call to GetUpdaterCallback(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
@@ -1381,6 +1386,7 @@ end
 -- Get the updater function used for updating/refresh of the inventories etc., by help of a number filterType
 -- returns nilable:function updaterFunction(OPTIONAL filterType)
 function libFilters:GetFilterTypeUpdaterCallback(filterType)
+	if isDebugginEnabled then dd("GetFilterTypeUpdaterCallback filterType: %q", tos(filterType)) end
 	if filterType == nil then
 		dfe("Invalid call to GetFilterTypeUpdaterCallback(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 				tos(filterType))
@@ -1400,6 +1406,7 @@ end
 -- the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
 -- returns table { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
 function libFilters:GetFilterBase(filterType, isInGamepadMode)
+	if isDebugginEnabled then dd("GetFilterBase filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
 	if not filterType or filterType == "" then
 		dfe("Invalid arguments to GetFilterBase(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
 				tos(filterType))
@@ -1455,6 +1462,7 @@ end
 --keyboard mode
 function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
 	 local craftingType = GetCraftingInteractionType()
+	if isDebugginEnabled then dd("SetResearchLineLoopValues craftingType: %q, fromResearchLineIndex: %q, toResearchLineIndex: %q, skipTable: %s", tos(craftingType), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(skipTable)) end
 	 if craftingType == CRAFTING_TYPE_INVALID then return false end
 	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
 	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
@@ -1497,6 +1505,7 @@ local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
 local function InstallHelpers()
+	if isDebugginEnabled then dd("InstallHelpers") end
 	for _, package in pairs(helpers) do
 		local helper = package.helper
 		local funcName = helper.funcName
@@ -1516,6 +1525,7 @@ end
 --**********************************************************************************************************************
 --Fixes which are needed
 local function ApplyFixes()
+	if isDebugginEnabled then dd("ApplyFixes") end
 	--[[
 		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
 		 --Added lines with 7.0.4:
@@ -1542,6 +1552,7 @@ end
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
+	if isDebugginEnabled then dd("InitializeLibFilters - %q", tos(libFilters.isInitialized)) end
 	 if libFilters.isInitialized then return end
 	 libFilters.isInitialized = true
 
@@ -1554,3 +1565,4 @@ end
 --______________________________________________________________________________________________________________________
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
 ApplyFixes()
+if isDebugginEnabled then dd("LIBRARY MAIN FILE - END") end

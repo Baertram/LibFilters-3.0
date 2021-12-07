@@ -57,6 +57,13 @@ local gamepadLibFiltersGuildStoreSellFragment
 local gamepadLibFiltersMaiLSendFragment
 local gamepadLibFiltersPlayerTradeFragment
 
+--Debugging
+local debugFunctions = libFilters.debugFunctions
+local dd = debugFunctions.dd
+
+local isDebugginEnabled = libFilters.debug
+if isDebugginEnabled then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - START") end
+
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Local helper functions
@@ -205,3 +212,6 @@ invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
 
 invMailSendScene_GP:AddFragment(gamepadLibFiltersMaiLSendFragment)
 invPlayerTradeScene_GP:AddFragment(gamepadLibFiltersPlayerTradeFragment)
+
+
+if isDebugginEnabled then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - END") end
