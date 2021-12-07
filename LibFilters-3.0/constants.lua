@@ -7,6 +7,9 @@ local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.0
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
 
+--local lua speed-up variables
+local tins = table.insert
+
 --local ZOs speed-up variables
 local SM = SCENE_MANAGER
 
@@ -719,7 +722,8 @@ for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDyna
 end
 mapping.filterTypeToUpdaterName = filterTypeToUpdaterName
 for filterType, updaterName in pairs(filterTypeToUpdaterName) do
-	updaterNameToFilterType[updaterName] = filterType
+	updaterNameToFilterType[updaterName] = updaterNameToFilterType[updaterName] or {}
+	tins(updaterNameToFilterType[updaterName], filterType)
 end
 mapping.updaterNameToFilterType = updaterNameToFilterType
 
