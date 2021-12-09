@@ -111,7 +111,7 @@ end
 --Name, global variable LibFilters3 name, and version
 ------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
-local MAJOR      = libFilters.name
+--local MAJOR      = libFilters.name
 local filters    = libFilters.filters
 
 
@@ -127,6 +127,7 @@ local EM = EVENT_MANAGER
 local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
 local nccnt = NonContiguousCount
+local gcit = GetCraftingInteractionType
 
 --LibFilters local speedup and reference variables
 --Overall constants & mapping
@@ -156,14 +157,31 @@ local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = constants.LIBFILTERS_F
 local filterTypeToUpdaterName = 	mapping.filterTypeToUpdaterName
 local updaterNameToFilterType = 	mapping.updaterNameToFilterType
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = 	mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local LF_FilterTypeToCheckControlOrSceneFragmentIsHidden 		= 	mapping.LF_FilterTypeToCheckControlOrSceneFragmentIsHidden
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
+
+local filterTypeToFilterTypeRespectingCraftType = mapping.filterTypeToFilterTypeRespectingCraftType
 
 --Keyboard
 local keyboardConstants = 			constants.keyboard
 local playerInv = 					keyboardConstants.playerInv
 local inventories = 				keyboardConstants.inventories
 local store = 						keyboardConstants.store
+local storeBuy = 					keyboardConstants.vendorBuy
+local storeSell = 					keyboardConstants.vendorSell
+local storeBuyBack = 				keyboardConstants.vendorBuyBack
+local storeRepair = 				keyboardConstants.vendorRepair
+local storeWindows = 				keyboardConstants.storeWindows
+local fence = 						keyboardConstants.fence
 local researchChooseItemDialog = 	keyboardConstants.researchChooseItemDialog
+local playerInvCtrl          = 		keyboardConstants.playerInvCtrl
+local companionEquipmentCtrl    = 	keyboardConstants.companionEquipment.control
+local characterCtrl          =		keyboardConstants.characterCtrl
+local companionCharacterCtrl = 		keyboardConstants.companionCharacterCtrl
+local enchanting             = 		keyboardConstants.enchanting
+local enchantingInvCtrl = 			enchanting.inventoryControl
+local alchemy = 					keyboardConstants.alchemy
+local alchemyCtrl =					keyboardConstants.alchemyCtrl
 
 --Gamepad
 local gamepadConstants = 			constants.gamepad
@@ -172,7 +190,21 @@ local invBank_GP = 					gamepadConstants.invBank_GP
 local invGuildBank_GP = 			gamepadConstants.invGuildBank_GP
 local store_GP = 					gamepadConstants.store_GP
 local store_componentsGP = 			store_GP.components
+local storeBuy_GP = 				gamepadConstants.vendorBuy_GP
+local storeSell_GP = 				gamepadConstants.vendorSell_GP
+local storeBuyBack_GP = 			gamepadConstants.vendorBuyBack_GP
+local storeRepair_GP =				gamepadConstants.vendorRepair_GP
+local fence_GP =					gamepadConstants.fence_GP
+
 local researchPanel_GP = 			gamepadConstants.researchPanel_GP
+local playerInvCtrl_GP          = 	gamepadConstants.playerInvCtrl_GP
+local companionEquipmentCtrl_GP = 	gamepadConstants.companionEquipment_GP.control
+local characterCtrl_GP          =	gamepadConstants.characterCtrl_GP
+local companionCharacterCtrl_GP = 	gamepadConstants.companionCharacterCtrl_GP
+local enchanting_GP = 				gamepadConstants.enchanting_GP
+local enchantingInvCtrls_GP     = 	gamepadConstants.enchantingInvCtrls_GP
+local alchemy_GP = 					gamepadConstants.alchemy
+local alchemyCtrl_GP =				gamepadConstants.alchemyCtrl_GP
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -190,6 +222,8 @@ local specialHooksLibFiltersDataRegistered = {}
 --in code prior to creation (functions using it won't be called before creation was done, but they are local and more
 --DOWN in the lua file than the actual fucntion's creation is done -> lua interpreter wouldn't find it).
 local libFilters_hookAdditionalFilter
+local libFilters_GetCurrentFilterTypeReference
+local libFilters_GetFilterBase
 
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
@@ -210,6 +244,158 @@ SLASH_COMMANDS["/lfdebug"] = 			debugSlashToggle
 local isDebugginEnabled = libFilters.debug
 
 if isDebugginEnabled then dd("LIBRARY MAIN FILE - START") end
+
+
+------------------------------------------------------------------------------------------------------------------------
+--LOCAL HELPER FUNCTIONS - Scenes
+------------------------------------------------------------------------------------------------------------------------
+local getCurrentScene = SM.GetCurrentScene
+local function getCurrentSceneInfo()
+    if not SM then return nil, "" end
+    local currentScene = getCurrentScene(SM)
+	local currentSceneName = (currentScene ~= nil and currentScene.name) or ""
+    return currentScene, currentSceneName
+end
+
+--Get the scene name which is assigned to the filterType and inputType
+--returns String sceneName ("", if no scene is assigned), sceneReference scene
+local function getSceneName(filterType, isInGamepadMode)
+	local retSceneName = ""
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local filterTypeData = LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[isInGamepadMode][filterType]
+	local retScene = filterTypeData ~= nil and filterTypeData["scene"]
+	if retScene and retScene.name then retSceneName = retScene.name end
+	return retSceneName, retScene
+end
+
+--Check if a scene or fragment is assigned to the filterType and inputType
+--If OPTIONAL parameter boolean sceneFirst is false/nil: If a fragment is provided in table
+--LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[isInGamepadMode][filterType] it will be checked first if it's shown
+--if also a scene is provided it will be checked after the fragment.
+--If OPTIONAL parameter boolean sceneFirst is true: If a scene is provided in the table
+--LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[isInGamepadMode][filterType] it will be checked first if it's shown
+--If a fragment is provided this will be checked after the scene.
+--In both cases: If any of them is shown he result will be true
+--returns boolean isShown, sceneOrFragmentReference sceneOrFragmentWhichIsShown
+local function isSceneFragmentShown(filterType, isInGamepadMode, sceneFirst)
+	sceneFirst = sceneFirst or false
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local resultIsShown, resultSceneOrFragment
+	local filterTypeData = LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[isInGamepadMode][filterType]
+	local retFragment = filterTypeData ~= nil and filterTypeData["fragment"]
+	local retScene = filterTypeData ~= nil and filterTypeData["scene"]
+	if not sceneFirst then
+		resultIsShown = (retFragment ~= nil and retFragment.state ~= nil and retFragment.state == SCENE_FRAGMENT_SHOWN) or false
+		resultIsShown = (not resultIsShown and (retScene ~= nil and retScene.state ~= nil and retScene.state == SCENE_SHOWN)) or false
+	else
+		resultIsShown = ((retScene ~= nil and retScene.state ~= nil and retScene.state == SCENE_SHOWN)) or false
+		resultIsShown = (not resultIsShown and (retFragment ~= nil and retFragment.state ~= nil and retFragment.state == SCENE_FRAGMENT_SHOWN)) or false
+	end
+	return resultIsShown, resultSceneOrFragment
+end
+
+--Check if a control is assigned to the filterType and inputType
+--returns boolean isShown), controlReference controlWhichIsShown
+local function isControlShown(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local filterTypeData = LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[isInGamepadMode][filterType]
+	local retCtrl = filterTypeData ~= nil and filterTypeData["control"]
+	if retCtrl and retCtrl.IsHidden then return not retCtrl:IsHidden(), retCtrl end
+	return nil, nil
+end
+
+------------------------------------------------------------------------------------------------------------------------
+--LOCAL HELPER FUNCTIONS - filterType mapping
+------------------------------------------------------------------------------------------------------------------------
+local function getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
+    craftType = craftType or gcit()
+	local filterTypeTarget = filterTypeSource
+    if craftType ~= CRAFTING_TYPE_INVALID then
+		if filterTypeToFilterTypeRespectingCraftType[craftType] ~= nil then
+			filterTypeTarget = filterTypeToFilterTypeRespectingCraftType[craftType][filterTypeSource]
+			if filterTypeTarget == nil then filterTypeTarget = filterTypeSource end
+		end
+    end
+	return filterTypeTarget
+end
+
+
+------------------------------------------------------------------------------------------------------------------------
+--LOCAL HELPER FUNCTIONS - Control IsShown checks
+------------------------------------------------------------------------------------------------------------------------
+local function isListDialogShown(dialogCustomControlToCheck)
+	local listDialog = ZO_InventorySlot_GetItemListDialog()
+	local data = listDialog and listDialog.control and listDialog.control.data
+	if data == nil then return false end
+	local owner = data.owner
+	if owner == nil or owner.control == nil then return false end
+	return owner.control == dialogCustomControlToCheck and not listDialog.control:IsHidden()
+end
+
+local function checkIfControlSceneFragmentOrOther(refVar)
+	--Control
+	if refVar.control then
+		return 1
+	--Scene or fragment
+	elseif refVar.sceneManager and refVar.state then
+		return 2
+	--Other
+	else
+		return 3
+	end
+	return nil
+end
+
+local function checkIfRefVarIsShown(refVar)
+	if not refVar then return false, nil end
+	local refType = checkIfControlSceneFragmentOrOther(refVar)
+	--Control
+	local isShown = false
+	if refType == 1 then
+		isShown = not refVar.control:IsHidden()
+	--Scene or fragment
+	elseif refType == 1 then
+		isShown = refVar.state == SCENE_FRAGMENT_SHOWN or SCENE_SHOWN
+	--Other
+	elseif refType == 1 then
+		isShown = false -- TODO
+	end
+	return isShown, refVar
+end
+
+local function getFilterBaseAndCheckWhichOneIsCurrentlyShown(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local referenceToFilterType, referencesToFilterType, filterTypeDetected
+	--Get possible controls, fragments etc. by help of the filterType
+	if filterType ~= nil and type(filterType) == "number" and filterType >= LF_FILTER_MIN and filterType <= LF_FILTER_MAX then
+		referencesToFilterType = libFilters_GetFilterBase(libFilters, filterType, isInGamepadMode)
+		if not referencesToFilterType then return nil, nil end
+		if type(referencesToFilterType) == "table" then
+			if #referencesToFilterType == 1 then
+				referenceToFilterType = referencesToFilterType[1]
+			end
+		else
+			referenceToFilterType = referencesToFilterType
+		end
+	end
+	--Check if control/fragment/etc. is shown
+	if referenceToFilterType ~= nil then
+		local isRefVarShown, refVar = checkIfRefVarIsShown(referenceToFilterType)
+		if isRefVarShown == true then
+			filterTypeDetected = filterType
+			referenceToFilterType = refVar
+		end
+	else
+		for _, lReferenceToFilterType in pairs(referencesToFilterType) do
+			local lIsRefVarShown, lRefVar = checkIfRefVarIsShown(lReferenceToFilterType)
+			if lIsRefVarShown == true then
+				return lRefVar, filterType
+			end
+		end
+	end
+	return referenceToFilterType, filterTypeDetected
+end
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --KEYBOARD updater functions
@@ -278,10 +464,10 @@ local function updateFunction_GP_UpdateList(gpInvVar)
 end
 
 -- update function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
-local function updateFunction_GP_Vendor(component)
-	if isDebugginEnabled then dd("updateFunction_GP_Vendor - component: %s", tos(component)) end
+local function updateFunction_GP_Vendor(storeMode)
+	if isDebugginEnabled then dd("updateFunction_GP_Vendor - storeMode: %s", tos(storeMode)) end
 	if not store_componentsGP then return end
-	updateFunction_GP_UpdateList(store_componentsGP[component].list)
+	updateFunction_GP_UpdateList(store_componentsGP[storeMode].list)
 end
 
 -- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST gamepad
@@ -674,6 +860,7 @@ local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 --Returns number typeOfFilterFunction used for the number LibFilters LF* filterType constant.
 --Either LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT or LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 --or nil if error occured or no filter function type was determined
+-- returns number filterFunctionType
 function libFilters:GetFilterTypeFunctionType(filterType)
 	if isDebugginEnabled then dd("GetFilterTypeFunctionType-%s", tos(filterType)) end
 	if not filterType then
@@ -722,6 +909,30 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
 	local inventory = (invVarIsNumber and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
 	if inventory == nil or inventory[defaultLibFiltersAttributeToStoreTheFilterType] == nil then return end --.LibFilters3_filterType
 	return inventory[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+end
+local libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeForInventory
+
+
+-- Get the actually used filterType via the shown control/scene/userdata information
+-- returns number LF*_filterType
+function libFilters:GetCurrentFilterType()
+	local inventoryOrControlOrSceneOrFragmentOrLayoutEtc = libFilters_GetCurrentFilterTypeReference(libFilters)
+	if inventoryOrControlOrSceneOrFragmentOrLayoutEtc == nil then return end
+	local currentFilterType = libFilters_GetCurrentFilterTypeForInventory(libFilters, inventoryOrControlOrSceneOrFragmentOrLayoutEtc)
+--For debugging:
+	libFilters._currentFilterBaseShown = inventoryOrControlOrSceneOrFragmentOrLayoutEtc
+	libFilters._currentFilterType = currentFilterType
+	return currentFilterType
+end
+
+
+--Function to return the mapped LF_* constant of a crafting type, for a parameter number LF_* filterType constant.
+--e.g. map LF_SMITHING_DECONSTRUCT to LF_JEWElRY_DECONSTRUCT if the current crafting type is CRAFT_TYPE_JEWELRY
+--OPTIONAL parameter number craftType can be passed in to overwrite the detected craftType (e.g. if you need the result
+--filterType without being at a crafting table).
+-- returns number LF*_filterType
+function libFilters:GetFilterTypeRespectingCraftType(filterTypeSource, craftType)
+	return getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
 end
 
 
@@ -1402,21 +1613,6 @@ end
 -- API to get tables, variables and other constants
 --**********************************************************************************************************************
 
--- Get tables (inventory, layoutData, scene, controls, ---) where the number filterType ads it's filterFunction to, via
--- the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
--- returns table { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
-function libFilters:GetFilterBase(filterType, isInGamepadMode)
-	if isDebugginEnabled then dd("GetFilterBase filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
-	if not filterType or filterType == "" then
-		dfe("Invalid arguments to GetFilterBase(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
-				tos(filterType))
-		return
-	end
-	isInGamepadMode = isInGamepadMode or IsGamepad()
-	return LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[isInGamepadMode][filterType]
-end
-
-
 -- Get constants used within keyboard filter hooks etc.
 -- returns table keyboardConstants
 function libFilters:GetKeyboardConstants()
@@ -1428,6 +1624,339 @@ end
 -- returns table gamepadConstants
 function libFilters:GetGamepadConstants()
 	return gamepadConstants
+end
+
+
+--**********************************************************************************************************************
+-- API to get controls/scenes/fragments/userdata/inventories which contain the libFilters filterType
+--**********************************************************************************************************************
+
+-- Get tables (inventory, layoutData, scene, controls, ---) where the number filterType ands it's filterFunction to, via
+-- the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
+-- returns table { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
+function libFilters:GetFilterBase(filterType, isInGamepadMode)
+	if isDebugginEnabled then dd("GetFilterBase filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
+	if not filterType or filterType == "" then
+		dfe("Invalid arguments to GetFilterBase(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
+				tos(filterType))
+		return
+	end
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local filterBase = LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[isInGamepadMode][filterType]
+--For debugging:
+	libFilters._currentFilterBase = filterBase
+	return filterBase
+end
+libFilters_GetFilterBase = libFilters.GetFilterBase
+
+
+-- Get the actually shown control/scene/userdata/inventory number e.g. INVENTORY_BACKPACK information which is relevant for a libFilters LF_* filterType.
+-- OPTIONAL parameter number filterType: If provided it will be used to determine the reference control/etc. directly
+-- returns control/scene/userdata/inventory number currentlyShownVariableOfLF_*filterType, number filterType
+function libFilters:GetCurrentFilterTypeReference(filterType)
+	local isInGamepadMode = IsGamepad()
+	local filterTypeDetected
+	local referenceToFilterType
+	if filterType ~= nil then
+		referenceToFilterType, filterTypeDetected = getFilterBaseAndCheckWhichOneIsCurrentlyShown(filterType, isInGamepadMode)
+	end
+	if referenceToFilterType == nil then
+		-- TODO -> Check FCOIS.checkPanel or getWhereAreWe and similar functions!
+		--The current game's SCENE and name (used for determining bank/guild bank deposit)
+		local currentScene, currentSceneName = getCurrentSceneInfo()
+
+		--CraftBagExtended addon is active? We got a currently shown fragment of CBE then e.g. but the "parent" filterType will be something like
+		--LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL etc., and needs to be used for the reference then
+		if CraftBagExtended ~= nil then
+			--TODO really needed to check here? Or just loop over the LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[isInGamepadMode] and check if they are shown
+		end
+
+		--Inside mail panel?
+		if (filterType and filterType == LF_MAIL_SEND) or (not filterType and not ctrlVars.MAIL_SEND.control:IsHidden()) then
+			filterTypeDetected = LF_MAIL_SEND
+			--Inside trading player 2 player panel?
+		elseif (filterType and filterType == LF_TRADE) or (not filterType and not ctrlVars.PLAYER_TRADE.control:IsHidden()) then
+			filterTypeDetected = LF_TRADE
+			--Are we at the store scene?
+		elseif (filterType and (filterType == LF_VENDOR_BUY or filterType == LF_VENDOR_SELL or filterType == LF_VENDOR_BUYBACK or filterType == LF_VENDOR_REPAIR)) or (not filterType and currentSceneName == ctrlVars.vendorSceneName) then
+			--Vendor buy
+			if (filterType and filterType == LF_VENDOR_BUY) or (not filterType and ((not ctrlVars.STORE:IsHidden() and ctrlVars.BACKPACK_BAG:IsHidden() and ctrlVars.STORE_BUY_BACK:IsHidden() and ctrlVars.REPAIR_LIST:IsHidden()))) then
+				filterTypeDetected = LF_VENDOR_BUY
+				--Vendor sell
+			elseif (filterType and filterType == LF_VENDOR_SELL) or (not filterType and ((ctrlVars.STORE:IsHidden() and not ctrlVars.BACKPACK_BAG:IsHidden() and ctrlVars.STORE_BUY_BACK:IsHidden() and ctrlVars.REPAIR_LIST:IsHidden()))) then
+				filterTypeDetected = LF_VENDOR_SELL
+				--Vendor buyback
+			elseif (filterType and filterType == LF_VENDOR_BUYBACK) or (not filterType and ((ctrlVars.STORE:IsHidden() and ctrlVars.BACKPACK_BAG:IsHidden() and not ctrlVars.STORE_BUY_BACK:IsHidden() and ctrlVars.REPAIR_LIST:IsHidden()))) then
+				filterTypeDetected = LF_VENDOR_BUYBACK
+				--Vendor repair
+			elseif (filterType and filterType == LF_VENDOR_REPAIR) or (not filterType and ((ctrlVars.STORE:IsHidden() and ctrlVars.BACKPACK_BAG:IsHidden() and ctrlVars.STORE_BUY_BACK:IsHidden() and not ctrlVars.REPAIR_LIST:IsHidden()))) then
+				filterTypeDetected = LF_VENDOR_REPAIR
+			end
+			--Fence/Launder scene
+		elseif (filterType and (filterType == LF_FENCE_SELL or filterType == LF_FENCE_LAUNDER)) or (not filterType and currentSceneName == getSceneName(LF_FENCE_SELL, isInGamepadMode)) then
+			--Inside fence sell?
+			local fenceCtrl = isInGamepadMode and fence_GP or fence
+			if (filterType and filterType == LF_FENCE_SELL) or (not filterType and (fenceCtrl ~= nil and fenceCtrl:IsSellingStolenItems())) then
+				filterTypeDetected = LF_FENCE_SELL
+				--Inside launder sell?
+			elseif (filterType and filterType == LF_FENCE_LAUNDER) or (not filterType and (fenceCtrl ~= nil and fenceCtrl:IsLaundering())) then
+				filterTypeDetected = LF_FENCE_LAUNDER
+			end
+			--Inside crafting station refinement
+		elseif (filterType and (filterType == LF_SMITHING_REFINE or filterType == LF_JEWELRY_REFINE)) or (not filterType and (not ctrlVars.REFINEMENT:IsHidden() or (filterType == LF_SMITHING_REFINE or filterType == LF_JEWELRY_REFINE))) then
+			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_REFINE)
+			--Inside crafting station deconstruction
+		elseif (filterType and (filterType == LF_SMITHING_DECONSTRUCT or filterType == LF_JEWELRY_DECONSTRUCT)) or (not filterType and (not ctrlVars.DECONSTRUCTION:IsHidden() or (filterType == LF_SMITHING_DECONSTRUCT or filterType == LF_JEWELRY_DECONSTRUCT))) then
+			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_DECONSTRUCT)
+			--Inside crafting station improvement
+		elseif (filterType and (filterType == LF_SMITHING_IMPROVEMENT or filterType == LF_JEWELRY_IMPROVEMENT)) or (not filterType and (not ctrlVars.IMPROVEMENT:IsHidden() or (filterType == LF_SMITHING_IMPROVEMENT or filterType == LF_JEWELRY_IMPROVEMENT))) then
+			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_IMPROVEMENT)
+			--Are we at the crafting stations research panel's popup list dialog?
+		elseif (filterType and (filterType == LF_SMITHING_RESEARCH_DIALOG or filterType == LF_JEWELRY_RESEARCH_DIALOG)) or (not filterType and (isResearchListDialogShown() or (filterType == LF_SMITHING_RESEARCH_DIALOG or filterType == LF_JEWELRY_RESEARCH_DIALOG))) then
+			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_RESEARCH_DIALOG)
+			--Are we at the crafting stations research panel?
+		elseif (filterType and (filterType == LF_SMITHING_RESEARCH or filterType == LF_JEWELRY_RESEARCH)) or (not filterType and (not ctrlVars.RESEARCH:IsHidden() or (filterType == LF_SMITHING_RESEARCH or filterType == LF_JEWELRY_RESEARCH))) then
+			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_RESEARCH)
+			--Inside enchanting station
+		elseif (filterType and (filterType == LF_ENCHANTING_EXTRACTION or filterType == LF_ENCHANTING_CREATION)) or (not filterType and not ctrlVars.ENCHANTING_STATION:IsHidden()) then
+			--Enchanting Extraction panel?
+			local enchantingMode = (isInGamepadMode and enchanting_GP:GetEnchantingMode()) or enchanting:GetEnchantingMode()
+			if filterType == LF_ENCHANTING_EXTRACTION or enchantingMode == ENCHANTING_MODE_EXTRACTION then
+				filterTypeDetected = LF_ENCHANTING_EXTRACTION
+				--Enchanting Creation panel?
+			elseif filterType == LF_ENCHANTING_CREATION or enchantingMode == ENCHANTING_MODE_CREATION then
+				filterTypeDetected = LF_ENCHANTING_CREATION
+			end
+			--Inside guild store selling?
+		elseif (filterType and filterType == LF_GUILDSTORE_SELL) or (not filterType and not ctrlVars.GUILD_STORE:IsHidden()) then
+			filterTypeDetected = LF_GUILDSTORE_SELL
+			--Are we at the alchemy station?
+		elseif (filterType and filterType == LF_ALCHEMY_CREATION) or (not filterType and not ctrlVars.ALCHEMY_STATION:IsHidden()) then
+			filterTypeDetected = LF_ALCHEMY_CREATION
+			--Are we at a bank and trying to withdraw some items by double clicking it?
+		elseif (filterType and filterType == LF_BANK_WITHDRAW) or (not filterType and not ctrlVars.BANK:IsHidden()) then
+			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
+			filterTypeDetected = LF_BANK_WITHDRAW
+		elseif (filterType and filterType == LF_HOUSE_BANK_WITHDRAW) or (not filterType and not ctrlVars.HOUSE_BANK:IsHidden()) then
+			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
+			filterTypeDetected = LF_HOUSE_BANK_WITHDRAW
+			--Are we at a guild bank and trying to withdraw some items by double clicking it?
+		elseif (filterType and filterType == LF_GUILDBANK_WITHDRAW) or (not filterType and not ctrlVars.GUILD_BANK:IsHidden()) then
+			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
+			filterTypeDetected = LF_GUILDBANK_WITHDRAW
+			--Are we at a transmutation/retrait station?
+		elseif (filterType and filterType == LF_RETRAIT) or (not filterType and libFilters:IsRetraitStationShown()) then
+			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
+			filterTypeDetected = LF_RETRAIT
+			--Are we at a companion inventory?
+		elseif (filterType and filterType == LF_INVENTORY_COMPANION) or (not filterType and libFilters:IsCompanionInventoryShown()) then
+			filterTypeDetected = LF_INVENTORY_COMPANION
+		--Are we at the bank deposit
+		elseif (filterType and filterType == LF_BANK_DEPOSIT or (not filterType and (IsBankOpen() or (currentSceneName ~= nil and (currentSceneName == ctrlVars.bankSceneName))) and ctrlVars.BANK:IsHidden())) then
+
+		--Are we at the guild bank deposit
+		elseif (filterType and filterType == LF_GUILDBANK_DEPOSIT or (not filterType and (IsGuildBankOpen() or (currentSceneName ~= nil and (currentSceneName == ctrlVars.guildBankSceneName))) and ctrlVars.GUILD_BANK:IsHidden())) then
+
+		--Are we at the house bank deposit
+		elseif (filterType and filterType == LF_HOUSE_BANK_DEPOSIT or (not filterType and (IsBankOpen() or (currentSceneName ~= nil and (currentSceneName == ctrlVars.houseBankSceneName))) and ctrlVars.HOUSE_BANK:IsHidden() )) then
+
+		--Are we at the inventory
+		elseif (filterType and (filterType == LF_INVENTORY or (not filterType and not ctrlVars.BACKPACK:IsHidden()))) then
+			filterTypeDetected = LF_INVENTORY
+		else
+			--All others: Unknown
+		end
+	end
+	if filterTypeDetected ~= nil then
+		--Get the filter base of the LF_* constant at filterTypeDetected from table LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[isInGamepadMode]
+		referenceToFilterType, filterTypeDetected = getFilterBaseAndCheckWhichOneIsCurrentlyShown(filterTypeDetected, isInGamepadMode)
+	end
+	return referenceToFilterType, filterTypeDetected
+end
+libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeReference
+
+
+
+--**********************************************************************************************************************
+-- API to check if controls/scenes/fragments/userdata/inventories are shown
+--**********************************************************************************************************************
+
+--Is the inventory control shown
+--returns boolean isShown
+function libFilters:IsInventoryShown()
+    --return (IsGamepad() and not playerInvCtrl_GP:IsHidden()) or not playerInvCtrl:IsHidden()
+	return not playerInvCtrl:IsHidden()
+end
+
+--Is the companion inventory control shown
+--returns boolean isShown
+function libFilters:IsCompanionInventoryShown()
+    return (IsGamepad() and not companionEquipmentCtrl_GP:IsHidden()) or not companionEquipmentCtrl:IsHidden()
+end
+
+--Is the character control shown
+--returns boolean isShown
+function libFilters:IsCharacterShown()
+    return (IsGamepad() and not characterCtrl_GP:IsHidden()) or not characterCtrl:IsHidden()
+end
+
+--Is the companion character control shown
+--returns boolean isShown
+function libFilters:IsCompanionCharacterShown()
+    return (IsGamepad() and not companionCharacterCtrl_GP:IsHidden()) or not companionCharacterCtrl:IsHidden()
+end
+
+
+--Check if the Enchanting panel is shown.
+--If OPTIONAL parameter number enchantingMode (either ENCHANTING_MODE_CREATION, ENCHANTING_MODE_EXTRACTION or
+-- ENCHANTING_MODE_RECIPES) is provided this enchanting mode must be set at the enchanting panel, if it is shown, to return
+-- true
+--return boolean isShown, number enchantingMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
+function libFilters:IsEnchantingShown(enchantingMode)
+    if enchantingMode and enchantingMode == ENCHANTING_MODE_NONE then return false, 0, nil	end
+	if IsGamepad() then
+		if enchantingMode ~= nil then
+			if enchantingInvCtrls_GP[enchantingMode] then
+				local enchantingControl = enchantingInvCtrls_GP[enchantingMode].control
+				return not enchantingControl:IsHidden(), enchantingMode, enchantingControl
+			end
+		else
+			for lEnchantMode, enchantScene in pairs(enchantingInvCtrls_GP) do
+				if enchantScene then
+					local enchantingControl = enchantScene.control
+					local isControlShown = not enchantScene.control:IsHidden()
+					if isControlShown == true then
+						return true, lEnchantMode, enchantingControl
+					end
+				end
+			end
+		end
+	else
+		if enchantingInvCtrl ~= nil and not enchantingInvCtrl:IsHidden() then
+			local lEnchantingMode = enchanting.GetEnchantingMode and enchanting:GetEnchantingMode()
+			if enchantingMode ~= nil then
+				if lEnchantingMode and lEnchantingMode == enchantingMode then
+					return true, enchantingMode, enchantingInvCtrl
+				end
+			else
+				return true, lEnchantingMode, enchantingInvCtrl
+			end
+		end
+	end
+	return false, enchantingMode, nil
+end
+
+--Check if the Alchemy panel is shown
+--If OPTIONAL parameter number alchemyMode (either ZO_ALCHEMY_MODE_CREATION, ZO_ALCHEMY_MODE_RECIPES is provided this
+-- alchemy mode must be set at the alchemy panel, if it is shown, to return true
+--return boolean isShown, number alchemyMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
+function libFilters:IsAlchemyShown(alchemyMode)
+	if alchemyMode and alchemyMode == ZO_ALCHEMY_MODE_NONE then return false, alchemyMode, nil end
+	if IsGamepad() then
+		if alchemyCtrl_GP ~= nil and not alchemyCtrl_GP:IsHidden() then
+			local lAlchemyMode = alchemy_GP.mode
+			if alchemyMode ~= nil then
+				if lAlchemyMode and lAlchemyMode == alchemyMode then
+					return true, alchemyMode, alchemyCtrl_GP
+				end
+			else
+				return true, lAlchemyMode, alchemyCtrl_GP
+			end
+		end
+	else
+		if alchemyCtrl ~= nil and not alchemyCtrl:IsHidden() then
+			local lAlchemyMode = alchemy.mode
+			if alchemyMode ~= nil then
+				if lAlchemyMode and lAlchemyMode == alchemyMode then
+					return true, alchemyMode, alchemyCtrl
+				end
+			else
+				return true, lAlchemyMode, alchemyCtrl
+			end
+		end
+	end
+	return false, alchemyMode, nil
+end
+
+
+--Check if the store (vendor) panel is shown
+--If OPTIONAL parameter number storeMode (either ZO_MODE_STORE_BUY, ZO_MODE_STORE_BUY_BACK, ZO_MODE_STORE_SELL,
+--ZO_MODE_STORE_REPAIR, ZO_MODE_STORE_SELL_STOLEN, ZO_MODE_STORE_LAUNDER, ZO_MODE_STORE_STABLE) is provided the store
+--mode mode must be set at the store panel, if it is shown, to return true
+--return boolean isShown, number storeMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
+function libFilters:IsStoreShown(storeMode)
+	if not ZO_Store_IsShopping() or (storeMode and storeMode == 0) then return false, storeMode, nil end
+	if IsGamepad() then
+		local function checkIfGPStoreCtrlOrFragmentShown(varToCheck, p_storeMode)
+			varToCheck = varToCheck or store_componentsGP[p_storeMode]
+			local ctrlToCheck = varToCheck.control
+			return (ctrlToCheck ~= nil and not ctrlToCheck:IsHidden()) or false,
+					ctrlToCheck ~= nil and ctrlToCheck
+		end
+
+		local currentStoreMode = (store_GP.GetCurrentMode ~= nil and store_GP:GetCurrentMode()) or 0
+		if currentStoreMode == 0 then
+			for lStoreMode, storeComponentCtrl in pairs(store_componentsGP) do
+				if checkIfGPStoreCtrlOrFragmentShown(storeComponentCtrl, lStoreMode) == true then
+					return true, lStoreMode, storeComponentCtrl
+				end
+			end
+		else
+			if storeMode ~= nil then
+				if not currentStoreMode == storeMode then
+					return false, currentStoreMode, nil
+				end
+			end
+			local isStoreCtrlShown, storeCtrl = checkIfGPStoreCtrlOrFragmentShown(nil, currentStoreMode)
+			return isStoreCtrlShown, currentStoreMode, storeCtrl
+		end
+	else
+		local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode)
+			varToCheck = varToCheck or storeWindows[p_storeMode]
+			if not varToCheck then return false end
+			local storeCtrl = varToCheck.control ~= nil
+									and varToCheck.control
+			local storeFragment = storeCtrl == nil and varToCheck.sceneManager ~= nil and varToCheck.state ~= nil
+									and varToCheck.state
+			return ((storeCtrl ~= nil and not storeCtrl:IsHidden())
+					or (storeFragment ~= nil and storeFragment == SCENE_FRAGMENT_SHOWN)) or false,
+					(storeCtrl ~= nil and storeCtrl) or storeFragment
+		end
+
+		--TODO how to get current store mode of keyboard mode?
+		--local storeWindowMode = store:GetWindowMode() --returns if in stable mode -> ZO_STORE_WINDOW_MODE_STABLE
+		local currenStoreMode = 0
+		if storeMode ~= nil then
+			if currenStoreMode ~= storeMode then
+				return false, currenStoreMode, nil
+			end
+			local isStoreCtrlShown, storeCtrl = checkIfStoreCtrlOrFragmentShown(nil, storeMode)
+			if isStoreCtrlShown == true then
+				return true, storeMode, storeCtrl
+			end
+		else
+			for lStoreMode, storeControlOrFragment in pairs(storeWindows) do
+				if checkIfStoreCtrlOrFragmentShown(storeControlOrFragment, lStoreMode) == true then
+					return true, lStoreMode, storeControlOrFragment
+				end
+			end
+		end
+	end
+	return false, storeMode, nil
+end
+
+
+--Is a list dialog currently shown? Check via passing in a parameter userdata/control customControl which's hidden state
+--will be checked
+--returns boolean isListDialogShown
+function libFilters:IsListDialogShown(dialogCustomControlToCheck)
+	return isListDialogShown(dialogCustomControlToCheck)
+end
+
+--is the retrait station curently shown
+--returns boolean isRetraitStation
+function libFilters:IsRetraitStationShown()
+	return ZO_RETRAIT_STATION_MANAGER:IsRetraitSceneShowing()
 end
 
 

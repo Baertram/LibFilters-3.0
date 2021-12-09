@@ -37,6 +37,7 @@ local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToA
 ------------------------------------------------------------------------------------------------------------------------
 --Local functions for the helpers
 ------------------------------------------------------------------------------------------------------------------------
+--Locals for .additionalFilters checks
 local function doesAdditionalFilterFuncExist(objectVar)
     return (objectVar and objectVar[defaultOriginalFilterAttributeAtLayoutData] and type(objectVar[defaultOriginalFilterAttributeAtLayoutData]) == "function") or false
 end
@@ -44,7 +45,7 @@ end
 --Check for .additionalFilter in an object and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
 	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
-	
+
     if doesAdditionalFilterFuncExist(objectVar) then
 		if resultIfNoAdditionalFilter then
 			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
@@ -56,7 +57,7 @@ end
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
 local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
 	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
-	
+
     if doesAdditionalFilterFuncExist(objectVar) then
 		if resultIfNoAdditionalFilter then
 			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](bagId, slotIndex)
@@ -64,6 +65,138 @@ local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, res
     end
 	return resultIfNoAdditionalFilter
 end
+
+--locals for gamepad inventory
+local bagList = { -- < rename?
+	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
+	[BAG_BANK]				= inventories[INVENTORY_BANK],
+	[BAG_SUBSCRIBER_BANK]	= inventories[INVENTORY_BANK],
+	[BAG_VIRTUAL]			= inventories[INVENTORY_CRAFT_BAG],
+	[BAG_GUILDBANK]			= inventories[INVENTORY_GUILD_BANK],
+	[BAG_HOUSE_BANK_ONE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TWO]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_THREE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FOUR]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FIVE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SIX]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SEVEN]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
+}
+
+
+--locals for gamepad Vendor/Fence
+local STORE_WEAPON_GROUP = 1
+local STORE_HEAVY_ARMOR_GROUP = 2
+local STORE_MEDIUM_ARMOR_GROUP = 3
+local STORE_LIGHT_ARMOR_GROUP = 4
+local STORE_JEWELRY_GROUP = 5
+local STORE_SUPPLIES_GROUP = 6
+local STORE_MATERIALS_GROUP = 7
+local STORE_QUICKSLOTS_GROUP = 8
+local STORE_COLLECTIBLE_GROUP = 9
+local STORE_QUEST_ITEMS_GROUP = 10
+local STORE_ANTIQUITY_LEADS_GROUP = 11
+local STORE_OTHER_GROUP = 12
+local function GetItemStoreGroup(itemData)
+    if itemData.entryType == STORE_ENTRY_TYPE_COLLECTIBLE then
+        return STORE_COLLECTIBLE_GROUP
+    elseif itemData.entryType == STORE_ENTRY_TYPE_QUEST_ITEM then
+        return STORE_QUEST_ITEMS_GROUP
+    elseif itemData.entryType == STORE_ENTRY_TYPE_ANTIQUITY_LEAD then
+        return STORE_ANTIQUITY_LEADS_GROUP
+    elseif itemData.equipType == EQUIP_TYPE_RING or itemData.equipType== EQUIP_TYPE_NECK then
+        return STORE_JEWELRY_GROUP
+    elseif itemData.itemType == ITEMTYPE_WEAPON or itemData.displayFilter == ITEMFILTERTYPE_WEAPONS then
+        return STORE_WEAPON_GROUP
+    elseif itemData.itemType == ITEMTYPE_ARMOR or itemData.displayFilter == ITEMFILTERTYPE_ARMOR then
+        local armorType
+        if itemData.bagId and itemData.slotIndex then
+            armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
+        else
+            armorType = GetItemLinkArmorType(itemData.itemLink)
+        end
+        if armorType == ARMORTYPE_HEAVY then
+            return STORE_HEAVY_ARMOR_GROUP
+        elseif armorType == ARMORTYPE_MEDIUM then
+            return STORE_MEDIUM_ARMOR_GROUP
+        elseif armorType == ARMORTYPE_LIGHT then
+            return STORE_LIGHT_ARMOR_GROUP
+        end
+    elseif ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData) then
+        return STORE_SUPPLIES_GROUP
+    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_CRAFTING) then
+        return STORE_MATERIALS_GROUP
+    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_QUICKSLOT) then
+        return STORE_QUICKSLOTS_GROUP
+    end
+    return STORE_OTHER_GROUP
+end
+local function GetBestItemCategoryDescription(itemData)
+    if itemData.storeGroup == STORE_COLLECTIBLE_GROUP then
+        local collectibleCategory = GetCollectibleCategoryTypeFromLink(itemData.itemLink)
+        return GetString("SI_COLLECTIBLECATEGORYTYPE", collectibleCategory)
+    elseif itemData.storeGroup == STORE_QUEST_ITEMS_GROUP then
+        return GetString(SI_ITEM_FORMAT_STR_QUEST_ITEM)
+    elseif itemData.storeGroup == STORE_ANTIQUITY_LEADS_GROUP then
+        return GetString(SI_GAMEPAD_VENDOR_ANTIQUITY_LEAD_GROUP_HEADER)
+    else
+        return ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription(itemData)
+    end
+end
+local function GetBestSellItemCategoryDescription(itemData)
+    local traitType = GetItemTrait(itemData.bagId, itemData.slotIndex)
+    if traitType == ITEM_TRAIT_TYPE_WEAPON_ORNATE or traitType == ITEM_TRAIT_TYPE_ARMOR_ORNATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_ORNATE then
+        return GetString("SI_ITEMTRAITTYPE", traitType)
+    else
+        return GetBestItemCategoryDescription(itemData)
+    end
+end
+
+-- optFilterFunction is an optional additional check to make when gathering all the stolen items
+-- ... are bag ids to get items from
+local function GetStolenItems(optFilterFunction, ...)
+    local function IsStolenItem(itemData)
+        local isStolen = itemData.stolen
+        if optFilterFunction then
+            return isStolen and optFilterFunction(itemData)
+        else
+            return isStolen
+        end
+    end
+    local items = SHARED_INVENTORY:GenerateFullSlotData(IsStolenItem, ...)
+    local unequippedItems = {}
+    --- Setup sort filter
+    for _, itemData in ipairs(items) do
+        itemData.isEquipped = false
+        itemData.meetsRequirementsToBuy = true
+        itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
+        itemData.storeGroup = GetItemStoreGroup(itemData)
+        itemData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemData)
+        table.insert(unequippedItems, itemData)
+    end
+    return unequippedItems
+end
+
+
+--Original function at:
+--smithingextraction_ or smithingimprovement_shared.lua
+--[[
+    function ZO_SharedSmithingExtraction_DoesItemPassFilter(bagId, slotIndex, filterType)
+        return ZO_CraftingUtils_GetSmithingFilterFromItem(bagId, slotIndex) == filterType
+    end
+
+    function ZO_SharedSmithingImprovement_DoesItemPassFilter(bagId, slotIndex, filterType)
+        return ZO_CraftingUtils_GetSmithingFilterFromItem(bagId, slotIndex) == filterType
+    end
+]]
+--->used for LF_RETRAIT, LF_SMITHING_REFINE, LF_JEWELRY_REFINE, LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT
+-----> As we overwrite ZO_SharedSmithingExtraction_DoesItemPassFilter and ZO_SharedSmithingImprovement_DoesItemPassFilter with the helpers we need a local replacement!
+local doesRetraitItemItemPassFilterOriginal =   ZO_RetraitStation_DoesItemPassFilter
+local doesSmithingItemPassFilterOriginal =      ZO_SharedSmithingExtraction_DoesItemPassFilter
+local doesImprovementItemPassFilterOriginal =   ZO_SharedSmithingImprovement_DoesItemPassFilter
+
 
 --Original function at:
 --smithingresearch_shared.lua
@@ -73,7 +206,6 @@ end
     end
 ]]
 -->Used for LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH, LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG
--->
 local function DoesNotBlockResearch(bagId, slotIndex)
     local disallowedItemTraits = {
         [ITEM_TRAIT_INFORMATION_RETRAITED] = true,
@@ -89,14 +221,29 @@ end
 --Some vanilla filters like the inventories of player, bank, guild bank deposits already use .additionalFilter them-
 --selves in the ZOs code and we did just hook it to add our own functions in addition. See file LibFilters-3.0.lua,
 --function libFilters:HookAdditionalFilter(LF_* constant) and runFilters()
+--
+-- version: The version of the helper. Used to check if another same helper is already installed and overwrite it with
+-- a newer version
+-- filterTypes: A table containing the gamepad (true) and keyboard (false) entries of LF_* filetrType constants which
+-- this helper function belongs to (overwrites)
+-- locations: A table with controls or other "locations" where the helper will be overwriting vanilla code. If the helper
+--           is just a function then the location will be _G (the global overall table). In other cases it will be the
+--           object variable where the function/helper needs to be overwritten (no class! only overwrit the "objects"!)
+-- helper: The helper's lua code, of the function/etc. which will be overwriting the vanilla code at the locations
 ------------------------------------------------------------------------------------------------------------------------
+
+
 
 ------------------------------------------------------------------------------------------------------------------------
  -- -v- KEYBOARD ONLY helpers
 ---------------------------------------------------------------------------------------------------------------------------
 --enable LF_VENDOR_BUY
 helpers["STORE_WINDOW:ShouldAddItemToList"] = {
-    version = 2,
+    version = 3,
+    filterTypes = {
+        [true] = {},
+        [false]={LF_VENDOR_BUY}
+    },
     locations = {
         [1] = STORE_WINDOW,
     },
@@ -125,7 +272,11 @@ helpers["STORE_WINDOW:ShouldAddItemToList"] = {
 
 --enable LF_VENDOR_BUYBACK
 helpers["BUY_BACK_WINDOW:UpdateList"] = {
-    version = 2,
+    version = 3,
+    filterTypes = {
+        [true] = {},
+        [false]={LF_VENDOR_BUYBACK}
+    },
     locations = {
         [1] = BUY_BACK_WINDOW,
     },
@@ -178,7 +329,11 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
 --enable LF_VENDOR_REPAIR
 local DATA_TYPE_REPAIR_ITEM = 1
 helpers["REPAIR_WINDOW:UpdateList"] = {
-    version = 3,
+    version = 4,
+    filterTypes = {
+        [true] = {},
+        [false]={LF_VENDOR_REPAIR}
+    },
     locations = {
         [1] = REPAIR_WINDOW,
     },
@@ -242,7 +397,11 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
 --enable LF_QUICKSLOT
 -->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
-    version = 3,
+    filterTypes = {
+        [true] = {},
+        [false]={LF_QUICKSLOT}
+    },
+    version = 4,
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
@@ -265,7 +424,11 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
 
 -->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
-    version = 2,
+    version = 3,
+    filterTypes = {
+        [true] = {},
+        [false]={LF_QUICKSLOT}
+    },
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
@@ -290,7 +453,11 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
 -->Will only be executed for the collectible items in the quickslot filters, but no inventory items
 local DATA_TYPE_COLLECTIBLE_ITEM = 2
 helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
-    version = 2,
+    version = 3,
+    filterTypes = {
+        [true] = {},
+        [false]={LF_QUICKSLOT}
+    },
     locations = {
         [1] = QUICKSLOT_WINDOW,
     },
@@ -343,6 +510,10 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
 --enable LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION
 helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION},
+        [false]={LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION}
+    },
     locations = {
         [1] = _G
     },
@@ -381,6 +552,10 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
 --enable LF_ALCHEMY_CREATION
 helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_ALCHEMY_CREATION},
+        [false]={LF_ALCHEMY_CREATION}
+    },
     locations = {
         [1] = _G
     },
@@ -418,9 +593,13 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
 }
 
 
---enable LF_SMITHING_RESEARCH -- since API 100023 Summerset
+--enable LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH -- since API 100023 Summerset
 helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     version = 6,
+    filterTypes = {
+        [true] = {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH},
+        [false]={LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}
+    },
     locations = {
         [1] = SMITHING.researchPanel,
         [2] = SMITHING_GAMEPAD.researchPanel, --Added with API 101032 The Deadlands 2021-10-06
@@ -532,6 +711,10 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 --enable LF_SMITHING_RESEARCH_DIALOG/LF_JEWELRY_RESEARCH_DIALOG smithing/jewelry
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG},
+        [false]={LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG}
+    },
     locations = {
         [1] = ZO_SharedSmithingResearch
     },
@@ -553,11 +736,12 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
 }
 
 --enable LF_RETRAIT
-local function doesSmithingItemPassFilter(bagId, slotIndex, filterType)
-	return ZO_CraftingUtils_GetSmithingFilterFromItem(bagId, slotIndex) == filterType
-end
 helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
-    version = 2,
+    version = 3,
+    filterTypes = {
+        [true] = {LF_RETRAIT},
+        [false]={LF_RETRAIT}
+    },
     locations = {
         [1] = _G
     },
@@ -567,7 +751,7 @@ helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
             -- get objectVar for LF_RETRAIT -> Use keyboard mode variable for gamepad mode as well
             local base = ZO_RETRAIT_KEYBOARD
 			
-			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+			local result = doesRetraitItemItemPassFilterOriginal(bagId, slotIndex, filterType)
 			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
         end,
     }
@@ -577,6 +761,13 @@ helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
 --enable LF_SMITHING_REFINE/LF_JEWELRY_REFINE/LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT smithing/jewelry
 helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
     version = 1,
+    filterTypes = {
+        [true] = {
+            LF_SMITHING_REFINE, LF_JEWELRY_REFINE,
+            LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT
+        },
+        [false]={LF_SMITHING_REFINE, LF_JEWELRY_REFINE, LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT}
+    },
     locations = {
         [1] = _G
     },
@@ -586,7 +777,7 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
 			-- get objectVar for LF_SMITHING_REFINE/LF_JEWELRY_REFINE, or LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT-> Use keyboard mode variable for gamepad mode as well
             local base = filterType == SMITHING_FILTER_TYPE_RAW_MATERIALS and SMITHING.refinementPanel or SMITHING.deconstructionPanel
 
-			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+			local result = doesSmithingItemPassFilterOriginal(bagId, slotIndex, filterType)
 			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
         end,
     }
@@ -596,6 +787,10 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
 --enable LF_SMITHING_IMPROVEMENT/LF_JEWELRY_IMPROVEMENT smithing/jewelry
 helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT},
+        [false]={LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT}
+    },
     locations = {
         [1] = _G
     },
@@ -605,7 +800,7 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 			-- get objectVar for LF_SMITHING_IMPROVEMENT or LF_JEWELRY_IMPROVEMENT -> Use keyboard mode variable for gamepad mode as well
             local base = SMITHING.improvementPanel
 			
-			local result = doesSmithingItemPassFilter(bagId, slotIndex, filterType)
+			local result = doesImprovementItemPassFilterOriginal(bagId, slotIndex, filterType)
 			return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
         end,
     }
@@ -619,105 +814,14 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 ------------------------------------------------------------------------------------------------------------------------
  -- -v- GAMEPAD ONLY helpers
 ------------------------------------------------------------------------------------------------------------------------
--------------------
---locals for Vendor/Fence
--------------------
-local STORE_WEAPON_GROUP = 1
-local STORE_HEAVY_ARMOR_GROUP = 2
-local STORE_MEDIUM_ARMOR_GROUP = 3
-local STORE_LIGHT_ARMOR_GROUP = 4
-local STORE_JEWELRY_GROUP = 5
-local STORE_SUPPLIES_GROUP = 6
-local STORE_MATERIALS_GROUP = 7
-local STORE_QUICKSLOTS_GROUP = 8
-local STORE_COLLECTIBLE_GROUP = 9
-local STORE_QUEST_ITEMS_GROUP = 10
-local STORE_ANTIQUITY_LEADS_GROUP = 11
-local STORE_OTHER_GROUP = 12
-local function GetItemStoreGroup(itemData)
-    if itemData.entryType == STORE_ENTRY_TYPE_COLLECTIBLE then
-        return STORE_COLLECTIBLE_GROUP
-    elseif itemData.entryType == STORE_ENTRY_TYPE_QUEST_ITEM then
-        return STORE_QUEST_ITEMS_GROUP
-    elseif itemData.entryType == STORE_ENTRY_TYPE_ANTIQUITY_LEAD then
-        return STORE_ANTIQUITY_LEADS_GROUP
-    elseif itemData.equipType == EQUIP_TYPE_RING or itemData.equipType== EQUIP_TYPE_NECK then
-        return STORE_JEWELRY_GROUP
-    elseif itemData.itemType == ITEMTYPE_WEAPON or itemData.displayFilter == ITEMFILTERTYPE_WEAPONS then
-        return STORE_WEAPON_GROUP
-    elseif itemData.itemType == ITEMTYPE_ARMOR or itemData.displayFilter == ITEMFILTERTYPE_ARMOR then
-        local armorType
-        if itemData.bagId and itemData.slotIndex then
-            armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
-        else
-            armorType = GetItemLinkArmorType(itemData.itemLink)
-        end
-        if armorType == ARMORTYPE_HEAVY then
-            return STORE_HEAVY_ARMOR_GROUP
-        elseif armorType == ARMORTYPE_MEDIUM then
-            return STORE_MEDIUM_ARMOR_GROUP
-        elseif armorType == ARMORTYPE_LIGHT then
-            return STORE_LIGHT_ARMOR_GROUP
-        end
-    elseif ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData) then
-        return STORE_SUPPLIES_GROUP
-    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_CRAFTING) then
-        return STORE_MATERIALS_GROUP
-    elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_QUICKSLOT) then
-        return STORE_QUICKSLOTS_GROUP
-    end
-    return STORE_OTHER_GROUP
-end
-local function GetBestItemCategoryDescription(itemData)
-    if itemData.storeGroup == STORE_COLLECTIBLE_GROUP then
-        local collectibleCategory = GetCollectibleCategoryTypeFromLink(itemData.itemLink)
-        return GetString("SI_COLLECTIBLECATEGORYTYPE", collectibleCategory)
-    elseif itemData.storeGroup == STORE_QUEST_ITEMS_GROUP then
-        return GetString(SI_ITEM_FORMAT_STR_QUEST_ITEM)
-    elseif itemData.storeGroup == STORE_ANTIQUITY_LEADS_GROUP then
-        return GetString(SI_GAMEPAD_VENDOR_ANTIQUITY_LEAD_GROUP_HEADER)
-    else
-        return ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription(itemData)
-    end
-end
-local function GetBestSellItemCategoryDescription(itemData)
-    local traitType = GetItemTrait(itemData.bagId, itemData.slotIndex)
-    if traitType == ITEM_TRAIT_TYPE_WEAPON_ORNATE or traitType == ITEM_TRAIT_TYPE_ARMOR_ORNATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_ORNATE then
-        return GetString("SI_ITEMTRAITTYPE", traitType)
-    else
-        return GetBestItemCategoryDescription(itemData)
-    end
-end
-
--- optFilterFunction is an optional additional check to make when gathering all the stolen items
--- ... are bag ids to get items from
-local function GetStolenItems(optFilterFunction, ...)
-    local function IsStolenItem(itemData)
-        local isStolen = itemData.stolen
-        if optFilterFunction then
-            return isStolen and optFilterFunction(itemData)
-        else
-            return isStolen
-        end
-    end
-    local items = SHARED_INVENTORY:GenerateFullSlotData(IsStolenItem, ...)
-    local unequippedItems = {}
-    --- Setup sort filter
-    for _, itemData in ipairs(items) do
-        itemData.isEquipped = false
-        itemData.meetsRequirementsToBuy = true
-        itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
-        itemData.storeGroup = GetItemStoreGroup(itemData)
-        itemData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemData)
-        table.insert(unequippedItems, itemData)
-    end
-    return unequippedItems
-end
-
 
 --enable LF_VENDOR_BUY for gamepad mode
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_VENDOR_BUY},
+        [false]={}
+    },
     locations = {
         [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list,
     },
@@ -765,6 +869,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = 
 --enable LF_VENDOR_SELL for gamepad mode
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_VENDOR_SELL},
+        [false]={}
+    },
     locations = {
         [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list,
     },
@@ -805,6 +913,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 --enable LF_VENDOR_BUYBACK for gamepad mode
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_VENDOR_BUYBACK},
+        [false]={}
+    },
     locations = {
         [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list,
     },
@@ -871,6 +983,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc
 --enable LF_VENDOR_REPAIR for gamepad mode
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"] = {
     version = 1,
+    filterTypes = {
+        [true] = {LF_VENDOR_REPAIR},
+        [false]={}
+    },
     locations = {
         [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list,
     },
@@ -922,6 +1038,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"]
 --enable LF_FENCE_SELL for gamepad mode
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc"] = { -- not tested
     version = 1,
+    filterTypes = {
+        [true] = {LF_FENCE_SELL},
+        [false]={}
+    },
     locations = {
         [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list,
     },
@@ -947,6 +1067,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
 --enable LF_FENCE_LAUNDER for gamepad mode
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"] = { -- not tested
     version = 1,
+    filterTypes = {
+        [true] = {LF_FENCE_LAUNDER},
+        [false]={}
+    },
     locations = {
         [1] = STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list,
     },
@@ -955,7 +1079,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
         func = function(searchContext)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
 			local function TextSearchFilterFunction(itemData)
-				local result = searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+				local result = searchContext and
+                        TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext,
+                                                                    BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT,
+                                                                    itemData.bagId, itemData.slotIndex)
 				if result then
                     result = checkAndRundAdditionalFilters(ZO_GamepadFenceLaunder, itemData, result)
 				end
@@ -970,6 +1097,10 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 --enable LF_INVENTORY_COMPANION for gamepad mode
 helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not tested
     version = 1,
+    filterTypes = {
+        [true] = {LF_INVENTORY_COMPANION},
+        [false]={}
+    },
     locations = {
         [1] = COMPANION_EQUIPMENT_GAMEPAD,
     },
@@ -997,6 +1128,10 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
 --enable LF_INVENTORY_QUEST for gamepad mode
 helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
     version = 1,
+    filterTypes = {
+        [true] = {LF_INVENTORY_QUEST},
+        [false]={}
+    },
     locations = {
         [1] = GAMEPAD_INVENTORY,
     },
@@ -1020,26 +1155,12 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 
 
 --enable LF_INVENTORY for gamepad mode
-local bagList = { -- < rename?
-	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
-	[BAG_BANK]				= inventories[INVENTORY_BANK],
-	[BAG_SUBSCRIBER_BANK]	= inventories[INVENTORY_BANK],
-	[BAG_VIRTUAL]			= inventories[INVENTORY_CRAFT_BAG],
-	[BAG_GUILDBANK]			= inventories[INVENTORY_GUILD_BANK],
-	[BAG_HOUSE_BANK_ONE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_TWO]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_THREE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_FOUR]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_FIVE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_SIX]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_SEVEN]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
-}
-
 helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
     version = 1,
+    filterTypes = {
+        [true] = {LF_INVENTORY},
+        [false]={}
+    },
     locations = {
         [1] = GAMEPAD_INVENTORY,
     },
@@ -1072,6 +1193,17 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
 --LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG/LF_MAIL_SEND for gamepad mode
 helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
     version = 1,
+    filterTypes = {
+        [true] = {
+            LF_BANK_WITHDRAW, LF_BANK_DEPOSIT,
+            LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT,
+            LF_HOUSEBANK_WITHDRAW, LF_HOUSEBANK_DEPOSIT,
+            LF_GUILDSTORE_SELL,
+            LF_CRAFTBAG,
+            LF_TRADE, LF_MAIL_SEND,
+        },
+        [false]={}
+    },
     locations = {
         [1] = ZO_GamepadInventoryList,
     },

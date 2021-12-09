@@ -30,6 +30,7 @@ local inventoryTypes = 				constants.inventoryTypes
 local playerInventoryType = 		inventoryTypes["player"] -- INVENTORY_BACKPACK
 local mapping = 					libFilters.mapping
 local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
+local LF_FilterTypeToCheckControlOrSceneFragmentIsHidden = mapping.LF_FilterTypeToCheckControlOrSceneFragmentIsHidden
 
 --Keyboard
 local keyboardConstants = 			constants.keyboard
@@ -185,6 +186,15 @@ LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_HOUSE_BANK_DE
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILDSTORE_SELL] 	= { gamepadLibFiltersGuildStoreSellFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_MAIL_SEND] 			= { gamepadLibFiltersMaiLSendFragment }
 LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_TRADE] 				= { gamepadLibFiltersPlayerTradeFragment }
+
+-->Update the references to the fragments so one is able to use them within the "isShown" routines
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_INVENTORY] 			= { ["fragment"] = gamepadLibFiltersInventoryDepositFragment }
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_BANK_DEPOSIT] 		= { ["fragment"] = gamepadLibFiltersBankDepositFragment }
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_GUILDBANK_DEPOSIT] 	= { ["fragment"] = gamepadLibFiltersGuildBankDepositFragment }
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_HOUSE_BANK_DEPOSIT]	= { ["fragment"] = gamepadLibFiltersHouseBankDepositFragment }
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_GUILDSTORE_SELL] 	= { ["fragment"] = gamepadLibFiltersGuildStoreSellFragment }
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_MAIL_SEND] 			= { ["fragment"] = gamepadLibFiltersMaiLSendFragment }
+LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_TRADE] 				= { ["fragment"] = gamepadLibFiltersPlayerTradeFragment }
 
 
 ------------------------------------------------------------------------------------------------------------------------
