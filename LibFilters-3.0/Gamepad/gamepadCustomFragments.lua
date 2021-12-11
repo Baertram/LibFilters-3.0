@@ -25,31 +25,31 @@ local libFilters = LibFilters3
 
 --LibFilters local speedup and reference variables
 --Overall constants
-local constants = 					libFilters.constants
-local inventoryTypes = 				constants.inventoryTypes
-local playerInventoryType = 		inventoryTypes["player"] -- INVENTORY_BACKPACK
-local mapping = 					libFilters.mapping
-local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
-local LF_FilterTypeToCheckControlOrSceneFragmentIsHidden = mapping.LF_FilterTypeToCheckControlOrSceneFragmentIsHidden
+local constants = 								libFilters.constants
+local inventoryTypes = 							constants.inventoryTypes
+local playerInventoryType = 					inventoryTypes["player"] -- INVENTORY_BACKPACK
+local mapping = 								libFilters.mapping
+local LF_FilterTypeToReference =				mapping.LF_FilterTypeToReference
+local LF_FilterTypeToCheckIfReferenceIsHidden = mapping.LF_FilterTypeToCheckIfReferenceIsHidden
 
 --Keyboard
-local keyboardConstants = 			constants.keyboard
-local palyerInventory = 			keyboardConstants.playerInv
+local kbc             = 						constants.keyboard
+local playerInventory = 						kbc.playerInv
 
 --Gamepad
-local gamepadConstants = 			constants.gamepad
-local invRootScene = 				gamepadConstants.invRootScene
-local invBank_GP = 					gamepadConstants.invBank_GP
-local invGuildBankDepositScene_GP = gamepadConstants.invGuildBankDepositScene_GP
-local invGuildStoreSellScene_GP = 	gamepadConstants.invGuildStoreSellScene_GP
-local invMailSendScene_GP = 		gamepadConstants.invMailSendScene_GP
-local invPlayerTradeScene_GP = 		gamepadConstants.invPlayerTradeScene_GP
+local gpc                         = 			constants.gamepad
+local invRootScene                = 			gpc.invRootScene
+local invBank_GP                  = 			gpc.invBank_GP
+local invGuildBankDepositScene_GP = 			gpc.invGuildBankDepositScene_GP
+local invGuildStoreSellScene_GP   = 			gpc.invGuildStoreSellScene_GP
+local invMailSendScene_GP         = 			gpc.invMailSendScene_GP
+local invPlayerTradeScene_GP      = 			gpc.invPlayerTradeScene_GP
 
-local customFragments_GP = 			gamepadConstants.customFragments
-local fragmentPrefix = 				gamepadConstants.customFragmentPrefix
+local customFragments_GP          = 			gpc.customFragments
+local fragmentPrefix              = 			gpc.customFragmentPrefix
 
 
---The local fragment variables
+--The local variables for the new created custom LibFilters gamepad fragments
 local gamepadLibFiltersInventoryDepositFragment
 local gamepadLibFiltersBankDepositFragment
 local gamepadLibFiltersGuildBankDepositFragment
@@ -57,6 +57,7 @@ local gamepadLibFiltersHouseBankDepositFragment
 local gamepadLibFiltersGuildStoreSellFragment
 local gamepadLibFiltersMaiLSendFragment
 local gamepadLibFiltersPlayerTradeFragment
+
 
 --Debugging
 local debugFunctions = libFilters.debugFunctions
@@ -116,8 +117,8 @@ function LibFilters_InventoryLayoutFragment:ApplyInventoryLayout(layoutData)
 		return
 	end
 	]]
-	palyerInventory.appliedLayout = layoutData
-	palyerInventory.inventories[playerInventoryType].additionalFilter = layoutData.additionalFilter
+	playerInventory.appliedLayout                                     = layoutData
+	playerInventory.inventories[playerInventoryType].additionalFilter = layoutData.additionalFilter
 end
 
 
@@ -169,32 +170,33 @@ _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDe
 -- See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
 --> [LF_*] = {name="...", fragment=nil},
 ------------------------------------------------------------------------------------------------------------------------
-local customFragmentsUpdateRef                           = libFilters.constants.gamepad.customFragments
-customFragmentsUpdateRef[LF_INVENTORY].fragment          = gamepadLibFiltersInventoryDepositFragment
-customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment       = gamepadLibFiltersBankDepositFragment
-customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment = gamepadLibFiltersGuildBankDepositFragment
-customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment = gamepadLibFiltersHouseBankDepositFragment
-customFragmentsUpdateRef[LF_GUILDSTORE_SELL].fragment   = gamepadLibFiltersGuildStoreSellFragment
-customFragmentsUpdateRef[LF_MAIL_SEND].fragment          = gamepadLibFiltersMaiLSendFragment
-customFragmentsUpdateRef[LF_TRADE].fragment              = gamepadLibFiltersPlayerTradeFragment
---Update the table libFilters.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata for the gamepad mode fragments
--->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_INVENTORY] 			= { gamepadLibFiltersInventoryDepositFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_BANK_DEPOSIT] 		= { gamepadLibFiltersBankDepositFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILDBANK_DEPOSIT] 	= { gamepadLibFiltersGuildBankDepositFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_HOUSE_BANK_DEPOSIT] 	= { gamepadLibFiltersHouseBankDepositFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_GUILDSTORE_SELL] 	= { gamepadLibFiltersGuildStoreSellFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_MAIL_SEND] 			= { gamepadLibFiltersMaiLSendFragment }
-LF_ConstantToAdditionalFilterControlSceneFragmentUserdata[true][LF_TRADE] 				= { gamepadLibFiltersPlayerTradeFragment }
+local customFragmentsUpdateRef                           			= libFilters.constants.gamepad.customFragments
+customFragmentsUpdateRef[LF_INVENTORY].fragment          			= gamepadLibFiltersInventoryDepositFragment
+customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment      			= gamepadLibFiltersBankDepositFragment
+customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment 			= gamepadLibFiltersGuildBankDepositFragment
+customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment 			= gamepadLibFiltersHouseBankDepositFragment
+customFragmentsUpdateRef[LF_GUILDSTORE_SELL].fragment   			= gamepadLibFiltersGuildStoreSellFragment
+customFragmentsUpdateRef[LF_MAIL_SEND].fragment          			= gamepadLibFiltersMaiLSendFragment
+customFragmentsUpdateRef[LF_TRADE].fragment              			= gamepadLibFiltersPlayerTradeFragment
+
+--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
+-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
+LF_FilterTypeToReference[true][LF_INVENTORY]          				= { gamepadLibFiltersInventoryDepositFragment }
+LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       				= { gamepadLibFiltersBankDepositFragment }
+LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  				= { gamepadLibFiltersGuildBankDepositFragment }
+LF_FilterTypeToReference[true][LF_HOUSE_BANK_DEPOSIT] 				= { gamepadLibFiltersHouseBankDepositFragment }
+LF_FilterTypeToReference[true][LF_GUILDSTORE_SELL]    				= { gamepadLibFiltersGuildStoreSellFragment }
+LF_FilterTypeToReference[true][LF_MAIL_SEND]          				= { gamepadLibFiltersMaiLSendFragment }
+LF_FilterTypeToReference[true][LF_TRADE]              				= { gamepadLibFiltersPlayerTradeFragment }
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_INVENTORY] 			= { ["fragment"] = gamepadLibFiltersInventoryDepositFragment }
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_BANK_DEPOSIT] 		= { ["fragment"] = gamepadLibFiltersBankDepositFragment }
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_GUILDBANK_DEPOSIT] 	= { ["fragment"] = gamepadLibFiltersGuildBankDepositFragment }
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_HOUSE_BANK_DEPOSIT]	= { ["fragment"] = gamepadLibFiltersHouseBankDepositFragment }
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_GUILDSTORE_SELL] 	= { ["fragment"] = gamepadLibFiltersGuildStoreSellFragment }
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_MAIL_SEND] 			= { ["fragment"] = gamepadLibFiltersMaiLSendFragment }
-LF_FilterTypeToCheckControlOrSceneFragmentIsHidden[true][LF_TRADE] 				= { ["fragment"] = gamepadLibFiltersPlayerTradeFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]          = { ["fragment"] = gamepadLibFiltersInventoryDepositFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]       = { ["fragment"] = gamepadLibFiltersBankDepositFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]  = { ["fragment"] = gamepadLibFiltersGuildBankDepositFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT] = { ["fragment"] = gamepadLibFiltersHouseBankDepositFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]    = { ["fragment"] = gamepadLibFiltersGuildStoreSellFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]          = { ["fragment"] = gamepadLibFiltersMaiLSendFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]              = { ["fragment"] = gamepadLibFiltersPlayerTradeFragment }
 
 
 ------------------------------------------------------------------------------------------------------------------------

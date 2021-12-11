@@ -4,10 +4,11 @@
 local libFilters = LibFilters3
 
 --Helper variables of the library
-local constants = libFilters.constants
-local keyboardConstants = constants.keyboard
+local constants   = libFilters.constants
+local kbc         = constants.keyboard
+local gpc         = constants.gamepad
 
-local inventories = keyboardConstants.inventories
+local inventories = kbc.inventories
 
 local iigpm = IsInGamepadPreferredMode
 

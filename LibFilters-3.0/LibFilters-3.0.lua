@@ -130,6 +130,10 @@ local IsGamepad = IsInGamepadPreferredMode
 local nccnt = NonContiguousCount
 local gcit = GetCraftingInteractionType
 
+local getCurrentScene = SM.GetCurrentScene
+local getScene = SM.GetScene
+
+
 --LibFilters local speedup and reference variables
 --Overall constants & mapping
 local constants = 					libFilters.constants
@@ -226,6 +230,7 @@ local libFilters_hookAdditionalFilter
 local libFilters_GetCurrentFilterTypeReference
 local libFilters_GetFilterTypeReferences
 
+
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
 ------------------------------------------------------------------------------------------------------------------------
@@ -250,8 +255,6 @@ if isDebugginEnabled then dd("LIBRARY MAIN FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - Scenes
 ------------------------------------------------------------------------------------------------------------------------
-local getCurrentScene = SM.GetCurrentScene
-local getScene = SM.GetScene
 --Get the currently shown scene and sceneName
 local function getCurrentSceneInfo()
     if not SM then return nil, "" end
@@ -261,12 +264,16 @@ local function getCurrentSceneInfo()
 end
 
 --Compare the String/table sceneOrFragmentToCompare with the currentSceneOrFragment, or the sceneOrFragmentToCompare.name
---with currentSceneOrFragmentName
---return true if it matches
+--(of if it's a string it is the name already so compare it directly) with currentSceneOrFragmentName
+--return true if the compared scene/name matches the passed in scene/scne.name or sceneName (if it's a String)
 local function compareCurrentSceneFragment(sceneOrFragmentToCompare, currentSceneOrFragment, currentSceneOrFragmentName)
 	if not sceneOrFragmentToCompare then return end
 	if currentSceneOrFragment == nil then
 		currentSceneOrFragment, currentSceneOrFragmentName = getCurrentSceneInfo()
+	end
+	if (currentSceneOrFragment == nil and currentSceneOrFragment.name == "nil") and
+		(currentSceneOrFragmentName == nil or (currentSceneOrFragmentName ~= nil and currentSceneOrFragmentName == "")) then
+		return false
 	end
 	local sceneOrFragmentNameToCompare = ""
 	if type(sceneOrFragmentToCompare) == "String" then
@@ -1839,14 +1846,12 @@ end
 function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 	if isDebugginEnabled then dd("GetFilterBase filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
 	if not filterType or filterType == "" then
-		dfe("Invalid arguments to GetFilterBase(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
+		dfe("Invalid arguments to GetFilterTypeReferences(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
 				tos(filterType))
 		return
 	end
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local filterReferences = LF_FilterTypeToReference[isInGamepadMode][filterType]
---For debugging:
-	libFilters._currentFilterTypeReferences = filterReferences
 	return filterReferences
 end
 libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
@@ -1860,6 +1865,9 @@ function libFilters:GetCurrentFilterTypeReference(filterType)
 	local isInGamepadMode = IsGamepad()
 	local filterTypeDetected
 	local referencesToFilterType = {}
+	--For debugging:
+	libFilters._currentFilterTypeReferences = 	nil
+	libFilters._currentFilterType = 			nil
 	------------------------------------------------------------------------------------------------------------------------
 	--local helper function to detect the shon refrence now
 	local function detectShownRefereceNow(p_filterType)
@@ -1909,9 +1917,15 @@ function libFilters:GetCurrentFilterTypeReference(filterType)
 			end
 			--Prevent to return different filterTypes and references
 			if filterTypeDetected ~= nil and #referencesToFilterType > 0 then
+				--For debugging:
+				libFilters._currentFilterTypeReferences = 	referencesToFilterType
+				libFilters._currentFilterType = 			filterTypeDetected
 				return referencesToFilterType, filterTypeDetected
 			end
 		end
+		--For debugging:
+		libFilters._currentFilterTypeReferences = 	referencesToFilterType
+		libFilters._currentFilterType = 			filterTypeDetected
 		return referencesToFilterType, filterTypeDetected
 	end
 	------------------------------------------------------------------------------------------------------------------------
@@ -1976,8 +1990,8 @@ function libFilters:IsEnchantingShown(enchantingMode)
 			for lEnchantMode, enchantScene in pairs(enchantingInvCtrls_GP) do
 				if enchantScene then
 					local enchantingControl = enchantScene.control
-					local isControlShown = not enchantScene.control:IsHidden()
-					if isControlShown == true then
+					local isEnchantingControlShown = not enchantScene.control:IsHidden()
+					if isEnchantingControlShown == true then
 						return true, lEnchantMode, enchantingControl
 					end
 				end
@@ -2104,6 +2118,7 @@ end
 function libFilters:IsListDialogShown(dialogCustomControlToCheck)
 	return isListDialogShown(dialogCustomControlToCheck)
 end
+
 
 --is the retrait station curently shown
 --returns boolean isRetraitStation
