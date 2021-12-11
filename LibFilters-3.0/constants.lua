@@ -116,6 +116,7 @@ libFilters.globalLibName    = GlobalLibName
 ------------------------------------------------------------------------------------------------------------------------
 
 libFilters.constants = {}
+local constants = libFilters.constants
 
 ------------------------------------------------------------------------------------------------------------------------
 --LF_* FILTER PANEL ID constants
@@ -186,7 +187,7 @@ LF_FILTER_MAX					= #libFiltersFilterConstants
 LF_FILTER_ALL					= 9999
 
 --Add the filterTypes to the constants
-libFilters.constants.filterTypes = libFiltersFilterConstants
+constants.filterTypes = libFiltersFilterConstants
 
 --The default attribute at an inventory/layoutData/scene/control/userdata used within table filterTypeToReference
 --to store the libFilters 3.0 filterType. This will be used to determine which filterType is currently used and store the
@@ -197,46 +198,34 @@ libFilters.constants.filterTypes = libFiltersFilterConstants
 --is needed in addition as the nomal inventory is used for multiple panels, e.g. mail send, trade, bank deposit etc. and
 --only different fragments are able to distinguish the filtertype then!
 local defaultLibFiltersAttributeToStoreTheFilterType = "LibFilters3_filterType"
-libFilters.constants.defaultAttributeToStoreTheFilterType = defaultLibFiltersAttributeToStoreTheFilterType
+constants.defaultAttributeToStoreTheFilterType = defaultLibFiltersAttributeToStoreTheFilterType
 
 --The default attribute at an inventory/layoutData table where the filter functions of LiFilters should be added to
 --and where ZOs or other addons could have already added filter functions to -> See LibFilters-3.0.lua, function HookAdditionalFilters
 -->Default is: .additionalFilter e.g. at PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK] and BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
 -->Example why these are used, see above at comment above "defaultLibFiltersAttributeToStoreTheFilterType"
+--
+--!!! Important !!! There exist other special attributes which need to be applied as "fixes" -> e.g. for LF_CraftBag.
+-- Please search below for "local otherOriginalFilterAttributesAtLayoutData_Table = {"
 local defaultOriginalFilterAttributeAtLayoutData = "additionalFilter"
-libFilters.constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeAtLayoutData
+constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeAtLayoutData
 
---Other attributes at an inventory/layoutData table where ZOs or other addons could have already added filter functions to
---> See LibFilters-3.0.lua, function HookAdditionalFilters
--->Example is: .additionalCraftBagFilter at the CraftBag. Was added with ESOUI v7.0.4 so that normal additionalFilter
--->was not always overwriting the craftbag filter function, as the ApplyBackpackLayout was called:
---[[
-		--Old code was:
-		local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
-		craftBag.additionalFilter = layoutData.additionalFilter
-		--New code with ESOUI v7.0.4 is:
-		local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
-		craftBag.additionalFilter = layoutData.additionalCraftBagFilter
-]]
-local otherOriginalFilterAttributesAtLayoutData_Table = {
-	[LF_CRAFTBAG] = "additionalCraftBagFilter"
-}
-libFilters.constants.otherAttributesToGetOriginalFilterFunctions = otherOriginalFilterAttributesAtLayoutData_Table
+
 
 --The prefix for the updater name used in libFilters:RequestUpdate()
 local updaterNamePrefix = GlobalLibName .. "_updateInventory_"
-libFilters.constants.updaterNamePrefix = updaterNamePrefix
+constants.updaterNamePrefix = updaterNamePrefix
 
 ------------------------------------------------------------------------------------------------------------------------
 --ZOs / ESOUI CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
-libFilters.constants.keyboard = {}
+constants.keyboard = {}
 --KeyboardConstants
-local kbc 						= libFilters.constants.keyboard
+local kbc 						= constants.keyboard
 
-libFilters.constants.gamepad    = {}
+constants.gamepad    = {}
 --GamepadConstants
-local gpc                      = libFilters.constants.gamepad
+local gpc                      = constants.gamepad
 
 --Custom created fragments for the gamepad mode
 --Prefix of these fragments
@@ -253,13 +242,13 @@ local invTypeBank               =	INVENTORY_BANK
 local invTypeGuildBank          =	INVENTORY_GUILD_BANK
 local invTypeHouseBank 			=	INVENTORY_HOUSE_BANK
 local invTypeCraftBag 			= 	INVENTORY_CRAFT_BAG
-libFilters.constants.inventoryTypes = {}
-libFilters.constants.inventoryTypes["player"] = 	invTypeBackpack
-libFilters.constants.inventoryTypes["quest"] = 		invTypeQuest
-libFilters.constants.inventoryTypes["bank"] = 		invTypeBank
-libFilters.constants.inventoryTypes["guild_bank"] = invTypeGuildBank
-libFilters.constants.inventoryTypes["house_bank"] = invTypeHouseBank
-libFilters.constants.inventoryTypes["craftbag"] = 	invTypeCraftBag
+constants.inventoryTypes = {}
+constants.inventoryTypes["player"] = 	invTypeBackpack
+constants.inventoryTypes["quest"] = 		invTypeQuest
+constants.inventoryTypes["bank"] = 		invTypeBank
+constants.inventoryTypes["guild_bank"] = invTypeGuildBank
+constants.inventoryTypes["house_bank"] = invTypeHouseBank
+constants.inventoryTypes["craftbag"] = 	invTypeCraftBag
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -267,7 +256,8 @@ libFilters.constants.inventoryTypes["craftbag"] = 	invTypeCraftBag
 ------------------------------------------------------------------------------------------------------------------------
 --Inventory
 kbc.playerInv                     =  		    	PLAYER_INVENTORY
-kbc.inventories                   = 				kbc.playerInv.inventories
+local playerInv = kbc.playerInv
+kbc.inventories                   = 				playerInv.inventories
 local inventories                 = kbc.inventories
 kbc.playerInvCtrl                 = 				ZO_PlayerInventory
 
@@ -280,7 +270,7 @@ local invBackpack                 = kbc.invBackpack
 kbc.invBackpackFragment           = 		BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
 
 --Craftbag
---keyboardConstants.craftBagClass  =  			ZO_CraftBag
+kbc.craftBagClass  				  =  			ZO_CraftBag
 kbc.invCraftbag                   = 				inventories[invTypeCraftBag]
 
 --Quest items
@@ -540,7 +530,45 @@ gpc.customFragments             = {
 	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 			fragment=nil},
 	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 			fragment=nil},
 }
---local customFragments_GP = gamepadConstants.customFragments
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Fix for .additionalFilter attribute at some panels, e.g. LF_CRAFTBAG
+-----------------------------------------------------------------------------------------------------------------------
+--Other attributes at an inventory/layoutData table where ZOs or other addons could have already added filter functions to
+--> See LibFilters-3.0.lua, function HookAdditionalFilters
+-->Example is: .additionalCraftBagFilter at the CraftBag as PLAYER_INVENTRY:ApplyBackpackLayout will always overwrite
+-->PLAYER_INVENTORY.appliedLayout.additionalFilter. Since ESOUI v7.0.5 the filterFunctions overwriting the CraftBag will
+-->be read from the attribute layoutData.additionalCraftBagFilter
+-->So we need to write the LibFilters filterFunctions of LF_CRAFTBAG to exactly this attribute
+local otherOriginalFilterAttributesAtLayoutData_Table = {
+	--Keyboard mode
+	[false] = {
+		[LF_CRAFTBAG] = {
+			--Read from this attribute of the provided filterReference object in function libFilters:HookAdditionalFilter
+			["attributeRead"] 	= "additionalCraftBagFilter",
+			--Write the "attributeWrite" (e.g. "additionalFilter") to the objectWrite[subObjectWrite] (or if nil, to objectWrite)
+			--If objectWrite is nil subObjectWrite will not be used. If objectWrite is nil the object to add attributeWrite to will
+			--be the same where attributeRead was read from!
+			["attributeWrite"] 	= defaultOriginalFilterAttributeAtLayoutData, --additionalFilter
+			["objectWrite"] 	= nil, --kbc.invCraftbag,
+			["subObjectWrite"]	= nil,
+		}
+	},
+	--Gamepad mode -- 2021-12-11 no fixes needed yet
+	[true] = {
+		--[[
+		[LF_CRAFTABG] = {
+			["attributeRead"] 	= "additionalCraftBagFilter",
+			["attributeWrite"] 	= defaultOriginalFilterAttributeAtLayoutData, --additionalFilter
+			["objectWrite"] 	= nil, --kbc.invCraftbag,
+			["subObjectWrite"]	= nil,
+		}
+		]]
+	},
+}
+constants.otherAttributesToGetOriginalFilterFunctions = otherOriginalFilterAttributesAtLayoutData_Table
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad dynamic "INVENTORY" update functions
@@ -557,10 +585,10 @@ local mapping = libFilters.mapping
 
 --[Mapping for filter type to filter function type: inventorySlot or crafting with bagId, slotIndex]
 --Constants of the possible filter function types of LibFilters
-libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
-local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
-local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
+constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
+local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
+local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 
 libFilters.mapping.filterTypeToFilterFunctionType = {}
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType

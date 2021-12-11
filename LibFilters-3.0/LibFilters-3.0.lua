@@ -167,6 +167,7 @@ local LF_FilterTypeToCheckIfReferenceIsHidden = 					mapping.LF_FilterTypeToChec
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes =	mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
 
+
 --Keyboard
 local kbc                      = 	constants.keyboard
 local playerInv                = 	kbc.playerInv
@@ -1320,11 +1321,13 @@ end
 function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 	if libFilters.debug then dd("HookAdditionalFilter-%q,%s", tos(filterType), tos(hookKeyboardAndGamepadMode)) end
 	local filterTypeName
+	local filterTypeNameAndTypeText
 	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
 			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
+			filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
 			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-					tos(filterTypeName) .. " [" .. tos(filterType) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
 		local funcName = inventoriesToHookForLFConstant_Table.funcName
@@ -1335,10 +1338,11 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		end
 	end
 	local function hookNow(inventoriesToHookForLFConstant_Table, isInGamepadMode)
+		filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
+		filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
 		if not inventoriesToHookForLFConstant_Table then
-			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
 			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-					tos(filterTypeName) .. " [" .. tos(filterType) .. "]", tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
 		if #inventoriesToHookForLFConstant_Table == 0 then return end
@@ -1347,56 +1351,70 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 			if inventory ~= nil then
 				local layoutData = inventory.layoutData or inventory
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
-				local originalFilterCopy
 				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
-				if libFilters.debug then originalFilterCopy = originalFilter end
 
 				--Store the filterType at the table to identify the panel
 				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
 
 				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
 				--which were added to other fields than "additionalFilter".
-				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
-				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[filterType]
-				local otherOriginalFilter = layoutData[otherOriginalFilterAttributesAtLayoutData]
-				if otherOriginalFilter ~= nil then
-					local originalFilterNew
-					local typeOtherOriginalFilter = type(otherOriginalFilter)
-					if typeOtherOriginalFilter == "function" then
-						if originalFilter ~= nil then
-							originalFilterNew = function(...)
-								return originalFilter(...) and otherOriginalFilter(...)
+				--Will be read from layoutData[attributeRead] (attributeRead entry defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType])
+				--and write to (if entry objectWrite and/or subObjectWrite is/are defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
+				--they will be used to write to, else layoutData will be used again to write to)[attributeWrite]
+				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.appliedLayouts
+				local otherOriginalFilter
+				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
+				--Special filterFunction needed, not located at .additionalFilter but e.g. .additionalCraftBag filter?
+				if otherOriginalFilterAttributesAtLayoutData ~= nil then
+					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
+					df("HookAdditionalFilter-HookNow: Found otherOriginalFilterAttributesAtLayoutData: %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+						filterTypeNameAndTypeText, tos(readFromAttribute), tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+					otherOriginalFilter = layoutData[readFromAttribute]
+					if otherOriginalFilter ~= nil then
+						local writeToAttribute = otherOriginalFilterAttributesAtLayoutData.attributeWrite
+						local writeToObject = otherOriginalFilterAttributesAtLayoutData.objectWrite
+						if writeToObject ~= nil then
+							local writeToSubObject = otherOriginalFilterAttributesAtLayoutData.subObjectWrite
+							if writeToSubObject ~= nil and writeToObject[writeToSubObject] ~= nil then
+								writeToObject = writeToObject[writeToSubObject]
 							end
-						else
-							originalFilterNew = otherOriginalFilter
 						end
-					elseif typeOtherOriginalFilter == "boolean" then
-						if originalFilter ~= nil then
-							originalFilterNew = function(...)
-								return otherOriginalFilter and originalFilter(...)
-							end
-						else
-							originalFilterNew = function(...) return otherOriginalFilter end
+						if writeToObject == nil then writeToObject = layoutData end
+						if writeToAttribute == nil or writeToObject == nil then
+							dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the writeTo data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+									filterTypeNameAndTypeText,
+									tos((writeToAttribute ~= nil and "writeToAttribute=" .. writeToAttribute) or "writeToAttribute is missing"),
+									tos((writeToObject ~= nil and "writeToObject=" .. tos(writeToObject)) or "writeToObject is missing"),
+									tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+							return
 						end
-					end
-					if originalFilterNew ~= nil then
-						originalFilter = originalFilterNew
-					end
-				end
-				if libFilters.debug then dd("HookAdditionalFilter > hookNow-%q,%s,%s", tos(filterType), tos(otherOriginalFilter), tos(originalFilterCopy)) end
 
-				local originalFilterType = type(originalFilter)
-				if originalFilterType == "function" then
-					--Set the .additionalFilter again with the filter function of the original and LibFilters
-					layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
-						return originalFilter(...) and runFilters(filterType, ...)
+						local originalFilterType = type(otherOriginalFilter)
+						if originalFilterType == "function" then
+							writeToObject[writeToAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
+								return otherOriginalFilter(...) and runFilters(filterType, ...)
+							end
+						else
+							writeToObject[writeToAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
+								return runFilters(filterType, ...)
+							end
+						end
 					end
 				else
-					--Set the .additionalFilter again with the filter function of LibFilters only
-					layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
-						return runFilters(filterType, ...)
+					local originalFilterType = type(originalFilter)
+					if originalFilterType == "function" then
+						--Set the .additionalFilter again with the filter function of the original and LibFilters
+						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
+							return originalFilter(...) and runFilters(filterType, ...)
+						end
+					else
+						--Set the .additionalFilter again with the filter function of LibFilters only
+						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
+							return runFilters(filterType, ...)
+						end
 					end
 				end
+				if libFilters.debug then dd("HookAdditionalFilter > hookNow-%q,%s,%q,%s", tos(filterType), tos(originalFilter), tos(otherOriginalFilterAttributesAtLayoutData.attributeRead), tos(otherOriginalFilter)) end
 			end
 		end
 	end
@@ -2219,26 +2237,28 @@ end
 --**********************************************************************************************************************
 --Fixes which are needed
 local function ApplyFixes()
-	if libFilters.debug then dd("ApplyFixes") end
+	if libFilters.debug then dd("ApplyFixes-GamepadMode") end
 	--[[
 		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
 		 --Added lines with 7.0.4:
 		 local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
 		 craftBag.additionalFilter = layoutData.additionalFilter
-	]]
-	--[[
+
+		--Fix applied before was:
+		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+			--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
+			if kbc.craftBagClass:IsHidden() then return end
+			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
+			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
+		end)
+
 		--Update 2021-12-06: ZOs changed with version 7.1.5 to usage of own layoutData.additionalCraftBagFilter now
 		--But it still overwrites the filters "in general" and thus breaks this library
 		local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
 		craftBag.additionalFilter = layoutData.additionalCraftBagFilter
+		 --So we need to apply a fix to HookAdditionalFilter to read the .additionalCraftBagFilter attribute of
+		 --PLAYER_INVENTORY.appliedLayout and use this as filterFunctions
 	]]
-	 --Fix applied:
-	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-	--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
-		if kbc.craftBagClass:IsHidden() then return end
-		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-		libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
-	end)
 end
 
 
