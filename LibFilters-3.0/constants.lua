@@ -364,6 +364,7 @@ kbc.improvementPanel              = 	 		smithing.improvementPanel
 
 --Research
 kbc.researchPanel                 = 		 		smithing.researchPanel
+local researchPanel = kbc.researchPanel
 kbc.researchChooseItemDialog      = 	SMITHING_RESEARCH_SELECT
 
 --Enchanting
@@ -623,6 +624,14 @@ for filterTypeValue, _  in pairs(libFiltersFilterConstants) do
 	end
 end
 
+--[Mapping for dialogs]
+--The dialogs which are given at a filterType, e.g. smithing research keyboard mode
+local researchPanelControl = researchPanel.control
+local filterTypeToDialogOwnerControl = {
+	[LF_SMITHING_RESEARCH_DIALOG] =	researchPanelControl,
+	[LF_JEWELRY_RESEARCH_DIALOG] =	researchPanelControl,
+}
+mapping.LF_FilterTypeToDialogOwnerControl = filterTypeToDialogOwnerControl
 
 
 --[Mapping for crafting]

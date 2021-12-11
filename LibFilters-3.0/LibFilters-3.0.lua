@@ -166,7 +166,7 @@ local LF_FilterTypeToReference = 									mapping.LF_FilterTypeToReference
 local LF_FilterTypeToCheckIfReferenceIsHidden = 					mapping.LF_FilterTypeToCheckIfReferenceIsHidden
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes =	mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
-
+local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOwnerControl
 
 --Keyboard
 local kbc                      = 	constants.keyboard
@@ -522,13 +522,19 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - Control IsShown checks
 ------------------------------------------------------------------------------------------------------------------------
-local function isListDialogShown(dialogCustomControlToCheck)
+--Is the dialog's owner control shown
+local function isListDialogShown(dialogOwnerControlToCheck)
 	local listDialog = ZO_InventorySlot_GetItemListDialog()
 	local data = listDialog and listDialog.control and listDialog.control.data
 	if data == nil then return false end
 	local owner = data.owner
 	if owner == nil or owner.control == nil then return false end
-	return owner.control == dialogCustomControlToCheck and not listDialog.control:IsHidden()
+	return owner.control == dialogOwnerControlToCheck and not listDialog.control:IsHidden()
+end
+
+--Get the dialog's owner control by help of the filterType
+local function getDialogOwner(filterType)
+	return LF_FilterTypeToDialogOwnerControl[filterType]
 end
 
 local function checkIfControlSceneFragmentOrOther(refVar)
@@ -1310,283 +1316,6 @@ end
 
 
 --**********************************************************************************************************************
--- HOOKS
---**********************************************************************************************************************
---Hook the inventory layout or inventory control, a fragment, scene or userdata to apply the .additionalFilter entry for
---the filter functions registered via LibFilters:RegisterFilter("uniqueName," filterType, callbackFilterFunction)
---Using only 1 parameter number filterType now, to determine the correct control/inventory/scene/fragment/userdata to
---apply the entry .additionalFilter to from the constants table --> See file costants.lua, table
---LF_FilterTypeToReference
---As the table could contain multiple variables to hook into per LF_* constant there needs to be a loop over the entries
-function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
-	if libFilters.debug then dd("HookAdditionalFilter-%q,%s", tos(filterType), tos(hookKeyboardAndGamepadMode)) end
-	local filterTypeName
-	local filterTypeNameAndTypeText
-	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
-		if not inventoriesToHookForLFConstant_Table then
-			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
-			filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
-			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
-			return
-		end
-		local funcName = inventoriesToHookForLFConstant_Table.funcName
-		if funcName ~= nil and funcName ~= "" and libFilters[funcName] ~= nil then
-			local params = inventoriesToHookForLFConstant_Table.params
-			if libFilters.debug then dd("HookAdditionalFilter > hookNowSpecial-%q,%s;%s", tos(filterType), tos(funcName), tos(params)) end
-			libFilters[funcName](libFilters, unpack(params)) --pass LibFilters as 1st param "self" TODO: needed?
-		end
-	end
-	local function hookNow(inventoriesToHookForLFConstant_Table, isInGamepadMode)
-		filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
-		filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
-		if not inventoriesToHookForLFConstant_Table then
-			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
-			return
-		end
-		if #inventoriesToHookForLFConstant_Table == 0 then return end
-
-		for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
-			if inventory ~= nil then
-				local layoutData = inventory.layoutData or inventory
-				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
-				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
-
-				--Store the filterType at the table to identify the panel
-				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
-
-				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
-				--which were added to other fields than "additionalFilter".
-				--Will be read from layoutData[attributeRead] (attributeRead entry defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType])
-				--and write to (if entry objectWrite and/or subObjectWrite is/are defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
-				--they will be used to write to, else layoutData will be used again to write to)[attributeWrite]
-				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.appliedLayouts
-				local otherOriginalFilter
-				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
-				--Special filterFunction needed, not located at .additionalFilter but e.g. .additionalCraftBag filter?
-				if otherOriginalFilterAttributesAtLayoutData ~= nil then
-					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
-					df("HookAdditionalFilter-HookNow: Found otherOriginalFilterAttributesAtLayoutData: %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-						filterTypeNameAndTypeText, tos(readFromAttribute), tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
-					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
-					if readFromObject == nil then
-						--Fallback: Read from the same layoutData
-						readFromObject = layoutData
-					end
-					if readFromObject == nil then
-						--This will happen once for LF_CraftBag as PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] does not seem to exist yet
-						--as we try to add the .additionalCraftBagFilter to it
-						dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the readFrom data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-								filterTypeNameAndTypeText,
-								tos((readFromObject ~= nil and "readFromObject=" .. tos(readFromObject)) or "readFromObject is missing"),
-								tos((readFromAttribute ~= nil and "readFromAttribute=" .. readFromAttribute) or "readFromAttribute is missing"),
-								tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
-						return
-					end
-					otherOriginalFilter = readFromObject[readFromAttribute]
-					local useDefaultFunction = false
-					if otherOriginalFilter ~= nil then
-						local originalFilterType = type(otherOriginalFilter)
-						if originalFilterType == "function" then
-							useDefaultFunction = false
-							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
-								return otherOriginalFilter(...) and runFilters(filterType, ...)
-							end
-						else
-							useDefaultFunction = true
-						end
-					else
-						useDefaultFunction = true
-						--There was no filterFunction provided yet as the attribute was missing
-					end
-					if useDefaultFunction == true then
-						readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
-							return runFilters(filterType, ...)
-						end
-					end
-				else
-					local originalFilterType = type(originalFilter)
-					if originalFilterType == "function" then
-						--Set the .additionalFilter again with the filter function of the original and LibFilters
-						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
-							return originalFilter(...) and runFilters(filterType, ...)
-						end
-					else
-						--Set the .additionalFilter again with the filter function of LibFilters only
-						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
-							return runFilters(filterType, ...)
-						end
-					end
-				end
-				if libFilters.debug then dd("HookAdditionalFilter > hookNow-%q,%s,%q,%s", tos(filterType), tos(originalFilter), tos(otherOriginalFilterAttributesAtLayoutData.attributeRead), tos(otherOriginalFilter)) end
-			end
-		end
-	end
-	------------------------------------------------------------------------------------------------------------------------
-	--Should the LF constant be hooked by any special function of LibFilters?
-	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
-	local inventoriesToHookForLFConstant
-	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterType]
-	if hookSpecialFunctionDataOfLFConstant ~= nil then
-		if hookKeyboardAndGamepadMode == true then
-			--Keyboard
-			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[false]
-			if inventoriesToHookForLFConstant ~= nil then
-				hookNowSpecial(inventoriesToHookForLFConstant, false)
-			end
-			--Gamepad
-			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[true]
-			if inventoriesToHookForLFConstant ~= nil then
-				hookNowSpecial(inventoriesToHookForLFConstant, true)
-			end
-		else
-			--Only currently detected mode, gamepad or keyboard
-			local gamepadMode = IsGamepad()
-			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[gamepadMode]
-			hookNowSpecial(inventoriesToHookForLFConstant, gamepadMode)
-		end
-	end
-	inventoriesToHookForLFConstant = nil
-
-	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
-	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
-	--the .additionalFilter to the correct gamepad enchanting inventory
-	--So try to run the same LF_ constant as normal hook as well (if it exists)
-	--Hook normal via the given control/scene/fragment etc. -> See table LF_FilterTypeToReference
-	if hookKeyboardAndGamepadMode == true then
-		--Keyboard
-		if not hookSpecialFunctionDataOfLFConstant then
-			inventoriesToHookForLFConstant = LF_FilterTypeToReference[false][filterType]
-			hookNow(inventoriesToHookForLFConstant, false)
-		end
-		--Gamepad
-		if not hookSpecialFunctionDataOfLFConstant then
-			inventoriesToHookForLFConstant = LF_FilterTypeToReference[true][filterType]
-			hookNow(inventoriesToHookForLFConstant, true)
-		end
-	else
-		--Only currently detected mode, gamepad or keyboard
-		if not hookSpecialFunctionDataOfLFConstant then
-			local gamepadMode = IsGamepad()
-			inventoriesToHookForLFConstant = LF_FilterTypeToReference[gamepadMode][filterType]
-			hookNow(inventoriesToHookForLFConstant, gamepadMode)
-		end
-	end
-end
-libFilters_hookAdditionalFilter = libFilters.HookAdditionalFilter
-
-
---Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
---extra fragment for the different modes (creation, extraction).
---Uses String specialType to define which special hooks should be used
---> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
---> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
-function libFilters:HookAdditionalFilterSpecial(specialType)
-	if libFilters.debug then dd("HookAdditionalFilterSpecial-%q", tos(specialType)) end
-	if specialHooksDone[specialType] then return end
-
-	--[[
-	--ENCHANTING keyboard
-	if specialType == "enchanting" then
-
-		local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
-			local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
-			enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
-
-			specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
-
-			--Only once
-			if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
-				local originalFilter = enchantingVar.inventory.additionalFilter
-				local additionalFilterType = type(originalFilter)
-				if additionalFilterType == "function" then
-					enchantingVar.inventory.additionalFilter = function(...)
-						return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
-					end
-				else
-					enchantingVar.inventory.additionalFilter = function(...)
-						return runFilters(libFiltersEnchantingFilterType, ...)
-					end
-				end
-
-				specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
-			end
-
-		end
-
-		--Hook the class variable (used for keyboard and gamepad as a base) OnModeUpdate to get the switch between
-		--enchanting creation and enchanting extarction
-		ZO_PreHook(keyboardConstants.enchantingClass, "OnModeUpdated", function(selfEnchanting)
-			onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
-		end)
-
-		specialHooksDone[specialType] = true
-	end
-	]]
-end
-
-
---Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
---using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType (constant: defaultLibFiltersAttributeToStoreTheFilterType)
---Uses String specialType to define which special hooks should be used
---> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
---> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
-function libFilters:HookAdditionalFilterSceneSpecial(specialType)
-	if libFilters.debug then dd("HookAdditionalFilterSceneSpecial-%q", tos(specialType)) end
-	if specialHooksDone[specialType] then return end
-
---[[
-	--ENCHANTING gamepad
-	if specialType == "enchanting_GamePad" then
-		--The enchanting scenes to hook into
-		local enchantingScenesGamepad = {
-			[LF_ENCHANTING_CREATION] = 		gamepadConstants.enchantingCreate_GP,
-			[LF_ENCHANTING_EXTRACTION] = 	gamepadConstants.enchantingExtract_GP,
-		}
-
-		local function updateLibFilters3_filterTypeAtGamepadEnchantingInventory(enchantingVar)
-			local enchantingMode = enchantingVar:GetEnchantingMode()
-			local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
-			enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
-		end
-
-		--Add the .additionalFilter to the gamepad enchanting creation and extraction scenes once
-		--Only add .additionalFilter once
-		for libFiltersEnchantingFilterType, enchantingSceneGamepad in pairs(enchantingScenesGamepad) do
-			specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
-			if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
-				local originalFilter = enchantingSceneGamepad.additionalFilter
-				local additionalFilterType = type(originalFilter)
-				if additionalFilterType == "function" then
-					enchantingSceneGamepad.additionalFilter = function(...)
-						return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
-					end
-				else
-					enchantingSceneGamepad.additionalFilter = function(...)
-						return runFilters(libFiltersEnchantingFilterType, ...)
-					end
-				end
-				specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
-			end
-
-			--Register a stateChange callback: Change the .LibFilters3_filterType at GAMEPAD_ENCHANTING.inventory
-		    --for GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData (see helpers.lua)
-			enchantingSceneGamepad:RegisterCallback("StateChange", function(oldState, newState)
-				if newState == SCENE_SHOWING then
---d("[LF3]GamePadEnchanting " ..tostring(libFilters_GetFilterTypeName(libFilters, libFiltersEnchantingFilterType)) .." Scene:Showing")
-					updateLibFilters3_filterTypeAtGamepadEnchantingInventory(gamepadConstants.enchanting_GP)
-				end
-			end)
-		end
-
-		specialHooksDone[specialType] = true
-	end
-]]
-end
-
-
---**********************************************************************************************************************
 -- Filter callback functions
 --**********************************************************************************************************************
 
@@ -2133,11 +1862,21 @@ function libFilters:IsStoreShown(storeMode)
 end
 
 
---Is a list dialog currently shown? Check via passing in a parameter userdata/control customControl which's hidden state
---will be checked
+--Is a list dialog currently shown?
+--OPTIONAL parameter number filterType userdata/control to detect the owner control which's hidden state will be checked
+--OPTIONAL parameter userdata/control dialogOwnerControlToCheck which's hidden state will be checked
+--Any of the 2 parameters needs to be passed in
 --returns boolean isListDialogShown
-function libFilters:IsListDialogShown(dialogCustomControlToCheck)
-	return isListDialogShown(dialogCustomControlToCheck)
+function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
+	if dialogOwnerControlToCheck == nil then
+		if filterType == nil then
+			return false
+		else
+			dialogOwnerControlToCheck = getDialogOwner(filterType)
+			if dialogOwnerControlToCheck == nil then return false end
+		end
+	end
+	return isListDialogShown(dialogOwnerControlToCheck)
 end
 
 
@@ -2147,6 +1886,282 @@ function libFilters:IsRetraitStationShown()
 	return ZO_RETRAIT_STATION_MANAGER:IsRetraitSceneShowing()
 end
 
+
+--**********************************************************************************************************************
+-- HOOKS
+--**********************************************************************************************************************
+--Hook the inventory layout or inventory control, a fragment, scene or userdata to apply the .additionalFilter entry for
+--the filter functions registered via LibFilters:RegisterFilter("uniqueName," filterType, callbackFilterFunction)
+--Using only 1 parameter number filterType now, to determine the correct control/inventory/scene/fragment/userdata to
+--apply the entry .additionalFilter to from the constants table --> See file costants.lua, table
+--LF_FilterTypeToReference
+--As the table could contain multiple variables to hook into per LF_* constant there needs to be a loop over the entries
+function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
+	if libFilters.debug then dd("HookAdditionalFilter-%q,%s", tos(filterType), tos(hookKeyboardAndGamepadMode)) end
+	local filterTypeName
+	local filterTypeNameAndTypeText
+	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
+		if not inventoriesToHookForLFConstant_Table then
+			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
+			filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
+			dfe("HookAdditionalFilter SPECIAL-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+			return
+		end
+		local funcName = inventoriesToHookForLFConstant_Table.funcName
+		if funcName ~= nil and funcName ~= "" and libFilters[funcName] ~= nil then
+			local params = inventoriesToHookForLFConstant_Table.params
+			if libFilters.debug then dd("HookAdditionalFilter > hookNowSpecial-%q,%s;%s", tos(filterType), tos(funcName), tos(params)) end
+			libFilters[funcName](libFilters, unpack(params)) --pass LibFilters as 1st param "self" TODO: needed?
+		end
+	end
+	local function hookNow(inventoriesToHookForLFConstant_Table, isInGamepadMode)
+		filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
+		filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
+		if not inventoriesToHookForLFConstant_Table then
+			dfe("HookAdditionalFilter-table of hooks is empty for constant %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+			return
+		end
+		if #inventoriesToHookForLFConstant_Table == 0 then return end
+
+		for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
+			if inventory ~= nil then
+				local layoutData = inventory.layoutData or inventory
+				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
+				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
+
+				--Store the filterType at the table to identify the panel
+				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
+
+				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
+				--which were added to other fields than "additionalFilter".
+				--Will be read from layoutData[attributeRead] (attributeRead entry defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType])
+				--and write to (if entry objectWrite and/or subObjectWrite is/are defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
+				--they will be used to write to, else layoutData will be used again to write to)[attributeWrite]
+				-->e.g. LF_CRAFTBAG -> layoutData.additionalCraftBagFilter in PLAYER_INVENTORY.appliedLayouts
+				local otherOriginalFilter
+				local otherOriginalFilterAttributesAtLayoutData = otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
+				--Special filterFunction needed, not located at .additionalFilter but e.g. .additionalCraftBag filter?
+				if otherOriginalFilterAttributesAtLayoutData ~= nil then
+					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
+					df("HookAdditionalFilter-HookNow: Found otherOriginalFilterAttributesAtLayoutData: %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+						filterTypeNameAndTypeText, tos(readFromAttribute), tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
+					if readFromObject == nil then
+						--Fallback: Read from the same layoutData
+						readFromObject = layoutData
+					end
+					if readFromObject == nil then
+						--This will happen once for LF_CraftBag as PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] does not seem to exist yet
+						--as we try to add the .additionalCraftBagFilter to it
+						dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the readFrom data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+								filterTypeNameAndTypeText,
+								tos((readFromObject ~= nil and "readFromObject=" .. tos(readFromObject)) or "readFromObject is missing"),
+								tos((readFromAttribute ~= nil and "readFromAttribute=" .. readFromAttribute) or "readFromAttribute is missing"),
+								tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+						return
+					end
+					otherOriginalFilter = readFromObject[readFromAttribute]
+					local useDefaultFunction = false
+					if otherOriginalFilter ~= nil then
+						local originalFilterType = type(otherOriginalFilter)
+						if originalFilterType == "function" then
+							useDefaultFunction = false
+							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+								return otherOriginalFilter(...) and runFilters(filterType, ...)
+							end
+						else
+							useDefaultFunction = true
+						end
+					else
+						useDefaultFunction = true
+						--There was no filterFunction provided yet as the attribute was missing
+					end
+					if useDefaultFunction == true then
+						readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+							return runFilters(filterType, ...)
+						end
+					end
+				else
+					local originalFilterType = type(originalFilter)
+					if originalFilterType == "function" then
+						--Set the .additionalFilter again with the filter function of the original and LibFilters
+						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
+							return originalFilter(...) and runFilters(filterType, ...)
+						end
+					else
+						--Set the .additionalFilter again with the filter function of LibFilters only
+						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
+							return runFilters(filterType, ...)
+						end
+					end
+				end
+				if libFilters.debug then dd("HookAdditionalFilter > hookNow-%q,%s,%q,%s", tos(filterType), tos(originalFilter), tos(otherOriginalFilterAttributesAtLayoutData.attributeRead), tos(otherOriginalFilter)) end
+			end
+		end
+	end
+	------------------------------------------------------------------------------------------------------------------------
+	--Should the LF constant be hooked by any special function of LibFilters?
+	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
+	local inventoriesToHookForLFConstant
+	local hookSpecialFunctionDataOfLFConstant = LF_ConstantToAdditionalFilterSpecialHook[filterType]
+	if hookSpecialFunctionDataOfLFConstant ~= nil then
+		if hookKeyboardAndGamepadMode == true then
+			--Keyboard
+			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[false]
+			if inventoriesToHookForLFConstant ~= nil then
+				hookNowSpecial(inventoriesToHookForLFConstant, false)
+			end
+			--Gamepad
+			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[true]
+			if inventoriesToHookForLFConstant ~= nil then
+				hookNowSpecial(inventoriesToHookForLFConstant, true)
+			end
+		else
+			--Only currently detected mode, gamepad or keyboard
+			local gamepadMode = IsGamepad()
+			inventoriesToHookForLFConstant = hookSpecialFunctionDataOfLFConstant[gamepadMode]
+			hookNowSpecial(inventoriesToHookForLFConstant, gamepadMode)
+		end
+	end
+	inventoriesToHookForLFConstant = nil
+
+	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
+	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
+	--the .additionalFilter to the correct gamepad enchanting inventory
+	--So try to run the same LF_ constant as normal hook as well (if it exists)
+	--Hook normal via the given control/scene/fragment etc. -> See table LF_FilterTypeToReference
+	if hookKeyboardAndGamepadMode == true then
+		--Keyboard
+		if not hookSpecialFunctionDataOfLFConstant then
+			inventoriesToHookForLFConstant = LF_FilterTypeToReference[false][filterType]
+			hookNow(inventoriesToHookForLFConstant, false)
+		end
+		--Gamepad
+		if not hookSpecialFunctionDataOfLFConstant then
+			inventoriesToHookForLFConstant = LF_FilterTypeToReference[true][filterType]
+			hookNow(inventoriesToHookForLFConstant, true)
+		end
+	else
+		--Only currently detected mode, gamepad or keyboard
+		if not hookSpecialFunctionDataOfLFConstant then
+			local gamepadMode = IsGamepad()
+			inventoriesToHookForLFConstant = LF_FilterTypeToReference[gamepadMode][filterType]
+			hookNow(inventoriesToHookForLFConstant, gamepadMode)
+		end
+	end
+end
+libFilters_hookAdditionalFilter = libFilters.HookAdditionalFilter
+
+
+--Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
+--extra fragment for the different modes (creation, extraction).
+--Uses String specialType to define which special hooks should be used
+--> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
+--> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
+function libFilters:HookAdditionalFilterSpecial(specialType)
+	if libFilters.debug then dd("HookAdditionalFilterSpecial-%q", tos(specialType)) end
+	if specialHooksDone[specialType] then return end
+
+	--[[
+	--ENCHANTING keyboard
+	if specialType == "enchanting" then
+
+		local function onEnchantingModeUpdated(enchantingVar, enchantingMode)
+			local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
+			enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
+
+			specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
+
+			--Only once
+			if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
+				local originalFilter = enchantingVar.inventory.additionalFilter
+				local additionalFilterType = type(originalFilter)
+				if additionalFilterType == "function" then
+					enchantingVar.inventory.additionalFilter = function(...)
+						return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
+					end
+				else
+					enchantingVar.inventory.additionalFilter = function(...)
+						return runFilters(libFiltersEnchantingFilterType, ...)
+					end
+				end
+
+				specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+			end
+
+		end
+
+		--Hook the class variable (used for keyboard and gamepad as a base) OnModeUpdate to get the switch between
+		--enchanting creation and enchanting extarction
+		ZO_PreHook(keyboardConstants.enchantingClass, "OnModeUpdated", function(selfEnchanting)
+			onEnchantingModeUpdated(selfEnchanting, selfEnchanting.enchantingMode)
+		end)
+
+		specialHooksDone[specialType] = true
+	end
+	]]
+end
+
+
+--Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
+--using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType (constant: defaultLibFiltersAttributeToStoreTheFilterType)
+--Uses String specialType to define which special hooks should be used
+--> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
+--> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
+function libFilters:HookAdditionalFilterSceneSpecial(specialType)
+	if libFilters.debug then dd("HookAdditionalFilterSceneSpecial-%q", tos(specialType)) end
+	if specialHooksDone[specialType] then return end
+
+--[[
+	--ENCHANTING gamepad
+	if specialType == "enchanting_GamePad" then
+		--The enchanting scenes to hook into
+		local enchantingScenesGamepad = {
+			[LF_ENCHANTING_CREATION] = 		gamepadConstants.enchantingCreate_GP,
+			[LF_ENCHANTING_EXTRACTION] = 	gamepadConstants.enchantingExtract_GP,
+		}
+
+		local function updateLibFilters3_filterTypeAtGamepadEnchantingInventory(enchantingVar)
+			local enchantingMode = enchantingVar:GetEnchantingMode()
+			local libFiltersEnchantingFilterType = enchantingModeToFilterType[enchantingMode]
+			enchantingVar.inventory.LibFilters3_filterType = libFiltersEnchantingFilterType
+		end
+
+		--Add the .additionalFilter to the gamepad enchanting creation and extraction scenes once
+		--Only add .additionalFilter once
+		for libFiltersEnchantingFilterType, enchantingSceneGamepad in pairs(enchantingScenesGamepad) do
+			specialHooksLibFiltersDataRegistered[specialType] = specialHooksLibFiltersDataRegistered[specialType] or {}
+			if libFiltersEnchantingFilterType ~= nil and not specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] then
+				local originalFilter = enchantingSceneGamepad.additionalFilter
+				local additionalFilterType = type(originalFilter)
+				if additionalFilterType == "function" then
+					enchantingSceneGamepad.additionalFilter = function(...)
+						return originalFilter(...) and runFilters(libFiltersEnchantingFilterType, ...)
+					end
+				else
+					enchantingSceneGamepad.additionalFilter = function(...)
+						return runFilters(libFiltersEnchantingFilterType, ...)
+					end
+				end
+				specialHooksLibFiltersDataRegistered[specialType][libFiltersEnchantingFilterType] = true
+			end
+
+			--Register a stateChange callback: Change the .LibFilters3_filterType at GAMEPAD_ENCHANTING.inventory
+		    --for GAMEPAD_ENCHANTING.inventory:EnumerateInventorySlotsAndAddToScrollData (see helpers.lua)
+			enchantingSceneGamepad:RegisterCallback("StateChange", function(oldState, newState)
+				if newState == SCENE_SHOWING then
+--d("[LF3]GamePadEnchanting " ..tostring(libFilters_GetFilterTypeName(libFilters, libFiltersEnchantingFilterType)) .." Scene:Showing")
+					updateLibFilters3_filterTypeAtGamepadEnchantingInventory(gamepadConstants.enchanting_GP)
+				end
+			end)
+		end
+
+		specialHooksDone[specialType] = true
+	end
+]]
+end
 
 
 --**********************************************************************************************************************
