@@ -545,14 +545,15 @@ local otherOriginalFilterAttributesAtLayoutData_Table = {
 	--Keyboard mode
 	[false] = {
 		[LF_CRAFTBAG] = {
-			--Read from this attribute of the provided filterReference object in function libFilters:HookAdditionalFilter
+			--In function libFilters:HookAdditionalFilter:
+			--Read from this attribute of the provided filterReference object
 			["attributeRead"] 	= "additionalCraftBagFilter",
-			--Write the "attributeWrite" (e.g. "additionalFilter") to the objectWrite[subObjectWrite] (or if nil, to objectWrite)
-			--If objectWrite is nil subObjectWrite will not be used. If objectWrite is nil the object to add attributeWrite to will
-			--be the same where attributeRead was read from!
-			["attributeWrite"] 	= defaultOriginalFilterAttributeAtLayoutData, --additionalFilter
-			["objectWrite"] 	= nil, --kbc.invCraftbag,
-			["subObjectWrite"]	= nil,
+			--Read the attributeRead above from this object to obtain the existing filter functions. If not provided the
+			--attribute wil be read from the same filterReference object used at libFilters:HookAdditionalFilter
+			--e.g. the layoutData used in function PLAYER_INVENTORY:ApplyBackpackLayout(layoutData)
+			--After it was read and enhanced with LibFilters runFilters(filterType) call it will be re-written to
+			--objectRead["attributeRead"] again
+			["objectRead"] 	= kbc.invCraftbag, --PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
 		}
 	},
 	--Gamepad mode -- 2021-12-11 no fixes needed yet

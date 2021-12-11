@@ -1369,33 +1369,28 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
 					df("HookAdditionalFilter-HookNow: Found otherOriginalFilterAttributesAtLayoutData: %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
 						filterTypeNameAndTypeText, tos(readFromAttribute), tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
-					otherOriginalFilter = layoutData[readFromAttribute]
+					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
+					if readFromObject == nil then
+						--Facllback: Read from the same layoutData
+						readFromObject = layoutData
+					end
+					if readFromObject == nil or (readFromObject ~= nil and readFromObject[readFromAttribute] == nil)  then
+						dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the readFrom data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+								filterTypeNameAndTypeText,
+								tos((readFromObject ~= nil and "readFromObject=" .. tos(readFromObject)) or "readFromObject is missing"),
+								tos((readFromAttribute ~= nil and "readFromAttribute=" .. readFromAttribute) or "readFromAttribute is missing"),
+								tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+						return
+					end
+					otherOriginalFilter = readFromObject[readFromAttribute]
 					if otherOriginalFilter ~= nil then
-						local writeToAttribute = otherOriginalFilterAttributesAtLayoutData.attributeWrite
-						local writeToObject = otherOriginalFilterAttributesAtLayoutData.objectWrite
-						if writeToObject ~= nil then
-							local writeToSubObject = otherOriginalFilterAttributesAtLayoutData.subObjectWrite
-							if writeToSubObject ~= nil and writeToObject[writeToSubObject] ~= nil then
-								writeToObject = writeToObject[writeToSubObject]
-							end
-						end
-						if writeToObject == nil then writeToObject = layoutData end
-						if writeToAttribute == nil or writeToObject == nil then
-							dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the writeTo data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-									filterTypeNameAndTypeText,
-									tos((writeToAttribute ~= nil and "writeToAttribute=" .. writeToAttribute) or "writeToAttribute is missing"),
-									tos((writeToObject ~= nil and "writeToObject=" .. tos(writeToObject)) or "writeToObject is missing"),
-									tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
-							return
-						end
-
 						local originalFilterType = type(otherOriginalFilter)
 						if originalFilterType == "function" then
-							writeToObject[writeToAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
+							readFromObject[readFromAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
 								return otherOriginalFilter(...) and runFilters(filterType, ...)
 							end
 						else
-							writeToObject[writeToAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
+							readFromObject[readFromAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
 								return runFilters(filterType, ...)
 							end
 						end
