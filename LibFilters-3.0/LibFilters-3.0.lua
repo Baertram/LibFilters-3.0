@@ -2225,19 +2225,20 @@ local function ApplyFixes()
 		 --Added lines with 7.0.4:
 		 local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
 		 craftBag.additionalFilter = layoutData.additionalFilter
-		 --Fix applied:
-		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-		--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
-			if keyboardConstants.craftBagClass:IsHidden() then return end
-			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-			hookAdditionalFilter(libFilters, LF_CRAFTBAG)
-		end)
 	]]
 	--[[
-		--Update 2021-12-06: Seems to be fixed prior with version 7.1.5: Usage of own layoutData.additionalCraftBagFilter now
+		--Update 2021-12-06: ZOs changed with version 7.1.5 to usage of own layoutData.additionalCraftBagFilter now
+		--But it still overwrites the filters "in general" and thus breaks this library
 		local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
 		craftBag.additionalFilter = layoutData.additionalCraftBagFilter
 	]]
+	 --Fix applied:
+	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+	--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
+		if kbc.craftBagClass:IsHidden() then return end
+		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
+		libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
+	end)
 end
 
 
