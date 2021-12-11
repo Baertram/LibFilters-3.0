@@ -18,6 +18,16 @@ local SM = SCENE_MANAGER
 
 --Local library variable
 local libFilters = {}
+
+------------------------------------------------------------------------------------------------------------------------
+--Create global library constant LibFilters3
+_G[GlobalLibName] = 		libFilters --global table LibFilters3
+libFilters.name	            = MAJOR
+libFilters.version          = MINOR
+libFilters.globalLibName    = GlobalLibName
+------------------------------------------------------------------------------------------------------------------------
+
+
 libFilters.filters = {}
 local filters = libFilters.filters
 -- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
@@ -27,7 +37,6 @@ libFilters.isInitialized = false
 --Use the LF_FILTER_ALL registered filters as fallback filterFunctions for all panels -> see file LibFilters-3.0.lua,
 --function runFilters, and API function libFilters:SetFilterAllState(boolean newState)
 libFilters.useFilterAllFallback = false
-
 
 ------------------------------------------------------------------------------------------------------------------------
 --Debugging output enabled/disabled: Changed via SLASH_COMMANDS /libfiltersdebug or /lfdebug
@@ -107,14 +116,8 @@ debugFunctions.debugSlashToggle = debugSlashToggle
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
 
-------------------------------------------------------------------------------------------------------------------------
---Create global library constant LibFilters3
-_G[GlobalLibName] = 		libFilters --global table LibFilters3
-libFilters.name	            = MAJOR
-libFilters.version          = MINOR
-libFilters.globalLibName    = GlobalLibName
-------------------------------------------------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------------------------------------------------
 libFilters.constants = {}
 local constants = libFilters.constants
 
@@ -560,10 +563,6 @@ local otherOriginalFilterAttributesAtLayoutData_Table = {
 	[true] = {
 		--[[
 		[LF_CRAFTABG] = {
-			["attributeRead"] 	= "additionalCraftBagFilter",
-			["attributeWrite"] 	= defaultOriginalFilterAttributeAtLayoutData, --additionalFilter
-			["objectWrite"] 	= nil, --kbc.invCraftbag,
-			["subObjectWrite"]	= nil,
 		}
 		]]
 	},

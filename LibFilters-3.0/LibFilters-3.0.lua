@@ -111,7 +111,7 @@ end
 --Name, global variable LibFilters3 name, and version
 ------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
---local MAJOR      = libFilters.name
+local MAJOR      = libFilters.name
 local filters    = libFilters.filters
 
 
@@ -1374,7 +1374,9 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						--Facllback: Read from the same layoutData
 						readFromObject = layoutData
 					end
-					if readFromObject == nil or (readFromObject ~= nil and readFromObject[readFromAttribute] == nil)  then
+					if readFromObject == nil then
+						--This will happen once for LF_CraftBag as PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] does not seem to exist yet
+						--as we try to add the .additionalCraftBagFilter to it
 						dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the readFrom data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
 								filterTypeNameAndTypeText,
 								tos((readFromObject ~= nil and "readFromObject=" .. tos(readFromObject)) or "readFromObject is missing"),
@@ -1386,13 +1388,18 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					if otherOriginalFilter ~= nil then
 						local originalFilterType = type(otherOriginalFilter)
 						if originalFilterType == "function" then
-							readFromObject[readFromAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
+							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
 								return otherOriginalFilter(...) and runFilters(filterType, ...)
 							end
 						else
-							readFromObject[readFromAttribute] = function(...) --.additionalCraftBagFilter e.g. at layoutData
+							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
 								return runFilters(filterType, ...)
 							end
+						end
+					else
+						--There was no filterFunction provided yet as the attribute was missing
+						readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+							return runFilters(filterType, ...)
 						end
 					end
 				else
@@ -2230,8 +2237,8 @@ end
 --**********************************************************************************************************************
 -- FIXES
 --**********************************************************************************************************************
---Fixes which are needed
-local function ApplyFixes()
+--Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
+local function ApplyFixesEarly()
 	if libFilters.debug then dd("ApplyFixes-GamepadMode") end
 	--[[
 		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
@@ -2256,6 +2263,31 @@ local function ApplyFixes()
 	]]
 end
 
+--Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
+local function ApplyFixesLate()
+
+end
+
+--Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
+local function ApplyFixesLatest()
+
+end
+
+
+--Called from EVENT_PLAYER_ACTIVATED -> Only once
+local function eventPlayerActivatedCallback(eventId, firstCall)
+	EM:UnregisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED)
+	ApplyFixesLatest()
+end
+
+
+--Called from EVENT_ADD_ON_LOADED
+local function eventAddonLoadedCallback(eventId, addonNameLoaded)
+	if addonNameLoaded ~= MAJOR then return end
+	EM:UnregisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED)
+	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
+	ApplyFixesLate()
+end
 
 --**********************************************************************************************************************
 -- LIBRARY LOADING / INITIALIZATION
@@ -2274,5 +2306,7 @@ end
 --______________________________________________________________________________________________________________________
 --______________________________________________________________________________________________________________________
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
-ApplyFixes()
+ApplyFixesEarly()
 if libFilters.debug then dd("LIBRARY MAIN FILE - END") end
+
+--EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
