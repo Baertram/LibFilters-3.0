@@ -105,12 +105,11 @@ local function debugSlashToggle(args)
 end
 debugFunctions.debugSlashToggle = debugSlashToggle
 
-local isDebugginEnabled = libFilters.debug
-if isDebugginEnabled then dd("LIBRARY CONSTANTS FILE - START") end
+if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
-_G[GlobalLibName]	= libFilters
+_G[GlobalLibName] = 		libFilters --global table LibFilters3
 libFilters.name	            = MAJOR
 libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
@@ -1252,4 +1251,4 @@ mapping.updaterNameToFilterType = updaterNameToFilterType
 --keyboard and gamepad mode)
 mapping.inventoryUpdaters = { }
 
-if isDebugginEnabled then dd("LIBRARY CONSTANTS FILE - END") end
+if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end

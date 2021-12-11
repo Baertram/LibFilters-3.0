@@ -6,7 +6,7 @@ local libFilters = LibFilters3
 --Helper variables of the library
 local constants   = libFilters.constants
 local kbc         = constants.keyboard
-local gpc         = constants.gamepad
+--local gpc         = constants.gamepad
 
 local inventories = kbc.inventories
 
@@ -16,8 +16,7 @@ local iigpm = IsInGamepadPreferredMode
 local debugFunctions = libFilters.debugFunctions
 local dd = debugFunctions.dd
 
-local isDebugginEnabled = libFilters.debug
-if isDebugginEnabled then dd("LIBRARY HELPER FILE - START") end
+if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Local LibFilters speed-up variables and references
@@ -1257,4 +1256,4 @@ for name, package in pairs(helpers) do
 end
 helpers = nil
 
-if isDebugginEnabled then dd("LIBRARY HELPER FILE - END") end
+if libFilters.debug then dd("LIBRARY HELPER FILE - END") end

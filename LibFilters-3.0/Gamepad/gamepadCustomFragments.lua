@@ -63,8 +63,7 @@ local gamepadLibFiltersPlayerTradeFragment
 local debugFunctions = libFilters.debugFunctions
 local dd = debugFunctions.dd
 
-local isDebugginEnabled = libFilters.debug
-if isDebugginEnabled then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - START") end
+if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - START") end
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -226,4 +225,4 @@ invMailSendScene_GP:AddFragment(gamepadLibFiltersMaiLSendFragment)
 invPlayerTradeScene_GP:AddFragment(gamepadLibFiltersPlayerTradeFragment)
 
 
-if isDebugginEnabled then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - END") end
+if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - END") end
