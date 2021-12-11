@@ -1371,7 +1371,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						filterTypeNameAndTypeText, tos(readFromAttribute), tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
 					if readFromObject == nil then
-						--Facllback: Read from the same layoutData
+						--Fallback: Read from the same layoutData
 						readFromObject = layoutData
 					end
 					if readFromObject == nil then
@@ -2248,8 +2248,9 @@ local function ApplyFixesEarly()
 
 		--Fix applied before was:
 		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-			--d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(ZO_CraftBag:IsHidden()))
-			if kbc.craftBagClass:IsHidden() then return end
+			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+			d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
+			if crafBagIsHidden then return end
 			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
 			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
 		end)
@@ -2260,6 +2261,13 @@ local function ApplyFixesEarly()
 		craftBag.additionalFilter = layoutData.additionalCraftBagFilter
 		 --So we need to apply a fix to HookAdditionalFilter to read the .additionalCraftBagFilter attribute of
 		 --PLAYER_INVENTORY.appliedLayout and use this as filterFunctions
+		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
+			if crafBagIsHidden then return end
+			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
+			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
+		end)
 	]]
 end
 

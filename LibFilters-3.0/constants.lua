@@ -548,7 +548,7 @@ local otherOriginalFilterAttributesAtLayoutData_Table = {
 	--Keyboard mode
 	[false] = {
 		[LF_CRAFTBAG] = {
-			--In function libFilters:HookAdditionalFilter:
+			--In function libFilters:HookAdditionalFilter()
 			--Read from this attribute of the provided filterReference object
 			["attributeRead"] 	= "additionalCraftBagFilter",
 			--Read the attributeRead above from this object to obtain the existing filter functions. If not provided the
@@ -556,7 +556,7 @@ local otherOriginalFilterAttributesAtLayoutData_Table = {
 			--e.g. the layoutData used in function PLAYER_INVENTORY:ApplyBackpackLayout(layoutData)
 			--After it was read and enhanced with LibFilters runFilters(filterType) call it will be re-written to
 			--objectRead["attributeRead"] again
-			["objectRead"] 	= kbc.invCraftbag, --PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+			--["objectRead"] 	= kbc.invCraftbag, --PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
 		}
 	},
 	--Gamepad mode -- 2021-12-11 no fixes needed yet
@@ -682,9 +682,17 @@ mapping.LF_ConstantToAdditionalFilterSpecialHook = LF_ConstantToAdditionalFilter
 local filterTypeToReference = {
 	--Keyboard mode
 	[false] = {
+		--2 entries here because ZO_InventoryManager:ApplyBackpackLayout(layoutData) changes
+		--PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK].additionalFilter from layoutData.additionalFilter, where layoutData could be
+		--from fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT or others
+		--each time, and thus we need to hook both
 		[LF_INVENTORY]                = { kbc.invBackpackFragment, invBackpack },
+
 		[LF_INVENTORY_QUEST]          = { kbc.invQuests },
-		[LF_CRAFTBAG]                 = { kbc.invCraftbag },
+		--PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilter gets updated each time from layoutData.additionalCraftBagFilter
+		--as ZO_InventoryManager:ApplyBackpackLayout(layoutData) is called,
+		[LF_CRAFTBAG]                 = { kbc.invBackpackFragment, kbc.invCraftbag },
+
 		[LF_INVENTORY_COMPANION]      = { kbc.companionEquipment },
 		[LF_QUICKSLOT]                = { kbc.quickslots },
 		[LF_BANK_WITHDRAW]            = { kbc.invBankWithdraw },
