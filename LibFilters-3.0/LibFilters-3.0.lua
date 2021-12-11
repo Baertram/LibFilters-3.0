@@ -1385,19 +1385,22 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						return
 					end
 					otherOriginalFilter = readFromObject[readFromAttribute]
+					local useDefaultFunction = false
 					if otherOriginalFilter ~= nil then
 						local originalFilterType = type(otherOriginalFilter)
 						if originalFilterType == "function" then
+							useDefaultFunction = false
 							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
 								return otherOriginalFilter(...) and runFilters(filterType, ...)
 							end
 						else
-							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
-								return runFilters(filterType, ...)
-							end
+							useDefaultFunction = true
 						end
 					else
+						useDefaultFunction = true
 						--There was no filterFunction provided yet as the attribute was missing
+					end
+					if useDefaultFunction == true then
 						readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
 							return runFilters(filterType, ...)
 						end
