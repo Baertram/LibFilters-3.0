@@ -415,8 +415,17 @@ end
 local function isControlShown(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
-	local retCtrl = filterTypeData ~= nil and filterTypeData["control"]
-	local isShown = (retCtrl and retCtrl.IsHidden and not retCtrl:IsHidden()) or false
+	if filterTypeData == nil then
+		if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
+		return false, nil
+	end
+	local retCtrl = filterTypeData["control"]
+	local isShown = (retCtrl ~= nil and retCtrl.IsHidden ~= nil and not retCtrl:IsHidden()) or false
+	if not isShown then
+		local retCtrlControl = (retCtrl ~= nil and retCtrl.control ~= nil and retCtrl.control) or nil
+		isShown = (retCtrlControl ~= nil and retCtrlControl.IsHidden ~= nil and not retCtrlControl:IsHidden()) or false
+		if isShown == true then retCtrl = retCtrlControl end
+	end
 	if libFilters.debug then dd("isControlShown - filterType %s: %s, retCtrl: %s", tos(filterType), tos(isShown), tos(retCtrl)) end
 	return isShown, retCtrl
 end
@@ -599,12 +608,12 @@ local function getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, cr
 	return filterTypeTarget
 end
 
-local function detectShownRefereceNow(p_filterType, isInGamepadMode)
+local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local lFilterTypeDetected = nil
 	local lReferencesToFilterType = {}
 	if libFilters.debug then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
-	if libFilters.debug then dd("detectShownRefereceNow - filterTypePassedIn: " .. tos(p_filterType) .. ", isInGamepadMode: " ..tos(isInGamepadMode)) end
+	if libFilters.debug then dd("detectShownReferenceNow - filterTypePassedIn: " .. tos(p_filterType) .. ", isInGamepadMode: " ..tos(isInGamepadMode)) end
 	--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
 	for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
@@ -1768,7 +1777,7 @@ function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 		--TODO really needed to check here? Or just loop over the LF_FilterTypeToReference[isInGamepadMode] and check if they are shown
 	end
 	]]
-	return detectShownRefereceNow(filterType, isInGamepadMode)
+	return detectShownReferenceNow(filterType, isInGamepadMode)
 end
 libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeReference
 

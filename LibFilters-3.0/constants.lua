@@ -592,8 +592,8 @@ local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = constants.LIBFILTERS_FILTERF
 constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
 local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 
-libFilters.mapping.filterTypeToFilterFunctionType = {}
-local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
+mapping.filterTypeToFilterFunctionType = {}
+local filterTypeToFilterFunctionType = mapping.filterTypeToFilterFunctionType
 --The following filterTypes use bagId and slotIndex
 local filterTypesUsingBagIdAndSlotIndexFilterFunction = {
 	[LF_SMITHING_REFINE]			= true,
@@ -611,17 +611,17 @@ local filterTypesUsingBagIdAndSlotIndexFilterFunction = {
 	[LF_RETRAIT]                  	= true,
 	[LF_ALCHEMY_CREATION]         	= true,
 }
-libFilters.mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
---Add them to the table libFilters.mapping.filterTypeToFilterFunctionType
+mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
+--Add them to the table mapping.filterTypeToFilterFunctionType
 for filterTypeValue, _  in pairs(filterTypesUsingBagIdAndSlotIndexFilterFunction) do
 	filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 end
 --Now add all other missing filterTypes which were not added yet, with the constant LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-libFilters.mapping.filterTypesUsingInventorySlotFilterFunction = {}
+mapping.filterTypesUsingInventorySlotFilterFunction = {}
 for filterTypeValue, _  in pairs(libFiltersFilterConstants) do
 	if filterTypeToFilterFunctionType[filterTypeValue] == nil then
 		filterTypeToFilterFunctionType[filterTypeValue] = LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-		libFilters.mapping.filterTypesUsingInventorySlotFilterFunction[filterTypeValue] = true
+		mapping.filterTypesUsingInventorySlotFilterFunction[filterTypeValue] = true
 	end
 end
 
@@ -1123,71 +1123,71 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 
 	--Keyboard mode
 	[false] = {
-		{ filterType="LF_MAIL_SEND", 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_TRADE", 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_VENDOR_BUY", 				checkTypes = { "fragment", "control", "special", "specialForced" } },
-		{ filterType="LF_VENDOR_SELL", 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_VENDOR_BUYBACK", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_VENDOR_REPAIR", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_FENCE_SELL", 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_FENCE_LAUNDER", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_REFINE", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_REFINE", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_DECONSTRUCT", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_DECONSTRUCT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_IMPROVEMENT", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_IMPROVEMENT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_RESEARCH_DIALOG",	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_RESEARCH_DIALOG", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_RESEARCH", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_RESEARCH", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_ENCHANTING_EXTRACTION", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_ENCHANTING_CREATION", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_GUILDSTORE_SELL", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_ALCHEMY_CREATION", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_BANK_WITHDRAW", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_HOUSE_BANK_WITHDRAW", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_GUILDBANK_WITHDRAW", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_RETRAIT", 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_INVENTORY_COMPANION", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_BANK_DEPOSIT", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_GUILDBANK_DEPOSIT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_HOUSE_BANK_DEPOSIT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_INVENTORY", 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "fragment", "control", "special", "specialForced" } },
+		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_FENCE_SELL, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	},
 	--Gamepad mode
 	[true] = {
-		{ filterType="LF_MAIL_SEND", 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_TRADE", 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_VENDOR_BUY", 				checkTypes = { "fragment", "control", "special", "specialForced" } },
-		{ filterType="LF_VENDOR_SELL", 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_VENDOR_BUYBACK", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_VENDOR_REPAIR", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_FENCE_SELL", 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_FENCE_LAUNDER", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_REFINE", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_REFINE", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_DECONSTRUCT", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_DECONSTRUCT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_IMPROVEMENT", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_IMPROVEMENT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_RESEARCH_DIALOG",	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_RESEARCH_DIALOG", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_SMITHING_RESEARCH", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_JEWELRY_RESEARCH", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_ENCHANTING_EXTRACTION", 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_ENCHANTING_CREATION", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_GUILDSTORE_SELL", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_ALCHEMY_CREATION", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_BANK_WITHDRAW", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_HOUSE_BANK_WITHDRAW", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_GUILDBANK_WITHDRAW", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_RETRAIT", 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_INVENTORY_COMPANION", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_BANK_DEPOSIT", 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_GUILDBANK_DEPOSIT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_HOUSE_BANK_DEPOSIT", 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType="LF_INVENTORY", 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "fragment", "control", "special", "specialForced" } },
+		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_FENCE_SELL, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes

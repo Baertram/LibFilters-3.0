@@ -189,13 +189,13 @@ LF_FilterTypeToReference[true][LF_MAIL_SEND]          				= { gamepadLibFiltersM
 LF_FilterTypeToReference[true][LF_TRADE]              				= { gamepadLibFiltersPlayerTradeFragment }
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]          = { ["fragment"] = gamepadLibFiltersInventoryDepositFragment }
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]       = { ["fragment"] = gamepadLibFiltersBankDepositFragment }
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]  = { ["fragment"] = gamepadLibFiltersGuildBankDepositFragment }
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT] = { ["fragment"] = gamepadLibFiltersHouseBankDepositFragment }
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]    = { ["fragment"] = gamepadLibFiltersGuildStoreSellFragment }
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]          = { ["fragment"] = gamepadLibFiltersMaiLSendFragment }
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]              = { ["fragment"] = gamepadLibFiltersPlayerTradeFragment }
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] = 			gamepadLibFiltersInventoryDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] = 		gamepadLibFiltersBankDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersGuildBankDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersHouseBankDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]["fragment"] = 	gamepadLibFiltersGuildStoreSellFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"] = 			gamepadLibFiltersMaiLSendFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"] = 				gamepadLibFiltersPlayerTradeFragment
 
 
 ------------------------------------------------------------------------------------------------------------------------
