@@ -583,7 +583,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 		else
 			if isDebugEnabled then checkAborted = "no checktype" end
 		end
-		if isDebugEnabled then dd("checkType: q%, abortedDueTo: %s, loopResult: %s", tos(checkType), tos(checkAborted), tos(loopResult)) end
+		if isDebugEnabled then dd("checkType: %q, abortedDueTo: %s, loopResult: %s", tos(checkType), tos(checkAborted), tos(loopResult)) end
 		totalResult = totalResult and loopResult
 	end
 	if isDebugEnabled then
