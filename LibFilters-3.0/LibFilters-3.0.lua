@@ -420,14 +420,27 @@ local function isControlShown(filterType, isInGamepadMode)
 		return false, nil
 	end
 	local retCtrl = filterTypeData["control"]
-	local isShown = (retCtrl ~= nil and retCtrl.IsHidden ~= nil and not retCtrl:IsHidden()) or false
-	if not isShown then
-		local retCtrlControl = (retCtrl ~= nil and retCtrl.control ~= nil and retCtrl.control) or nil
-		isShown = (retCtrlControl ~= nil and retCtrlControl.IsHidden ~= nil and not retCtrlControl:IsHidden()) or false
-		if isShown == true then retCtrl = retCtrlControl end
+	local isShown = false
+	local ctrlToCheck = retCtrl
+	if retCtrl ~= nil then
+		if not retCtrl.IsHidden then
+		else
+			ctrlToCheck = retCtrl.control
+			if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+				ctrlToCheck = retCtrl.list
+				if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+					ctrlToCheck = retCtrl.listView
+					if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+						if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
+						return false, nil
+					end
+				end
+			end
+		end
 	end
-	if libFilters.debug then dd("isControlShown - filterType %s: %s, retCtrl: %s", tos(filterType), tos(isShown), tos(retCtrl)) end
-	return isShown, retCtrl
+	isShown = not ctrlToCheck:IsHidden()
+	if libFilters.debug then dd("isControlShown - filterType %s: %s, retCtrl: %s", tos(filterType), tos(isShown), tos(ctrlToCheck)) end
+	return isShown, ctrlToCheck
 end
 
 
@@ -620,13 +633,14 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local lFilterTypeDetected = nil
 	local lReferencesToFilterType = {}
-	if libFilters.debug then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
-	if libFilters.debug then dd("detectShownReferenceNow - filterTypePassedIn: " .. tos(p_filterType) .. ", isInGamepadMode: " ..tos(isInGamepadMode)) end
+	local isDebugEnabled = libFilters.debug
+	if isDebugEnabled then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
+	if isDebugEnabled then dd("detectShownReferenceNow - filterTypePassedIn: " .. tos(p_filterType) .. ", isInGamepadMode: " ..tos(isInGamepadMode)) end
 	--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
 	for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
-		if libFilters.debug then dd("=====================") end
-		if libFilters.debug then dd(">checking filterType: " .. tos(filterTypeChecked)) end
+		if isDebugEnabled then dd("=====================") end
+		if isDebugEnabled then dd(">checking filterType: " .. tos(filterTypeChecked)) end
 		if p_filterType == nil or (p_filterType ~= nil and (filterTypeChecked ~= nil and filterTypeChecked == p_filterType)) then
 			local checkTypes = filterTypeControlAndOtherChecks.checkTypes
 			if checkTypes ~= nil then
@@ -651,18 +665,18 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 							doSpecialForcedCheckAtEnd = true
 						end
 					end
-					if libFilters.debug then dd(">>foundInLoop: " .. tos(resultLoop) .. ", checkType: " ..tos(checkTypeToExecute)) end
+					if isDebugEnabled then dd(">>foundInLoop: " .. tos(resultLoop) .. ", checkType: " ..tos(checkTypeToExecute)) end
 					resultOfCurrentLoop = resultOfCurrentLoop and resultLoop
 				end
 				if resultOfCurrentLoop == true then
 					if doSpecialForcedCheckAtEnd == true then
 						resultOfCurrentLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, true, nil)
-						if libFilters.debug then dd(">>>specialCheckAtEnd: " ..tos(resultOfCurrentLoop)) end
+						if isDebugEnabled then dd(">>>specialCheckAtEnd: " ..tos(resultOfCurrentLoop)) end
 					end
 					if resultOfCurrentLoop == true then
 						lFilterTypeDetected = filterTypeChecked
 						if currentReferenceFound == nil then
-							if libFilters.debug then dd(">>>>currentReferenceFound is nil, detecing it...") end
+							if isDebugEnabled then dd(">>>>currentReferenceFound is nil, detecing it...") end
 							currentReferenceFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
 						end
 						tins(lReferencesToFilterType, currentReferenceFound)
@@ -678,7 +692,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 			return lReferencesToFilterType, lFilterTypeDetected
 		end
 	end
-	if libFilters.debug then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
+	if isDebugEnabled then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
 	--For debugging:
 	libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
 	libFilters._currentFilterType = 			lFilterTypeDetected
