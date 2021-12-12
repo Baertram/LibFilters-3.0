@@ -256,11 +256,51 @@ if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 --Get the currently shown scene and sceneName
 local function getCurrentSceneInfo()
-    if not SM then return nil, "" end
-    local currentScene = getCurrentScene(SM)
+	if not SM then return nil, "" end
+	local currentScene = getCurrentScene(SM)
 	local currentSceneName = (currentScene ~= nil and currentScene.name) or ""
-    return currentScene, currentSceneName
+	if libFilters.debug then dd("getCurrentSceneInfo - currentScene: %q, name: %q", tos(currentScene), tos(currentSceneName)) end
+	return currentScene, currentSceneName
 end
+
+local function checkIfControlSceneFragmentOrOther(refVar)
+	--Control
+	local retVar
+	if refVar.control then
+		retVar = 1
+	--Scene or fragment
+	elseif refVar.sceneManager and refVar.state then
+		retVar = 2
+	--Other
+	else
+		retVar = 3
+	end
+	if libFilters.debug then dd("checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
+	return retVar
+end
+
+local function checkIfRefVarIsShown(refVar)
+	if not refVar then return false, nil end
+	local refType = checkIfControlSceneFragmentOrOther(refVar)
+	--Control
+	local isShown = false
+	if refType == 1 then
+		isShown = (refVar.control ~= nil and refVar.control.IsHidden ~= nil) and not refVar.control:IsHidden()
+		--Scene or fragment
+	elseif refType == 2 then
+		isShown = refVar.state == SCENE_FRAGMENT_SHOWN or refVar.state == SCENE_SHOWN
+		--Other
+	elseif refType == 3 then
+		if type(refVar) == "boolean" then
+			isShown = refVar
+		else
+			isShown = false
+		end
+	end
+	if libFilters.debug then dd("checkIfRefVarIsShown - refVar %q: %s, refType: %s", tos(refVar), tos(isShown), tos(refType)) end
+	return isShown, refVar, refType
+end
+
 
 --Compare the String/table sceneOrFragmentToCompare with the currentSceneOrFragment, or the sceneOrFragmentToCompare.name
 --(of if it's a string it is the name already so compare it directly) with currentSceneOrFragmentName
@@ -309,6 +349,7 @@ local function getSceneName(filterType, isInGamepadMode)
 			if retScene.name then retSceneName = retScene.name end
 		end
 	end
+	if libFilters.debug then dd("getSceneName - filterType %s: %q, retScene: %s", tos(filterType), tos(retSceneName), tos(retScene)) end
 	return retSceneName, retScene
 end
 
@@ -328,41 +369,44 @@ local function isSceneFragmentShown(filterType, isInGamepadMode, sceneFirst, isS
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local resultIsShown, resultSceneOrFragment
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
-	local retFragment = filterTypeData ~= nil and filterTypeData["fragment"]
-	local retScene = filterTypeData ~= nil and filterTypeData["scene"]
+	if filterTypeData == nil then return false, nil end
+	local retFragment = filterTypeData["fragment"]
+	local retScene = filterTypeData["scene"]
+
 	if isSceneOrFragment == nil then
 		if not sceneFirst then
-			resultIsShown = (retFragment ~= nil and retFragment.state ~= nil and retFragment.state == SCENE_FRAGMENT_SHOWN) or false
+			resultIsShown = checkIfRefVarIsShown(retFragment)
 			if resultIsShown == true then
 				resultSceneOrFragment = retFragment
 			end
-			resultIsShown = (not resultIsShown and (retScene ~= nil and retScene.state ~= nil and retScene.state == SCENE_SHOWN)) or false
+			resultIsShown = resultSceneOrFragment == nil and checkIfRefVarIsShown(retScene)
 			if resultIsShown == true and resultSceneOrFragment == nil then
 				resultSceneOrFragment = retScene
 			end
 		else
-			resultIsShown = ((retScene ~= nil and retScene.state ~= nil and retScene.state == SCENE_SHOWN)) or false
+			resultIsShown = checkIfRefVarIsShown(retScene)
 			if resultIsShown == true then
 				resultSceneOrFragment = retScene
 			end
-			resultIsShown = (not resultIsShown and (retFragment ~= nil and retFragment.state ~= nil and retFragment.state == SCENE_FRAGMENT_SHOWN)) or false
+			resultIsShown = resultSceneOrFragment == nil and checkIfRefVarIsShown(retFragment)
 			if resultIsShown == true and resultSceneOrFragment == nil then
 				resultSceneOrFragment = retFragment
 			end
 		end
 	else
 		if isSceneOrFragment == true then
-			resultIsShown = (retScene ~= nil and retScene.state ~= nil and retScene.state == SCENE_SHOWN) or false
+			resultIsShown = checkIfRefVarIsShown(retScene)
 			if resultIsShown == true then
 				resultSceneOrFragment = retScene
 			end
 		else
-			resultIsShown = (retFragment ~= nil and retFragment.state ~= nil and retFragment.state == SCENE_FRAGMENT_SHOWN) or false
+			resultIsShown = checkIfRefVarIsShown(retFragment)
 			if resultIsShown == true then
 				resultSceneOrFragment = retFragment
 			end
 		end
 	end
+	if libFilters.debug then dd("isSceneFragmentShown - filterType %s: %s, sceneFirst: %s, isSceneOrFragment: %s", tos(filterType), tos(resultIsShown), tos(sceneFirst), tos(isSceneOrFragment)) end
 	return resultIsShown, resultSceneOrFragment
 end
 
@@ -372,8 +416,9 @@ local function isControlShown(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	local retCtrl = filterTypeData ~= nil and filterTypeData["control"]
-	if retCtrl and retCtrl.IsHidden then return not retCtrl:IsHidden(), retCtrl end
-	return false, nil
+	local isShown = (retCtrl and retCtrl.IsHidden and not retCtrl:IsHidden()) or false
+	if libFilters.debug then dd("isControlShown - filterType %s: %s, retCtrl: %s", tos(filterType), tos(isShown), tos(retCtrl)) end
+	return isShown, retCtrl
 end
 
 
@@ -405,6 +450,7 @@ end
 --returns boolean areAllExpectedResultsTrue
 local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local isDebugEnabled = libFilters.debug
 	isSpecialForced = isSpecialForced or false
 	if not filterType then return false end
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
@@ -412,12 +458,19 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	if not specialRoutines or #specialRoutines == 0 then return false end
 	local totalResult = false
 	local loopResult = false
+	if isDebugEnabled then
+		dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+		dd("isSpecialTrue - filterType: %s, gamepadMode: %s, isSpecialForced: %s, paramsGiven: %s", tos(filterType), tos(isInGamepadMode), tos(isSpecialForced), tos(... ~= nil))
+	end
 	for _, specialRoutineDetails in ipairs(specialRoutines) do
 		loopResult = false
 		local skip = false
+		local checkType
+		local checkAborted = ""
 		local ctrl = specialRoutineDetails.control
 		local bool = specialRoutineDetails.boolean
 		if ctrl ~= nil and ctrl ~= "" then
+			if isDebugEnabled then checkType = "control"end
 			local ctrlType = type(ctrl)
 			if ctrlType == "String" then
 				local ctrlName = ctrl
@@ -429,18 +482,27 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 				if funcOrAttribute ~= nil then
 					local funcType = type(funcOrAttribute)
 					if funcType == "String" then
-						if ctrl[funcOrAttribute] == nil then skip = true end
+						if isDebugEnabled then checkType = "control - String"end
+						if ctrl[funcOrAttribute] == nil then
+							skip = true
+							if isDebugEnabled then checkAborted = "ctrl[funcOrAttribute] = nil" end
+						end
 					elseif funcType == "number" then
+						if isDebugEnabled then checkType = "control - table"end
 						if ctrlType == "table" and ctrl[funcOrAttribute] == nil then
 							skip = true
+							if isDebugEnabled then checkAborted = "ctrl[funcOrAttribute] = nil" end
 						elseif ctrlType == "userdata" then
+							if isDebugEnabled then checkType = "control - userdata"end
 							if ctrl.GetChildren == nil then
 								skip = true
+								if isDebugEnabled then checkAborted = "ctrl.GetChildren = nil" end
 							else
 								childControl = ctrl:GetChildren()[funcOrAttribute]
 							end
 							if childControl == nil then
 								skip = true
+								if isDebugEnabled then checkAborted = "ctrl.childControl = nil" end
 							end
 						end
 					end
@@ -469,16 +531,22 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							else
 								if expectedResults == nil or #expectedResults == 0 then
 									loopResult = false
+									if isDebugEnabled then checkAborted = "expectedResults missing" end
 								else
 									if numResults ~= #expectedResults then
 										loopResult = false
+										if isDebugEnabled then checkAborted = "numResults ~= #expectedResults" end
 									elseif numResults == 1 then
 										loopResult = results[1] == expectedResults[1]
+										if not loopResult then if isDebugEnabled then checkAborted = "results[1] ~= expectedResults[1]" end end
 									else
 										for resultIndex, resultOfResults in ipairs(results) do
 											if skip == false then
 												loopResult = (resultOfResults == expectedResults[resultIndex]) or false
-												if not loopResult then skip = true end
+												if not loopResult then
+													skip = true
+													if isDebugEnabled then checkAborted = "results[" .. tos(resultIndex) .."] ~= expectedResults[" .. tos(resultIndex) .."]" end
+												end
 											end
 										end
 									end
@@ -486,19 +554,32 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							end
 						end
 					end
+				else
+					if isDebugEnabled then checkAborted = "no func/no attribute" end
 				end
 			end
 		elseif bool ~= nil then
 			local typeBool= type(bool)
 			if typeBool == "function" then
-				return bool()
+				if isDebugEnabled then checkType = "boolean - function" end
+				loopResult = bool()
 			elseif typeBool == "boolean" then
-				return bool
-			else
-				return false
+				if isDebugEnabled then checkType = "boolean"end
+					loopResult = bool
+				else
+					if isDebugEnabled then checkType = "boolean > false" end
+					if isDebugEnabled then checkAborted = "hardcoded boolean false" end
+					loopResult = false
 			end
+		else
+			if isDebugEnabled then checkAborted = "no checktype" end
 		end
+		if isDebugEnabled then dd("checkType: q%, abortedDueTo: %s, loopResult: %s", tos(checkType), tos(checkAborted), tos(loopResult)) end
 		totalResult = totalResult and loopResult
+	end
+	if isDebugEnabled then
+		dd("isSpecialTrue - filterType: %s, totalResult: %s, isSpecialForced: %s", tos(filterType), tos(totalResult), tos(isSpecialForced))
+		dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	end
 	return totalResult
 end
@@ -518,6 +599,73 @@ local function getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, cr
 	return filterTypeTarget
 end
 
+local function detectShownRefereceNow(p_filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local lFilterTypeDetected = nil
+	local lReferencesToFilterType = {}
+	if libFilters.debug then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
+	if libFilters.debug then dd("detectShownRefereceNow - filterTypePassedIn: " .. tos(p_filterType) .. ", isInGamepadMode: " ..tos(isInGamepadMode)) end
+	--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
+	for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
+		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
+		if libFilters.debug then dd("=====================") end
+		if libFilters.debug then dd(">checking filterType: " .. tos(filterTypeChecked)) end
+		if p_filterType == nil or (p_filterType ~= nil and (filterTypeChecked ~= nil and filterTypeChecked == p_filterType)) then
+			local checkTypes = filterTypeControlAndOtherChecks.checkTypes
+			if checkTypes ~= nil then
+				local currentReferenceFound
+				local resultOfCurrentLoop = false
+				local doSpecialForcedCheckAtEnd = false
+				for _, checkTypeToExecute in ipairs(checkTypes) do
+					local resultLoop = false
+					if checkTypeToExecute == "control" then
+						resultLoop, currentReferenceFound = isControlShown(filterTypeChecked, isInGamepadMode)
+					elseif checkTypeToExecute == "fragment" then
+						resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, false)
+					elseif checkTypeToExecute == "scene" then
+						resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, true)
+					elseif checkTypeToExecute == "special" then
+						--local paramsForFilterTypeSpecialCheck = {} --todo create  fucntion to get needed parameters for the specil check per filterType?
+						resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
+					elseif checkTypeToExecute == "specialForced" then
+						doSpecialForcedCheckAtEnd = true
+					end
+					if libFilters.debug then dd(">>foundInLoop: " .. tos(resultLoop) .. ", checkType: " ..tos(checkTypeToExecute)) end
+					if resultLoop == true then
+						resultOfCurrentLoop = true
+					end
+				end
+				if resultOfCurrentLoop == true then
+					if doSpecialForcedCheckAtEnd == true then
+						resultOfCurrentLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, true, nil)
+						if libFilters.debug then dd(">>>specialCheckAtEnd: " ..tos(resultOfCurrentLoop)) end
+					end
+					if resultOfCurrentLoop == true then
+						lFilterTypeDetected = filterTypeChecked
+						if currentReferenceFound == nil then
+							if libFilters.debug then dd(">>>>currentReferenceFound is nil, detecing it...") end
+							currentReferenceFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
+						end
+						tins(lReferencesToFilterType, currentReferenceFound)
+					end
+				end
+			end
+		end
+		--Prevent to return different filterTypes and references
+		if lFilterTypeDetected ~= nil and #lReferencesToFilterType > 0 then
+			--For debugging:
+			libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
+			libFilters._currentFilterType = 			lFilterTypeDetected
+			return lReferencesToFilterType, lFilterTypeDetected
+		end
+	end
+	if libFilters.debug then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
+	--For debugging:
+	libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
+	libFilters._currentFilterType = 			lFilterTypeDetected
+	return lReferencesToFilterType, lFilterTypeDetected
+end
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - Control IsShown checks
@@ -534,39 +682,33 @@ end
 
 --Get the dialog's owner control by help of the filterType
 local function getDialogOwner(filterType)
-	return LF_FilterTypeToDialogOwnerControl[filterType]
+	local filterTypeMappedByCraftingType = getFilterTypeByFilterTypeRespectingCraftType[filterType]
+	--FilterType provided does not match the crafttype
+	if filterType ~= filterTypeMappedByCraftingType then return nil end
+	return LF_FilterTypeToDialogOwnerControl[filterTypeMappedByCraftingType]
 end
 
-local function checkIfControlSceneFragmentOrOther(refVar)
-	--Control
-	if refVar.control then
-		return 1
-	--Scene or fragment
-	elseif refVar.sceneManager and refVar.state then
-		return 2
-	--Other
+local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	varToCheck = (varToCheck or (isInGamepadMode and store_componentsGP[p_storeMode]) or storeWindows[p_storeMode])
+	if not varToCheck then return false end
+	--[[
+	local storeFragment
+	local storeCtrl = varToCheck.control ~= nil	and varToCheck.control
+	local retVar1 = false
+	if  (storeCtrl ~= nil and storeCtrl.IsHidden and not storeCtrl:IsHidden() then
+		retVar1 = true
 	else
-		return 3
+		storeFragment = varToCheck.sceneManager ~= nil and varToCheck.state ~= nil	and varToCheck.state
+		if storeFragment ~= nil and storeFragment == SCENE_FRAGMENT_SHOWN then
+			retVar1 = true
+		end
 	end
-	return nil
+	]]
+	local isShown, controlOrFragment, refType = checkIfRefVarIsShown(varToCheck)
+	return isShown, controlOrFragment, refType
 end
 
-local function checkIfRefVarIsShown(refVar)
-	if not refVar then return false, nil end
-	local refType = checkIfControlSceneFragmentOrOther(refVar)
-	--Control
-	local isShown = false
-	if refType == 1 then
-		isShown = not refVar.control:IsHidden()
-	--Scene or fragment
-	elseif refType == 1 then
-		isShown = refVar.state == SCENE_FRAGMENT_SHOWN or SCENE_SHOWN
-	--Other
-	elseif refType == 1 then
-		isShown = false -- TODO
-	end
-	return isShown, refVar
-end
 
 --Loop over all controls etc. in LF_FilterTypeToCheckIfReferenceIsHidden and check which one is currently shown
 --returns userdata/control/scene/fragment detectedVariable, number LF_*filterType constant
@@ -1609,75 +1751,14 @@ libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 
 -- Get the actually shown reference control/scene/userdata/inventory number e.g. INVENTORY_BACKPACK information which is relevant for a libFilters LF_* filterType.
 -- OPTIONAL parameter number filterType: If provided it will be used to determine the reference control/etc. directly via table LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]
+-- OPTIONAL parameter boolean isInGamepadMode: Check with gamepad mode or keyboard. Leave empty to let it be determined automatically
 -- returns table currentlyShownReferenceVariablesOfLF_*filterType { [1] = control/scene/userdata/inventory number, [2] = control/scene/userdata/inventory number, ... },
 --		   number filterType
-function libFilters:GetCurrentFilterTypeReference(filterType)
-	local isInGamepadMode = IsGamepad()
-	local filterTypeDetected
-	local referencesToFilterType = {}
+function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	--For debugging:
 	libFilters._currentFilterTypeReferences = 	nil
 	libFilters._currentFilterType = 			nil
-	------------------------------------------------------------------------------------------------------------------------
-	--local helper function to detect the shon refrence now
-	local function detectShownRefereceNow(p_filterType)
-		filterTypeDetected = nil
-		referencesToFilterType = {}
-
-		--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
-		for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
-			local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
-			if p_filterType == nil or (p_filterType ~= nil and (filterTypeChecked ~= nil and filterTypeChecked == p_filterType)) then
-				local checkTypes = filterTypeControlAndOtherChecks.checkTypes
-				if checkTypes ~= nil then
-					local currentReferenceFound
-					local resultOfCurrentLoop = false
-					local doSpecialForcedCheckAtEnd = false
-					for _, checkTypeToExecute in ipairs(checkTypes) do
-						local resultLoop = false
-						if checkTypeToExecute == "control" then
-							resultLoop, currentReferenceFound = isControlShown(filterTypeChecked, isInGamepadMode)
-						elseif checkTypeToExecute == "fragment" then
-							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, false)
-						elseif checkTypeToExecute == "scene" then
-							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, true)
-						elseif checkTypeToExecute == "special" then
-							--local paramsForFilterTypeSpecialCheck = {} --todo create  fucntion to get needed parameters for the specil check per filterType?
-							resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
-						elseif checkTypeToExecute == "specialForced" then
-							doSpecialForcedCheckAtEnd = true
-						end
-						if resultLoop == true then
-							resultOfCurrentLoop = true
-						end
-					end
-					if resultOfCurrentLoop == true then
-						if doSpecialForcedCheckAtEnd == true then
-							resultOfCurrentLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, true, nil)
-						end
-						if resultOfCurrentLoop == true then
-							filterTypeDetected = filterTypeChecked
-							if currentReferenceFound == nil then
-								currentReferenceFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
-							end
-							tins(referencesToFilterType, currentReferenceFound)
-						end
-					end
-				end
-			end
-			--Prevent to return different filterTypes and references
-			if filterTypeDetected ~= nil and #referencesToFilterType > 0 then
-				--For debugging:
-				libFilters._currentFilterTypeReferences = 	referencesToFilterType
-				libFilters._currentFilterType = 			filterTypeDetected
-				return referencesToFilterType, filterTypeDetected
-			end
-		end
-		--For debugging:
-		libFilters._currentFilterTypeReferences = 	referencesToFilterType
-		libFilters._currentFilterType = 			filterTypeDetected
-		return referencesToFilterType, filterTypeDetected
-	end
 	------------------------------------------------------------------------------------------------------------------------
 
 	--CraftBagExtended addon is active? We got a currently shown fragment of CBE then e.g. but the "parent" filterType will be something like
@@ -1687,7 +1768,7 @@ function libFilters:GetCurrentFilterTypeReference(filterType)
 		--TODO really needed to check here? Or just loop over the LF_FilterTypeToReference[isInGamepadMode] and check if they are shown
 	end
 	]]
-	return detectShownRefereceNow(filterType)
+	return detectShownRefereceNow(filterType, isInGamepadMode)
 end
 libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeReference
 
@@ -1803,17 +1884,10 @@ end
 function libFilters:IsStoreShown(storeMode)
 	if not ZO_Store_IsShopping() or (storeMode and storeMode == 0) then return false, storeMode, nil end
 	if IsGamepad() then
-		local function checkIfGPStoreCtrlOrFragmentShown(varToCheck, p_storeMode)
-			varToCheck = varToCheck or store_componentsGP[p_storeMode]
-			local ctrlToCheck = varToCheck.control
-			return (ctrlToCheck ~= nil and not ctrlToCheck:IsHidden()) or false,
-					ctrlToCheck ~= nil and ctrlToCheck
-		end
-
 		local currentStoreMode = (store_GP.GetCurrentMode ~= nil and store_GP:GetCurrentMode()) or 0
 		if currentStoreMode == 0 then
 			for lStoreMode, storeComponentCtrl in pairs(store_componentsGP) do
-				if checkIfGPStoreCtrlOrFragmentShown(storeComponentCtrl, lStoreMode) == true then
+				if checkIfStoreCtrlOrFragmentShown(storeComponentCtrl, lStoreMode) == true then
 					return true, lStoreMode, storeComponentCtrl
 				end
 			end
@@ -1823,36 +1897,18 @@ function libFilters:IsStoreShown(storeMode)
 					return false, currentStoreMode, nil
 				end
 			end
-			local isStoreCtrlShown, storeCtrl = checkIfGPStoreCtrlOrFragmentShown(nil, currentStoreMode)
+			local isStoreCtrlShown, storeCtrl = checkIfStoreCtrlOrFragmentShown(nil, currentStoreMode)
 			return isStoreCtrlShown, currentStoreMode, storeCtrl
 		end
 	else
-		local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode)
-			varToCheck = varToCheck or storeWindows[p_storeMode]
-			if not varToCheck then return false end
-			local storeCtrl = varToCheck.control ~= nil
-									and varToCheck.control
-			local storeFragment = storeCtrl == nil and varToCheck.sceneManager ~= nil and varToCheck.state ~= nil
-									and varToCheck.state
-			return ((storeCtrl ~= nil and not storeCtrl:IsHidden())
-					or (storeFragment ~= nil and storeFragment == SCENE_FRAGMENT_SHOWN)) or false,
-					(storeCtrl ~= nil and storeCtrl) or storeFragment
-		end
-
-		--TODO how to get current store mode of keyboard mode?
 		--local storeWindowMode = store:GetWindowMode() --returns if in stable mode -> ZO_STORE_WINDOW_MODE_STABLE
-		local currenStoreMode = 0
-		if storeMode ~= nil then
-			if currenStoreMode ~= storeMode then
-				return false, currenStoreMode, nil
-			end
-			local isStoreCtrlShown, storeCtrl = checkIfStoreCtrlOrFragmentShown(nil, storeMode)
-			if isStoreCtrlShown == true then
-				return true, storeMode, storeCtrl
-			end
-		else
-			for lStoreMode, storeControlOrFragment in pairs(storeWindows) do
-				if checkIfStoreCtrlOrFragmentShown(storeControlOrFragment, lStoreMode) == true then
+		for lStoreMode, storeControlOrFragment in pairs(storeWindows) do
+			if checkIfStoreCtrlOrFragmentShown(storeControlOrFragment, lStoreMode) == true then
+				if storeMode ~= nil then
+					if storeMode == lStoreMode then
+						return true, storeMode, storeControlOrFragment
+					end
+				else
 					return true, lStoreMode, storeControlOrFragment
 				end
 			end

@@ -303,6 +303,7 @@ kbc.store                         = 						STORE_WINDOW
 ---Sell
 kbc.vendorBuy                     =  				kbc.store
 kbc.vendorSell                    =  				BACKPACK_STORE_LAYOUT_FRAGMENT
+kbc.vendorSellInventoryFragment   =  				INVENTORY_FRAGMENT
 ---Buy back
 kbc.vendorBuyBack                 = 				BUY_BACK_WINDOW
 ---Repair
@@ -310,7 +311,7 @@ kbc.vendorRepair                  = 				REPAIR_WINDOW
 kbc.storeWindows                  = {
 	[ZO_MODE_STORE_BUY] = 			kbc.vendorBuy,
 	[ZO_MODE_STORE_BUY_BACK] = 		kbc.vendorBuyBack,
-	[ZO_MODE_STORE_SELL] = 			kbc.vendorSell,
+	[ZO_MODE_STORE_SELL] = 			kbc.vendorSellInventoryFragment,
 	[ZO_MODE_STORE_REPAIR] = 		kbc.vendorRepair,
 	[ZO_MODE_STORE_SELL_STOLEN] = 	kbc.vendorSell,
 	[ZO_MODE_STORE_LAUNDER] = 		kbc.vendorSell,
@@ -852,7 +853,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = nil, },
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = nil, },
-		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSell, },
+		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSellInventoryFragment, },
 		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = nil, },
 		[LF_VENDOR_REPAIR]            = { ["control"] = kbc.vendorRepair, 				["scene"] = "store", 				["fragment"] = nil, },
 		[LF_FENCE_SELL]               = { ["control"] = kbc.fence, 						["scene"] = "store", 				["fragment"] = kbc.invFenceSell, },
