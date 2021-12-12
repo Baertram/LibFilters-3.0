@@ -461,16 +461,22 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local isDebugEnabled = libFilters.debug
 	isSpecialForced = isSpecialForced or false
-	if not filterType then return false end
-	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
-	local specialRoutines = filterTypeData and ((isSpecialForced == true and filterTypeData["specialForced"]) or filterTypeData["special"])
-	if not specialRoutines or #specialRoutines == 0 then return false end
-	local totalResult = false
-	local loopResult = false
 	if isDebugEnabled then
 		dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 		dd("isSpecialTrue - filterType: %s, gamepadMode: %s, isSpecialForced: %s, paramsGiven: %s", tos(filterType), tos(isInGamepadMode), tos(isSpecialForced), tos(... ~= nil))
 	end
+	if not filterType then return false end
+	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
+	local specialRoutines = filterTypeData and ((isSpecialForced == true and filterTypeData["specialForced"]) or filterTypeData["special"])
+	if not specialRoutines or #specialRoutines == 0 then
+		if isDebugEnabled then
+			dd("isSpecialTrue - No checks found! Returned: true")
+			dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+		end
+		return true
+	end
+	local totalResult = false
+	local loopResult = false
 	for _, specialRoutineDetails in ipairs(specialRoutines) do
 		loopResult = false
 		local skip = false
@@ -490,7 +496,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 				local funcOrAttribute = specialRoutineDetails.funcOrAttribute
 				if funcOrAttribute ~= nil then
 					local funcType = type(funcOrAttribute)
-					if funcType == "String" then
+					if funcType == "string" then
 						if isDebugEnabled then checkType = "control - String"end
 						if ctrl[funcOrAttribute] == nil then
 							skip = true
@@ -515,7 +521,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							end
 						end
 					end
-					if not skip then
+					if not skip and funcType == "function" then
 						local params = specialRoutineDetails.params
 						local noParams = false
 						if params == nil then
@@ -526,7 +532,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							end
 						end
 						local expectedResults = specialRoutineDetails.expectedResults
-						local results = {ctrl[funcOrAttribute](ctrl, (not noParams and unpack(params)) or nil)}
+						local results = {ctrl[funcOrAttribute](ctrl, (not noParams and unpack(params)) or nil)} --TODO: Need to pass in ctrl as 1st parameter?
 						if not results then
 							if expectedResults == nil then
 								loopResult = true
@@ -562,6 +568,8 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 								end
 							end
 						end
+					else
+						if isDebugEnabled then checkAborted = "skipped, or not a function" end
 					end
 				else
 					if isDebugEnabled then checkAborted = "no func/no attribute" end
@@ -623,21 +631,25 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 			local checkTypes = filterTypeControlAndOtherChecks.checkTypes
 			if checkTypes ~= nil then
 				local currentReferenceFound
-				local resultOfCurrentLoop = false
+				local resultOfCurrentLoop = true
+				local resultLoop = false
 				local doSpecialForcedCheckAtEnd = false
 				for _, checkTypeToExecute in ipairs(checkTypes) do
-					local resultLoop = false
-					if checkTypeToExecute == "control" then
-						resultLoop, currentReferenceFound = isControlShown(filterTypeChecked, isInGamepadMode)
-					elseif checkTypeToExecute == "fragment" then
-						resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, false)
-					elseif checkTypeToExecute == "scene" then
-						resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, true)
-					elseif checkTypeToExecute == "special" then
-						--local paramsForFilterTypeSpecialCheck = {} --todo create  fucntion to get needed parameters for the specil check per filterType?
-						resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
-					elseif checkTypeToExecute == "specialForced" then
-						doSpecialForcedCheckAtEnd = true
+					--Only go on with checks if not any check was false before
+					if resultOfCurrentLoop == true then
+						resultLoop = false
+						if checkTypeToExecute == "control" then
+							resultLoop, currentReferenceFound = isControlShown(filterTypeChecked, isInGamepadMode)
+						elseif checkTypeToExecute == "fragment" then
+							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, false)
+						elseif checkTypeToExecute == "scene" then
+							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, true)
+						elseif checkTypeToExecute == "special" then
+							--local paramsForFilterTypeSpecialCheck = {} --todo create  fucntion to get needed parameters for the specil check per filterType?
+							resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
+						elseif checkTypeToExecute == "specialForced" then
+							doSpecialForcedCheckAtEnd = true
+						end
 					end
 					if libFilters.debug then dd(">>foundInLoop: " .. tos(resultLoop) .. ", checkType: " ..tos(checkTypeToExecute)) end
 					resultOfCurrentLoop = resultOfCurrentLoop and resultLoop
