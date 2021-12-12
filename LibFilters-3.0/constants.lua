@@ -258,56 +258,59 @@ constants.inventoryTypes["craftbag"] = 	invTypeCraftBag
 --Keyboard constants
 ------------------------------------------------------------------------------------------------------------------------
 --Inventory
-kbc.playerInv                     =  		    	PLAYER_INVENTORY
+kbc.playerInv                     = PLAYER_INVENTORY
 local playerInv = kbc.playerInv
-kbc.inventories                   = 				playerInv.inventories
+kbc.inventories                   = playerInv.inventories
 local inventories                 = kbc.inventories
-kbc.playerInvCtrl                 = 				ZO_PlayerInventory
+kbc.playerInvCtrl                 = ZO_PlayerInventory
 
 --Character
-kbc.characterCtrl                 =				ZO_Character
+kbc.characterCtrl                 =	ZO_Character
 
 --Backpack
-kbc.invBackpack                   = 				inventories[invTypeBackpack]
+kbc.invBackpack                   = inventories[invTypeBackpack]
 local invBackpack                 = kbc.invBackpack
-kbc.invBackpackFragment           = 		BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
+kbc.invBackpackFragment           = BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
 
 --Craftbag
-kbc.craftBagClass  				  =  			ZO_CraftBag
-kbc.invCraftbag                   = 				inventories[invTypeCraftBag]
+kbc.craftBagClass  				  = ZO_CraftBag
+kbc.invCraftbag                   = inventories[invTypeCraftBag]
 
 --Quest items
-kbc.invQuests                     = 					inventories[invTypeQuest]
+kbc.invQuests                     = inventories[invTypeQuest]
 
 --Quickslots
-kbc.quickslots                    = 				QUICKSLOT_WINDOW
-kbc.quickslotsFragment            = 			QUICKSLOT_FRAGMENT
+kbc.quickslots                    = QUICKSLOT_WINDOW
+kbc.quickslotsFragment            = QUICKSLOT_FRAGMENT
 
 
 --[Banks]
 --Player bank
-kbc.invBankDeposit                = 			BACKPACK_BANK_LAYOUT_FRAGMENT
-kbc.invBankWithdraw               = 			inventories[invTypeBank]
+kbc.invBankDeposit                = BACKPACK_BANK_LAYOUT_FRAGMENT
+kbc.invBankWithdraw               = inventories[invTypeBank]
 
 --Guild bank
-kbc.invGuildBankDeposit           =    	BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
-kbc.invGuildBankWithdraw          = 		inventories[invTypeGuildBank]
+kbc.invGuildBankDeposit           = BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
+kbc.invGuildBankWithdraw          = inventories[invTypeGuildBank]
 
 --House bank
-kbc.invHouseBankDeposit           =  		BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
-kbc.invHouseBankWithdraw          = 		inventories[invTypeHouseBank]
+kbc.invHouseBankDeposit           = BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
+kbc.invHouseBankWithdraw          = inventories[invTypeHouseBank]
 
 --[Vendor]
 ----Buy
-kbc.store                         = 						STORE_WINDOW
+kbc.store                         = STORE_WINDOW
 ---Sell
-kbc.vendorBuy                     =  				kbc.store
-kbc.vendorSell                    =  				BACKPACK_STORE_LAYOUT_FRAGMENT
---kbc.vendorSellInventoryFragment   =  				INVENTORY_FRAGMENT
+kbc.vendorBuy                     =	kbc.store
+kbc.vendorBuyFragment			  = STORE_FRAGMENT
+kbc.vendorSell                    = BACKPACK_STORE_LAYOUT_FRAGMENT
+kbc.vendorSellInventoryFragment   = INVENTORY_FRAGMENT
 ---Buy back
-kbc.vendorBuyBack                 = 				BUY_BACK_WINDOW
+kbc.vendorBuyBack                 = BUY_BACK_WINDOW
+kbc.vendorBuyBackFragment		  = BUY_BACK_FRAGMENT
 ---Repair
-kbc.vendorRepair                  = 				REPAIR_WINDOW
+kbc.vendorRepair                  = REPAIR_WINDOW
+kbc.vendorRepairFragment          = REPAIR_FRAGMENT
 kbc.storeWindows                  = {
 	[ZO_MODE_STORE_BUY] = 			kbc.vendorBuy,
 	[ZO_MODE_STORE_BUY_BACK] = 		kbc.vendorBuyBack,
@@ -320,69 +323,69 @@ kbc.storeWindows                  = {
 
 --[Fence]
 --Fence launder
-kbc.fence                         = 						FENCE_KEYBOARD
-kbc.invFenceLaunder               = 			BACKPACK_LAUNDER_LAYOUT_FRAGMENT
+kbc.fence                         = FENCE_KEYBOARD
+kbc.invFenceLaunder               = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
 
 --Fence sell
-kbc.invFenceSell                  =  				BACKPACK_FENCE_LAYOUT_FRAGMENT
+kbc.invFenceSell                  = BACKPACK_FENCE_LAYOUT_FRAGMENT
 
 
 --[Guild store]
-kbc.guildStoreObj                 = 				ZO_TradingHouse
+kbc.guildStoreObj                 = ZO_TradingHouse
 --keyboardConstants.guildStoreBuy = guildStoreBuy			--not supported by LibFilters yet
-kbc.guildStoreSell                =  			BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
+kbc.guildStoreSell                = BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
 
 
 --[Mail]
-kbc.mailSendObj                   =					MAIL_SEND
-kbc.mailSend                      =					BACKPACK_MAIL_LAYOUT_FRAGMENT
+kbc.mailSendObj                   =	MAIL_SEND
+kbc.mailSend                      =	BACKPACK_MAIL_LAYOUT_FRAGMENT
 
 --[Player 2 player trade]
-kbc.player2playerTradeObj         = 		TRADE_WINDOW
-kbc.player2playerTrade            =  		BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
+kbc.player2playerTradeObj         = TRADE_WINDOW
+kbc.player2playerTrade            = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
 
 
 --[Companion]
-kbc.companionEquipment            =  		COMPANION_EQUIPMENT_KEYBOARD
-kbc.companionCharacterCtrl        =    	ZO_CompanionCharacterWindow_Keyboard_TopLevel
+kbc.companionEquipment            = COMPANION_EQUIPMENT_KEYBOARD
+kbc.companionCharacterCtrl        = ZO_CompanionCharacterWindow_Keyboard_TopLevel
 
 
 --[Crafting]
-kbc.smithing                      =  					SMITHING
+kbc.smithing                      = SMITHING
 local smithing                    = kbc.smithing
 
 --Refinement
-kbc.refinementPanel               = 	  		smithing.refinementPanel
+kbc.refinementPanel               = smithing.refinementPanel
 
 --Create
-kbc.creationPanel                 = 	  			smithing.creationPanel
+kbc.creationPanel                 = smithing.creationPanel
 
 --Deconstruction
-kbc.deconstructionPanel           =  		smithing.deconstructionPanel
+kbc.deconstructionPanel           = smithing.deconstructionPanel
 
 --Improvement
-kbc.improvementPanel              = 	 		smithing.improvementPanel
+kbc.improvementPanel              = smithing.improvementPanel
 
 --Research
-kbc.researchPanel                 = 		 		smithing.researchPanel
+kbc.researchPanel                 = smithing.researchPanel
 local researchPanel = kbc.researchPanel
-kbc.researchChooseItemDialog      = 	SMITHING_RESEARCH_SELECT
+kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
 
 --Enchanting
-kbc.enchantingClass               = 			ZO_Enchanting
-kbc.enchanting                    = 					ENCHANTING
+kbc.enchantingClass               = ZO_Enchanting
+kbc.enchanting                    =	ENCHANTING
 
 --Alchemy
-kbc.alchemy                       = 					ALCHEMY
-kbc.alchemyScene                  =				ALCHEMY_SCENE
-kbc.alchemyCtrl                   = 				kbc.alchemy.control
+kbc.alchemy                       =	ALCHEMY
+kbc.alchemyScene                  =	ALCHEMY_SCENE
+kbc.alchemyCtrl                   = kbc.alchemy.control
 
 --Retrait
---keyboardConstants.retraitClass  = 		  	 ZO_RetraitStation_Retrait_Base
-kbc.retrait                       = 				 	ZO_RETRAIT_KEYBOARD
+--keyboardConstants.retraitClass  = ZO_RetraitStation_Retrait_Base
+kbc.retrait                       = ZO_RETRAIT_KEYBOARD
 
 --Reconstruction
-kbc.reconstruct                   = 				ZO_RECONSTRUCT_KEYBOARD
+kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD
 
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad constants
@@ -393,32 +396,32 @@ kbc.reconstruct                   = 				ZO_RECONSTRUCT_KEYBOARD
 gpc.playerInvCtrl_GP            = kbc.playerInvCtrl
 
 --Backpack
-gpc.invBackpack_GP              =				GAMEPAD_INVENTORY
-gpc.invGuildBank_GP             = 				GAMEPAD_GUILD_BANK
-gpc.invRootScene                = 				GAMEPAD_INVENTORY_ROOT_SCENE
+gpc.invBackpack_GP              = GAMEPAD_INVENTORY
+gpc.invGuildBank_GP             = GAMEPAD_GUILD_BANK
+gpc.invRootScene                = GAMEPAD_INVENTORY_ROOT_SCENE
 
 --Character
-gpc.characterCtrl_GP            = 			kbc.characterCtrl
+gpc.characterCtrl_GP            = kbc.characterCtrl
 
 
 --Craftbag
---gamepadConstants.invCraftbag_GP =				inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to filterTypeToReference[true] again
+--gamepadConstants.invCraftbag_GP =	inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to filterTypeToReference[true] again
 
 --Quest items
-gpc.invQuests_GP                =					gpc.invBackpack_GP.scene
+gpc.invQuests_GP                = gpc.invBackpack_GP.scene
 
 --Quickslots
---gamepadConstants.quickslots_GP =				GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
+--gamepadConstants.quickslots_GP = GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
 
 
 --[Banks]
 --Player bank
-gpc.invBank_GP                  = 					GAMEPAD_BANKING
+gpc.invBank_GP                  = GAMEPAD_BANKING
 --deposit: See custom gamepad fragments
 --withdraw: Uses same as keyboard
 
 --Guild bank
-gpc.invGuildBankDepositScene_GP =  GAMEPAD_GUILD_BANK_SCENE
+gpc.invGuildBankDepositScene_GP = GAMEPAD_GUILD_BANK_SCENE
 --deposit: See custom gamepad fragments
 --withdraw: Uses same as keyboard
 
@@ -430,87 +433,87 @@ gpc.invGuildBankDepositScene_GP =  GAMEPAD_GUILD_BANK_SCENE
 
 --[Vendor]
 ----Buy
-gpc.store_GP                    = 					STORE_WINDOW_GAMEPAD
-gpc.vendorBuy_GP                = 				ZO_GamepadStoreBuy 			--store_GP.components[ZO_MODE_STORE_BUY].list
+gpc.store_GP                    = STORE_WINDOW_GAMEPAD
+gpc.vendorBuy_GP                = ZO_GamepadStoreBuy 			--store_GP.components[ZO_MODE_STORE_BUY].list
 ---Sell
-gpc.vendorSell_GP               = 				ZO_GamepadStoreSell 		--store_GP.components[ZO_MODE_STORE_SELL].list
+gpc.vendorSell_GP               = ZO_GamepadStoreSell 		--store_GP.components[ZO_MODE_STORE_SELL].list
 ---Buy back
-gpc.vendorBuyBack_GP            = 			ZO_GamepadStoreBuyback 		--store_GP.components[ZO_MODE_STORE_BUY_BACK].list
+gpc.vendorBuyBack_GP            = ZO_GamepadStoreBuyback 		--store_GP.components[ZO_MODE_STORE_BUY_BACK].list
 ---Repair
-gpc.vendorRepair_GP             =				ZO_GamepadStoreRepair 		--store_GP.components[ZO_MODE_STORE_REPAIR].list
+gpc.vendorRepair_GP             = ZO_GamepadStoreRepair 		--store_GP.components[ZO_MODE_STORE_REPAIR].list
 
 
 --[Fence]
-kbc.fence                       = 						FENCE_GAMEPAD
+kbc.fence_GP                    = FENCE_GAMEPAD
 --Fence launder
-gpc.invFenceLaunder_GP          =			ZO_GamepadFenceLaunder
+gpc.invFenceLaunder_GP          = ZO_GamepadFenceLaunder
 
 --Fence sell
-gpc.invFenceSell_GP             =				ZO_GamepadFenceSell
+gpc.invFenceSell_GP             = ZO_GamepadFenceSell
 
 
 --[Guild store]
 --gamepadConstants.guildStoreBuy_GP			--not supported by LibFilters yet
-gpc.invGuildStoreSell_GP        =			GAMEPAD_TRADING_HOUSE_SELL
-gpc.invGuildStoreSellScene_GP   =  	TRADING_HOUSE_GAMEPAD_SCENE
+gpc.invGuildStoreSell_GP        = GAMEPAD_TRADING_HOUSE_SELL
+gpc.invGuildStoreSellScene_GP   = TRADING_HOUSE_GAMEPAD_SCENE
 
 
 
 --[Mail]
-gpc.invMailSendScene_GP         = 			SM:GetScene("mailManagerGamepad")
-gpc.invMailSend_GP              = 				MAIL_MANAGER_GAMEPAD.send
+gpc.invMailSendScene_GP         = SM:GetScene("mailManagerGamepad")
+gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD.send
 
 
 --[Player 2 player trade]
-gpc.invPlayerTradeScene_GP      = 		SM:GetScene("gamepadTrade")
-gpc.invPlayerTrade_GP           = 			GAMEPAD_TRADE
+gpc.invPlayerTradeScene_GP      = SM:GetScene("gamepadTrade")
+gpc.invPlayerTrade_GP           = GAMEPAD_TRADE
 
 
 --[Companion]
-gpc.companionEquipment_GP       = 		COMPANION_EQUIPMENT_GAMEPAD
-gpc.companionCharacterCtrl_GP   =    ZO_Companion_Gamepad_TopLevel --TODO is this the correct for gamepad mode?
+gpc.companionEquipment_GP       = COMPANION_EQUIPMENT_GAMEPAD
+gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel --TODO is this the correct for gamepad mode?
 
 
 --[Crafting]
-gpc.smithing_GP                 = 					SMITHING_GAMEPAD
+gpc.smithing_GP                 = SMITHING_GAMEPAD
 local smithing_GP               = gpc.smithing_GP
 
 --Refinement
-gpc.refinementPanel_GP          =	  		smithing_GP.refinementPanel
+gpc.refinementPanel_GP          = smithing_GP.refinementPanel
 
 --Create
-gpc.creationPanel_GP            =	  			smithing_GP.creationPanel
+gpc.creationPanel_GP            = smithing_GP.creationPanel
 
 --Deconstruction
-gpc.deconstructionPanel_GP      = 		smithing_GP.deconstructionPanel
+gpc.deconstructionPanel_GP      = smithing_GP.deconstructionPanel
 
 --Improvement
-gpc.improvementPanel_GP         = 			smithing_GP.improvementPanel
+gpc.improvementPanel_GP         = smithing_GP.improvementPanel
 
 --Research
-gpc.researchPanel_GP            =				smithing_GP.researchPanel
-gpc.researchChooseItemDialog_GP = 	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
+gpc.researchPanel_GP            = smithing_GP.researchPanel
+gpc.researchChooseItemDialog_GP = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
 
 --Enchanting
-gpc.enchanting_GP               =				GAMEPAD_ENCHANTING
-gpc.enchantingCreate_GP         = 			GAMEPAD_ENCHANTING_CREATION_SCENE
-gpc.enchantingExtract_GP        = 		GAMEPAD_ENCHANTING_EXTRACTION_SCENE
-gpc.enchantingInvCtrls_GP       =		{
+gpc.enchanting_GP               = GAMEPAD_ENCHANTING
+gpc.enchantingCreate_GP         = GAMEPAD_ENCHANTING_CREATION_SCENE
+gpc.enchantingExtract_GP        = GAMEPAD_ENCHANTING_EXTRACTION_SCENE
+gpc.enchantingInvCtrls_GP       = {
 	[ENCHANTING_MODE_CREATION] = 	GAMEPAD_ENCHANTING_CREATION_SCENE,
 	[ENCHANTING_MODE_EXTRACTION] = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE,
 	[ENCHANTING_MODE_RECIPES] = 	nil, --recipesgot no own scene, maybe a fragment?
 }
 
 --Alchemy
-gpc.alchemy_GP                  = 					GAMEPAD_ALCHEMY
-gpc.alchemySecene_GP            = 			ALCHEMY_SCENE
-gpc.alchemyCtrl_GP              = 				gpc.alchemy_GP.control
+gpc.alchemy_GP                  = GAMEPAD_ALCHEMY
+gpc.alchemySecene_GP            = ALCHEMY_SCENE
+gpc.alchemyCtrl_GP              = gpc.alchemy_GP.control
 
 --Retrait
-gpc.retrait_GP                  = 					ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
+gpc.retrait_GP                  = ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 
 --Reconstruction
-gpc.reconstruct_GP              = 				ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+gpc.reconstruct_GP              = ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -629,8 +632,18 @@ end
 --The dialogs which are given at a filterType, e.g. smithing research keyboard mode
 local researchPanelControl = researchPanel.control
 local filterTypeToDialogOwnerControl = {
-	[LF_SMITHING_RESEARCH_DIALOG] =	researchPanelControl,
-	[LF_JEWELRY_RESEARCH_DIALOG] =	researchPanelControl,
+	[CRAFTING_TYPE_BLACKSMITHING] = {
+		[LF_SMITHING_RESEARCH_DIALOG] =	researchPanelControl,
+	},
+	[CRAFTING_TYPE_CLOTHIER] = {
+		[LF_SMITHING_RESEARCH_DIALOG] =	researchPanelControl,
+	},
+	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
+		[LF_JEWELRY_RESEARCH_DIALOG] =	researchPanelControl,
+	},
+	[CRAFTING_TYPE_WOODWORKING] = {
+		[LF_SMITHING_RESEARCH_DIALOG] =	researchPanelControl,
+	},
 }
 mapping.LF_FilterTypeToDialogOwnerControl = filterTypeToDialogOwnerControl
 
@@ -852,12 +865,12 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = nil, },
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = nil, },
-		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = nil, },
-		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSell, },
-		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = nil, },
-		[LF_VENDOR_REPAIR]            = { ["control"] = kbc.vendorRepair, 				["scene"] = "store", 				["fragment"] = nil, },
-		[LF_FENCE_SELL]               = { ["control"] = kbc.fence, 						["scene"] = "store", 				["fragment"] = kbc.invFenceSell, },
-		[LF_FENCE_LAUNDER]            = { ["control"] = kbc.fence, 						["scene"] = "store", 				["fragment"] = kbc.invFenceLaunder, },
+		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
+		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSellInventoryFragment, },
+		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = kbc.vendorBuyBackFragment, },
+		[LF_VENDOR_REPAIR]            = { ["control"] = kbc.vendorRepair, 				["scene"] = "store", 				["fragment"] = kbc.vendorRepairFragment, },
+		[LF_FENCE_SELL]               = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard",		["fragment"] = kbc.invFenceSell, },
+		[LF_FENCE_LAUNDER]            = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard", 		["fragment"] = kbc.invFenceLaunder, },
 		[LF_GUILDSTORE_SELL]          = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreSell, },
 		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = kbc.mailSend, },
 		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = kbc.player2playerTrade, },
@@ -918,7 +931,6 @@ local filterTypeToCheckIfReferenceIsHidden = {
 	[true]  = {
 		[LF_INVENTORY_QUEST]          = { ["control"] = nil, 							["scene"] = gpc.invQuests_GP, 		["fragment"] = nil, },
 		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP, ["fragment"] = nil, },
-		[LF_VENDOR_BUY]               = { ["control"] = gpc.vendorBuy_GP, 				["scene"] = nil, 					["fragment"] = nil, },
 		[LF_VENDOR_SELL]              = { ["control"] = gpc.vendorSell_GP, 				["scene"] = nil,	 				["fragment"] = nil, },
 		[LF_VENDOR_BUYBACK]           = { ["control"] = gpc.vendorBuyBack_GP, 			["scene"] = nil, 					["fragment"] = nil, },
 		[LF_VENDOR_REPAIR]            = { ["control"] = gpc.vendorRepair_GP, 			["scene"] = nil, 					["fragment"] = nil, },
@@ -1022,8 +1034,6 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		local currentScene, currentSceneName = getCurrentSceneInfo()
 
 		--Inside mail panel?
-		if (filterType and filterType == LF_MAIL_SEND) or (not filterType and not ctrlVars.MAIL_SEND.control:IsHidden()) then
-			filterTypeDetected = LF_MAIL_SEND
 			--Inside trading player 2 player panel?
 		elseif (filterType and filterType == LF_TRADE) or (not filterType and not ctrlVars.PLAYER_TRADE.control:IsHidden()) then
 			filterTypeDetected = LF_TRADE
@@ -1123,70 +1133,70 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 
 	--Keyboard mode
 	[false] = {
-		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "fragment", "control", "special", "specialForced" } },
-		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_FENCE_SELL, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
+		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	},
 	--Gamepad mode
 	[true] = {
-		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "fragment", "control", "special", "specialForced" } },
-		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_FENCE_SELL, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special"} },
-		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special"} },
+		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_FENCE_SELL, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	}
 }
@@ -1195,6 +1205,7 @@ mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeTo
 --[Mapping for filterTypes, to other filterTypes (dependend on crafting)]
 mapping.filterTypeToFilterTypeRespectingCraftType = {
 	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
+		--Non jewelry filterTypes mapped to jewelry ones
 		[LF_SMITHING_REFINE]            = LF_JEWELRY_REFINE,
 		[LF_SMITHING_DECONSTRUCT]       = LF_JEWELRY_DECONSTRUCT,
 		[LF_SMITHING_IMPROVEMENT]       = LF_JEWELRY_IMPROVEMENT,

@@ -132,6 +132,7 @@ local gcit = GetCraftingInteractionType
 
 local getCurrentScene = SM.GetCurrentScene
 local getScene = SM.GetScene
+local isShowingSceneOrFragment = SM.IsShowing
 
 
 --LibFilters local speedup and reference variables
@@ -264,13 +265,13 @@ local function getCurrentSceneInfo()
 end
 
 local function checkIfControlSceneFragmentOrOther(refVar)
-	--Control
 	local retVar
-	if refVar.control then
-		retVar = 1
 	--Scene or fragment
-	elseif refVar.sceneManager and refVar.state then
+	if refVar.sceneManager and refVar.state then
 		retVar = 2
+	--Control
+	elseif refVar.control then
+		retVar = 1
 	--Other
 	else
 		retVar = 3
@@ -286,10 +287,10 @@ local function checkIfRefVarIsShown(refVar)
 	local isShown = false
 	if refType == 1 then
 		isShown = (refVar.control ~= nil and refVar.control.IsHidden ~= nil) and not refVar.control:IsHidden()
-		--Scene or fragment
+	--Scene or fragment
 	elseif refType == 2 then
-		isShown = refVar.state == SCENE_FRAGMENT_SHOWN or refVar.state == SCENE_SHOWN
-		--Other
+		isShown = (refVar.state == SCENE_FRAGMENT_SHOWN or refVar.state == SCENE_SHOWN) or false
+	--Other
 	elseif refType == 3 then
 		if type(refVar) == "boolean" then
 			isShown = refVar
@@ -367,11 +368,24 @@ end
 local function isSceneFragmentShown(filterType, isInGamepadMode, sceneFirst, isSceneOrFragment)
 	sceneFirst = sceneFirst or false
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local isDebugEnabled = libFilters.debug
 	local resultIsShown, resultSceneOrFragment
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	if filterTypeData == nil then return false, nil end
 	local retFragment = filterTypeData["fragment"]
 	local retScene = filterTypeData["scene"]
+	--Is the scene "name" given -> Get the scene by name
+	if retScene ~= nil and type(retScene) == "string" then
+		local sceneOfRetSceneName = getScene(SM, retScene)
+--libFilters._lastCheckedSceneName = retScene
+--libFilters._lastCheckedScene = SCENE_MANAGER:GetScene(retScene)
+		if isSceneOrFragment == true and isDebugEnabled then dd("isSceneFragmentShown - changed sceneName to scene - filterType %s, sceneName: %s, scene: %s", tos(filterType), tos(retScene), tos(sceneOfRetSceneName)) end
+		if sceneOfRetSceneName ~= nil then
+			retScene = sceneOfRetSceneName
+		else
+			return false, retScene
+		end
+	end
 
 	if isSceneOrFragment == nil then
 		if not sceneFirst then
@@ -406,7 +420,7 @@ local function isSceneFragmentShown(filterType, isInGamepadMode, sceneFirst, isS
 			end
 		end
 	end
-	if libFilters.debug then dd("isSceneFragmentShown - filterType %s: %s, sceneFirst: %s, isSceneOrFragment: %s", tos(filterType), tos(resultIsShown), tos(sceneFirst), tos(isSceneOrFragment)) end
+	if isDebugEnabled then dd("isSceneFragmentShown - filterType %s: %s, sceneFirst: %s, isSceneOrFragment: %s", tos(filterType), tos(resultIsShown), tos(sceneFirst), tos(isSceneOrFragment)) end
 	return resultIsShown, resultSceneOrFragment
 end
 
@@ -420,25 +434,29 @@ local function isControlShown(filterType, isInGamepadMode)
 		return false, nil
 	end
 	local retCtrl = filterTypeData["control"]
-	local isShown = false
+	local checkType = "retCtrl"
 	local ctrlToCheck = retCtrl
+
 	if ctrlToCheck ~= nil then
-		if not ctrlToCheck.IsHidden then
+		if ctrlToCheck.IsHidden == nil then
 			ctrlToCheck = retCtrl.control
-			if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+			checkType = "retCtrl.control"
+			if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
 				ctrlToCheck = retCtrl.list
-				if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+				checkType = "retCtrl.list"
+				if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
 					ctrlToCheck = retCtrl.listView
+					checkType = "retCtrl.listView"
 				end
 			end
 		end
 	end
-	if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+	if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
 		if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
 		return false, nil
 	end
-	isShown = not ctrlToCheck:IsHidden()
-	if libFilters.debug then dd("isControlShown - filterType %s: %s, retCtrl: %s", tos(filterType), tos(isShown), tos(ctrlToCheck)) end
+	local isShown = not ctrlToCheck:IsHidden()
+	if libFilters.debug then dd("isControlShown - filterType %s: %s, , gamepadMode: %s, retCtrl: %s, hiddenStateFrom: %s", tos(filterType), tos(isShown), tos(isInGamepadMode), tos(ctrlToCheck), tos(checkType)) end
 	return isShown, ctrlToCheck
 end
 
@@ -616,16 +634,28 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - filterType mapping
 ------------------------------------------------------------------------------------------------------------------------
+--Returns nil if no matching filterType was found for the passed in filterTypeSource and the craftType
+--Else returns the filterType matching the for the passed in filterTypeSource and the craftType
+--2nd return parameter is the craftType passed in, or if nothing was in: the detected craftType
 local function getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
-    craftType = craftType or gcit()
-	local filterTypeTarget = filterTypeSource
-    if craftType ~= CRAFTING_TYPE_INVALID then
+	if filterTypeSource == nil then return nil end
+	if craftType ~= nil and (type(craftType) ~= "number"
+			or (craftType <= CRAFTING_TYPE_INVALID or craftType > CRAFTING_TYPE_JEWELRYCRAFTING)) then
+		craftType = nil
+	end
+	craftType = craftType or gcit()
+	local filterTypeTarget
+	if craftType ~= CRAFTING_TYPE_INVALID then
 		if filterTypeToFilterTypeRespectingCraftType[craftType] ~= nil then
 			filterTypeTarget = filterTypeToFilterTypeRespectingCraftType[craftType][filterTypeSource]
-			if filterTypeTarget == nil then filterTypeTarget = filterTypeSource end
 		end
-    end
-	return filterTypeTarget
+	end
+	filterTypeTarget = filterTypeTarget or filterTypeSource
+	if libFilters.debug then
+		dd("getFilterTypeByFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s",
+			tos(filterTypeSource), tos(filterTypeTarget), tos(craftType))
+	end
+	return filterTypeTarget, craftType
 end
 
 local function detectShownReferenceNow(p_filterType, isInGamepadMode)
@@ -713,11 +743,11 @@ local function isListDialogShown(dialogOwnerControlToCheck)
 end
 
 --Get the dialog's owner control by help of the filterType
-local function getDialogOwner(filterType)
-	local filterTypeMappedByCraftingType = getFilterTypeByFilterTypeRespectingCraftType(filterType, nil)
-	--FilterType provided does not match the crafttype
-	if filterType ~= filterTypeMappedByCraftingType then return nil end
-	return LF_FilterTypeToDialogOwnerControl[filterTypeMappedByCraftingType]
+local function getDialogOwner(filterType, craftType)
+	craftType = craftType or gcit()
+	local filterTypeToDialogCraftTypeData = LF_FilterTypeToDialogOwnerControl[craftType]
+	if filterTypeToDialogCraftTypeData == nil then return nil end
+	return filterTypeToDialogCraftTypeData[filterType]
 end
 
 local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode, isInGamepadMode)
@@ -793,7 +823,7 @@ end
 
 --Function to update a ZO_ListDialog1 dialog's list contents
 local function dialogUpdaterFunc(listDialogControl)
-	if libFilters.debug then dd("dialogUpdaterFunc, listDialogControl: %s", tos(listDialogControl:GetName())) end
+	if libFilters.debug then dd("dialogUpdaterFunc, listDialogControl: %s", (listDialogControl ~= nil and listDialogControl.GetName ~= nil and tos(listDialogControl:GetName()) or "listDialogName: n/a")) end
 	 if listDialogControl == nil then return nil end
 	 --Get & Refresh the list dialog
 	 local listDialog = ZO_InventorySlot_GetItemListDialog()
@@ -1315,12 +1345,16 @@ end
 
 
 --Function to return the mapped LF_* constant of a crafting type, for a parameter number LF_* filterType constant.
---e.g. map LF_SMITHING_DECONSTRUCT to LF_JEWElRY_DECONSTRUCT if the current crafting type is CRAFT_TYPE_JEWELRY
+--e.g. map LF_SMITHING_DECONSTRUCT to LF_JEWElRY_DECONSTRUCT if the current crafting type is CRAFT_TYPE_JEWELRY, else for
+--other craftTypes it will stay at LF_SMITHING_DECONSTRUCT.
 --OPTIONAL parameter number craftType can be passed in to overwrite the detected craftType (e.g. if you need the result
 --filterType without being at a crafting table).
 -- returns number LF*_filterType
 function libFilters:GetFilterTypeRespectingCraftType(filterTypeSource, craftType)
-	return getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
+	if filterTypeSource == nil then return nil end
+	local filterTypeMappedByCraftingType, _ = getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
+	if libFilters.debug then dd("GetFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s", tos(filterTypeSource), tos(filterTypeMappedByCraftingType), tos(craftType)) end
+	return filterTypeMappedByCraftingType
 end
 
 
@@ -1951,16 +1985,30 @@ end
 
 
 --Is a list dialog currently shown?
---OPTIONAL parameter number filterType userdata/control to detect the owner control which's hidden state will be checked
+--OPTIONAL parameter number filterType to detect the owner control which's hidden state will be checked
 --OPTIONAL parameter userdata/control dialogOwnerControlToCheck which's hidden state will be checked
 --Any of the 2 parameters needs to be passed in
 --returns boolean isListDialogShown
 function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if filterType == nil and dialogOwnerControlToCheck == nil then return false end
-	if dialogOwnerControlToCheck == nil then
-		dialogOwnerControlToCheck = getDialogOwner(filterType)
-		if dialogOwnerControlToCheck == nil then return false end
+	--[[
+	--Does the filterType passed in needs to be mapped to another one, depending on the craftType?
+	local filterTypeMappedByCraftingType, craftType
+	if filterType ~= nil then
+		filterTypeMappedByCraftingType, craftType = getFilterTypeByFilterTypeRespectingCraftType(filterType, nil)
 	end
+	if dialogOwnerControlToCheck == nil and filterTypeMappedByCraftingType ~= nil then
+		dialogOwnerControlToCheck = getDialogOwner(filterTypeMappedByCraftingType, craftType)
+	end]]
+	local craftType = gcit()
+	if dialogOwnerControlToCheck == nil then
+		dialogOwnerControlToCheck = getDialogOwner(filterType, craftType)
+	end
+	if libFilters.debug then
+		dd("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
+				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)) --tos(filterTypeMappedByCraftingType)
+	end
+	if dialogOwnerControlToCheck == nil then return false end
 	return isListDialogShown(dialogOwnerControlToCheck)
 end
 
