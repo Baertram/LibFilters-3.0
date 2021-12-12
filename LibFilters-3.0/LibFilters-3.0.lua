@@ -714,7 +714,7 @@ end
 
 --Get the dialog's owner control by help of the filterType
 local function getDialogOwner(filterType)
-	local filterTypeMappedByCraftingType = getFilterTypeByFilterTypeRespectingCraftType[filterType]
+	local filterTypeMappedByCraftingType = getFilterTypeByFilterTypeRespectingCraftType(filterType, nil)
 	--FilterType provided does not match the crafttype
 	if filterType ~= filterTypeMappedByCraftingType then return nil end
 	return LF_FilterTypeToDialogOwnerControl[filterTypeMappedByCraftingType]
@@ -1965,11 +1965,26 @@ function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 end
 
 
---is the retrait station curently shown
+--Is the retrait station curently shown
 --returns boolean isRetraitStation
 function libFilters:IsRetraitStationShown()
 	return ZO_RETRAIT_STATION_MANAGER:IsRetraitSceneShowing()
 end
+
+
+--Is any crafting  station curently shown
+--OPTIONAL parameter number craftType: If provided the shown state of the crafting table connected to the craftType will
+--be checked and returned
+--returns boolean isCraftingStationShown
+function libFilters:IsCraftingStationShown(craftType)
+	local retVar = ZO_CraftingUtils_IsCraftingWindowOpen()
+	if craftType ~= nil then
+		if retVar == false then return false end
+		--TODO Connect craftType to the craftingTable controls and check if controlis shown
+	end
+	return retVar
+end
+
 
 
 --**********************************************************************************************************************
