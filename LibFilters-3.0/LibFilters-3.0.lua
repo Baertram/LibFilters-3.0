@@ -422,21 +422,20 @@ local function isControlShown(filterType, isInGamepadMode)
 	local retCtrl = filterTypeData["control"]
 	local isShown = false
 	local ctrlToCheck = retCtrl
-	if retCtrl ~= nil then
-		if not retCtrl.IsHidden then
-		else
+	if ctrlToCheck ~= nil then
+		if not ctrlToCheck.IsHidden then
 			ctrlToCheck = retCtrl.control
 			if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
 				ctrlToCheck = retCtrl.list
 				if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
 					ctrlToCheck = retCtrl.listView
-					if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
-						if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
-						return false, nil
-					end
 				end
 			end
 		end
+	end
+	if not ctrlToCheck or (ctrlToCheck and not ctrlToCheck.IsHidden) then
+		if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
+		return false, nil
 	end
 	isShown = not ctrlToCheck:IsHidden()
 	if libFilters.debug then dd("isControlShown - filterType %s: %s, retCtrl: %s", tos(filterType), tos(isShown), tos(ctrlToCheck)) end
@@ -1957,13 +1956,10 @@ end
 --Any of the 2 parameters needs to be passed in
 --returns boolean isListDialogShown
 function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
+	if filterType == nil and dialogOwnerControlToCheck == nil then return false end
 	if dialogOwnerControlToCheck == nil then
-		if filterType == nil then
-			return false
-		else
-			dialogOwnerControlToCheck = getDialogOwner(filterType)
-			if dialogOwnerControlToCheck == nil then return false end
-		end
+		dialogOwnerControlToCheck = getDialogOwner(filterType)
+		if dialogOwnerControlToCheck == nil then return false end
 	end
 	return isListDialogShown(dialogOwnerControlToCheck)
 end
