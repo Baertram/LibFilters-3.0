@@ -640,9 +640,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 						doSpecialForcedCheckAtEnd = true
 					end
 					if libFilters.debug then dd(">>foundInLoop: " .. tos(resultLoop) .. ", checkType: " ..tos(checkTypeToExecute)) end
-					if resultLoop == true then
-						resultOfCurrentLoop = true
-					end
+					resultOfCurrentLoop = resultOfCurrentLoop and resultLoop
 				end
 				if resultOfCurrentLoop == true then
 					if doSpecialForcedCheckAtEnd == true then
