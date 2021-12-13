@@ -129,6 +129,7 @@ local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
 local nccnt = NonContiguousCount
 local gcit = GetCraftingInteractionType
+local ncc = NonContiguousCount
 
 local getCurrentScene = SM.GetCurrentScene
 local getScene = SM.GetScene
@@ -593,40 +594,45 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 						end
 					end
 					if not skip then
-						local params = specialRoutineDetails.params
-						local noParams = false
-						if params == nil then
-							if isDebugEnabled then dd(">using locally passed in params") end
-							params = {...}
-							if NonContiguousCount(params) == 0 then
-								if isDebugEnabled then dd(">>locally passed in params are empty") end
-								noParams = true
-							end
-						else
-							if isDebugEnabled then dd(">using params of constants") end
-							if NonContiguousCount(params) == 0 then
-								if isDebugEnabled then dd(">>params of constants are empty") end
-								noParams = true
-							end
-						end
 						local expectedResults = specialRoutineDetails.expectedResults
-						if isDebugEnabled then dd(">>CALLING FUNCTION NOW...") end
 						local results
-libFilters._currentCallSpecialFunctionParams = params
-						if not noParams then
-							results = {ctrl[funcOrAttribute](unpack(params))}
+						local isFunction = (type(ctrl[funcOrAttribute]) == "function") or false
+						if isFunction == true then
+							local params = specialRoutineDetails.params
+							local noParams = false
+							if params == nil then
+								if isDebugEnabled then dd(">using locally passed in params") end
+								params = {...}
+								if ncc(params) == 0 then
+									if isDebugEnabled then dd(">>locally passed in params are empty") end
+									noParams = true
+								end
+							else
+								if isDebugEnabled then dd(">using params of constants") end
+								if ncc(params) == 0 then
+									if isDebugEnabled then dd(">>params of constants are empty") end
+									noParams = true
+								end
+							end
+							if isDebugEnabled then dd(">>CALLING FUNCTION NOW...") end
+							if not noParams then
+								results = {ctrl[funcOrAttribute](unpack(params))}
+							else
+								results = {ctrl[funcOrAttribute]()}
+							end
 						else
-							results = {ctrl[funcOrAttribute]()}
+							if isDebugEnabled then dd(">>GETTING ATTRIBUTE NOW...") end
+							results = {ctrl[funcOrAttribute]}
 						end
 						if not results then
-							if isDebugEnabled then dd(">>>no function return values") end
+							if isDebugEnabled then dd(">>>no return values") end
 							if expectedResults == nil then
 								if isDebugEnabled then dd(">>>no expected results -> OK") end
 								loopResult = true
 							end
 						else
 							local numResults = #results
-							if isDebugEnabled then dd(">>>function return values: " ..tos(numResults)) end
+							if isDebugEnabled then dd(">>>return values: " ..tos(numResults)) end
 							if numResults == 0 then
 								if isDebugEnabled then dd(">>>no return values") end
 								if expectedResults == nil then
