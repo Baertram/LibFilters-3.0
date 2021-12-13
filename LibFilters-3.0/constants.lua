@@ -264,6 +264,7 @@ local playerInv = kbc.playerInv
 kbc.inventories                   = playerInv.inventories
 local inventories                 = kbc.inventories
 kbc.playerInvCtrl                 = ZO_PlayerInventory
+kbc.inventoryFragment 			  = INVENTORY_FRAGMENT
 
 --Character
 kbc.characterCtrl                 =	ZO_Character
@@ -290,14 +291,17 @@ kbc.quickslotsFragment            = QUICKSLOT_FRAGMENT
 --Player bank
 kbc.invBankDeposit                = BACKPACK_BANK_LAYOUT_FRAGMENT
 kbc.invBankWithdraw               = inventories[invTypeBank]
+kbc.bankWithdrawFragment          = BANK_FRAGMENT
 
 --Guild bank
 kbc.invGuildBankDeposit           = BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
 kbc.invGuildBankWithdraw          = inventories[invTypeGuildBank]
+kbc.guildBankWithdrawFragment     = GUILD_BANK_FRAGMENT
 
 --House bank
 kbc.invHouseBankDeposit           = BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
 kbc.invHouseBankWithdraw          = inventories[invTypeHouseBank]
+kbc.houseBankWithdrawFragment     = HOUSE_BANK_FRAGMENT
 
 --[Vendor]
 ----Buy
@@ -305,10 +309,9 @@ kbc.store                         = STORE_WINDOW
 ---Sell
 kbc.vendorBuy                     =	kbc.store
 kbc.vendorBuyFragment			  = STORE_FRAGMENT
-kbc.vendorSell                    = BACKPACK_STORE_LAYOUT_FRAGMENT
-kbc.vendorSellInventoryFragment   = INVENTORY_FRAGMENT
+kbc.vendorSell        			  = BACKPACK_STORE_LAYOUT_FRAGMENT
 ---Buy back
-kbc.vendorBuyBack                 = BUY_BACK_WINDOW
+kbc.vendorBuyBack     			  = BUY_BACK_WINDOW
 kbc.vendorBuyBackFragment		  = BUY_BACK_FRAGMENT
 ---Repair
 kbc.vendorRepair                  = REPAIR_WINDOW
@@ -865,7 +868,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = nil, 					["fragment"] = kbc.invBackpackFragment },
 		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = nil, 					["fragment"] = nil, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = kbc.craftBagFragment,
 										  ["special"] = nil,
 										  --Check for CraftBagExtended addon and change the detected CraftBag panel to any other supported, e.g.
@@ -886,21 +889,21 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--TODO - Does not detect properly: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = nil, 					["fragment"] = kbc.quickslotsFragment, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = nil, 					["fragment"] = nil, },
+		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = "bank", 				["fragment"] = kbc.bankWithdrawFragment, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = "bank", 				["fragment"] = nil, },
+		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = "bank", 				["fragment"] = kbc.inventoryFragment, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
+		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = "guildBank",			["fragment"] = kbc.guildBankWithdrawFragment, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = nil, },
+		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = kbc.inventoryFragment, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
+		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = "houseBank",			["fragment"] = kbc.houseBankWithdrawFragment, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = nil, },
+		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = kbc.inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
 		--Works: 2021-12-13
-		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSellInventoryFragment, },
+		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = kbc.vendorBuyBackFragment, },
 		--Works: 2021-12-13
