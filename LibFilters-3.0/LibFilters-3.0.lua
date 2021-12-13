@@ -424,6 +424,43 @@ local function isSceneFragmentShown(filterType, isInGamepadMode, sceneFirst, isS
 	return resultIsShown, resultSceneOrFragment
 end
 
+--Is the dialog's owner control shown
+local function isListDialogShown(dialogOwnerControlToCheck)
+	local listDialog = ZO_InventorySlot_GetItemListDialog()
+	local data = listDialog and listDialog.control and listDialog.control.data
+	if data == nil then return false end
+	local owner = data.owner
+	if owner == nil or owner.control == nil then return false end
+	return owner.control == dialogOwnerControlToCheck and not listDialog.control:IsHidden()
+end
+
+--Get the dialog's owner control by help of the filterType
+local function getDialogOwner(filterType, craftType)
+	craftType = craftType or gcit()
+	local filterTypeToDialogCraftTypeData = LF_FilterTypeToDialogOwnerControl[craftType]
+	if filterTypeToDialogCraftTypeData == nil then return nil end
+	return filterTypeToDialogCraftTypeData[filterType]
+end
+
+local function isListDialogShownWrapper(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
+	if filterTypeData == nil then
+		if libFilters.debug then dd("isListDialogShownWrapper - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
+		return false, nil
+	end
+	local dialogOwnerCtrl = filterTypeData["controlDialog"]
+	return isListDialogShown(dialogOwnerCtrl)
+end
+
+local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	varToCheck = (varToCheck or (isInGamepadMode and store_componentsGP[p_storeMode]) or storeWindows[p_storeMode])
+	if not varToCheck then return false end
+	local isShown, controlOrFragment, refType = checkIfRefVarIsShown(varToCheck)
+	return isShown, controlOrFragment, refType
+end
+
 --Check if a control is assigned to the filterType and inputType
 --returns boolean isShown), controlReference controlWhichIsShown
 local function isControlShown(filterType, isInGamepadMode)
@@ -465,7 +502,7 @@ end
 ["special"] = {
   [1] = {
 	  ["control"]  =  gamepadConstants.enchanting_GP,
-	  ["func"] = "GetEnchantingMode",
+	  ["funcOrAttribute"] = "GetEnchantingMode",
 	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, ...)
 	  --either control + func + params OR bool can be given!
 	  ["bool"] = booleanVariableOrFunctionReturningABooleanValue,
@@ -693,6 +730,8 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 						resultLoop = false
 						if checkTypeToExecute == "control" then
 							resultLoop, currentReferenceFound = isControlShown(filterTypeChecked, isInGamepadMode)
+						elseif checkTypeToExecute == "controlDialog" then
+							resultLoop, currentReferenceFound = isListDialogShownWrapper(filterTypeChecked, isInGamepadMode)
 						elseif checkTypeToExecute == "fragment" then
 							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, false)
 						elseif checkTypeToExecute == "scene" then
@@ -716,7 +755,10 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 						lFilterTypeDetected = filterTypeChecked
 						if currentReferenceFound == nil then
 							if isDebugEnabled then dd(">>>>currentReferenceFound is nil, detecing it...") end
-							currentReferenceFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
+							local referencesFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
+							if referencesFound ~= nil then
+								currentReferenceFound = referencesFound[1] --todo which one to take if more than 1 reference found?
+							end
 						end
 						tins(lReferencesToFilterType, currentReferenceFound)
 					end
@@ -742,80 +784,6 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - Control IsShown checks
 ------------------------------------------------------------------------------------------------------------------------
---Is the dialog's owner control shown
-local function isListDialogShown(dialogOwnerControlToCheck)
-	local listDialog = ZO_InventorySlot_GetItemListDialog()
-	local data = listDialog and listDialog.control and listDialog.control.data
-	if data == nil then return false end
-	local owner = data.owner
-	if owner == nil or owner.control == nil then return false end
-	return owner.control == dialogOwnerControlToCheck and not listDialog.control:IsHidden()
-end
-
---Get the dialog's owner control by help of the filterType
-local function getDialogOwner(filterType, craftType)
-	craftType = craftType or gcit()
-	local filterTypeToDialogCraftTypeData = LF_FilterTypeToDialogOwnerControl[craftType]
-	if filterTypeToDialogCraftTypeData == nil then return nil end
-	return filterTypeToDialogCraftTypeData[filterType]
-end
-
-local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode, isInGamepadMode)
-	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	varToCheck = (varToCheck or (isInGamepadMode and store_componentsGP[p_storeMode]) or storeWindows[p_storeMode])
-	if not varToCheck then return false end
-	--[[
-	local storeFragment
-	local storeCtrl = varToCheck.control ~= nil	and varToCheck.control
-	local retVar1 = false
-	if  (storeCtrl ~= nil and storeCtrl.IsHidden and not storeCtrl:IsHidden() then
-		retVar1 = true
-	else
-		storeFragment = varToCheck.sceneManager ~= nil and varToCheck.state ~= nil	and varToCheck.state
-		if storeFragment ~= nil and storeFragment == SCENE_FRAGMENT_SHOWN then
-			retVar1 = true
-		end
-	end
-	]]
-	local isShown, controlOrFragment, refType = checkIfRefVarIsShown(varToCheck)
-	return isShown, controlOrFragment, refType
-end
-
-
---Loop over all controls etc. in LF_FilterTypeToCheckIfReferenceIsHidden and check which one is currently shown
---returns userdata/control/scene/fragment detectedVariable, number LF_*filterType constant
-local function getFilterBaseAndCheckWhichOneIsCurrentlyShown(filterType, isInGamepadMode)
-	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	local referenceToFilterType, referencesToFilterType, filterTypeDetected
-	--Get possible controls, fragments etc. by help of the filterType
-	if filterType ~= nil and type(filterType) == "number" and filterType >= LF_FILTER_MIN and filterType <= LF_FILTER_MAX then
-		referencesToFilterType = libFilters_GetFilterTypeReferences(libFilters, filterType, isInGamepadMode)
-		if not referencesToFilterType then return nil, nil end
-		if type(referencesToFilterType) == "table" then
-			if #referencesToFilterType == 1 then
-				referenceToFilterType = referencesToFilterType[1]
-			end
-		else
-			referenceToFilterType = referencesToFilterType
-		end
-	end
-	--Check if control/fragment/etc. is shown
-	if referenceToFilterType ~= nil then
-		local isRefVarShown, refVar = checkIfRefVarIsShown(referenceToFilterType)
-		if isRefVarShown == true then
-			filterTypeDetected = filterType
-			referenceToFilterType = refVar
-		end
-	else
-		for _, lReferenceToFilterType in pairs(referencesToFilterType) do
-			local lIsRefVarShown, lRefVar = checkIfRefVarIsShown(lReferenceToFilterType)
-			if lIsRefVarShown == true then
-				return lRefVar, filterType
-			end
-		end
-	end
-	return referenceToFilterType, filterTypeDetected
-end
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -2489,6 +2457,9 @@ function libFilters:InitializeLibFilters()
 
 	 InstallHelpers()
 	 ApplyAdditionalFilterHooks()
+
+	--TODO for debugging only
+	if GetDisplayName() == "@Baertram" then debugSlashToggle() end
 end
 
 --______________________________________________________________________________________________________________________

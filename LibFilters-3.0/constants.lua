@@ -882,8 +882,27 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = kbc.mailSend, },
 		--Works: 2021-12-13
 		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = kbc.player2playerTrade, },
-		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = kbc.researchChooseItemDialog, 	["scene"] = nil, 					["fragment"] = nil, },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = kbc.researchChooseItemDialog,	["scene"] = nil,	 				["fragment"] = nil, },
+		--TODO - Does not detect properly: 2021-12-13
+		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = kbc.researchPanel.control, 	["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["controlDialog"] = kbc.researchPanel.control,	["scene"] = "smithing",	 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 
 
 		--Not implemented yet
@@ -904,6 +923,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 										},
+		--Works: 2021-12-13
 		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -914,6 +934,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -924,6 +945,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_SMITHING_RESEARCH]        = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1226,8 +1248,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
-		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene", "control" } },
-		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene", "controlDialog" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "special", "scene", "controlDialog" } },
 		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "special", "scene", "control" } },
