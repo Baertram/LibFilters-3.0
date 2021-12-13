@@ -479,11 +479,15 @@ local function isControlShown(filterType, isInGamepadMode)
 			ctrlToCheck = retCtrl.control
 			checkType = "retCtrl.control"
 			if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
-				ctrlToCheck = retCtrl.list
-				checkType = "retCtrl.list"
+				ctrlToCheck = retCtrl.container
+				checkType = "retCtrl.container"
 				if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
-					ctrlToCheck = retCtrl.listView
-					checkType = "retCtrl.listView"
+					ctrlToCheck = retCtrl.list
+					checkType = "retCtrl.list"
+					if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
+						ctrlToCheck = retCtrl.listView
+						checkType = "retCtrl.listView"
+					end
 				end
 			end
 		end

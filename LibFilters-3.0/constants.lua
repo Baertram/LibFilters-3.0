@@ -281,6 +281,7 @@ kbc.craftBagFragment 			  = CRAFT_BAG_FRAGMENT
 
 --Quest items
 kbc.invQuests                     = inventories[invTypeQuest]
+kbc.invQuestFragment			  = QUEST_ITEMS_FRAGMENT
 
 --Quickslots
 kbc.quickslots                    = QUICKSLOT_WINDOW
@@ -356,7 +357,10 @@ kbc.player2playerTrade            = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
 
 --[Companion]
 kbc.companionEquipment            = COMPANION_EQUIPMENT_KEYBOARD
+kbc.companionEquipmentFragment	  = COMPANION_EQUIPMENT_KEYBOARD_FRAGMENT
 kbc.companionCharacterCtrl        = ZO_CompanionCharacterWindow_Keyboard_TopLevel
+kbc.companionCharacterFragment    = COMPANION_CHARACTER_KEYBOARD_FRAGMENT
+
 
 
 --[Crafting]
@@ -390,10 +394,12 @@ kbc.enchanting                    =	ENCHANTING
 kbc.alchemy                       =	ALCHEMY
 kbc.alchemyScene                  =	ALCHEMY_SCENE
 kbc.alchemyCtrl                   = kbc.alchemy.control
+kbc.alchemyFragment               =	ALCHEMY_FRAGMENT
 
 --Retrait
 --keyboardConstants.retraitClass  = ZO_RetraitStation_Retrait_Base
 kbc.retrait                       = ZO_RETRAIT_KEYBOARD
+kbc.retraitFragment				  = RETRAIT_STATION_RETRAIT_FRAGMENT
 
 --Reconstruction
 kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD
@@ -867,7 +873,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 	[false] = {
 		--Works: 2021-12-13
 		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = nil, 					["fragment"] = kbc.invBackpackFragment },
-		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = nil, 					["fragment"] = nil, },
+		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = "inventory",			["fragment"] = kbc.invQuestFragment, },
 		--Works: 2021-12-13
 		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = kbc.craftBagFragment,
 										  ["special"] = nil,
@@ -884,21 +890,21 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  },
 		},
-		--TODO
-		[LF_INVENTORY_COMPANION]      = { ["control"] = kbc.companionEquipment, 		["scene"] = nil, 					["fragment"] = nil, },
-		--TODO - Does not detect properly: 2021-12-13
-		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = nil, 					["fragment"] = kbc.quickslotsFragment, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
+		[LF_INVENTORY_COMPANION]      = { ["control"] = kbc.companionEquipment, 		["scene"] = "companionCharacterKeyboard", ["fragment"] = kbc.companionEquipmentFragment, },
+		--Works: 2021-12-13
+		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = "inventory",			["fragment"] = kbc.quickslotsFragment, },
+		--Works: 2021-12-13
 		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = "bank", 				["fragment"] = kbc.bankWithdrawFragment, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = "bank", 				["fragment"] = kbc.inventoryFragment, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = "guildBank",			["fragment"] = kbc.guildBankWithdrawFragment, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = kbc.inventoryFragment, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = "houseBank",			["fragment"] = kbc.houseBankWithdrawFragment, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = kbc.inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
@@ -945,10 +951,19 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Not implemented yet
 		--Works: 2021-12-13
 		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreBrowseFragment, },
-		[LF_SMITHING_CREATION] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_BREW]		  = { ["control"] = nil,							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		--Works: 2021-12-13
+		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, },
+		[LF_PROVISIONING_BREW]		  = { ["control"] = nil,							["scene"] = nil, 					["fragment"] = nil, },
 
 		--Works: 2021-12-13
 		[LF_SMITHING_REFINE]          = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
@@ -991,6 +1006,17 @@ local filterTypeToCheckIfReferenceIsHidden = {
 													["funcOrAttribute"] = "IsJewelryCrafting",
 													["params"] = {_G[GlobalLibName]},
 													["expectedResults"] = {false},
+												}
+											}
+		},
+		--Works: 2021-12-13
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
 												}
 											}
 		},
@@ -1038,8 +1064,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
-		[LF_ALCHEMY_CREATION]		  = { ["control"] = kbc.alchemy, 					["scene"] = kbc.alchemyScene, 		["fragment"] = nil,
+		--Works: 2021-12-13
+		[LF_ALCHEMY_CREATION]		  = { ["control"] = kbc.alchemy, 					["scene"] = kbc.alchemyScene, 		["fragment"] = kbc.alchemyFragment,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  kbc.alchemy,
@@ -1049,8 +1075,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
-		[LF_RETRAIT]                  = { ["control"] = kbc.retrait, 					["scene"] = nil, 					["fragment"] = nil, },
+		--Works: 2021-12-13
+		[LF_RETRAIT]                  = { ["control"] = kbc.retrait, 					["scene"] = "retrait_keyboard_root", ["fragment"] = kbc.retraitFragment, },
 		--Works: 2021-12-13
 		[LF_ENCHANTING_CREATION]	  = { ["control"] = kbc.enchanting, 				["scene"] = "enchanting", 			["fragment"] = nil,
 										  ["special"] = {
@@ -1174,110 +1200,6 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	--checkTypes will be checked from left to right (by the index of the table checkTypes) and either of them must be
 	--shown == true, except specialForced: It will always be checked "in addition" to the result of the before done
 	--checks!
-
-	--From FCOItemSaver as example:
-	--[[
-		--The current game's SCENE and name (used for determining bank/guild bank deposit)
-		local currentScene, currentSceneName = getCurrentSceneInfo()
-
-		--Inside mail panel?
-			--Inside trading player 2 player panel?
-		elseif (filterType and filterType == LF_TRADE) or (not filterType and not ctrlVars.PLAYER_TRADE.control:IsHidden()) then
-			filterTypeDetected = LF_TRADE
-			--Are we at the store scene?
-		elseif (filterType and (filterType == LF_VENDOR_BUY or filterType == LF_VENDOR_SELL or filterType == LF_VENDOR_BUYBACK or filterType == LF_VENDOR_REPAIR)) or (not filterType and isSceneFragmentShown(LF_VENDOR_SELL, isInGamepadMode)) then
-			--Vendor buy
-			if (filterType and filterType == LF_VENDOR_BUY) or (not filterType and ((not ctrlVars.STORE:IsHidden() and ctrlVars.BACKPACK_BAG:IsHidden() and ctrlVars.STORE_BUY_BACK:IsHidden() and ctrlVars.REPAIR_LIST:IsHidden()))) then
-				filterTypeDetected = LF_VENDOR_BUY
-				--Vendor sell
-			elseif (filterType and filterType == LF_VENDOR_SELL) or (not filterType and ((ctrlVars.STORE:IsHidden() and not ctrlVars.BACKPACK_BAG:IsHidden() and ctrlVars.STORE_BUY_BACK:IsHidden() and ctrlVars.REPAIR_LIST:IsHidden()))) then
-				filterTypeDetected = LF_VENDOR_SELL
-				--Vendor buyback
-			elseif (filterType and filterType == LF_VENDOR_BUYBACK) or (not filterType and ((ctrlVars.STORE:IsHidden() and ctrlVars.BACKPACK_BAG:IsHidden() and not ctrlVars.STORE_BUY_BACK:IsHidden() and ctrlVars.REPAIR_LIST:IsHidden()))) then
-				filterTypeDetected = LF_VENDOR_BUYBACK
-				--Vendor repair
-			elseif (filterType and filterType == LF_VENDOR_REPAIR) or (not filterType and ((ctrlVars.STORE:IsHidden() and ctrlVars.BACKPACK_BAG:IsHidden() and ctrlVars.STORE_BUY_BACK:IsHidden() and not ctrlVars.REPAIR_LIST:IsHidden()))) then
-				filterTypeDetected = LF_VENDOR_REPAIR
-			end
-			--Fence/Launder scene
-		elseif (filterType and filterType == LF_FENCE_SELL) or (not filterType and isSceneFragmentShown(LF_FENCE_SELL, isInGamepadMode)) then
-			--Inside fence sell?
-			local fenceCtrl = isInGamepadMode and fence_GP or fence
-			if fenceCtrl ~= nil and fenceCtrl:IsSellingStolenItems() then
-				filterTypeDetected = LF_FENCE_SELL
-			end
-		elseif (filterType and filterType == LF_FENCE_LAUNDER) or (not filterType and isSceneFragmentShown(LF_FENCE_LAUNDER, isInGamepadMode)) then
-			--Inside launder sell?
-			local fenceCtrl = isInGamepadMode and fence_GP or fence
-			if fenceCtrl ~= nil and fenceCtrl:IsLaundering() then
-				filterTypeDetected = LF_FENCE_LAUNDER
-			end
-			--Inside crafting station refinement
-		elseif (filterType and (filterType == LF_SMITHING_REFINE or filterType == LF_JEWELRY_REFINE)) or (not filterType and (not ctrlVars.REFINEMENT:IsHidden() or (filterType == LF_SMITHING_REFINE or filterType == LF_JEWELRY_REFINE))) then
-			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_REFINE)
-			--Inside crafting station deconstruction
-		elseif (filterType and (filterType == LF_SMITHING_DECONSTRUCT or filterType == LF_JEWELRY_DECONSTRUCT)) or (not filterType and (not ctrlVars.DECONSTRUCTION:IsHidden() or (filterType == LF_SMITHING_DECONSTRUCT or filterType == LF_JEWELRY_DECONSTRUCT))) then
-			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_DECONSTRUCT)
-			--Inside crafting station improvement
-		elseif (filterType and (filterType == LF_SMITHING_IMPROVEMENT or filterType == LF_JEWELRY_IMPROVEMENT)) or (not filterType and (not ctrlVars.IMPROVEMENT:IsHidden() or (filterType == LF_SMITHING_IMPROVEMENT or filterType == LF_JEWELRY_IMPROVEMENT))) then
-			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_IMPROVEMENT)
-			--Are we at the crafting stations research panel's popup list dialog?
-		elseif (filterType and (filterType == LF_SMITHING_RESEARCH_DIALOG or filterType == LF_JEWELRY_RESEARCH_DIALOG)) or (not filterType and (isResearchListDialogShown() or (filterType == LF_SMITHING_RESEARCH_DIALOG or filterType == LF_JEWELRY_RESEARCH_DIALOG))) then
-			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_RESEARCH_DIALOG)
-			--Are we at the crafting stations research panel?
-		elseif (filterType and (filterType == LF_SMITHING_RESEARCH or filterType == LF_JEWELRY_RESEARCH)) or (not filterType and (not ctrlVars.RESEARCH:IsHidden() or (filterType == LF_SMITHING_RESEARCH or filterType == LF_JEWELRY_RESEARCH))) then
-			filterTypeDetected = getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_RESEARCH)
-			--Inside enchanting station
-		elseif (filterType and (filterType == LF_ENCHANTING_EXTRACTION or filterType == LF_ENCHANTING_CREATION)) or (not filterType and not ctrlVars.ENCHANTING_STATION:IsHidden()) then
-			--Enchanting Extraction panel?
-			local enchantingMode = (isInGamepadMode and enchanting_GP:GetEnchantingMode()) or enchanting:GetEnchantingMode()
-			if filterType == LF_ENCHANTING_EXTRACTION or enchantingMode == ENCHANTING_MODE_EXTRACTION then
-				filterTypeDetected = LF_ENCHANTING_EXTRACTION
-				--Enchanting Creation panel?
-			elseif filterType == LF_ENCHANTING_CREATION or enchantingMode == ENCHANTING_MODE_CREATION then
-				filterTypeDetected = LF_ENCHANTING_CREATION
-			end
-			--Inside guild store selling?
-		elseif (filterType and filterType == LF_GUILDSTORE_SELL) or (not filterType and not ctrlVars.GUILD_STORE:IsHidden()) then
-			filterTypeDetected = LF_GUILDSTORE_SELL
-			--Are we at the alchemy station?
-		elseif (filterType and filterType == LF_ALCHEMY_CREATION) or (not filterType and not ctrlVars.ALCHEMY_STATION:IsHidden()) then
-			filterTypeDetected = LF_ALCHEMY_CREATION
-			--Are we at a bank and trying to withdraw some items by double clicking it?
-		elseif (filterType and filterType == LF_BANK_WITHDRAW) or (not filterType and not ctrlVars.BANK:IsHidden()) then
-			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
-			filterTypeDetected = LF_BANK_WITHDRAW
-		elseif (filterType and filterType == LF_HOUSE_BANK_WITHDRAW) or (not filterType and not ctrlVars.HOUSE_BANK:IsHidden()) then
-			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
-			filterTypeDetected = LF_HOUSE_BANK_WITHDRAW
-			--Are we at a guild bank and trying to withdraw some items by double clicking it?
-		elseif (filterType and filterType == LF_GUILDBANK_WITHDRAW) or (not filterType and not ctrlVars.GUILD_BANK:IsHidden()) then
-			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
-			filterTypeDetected = LF_GUILDBANK_WITHDRAW
-			--Are we at a transmutation/retrait station?
-		elseif (filterType and filterType == LF_RETRAIT) or (not filterType and libFilters:IsRetraitStationShown()) then
-			--Set filterTypeDetected to FCOIS_CON_FALLBACK so the anti-settings mapping function returns "false"
-			filterTypeDetected = LF_RETRAIT
-			--Are we at a companion inventory?
-		elseif (filterType and filterType == LF_INVENTORY_COMPANION) or (not filterType and libFilters:IsCompanionInventoryShown()) then
-			filterTypeDetected = LF_INVENTORY_COMPANION
-		--Are we at the bank deposit
-		elseif (filterType and filterType == LF_BANK_DEPOSIT or (not filterType and (IsBankOpen() or (currentSceneName ~= nil and (currentSceneName == getSceneName(LF_BANK_DEPOSIT, isInGamepadMode)))) and ctrlVars.BANK:IsHidden())) then
-
-		--Are we at the guild bank deposit
-		elseif (filterType and filterType == LF_GUILDBANK_DEPOSIT or (not filterType and (IsGuildBankOpen() or (currentSceneName ~= nil and (currentSceneName == getSceneName(LF_GUILDBANK_DEPOSIT, isInGamepadMode)))) and ctrlVars.GUILD_BANK:IsHidden())) then
-
-		--Are we at the house bank deposit
-		elseif (filterType and filterType == LF_HOUSE_BANK_DEPOSIT or (not filterType and (IsBankOpen() or (currentSceneName ~= nil and (currentSceneName == getSceneName(LF_HOUSE_BANK_DEPOSIT, isInGamepadMode)))) and ctrlVars.HOUSE_BANK:IsHidden() )) then
-
-		--Are we at the inventory
-		elseif (filterType and (filterType == LF_INVENTORY or (not filterType and not ctrlVars.BACKPACK:IsHidden()))) then
-			filterTypeDetected = LF_INVENTORY
-		else
-			--All others: Unknown
-		end
-	]]
-
 	--Keyboard mode
 	[false] = {
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } }, --> CraftBagExtended: Handled in specialForced
@@ -1289,6 +1211,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
 		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_SMITHING_CREATION, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_CREATION, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
@@ -1312,9 +1236,12 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	},
 	--Gamepad mode
+	--TODO check the sort order and order of checkTypes per filterType ! 2021-12-130y0000ä00
 	[true] = {
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } }, --> CraftBagExtended: Handled in specialForced
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
@@ -1325,6 +1252,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
 		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_SMITHING_CREATION, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_CREATION, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
@@ -1348,6 +1277,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
+--		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	}
 }
