@@ -726,7 +726,7 @@ local function craftBagExtendedCheckForCurrentModule(filterType)
 	local cbeCurrentModule = cbe.currentModule
 	if cbeCurrentModule == nil then
 		if isDebugEnabled then dd("<no current CBE module found") end
-		return nil, nil
+		return true, LF_INVENTORY
 	end
 	local cbeDescriptorOfCraftBag = 4402 --GetString(4402) = "CraftBag"
 	--Check if the CBE button at the menu is activated -> Means te CBE fragment is shown
@@ -2416,6 +2416,9 @@ function libFilters:GetCraftBagExtendedParentFilterType(filterTypesToCheck)
 			if referencesToFilterType ~= nil and filterTypeParent ~= nil then
 				if libFilters.debug then dd(">filterTypeChecked: %s, filterTypeParent: %q",
 						tos(filterTypeToCheck), tos(filterTypeParent)) end
+				return true
+			elseif referencesToFilterType == true and filterTypeParent == LF_INVENTORY then
+				--Normal craftbag at player inventory is shown
 				return true
 			end
 		end

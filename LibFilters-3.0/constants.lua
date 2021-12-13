@@ -335,7 +335,11 @@ kbc.invFenceSell                  = BACKPACK_FENCE_LAYOUT_FRAGMENT
 --[Guild store]
 kbc.guildStoreObj                 = ZO_TradingHouse
 --keyboardConstants.guildStoreBuy = guildStoreBuy			--not supported by LibFilters yet
+kbc.guildStoreBrowseFragment      = TRADING_HOUSE_SEARCH_HISTORY_KEYBOARD_FRAGMENT
+
 kbc.guildStoreSell                = BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
+kbc.guildStoreSellFragment        = INVENTORY_FRAGMENT
+
 
 
 --[Mail]
@@ -870,7 +874,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "GetCraftBagExtendedParentFilterType",
-												  ["params"]          = { _G[GlobalLibName], { LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL} },
+												  ["params"]          = { _G[GlobalLibName], { LF_MAIL_SEND, LF_TRADE,
+																							   LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
+																							   LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT} },
 												  ["expectedResults"] = { true },
 											  }
 										  },
@@ -879,17 +885,17 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_COMPANION]      = { ["control"] = kbc.companionEquipment, 		["scene"] = nil, 					["fragment"] = nil, },
 		--TODO - Does not detect properly: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = nil, 					["fragment"] = kbc.quickslotsFragment, },
-		--TODO
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = nil, 					["fragment"] = nil, },
-		--TODO
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = "bank", 				["fragment"] = nil, },
-		--TODO
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
-		--TODO
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = nil, },
-		--TODO
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
-		--TODO
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = nil, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
@@ -904,7 +910,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_FENCE_LAUNDER]            = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard", 		["fragment"] = kbc.invFenceLaunder, },
 		--Works: 2021-12-13
-		[LF_GUILDSTORE_SELL]          = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreSell, },
+		[LF_GUILDSTORE_SELL]          = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreSellFragment, },
 		--Works: 2021-12-13
 		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = kbc.mailSend, },
 		--Works: 2021-12-13
@@ -934,7 +940,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Not implemented yet
-		[LF_GUILDSTORE_BROWSE] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		--Works: 2021-12-13
+		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreBrowseFragment, },
 		[LF_SMITHING_CREATION] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_JEWELRY_CREATION] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
@@ -1270,7 +1277,6 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 
 	--Keyboard mode
 	[false] = {
-
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } }, --> CraftBagExtended: Handled in specialForced
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
@@ -1292,6 +1298,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_GUILDSTORE_BROWSE, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
@@ -1306,37 +1313,38 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	},
 	--Gamepad mode
 	[true] = {
-		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } },
+		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } }, --> CraftBagExtended: Handled in specialForced
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "fragment", "control", "special", "specialForced" } },
-		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_FENCE_SELL, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
+		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene", "controlDialog" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "special", "scene", "controlDialog" } },
+		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_GUILDSTORE_BROWSE, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_RETRAIT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	}
 }
