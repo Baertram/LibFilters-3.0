@@ -456,7 +456,7 @@ local function isControlShown(filterType, isInGamepadMode)
 		return false, nil
 	end
 	local isShown = not ctrlToCheck:IsHidden()
-	if libFilters.debug then dd("isControlShown - filterType %s: %s, , gamepadMode: %s, retCtrl: %s, hiddenStateFrom: %s", tos(filterType), tos(isShown), tos(isInGamepadMode), tos(ctrlToCheck), tos(checkType)) end
+	if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, retCtrl: %s, hiddenStateFrom: %s", tos(filterType), tos(isShown), tos(isInGamepadMode), tos(ctrlToCheck), tos(checkType)) end
 	return isShown, ctrlToCheck
 end
 
@@ -505,7 +505,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 		end
 		return true
 	end
-	local totalResult = false
+	local totalResult = true
 	local loopResult = false
 	for _, specialRoutineDetails in ipairs(specialRoutines) do
 		loopResult = false
@@ -551,26 +551,34 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							end
 						end
 					end
-					if not skip and funcType == "function" then
+					if not skip then
 						local params = specialRoutineDetails.params
 						local noParams = false
 						if params == nil then
+							if isDebugEnabled then dd(">using locally passed in params") end
 							params = {...}
 						else
+							if isDebugEnabled then dd(">using params of constants") end
 							if NonContiguousCount(params) == 0 then
+								if isDebugEnabled then dd(">3") end
 								noParams = true
 							end
 						end
 						local expectedResults = specialRoutineDetails.expectedResults
-						local results = {ctrl[funcOrAttribute](ctrl, (not noParams and unpack(params)) or nil)} --TODO: Need to pass in ctrl as 1st parameter?
+						local results = {ctrl[funcOrAttribute]((not noParams and unpack(params)) or nil)}
 						if not results then
+							if isDebugEnabled then dd(">no function return values") end
 							if expectedResults == nil then
+								if isDebugEnabled then dd(">no expected results -> OK") end
 								loopResult = true
 							end
 						else
 							local numResults = #results
+							if isDebugEnabled then dd(">function return values: " ..tos(numResults)) end
 							if numResults == 0 then
+								if isDebugEnabled then dd(">no return values") end
 								if expectedResults == nil then
+									if isDebugEnabled then dd(">no expected results -> OK") end
 									loopResult = true
 								end
 							else
@@ -599,7 +607,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							end
 						end
 					else
-						if isDebugEnabled then checkAborted = "skipped, or not a function" end
+						if isDebugEnabled then checkAborted = "skipped" end
 					end
 				else
 					if isDebugEnabled then checkAborted = "no func/no attribute" end
@@ -612,11 +620,13 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 				loopResult = bool()
 			elseif typeBool == "boolean" then
 				if isDebugEnabled then checkType = "boolean"end
-					loopResult = bool
-				else
-					if isDebugEnabled then checkType = "boolean > false" end
-					if isDebugEnabled then checkAborted = "hardcoded boolean false" end
-					loopResult = false
+				loopResult = bool
+			else
+				if isDebugEnabled then
+					checkType = "boolean > false"
+					checkAborted = "hardcoded boolean false"
+				end
+				loopResult = false
 			end
 		else
 			if isDebugEnabled then checkAborted = "no checktype" end
@@ -688,7 +698,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 						elseif checkTypeToExecute == "scene" then
 							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, true)
 						elseif checkTypeToExecute == "special" then
-							--local paramsForFilterTypeSpecialCheck = {} --todo create  fucntion to get needed parameters for the specil check per filterType?
+							--local paramsForFilterTypeSpecialCheck = {} --todo create  function to get needed parameters for the special check per filterType?
 							resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
 						elseif checkTypeToExecute == "specialForced" then
 							doSpecialForcedCheckAtEnd = true
@@ -2033,6 +2043,11 @@ function libFilters:IsCraftingStationShown(craftType)
 	return retVar
 end
 
+--Is the currnt crafting type jewelry?
+--return boolean isJewerlyCrafting
+function libFilters:IsJewelryCrafting()
+	return (gcit() == CRAFTING_TYPE_JEWELRYCRAFTING) or false
+end
 
 
 --**********************************************************************************************************************

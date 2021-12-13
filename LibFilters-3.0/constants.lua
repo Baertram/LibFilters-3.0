@@ -15,6 +15,7 @@ local tins = table.insert
 
 --local ZOs speed-up variables
 local SM = SCENE_MANAGER
+local getScene = SM.GetScene
 
 --Local library variable
 local libFilters = {}
@@ -341,7 +342,7 @@ kbc.mailSendObj                   =	MAIL_SEND
 kbc.mailSend                      =	BACKPACK_MAIL_LAYOUT_FRAGMENT
 
 --[Player 2 player trade]
-kbc.player2playerTradeObj         = TRADE_WINDOW
+kbc.player2playerTradeObj         = TRADE --TRADE_WINDOW
 kbc.player2playerTrade            = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
 
 
@@ -460,12 +461,12 @@ gpc.invGuildStoreSellScene_GP   = TRADING_HOUSE_GAMEPAD_SCENE
 
 
 --[Mail]
-gpc.invMailSendScene_GP         = SM:GetScene("mailManagerGamepad")
+gpc.invMailSendScene_GP         = getScene(SM, "mailManagerGamepad")
 gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD.send
 
 
 --[Player 2 player trade]
-gpc.invPlayerTradeScene_GP      = SM:GetScene("gamepadTrade")
+gpc.invPlayerTradeScene_GP      = getScene(SM, "gamepadTrade")
 gpc.invPlayerTrade_GP           = GAMEPAD_TRADE
 
 
@@ -854,8 +855,10 @@ mapping.LF_FilterTypeToReference = filterTypeToReference
 local filterTypeToCheckIfReferenceIsHidden = {
 --Keyboard mode
 	[false] = {
+		--Works: 2021-12-13
 		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = nil, 					["fragment"] = kbc.invBackpackFragment },
 		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = nil, 					["fragment"] = nil, },
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = nil, },
 		[LF_INVENTORY_COMPANION]      = { ["control"] = kbc.companionEquipment, 		["scene"] = nil, 					["fragment"] = nil, },
 		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = nil, 					["fragment"] = kbc.quickslotsFragment, },
@@ -869,10 +872,15 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSellInventoryFragment, },
 		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = kbc.vendorBuyBackFragment, },
 		[LF_VENDOR_REPAIR]            = { ["control"] = kbc.vendorRepair, 				["scene"] = "store", 				["fragment"] = kbc.vendorRepairFragment, },
+		--Works: 2021-12-13
 		[LF_FENCE_SELL]               = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard",		["fragment"] = kbc.invFenceSell, },
+		--Works: 2021-12-13
 		[LF_FENCE_LAUNDER]            = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard", 		["fragment"] = kbc.invFenceLaunder, },
+		--Works: 2021-12-13
 		[LF_GUILDSTORE_SELL]          = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreSell, },
+		--Works: 2021-12-13
 		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = kbc.mailSend, },
+		--Works: 2021-12-13
 		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = kbc.player2playerTrade, },
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = kbc.researchChooseItemDialog, 	["scene"] = nil, 					["fragment"] = nil, },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = kbc.researchChooseItemDialog,	["scene"] = nil,	 				["fragment"] = nil, },
@@ -885,16 +893,87 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = { ["control"] = nil,							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
 
-
-		--Shared with gamepad mode -> See entry with LF_* at [true] (using gamepadConstants) below
-		[LF_SMITHING_REFINE]          = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil, },
-		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil, },
-		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing", 			["fragment"] = nil, },
-		[LF_SMITHING_RESEARCH]        = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil, },
-		[LF_JEWELRY_REFINE]           = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil, },
-		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil, },
-		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing",	 			["fragment"] = nil, },
-		[LF_JEWELRY_RESEARCH]         = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil, },
+		--Works: 2021-12-13
+		[LF_SMITHING_REFINE]          = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+										},
+		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		[LF_SMITHING_RESEARCH]        = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		[LF_JEWELRY_REFINE]           = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
+		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
+												   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
+		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing",	 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
+		[LF_JEWELRY_RESEARCH]         = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 		[LF_ALCHEMY_CREATION]		  = { ["control"] = kbc.alchemy, 					["scene"] = kbc.alchemyScene, 		["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -911,7 +990,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  [1] = {
 												  ["control"]  =  kbc.enchanting,
 												  ["funcOrAttribute"] = "GetEnchantingMode",
-												  ["params"] = {},
+												  ["params"] = {kbc.enchanting},
 												  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
 											  }
 										  }
@@ -921,7 +1000,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												[1] = {
 													["control"]  =  kbc.enchanting,
 													["funcOrAttribute"] = "GetEnchantingMode",
-													["params"] = {},
+													["params"] = {kbc.enchanting},
 													["expectedResults"] = {ENCHANTING_MODE_EXTRACTION},
 												}
 											}
@@ -996,7 +1075,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  [1] = {
 												  ["control"]  =  gpc.enchanting_GP,
 												  ["funcOrAttribute"] = "GetEnchantingMode",
-												  ["params"] = {},
+												  ["params"] = {gpc.enchanting_GP},
 												  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
 											  }
 										  }
@@ -1006,7 +1085,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												[1] = {
 													["control"]  =  gpc.enchanting_GP,
 													["funcOrAttribute"] = "GetEnchantingMode",
-													["params"] = {},
+													["params"] = {gpc.enchanting_GP},
 													["expectedResults"] = {ENCHANTING_MODE_EXTRACTION},
 												}
 											}
@@ -1141,28 +1220,28 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
 		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_RETRAIT, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_SMITHING_REFINE, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_REFINE, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "special", "scene", "control" } },
+		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_RETRAIT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	},
 	--Gamepad mode
