@@ -276,6 +276,7 @@ kbc.invBackpackFragment           = BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
 --Craftbag
 kbc.craftBagClass  				  = ZO_CraftBag
 kbc.invCraftbag                   = inventories[invTypeCraftBag]
+kbc.craftBagFragment 			  = CRAFT_BAG_FRAGMENT
 
 --Quest items
 kbc.invQuests                     = inventories[invTypeQuest]
@@ -370,6 +371,8 @@ kbc.improvementPanel              = smithing.improvementPanel
 --Research
 kbc.researchPanel                 = smithing.researchPanel
 local researchPanel = kbc.researchPanel
+--TODO: Is overwritten with LF_JEWELRY_RESEARCH_DIALOG as it gets hooked. How is it updated properly to the correct filterType again upon "showing"?
+--Todo: Needs a Prehook to OnEffectivelyShown using GetCraftingInterationType() == CRAFTING_TYPE_JEWELRY ???
 kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
 
 --Enchanting
@@ -859,18 +862,42 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = nil, 					["fragment"] = kbc.invBackpackFragment },
 		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = nil, 					["fragment"] = nil, },
 		--TODO - Does not detect properly: 2021-12-13
-		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = nil, },
+		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = kbc.craftBagFragment,
+										  ["special"] = nil,
+										  --Check for CraftBagExtended addon and change the detected CraftBag panel to any other supported, e.g.
+										  --MailSend, Trade, GuildStoreSell
+										  ["specialForced"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "GetCraftBagExtendedParentFilterType",
+												  ["params"]          = { _G[GlobalLibName], { LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL} },
+												  ["expectedResults"] = { true },
+											  }
+										  },
+		},
+		--TODO
 		[LF_INVENTORY_COMPANION]      = { ["control"] = kbc.companionEquipment, 		["scene"] = nil, 					["fragment"] = nil, },
+		--TODO - Does not detect properly: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = nil, 					["fragment"] = kbc.quickslotsFragment, },
+		--TODO
 		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = nil, 					["fragment"] = nil, },
+		--TODO
 		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = "bank", 				["fragment"] = nil, },
+		--TODO
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
+		--TODO
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = nil, },
+		--TODO
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = nil, 					["fragment"] = nil, },
+		--TODO
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = nil, },
+		--Works: 2021-12-13
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
+		--Works: 2021-12-13
 		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.vendorSellInventoryFragment, },
+		--Works: 2021-12-13
 		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = kbc.vendorBuyBackFragment, },
+		--Works: 2021-12-13
 		[LF_VENDOR_REPAIR]            = { ["control"] = kbc.vendorRepair, 				["scene"] = "store", 				["fragment"] = kbc.vendorRepairFragment, },
 		--Works: 2021-12-13
 		[LF_FENCE_SELL]               = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard",		["fragment"] = kbc.invFenceSell, },
@@ -882,7 +909,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = kbc.mailSend, },
 		--Works: 2021-12-13
 		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = kbc.player2playerTrade, },
-		--TODO - Does not detect properly: 2021-12-13
+		--Works: 2021-12-13
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = kbc.researchPanel.control, 	["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -893,6 +920,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["controlDialog"] = kbc.researchPanel.control,	["scene"] = "smithing",	 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -956,6 +984,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_JEWELRY_REFINE]           = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -966,6 +995,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
 												   ["special"] = {
 												[1] = {
@@ -976,6 +1006,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing",	 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -986,6 +1017,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_JEWELRY_RESEARCH]         = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -996,6 +1028,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TODO
 		[LF_ALCHEMY_CREATION]		  = { ["control"] = kbc.alchemy, 					["scene"] = kbc.alchemyScene, 		["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1006,7 +1039,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TODO
 		[LF_RETRAIT]                  = { ["control"] = kbc.retrait, 					["scene"] = nil, 					["fragment"] = nil, },
+		--Works: 2021-12-13
 		[LF_ENCHANTING_CREATION]	  = { ["control"] = kbc.enchanting, 				["scene"] = "enchanting", 			["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
@@ -1017,6 +1052,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
+		--Works: 2021-12-13
 		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = kbc.enchanting, 				["scene"] = "enchanting", 			["fragment"] = nil,
 											["special"] = {
 												[1] = {
@@ -1234,6 +1270,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 
 	--Keyboard mode
 	[false] = {
+
+		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } }, --> CraftBagExtended: Handled in specialForced
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
@@ -1268,6 +1306,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	},
 	--Gamepad mode
 	[true] = {
+		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } },
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "fragment", "control", "special", "specialForced" } },
