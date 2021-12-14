@@ -948,43 +948,6 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-
-
-		--Not implemented yet
-		--Works: 2021-12-13
-		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreBrowseFragment, },
-		--Works: 2021-12-13
-		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
-										   ["special"] = {
-												[1] = {
-													["control"]  =  _G[GlobalLibName],
-													["funcOrAttribute"] = "IsJewelryCrafting",
-													["params"] = {_G[GlobalLibName]},
-													["expectedResults"] = {false},
-												}
-											}
-		},
-		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
-										   ["special"] = {
-												[1] = {
-													["control"]  =  kbc.provisioner,
-													["funcOrAttribute"] = "filterType",
-													["params"] = {},
-													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES},
-												}
-											}
-		},
-		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
-										   ["special"] = {
-												[1] = {
-													["control"]  =  kbc.provisioner,
-													["funcOrAttribute"] = "filterType",
-													["params"] = {},
-													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING},
-												}
-											}
-		},
-
 		--Works: 2021-12-13
 		[LF_SMITHING_REFINE]          = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
@@ -1119,6 +1082,41 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		
+		--Not implemented yet
+		--Works: 2021-12-13
+		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreBrowseFragment, },
+		--Works: 2021-12-13
+		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  kbc.provisioner,
+													["funcOrAttribute"] = "filterType",
+													["params"] = {},
+													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES},
+												}
+											}
+		},
+		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  kbc.provisioner,
+													["funcOrAttribute"] = "filterType",
+													["params"] = {},
+													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING},
+												}
+											}
+		},
 	},
 	--Gamepad mode
 	[true]  = {
@@ -1248,6 +1246,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_GUILDSTORE_BROWSE, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_PROVISIONING_COOK, 			checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_PROVISIONING_BREW, 			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
