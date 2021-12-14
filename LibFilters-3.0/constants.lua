@@ -382,8 +382,6 @@ kbc.improvementPanel              = smithing.improvementPanel
 --Research
 kbc.researchPanel                 = smithing.researchPanel
 local researchPanel = kbc.researchPanel
---TODO: Is overwritten with LF_JEWELRY_RESEARCH_DIALOG as it gets hooked. How is it updated properly to the correct filterType again upon "showing"?
---Todo: Needs a Prehook to OnEffectivelyShown using GetCraftingInterationType() == CRAFTING_TYPE_JEWELRY ???
 kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
 
 --Enchanting
@@ -395,6 +393,10 @@ kbc.alchemy                       =	ALCHEMY
 kbc.alchemyScene                  =	ALCHEMY_SCENE
 kbc.alchemyCtrl                   = kbc.alchemy.control
 kbc.alchemyFragment               =	ALCHEMY_FRAGMENT
+
+--Provisioning
+kbc.provisioner			          = PROVISIONER
+kbc.provisionerFragment			  = PROVISIONER_FRAGMENT
 
 --Retrait
 --keyboardConstants.retraitClass  = ZO_RetraitStation_Retrait_Base
@@ -962,8 +964,26 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, },
-		[LF_PROVISIONING_BREW]		  = { ["control"] = nil,							["scene"] = nil, 					["fragment"] = nil, },
+		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  kbc.provisioner,
+													["funcOrAttribute"] = "filterType",
+													["params"] = {},
+													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES},
+												}
+											}
+		},
+		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  kbc.provisioner,
+													["funcOrAttribute"] = "filterType",
+													["params"] = {},
+													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING},
+												}
+											}
+		},
 
 		--Works: 2021-12-13
 		[LF_SMITHING_REFINE]          = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
@@ -1118,11 +1138,11 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Not implemented yet
-		[LF_GUILDSTORE_BROWSE] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_CREATION] 		  = { ["control"] = nil, 							["scene"] = "gamepad_smithing_creation", ["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = nil, 							["scene"] = "gamepad_smithing_creation", ["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_BREW]		  = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_GUILDSTORE_BROWSE] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, },
+		[LF_SMITHING_CREATION] 		  = { ["control"] = nil, 							["scene"] = "gamepad_smithing_creation", ["fragment"] = nil, },
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = nil, 							["scene"] = "gamepad_smithing_creation", ["fragment"] = nil, },
+		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
+		[LF_PROVISIONING_BREW]		  = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
