@@ -1082,7 +1082,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		
+
 		--Not implemented yet
 		--Works: 2021-12-13
 		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreBrowseFragment, },
