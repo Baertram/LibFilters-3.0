@@ -478,8 +478,8 @@ gpc.invFenceSell_GP             = ZO_GamepadFenceSell
 
 
 --[Guild store]
---gamepadConstants.guildStoreBuy_GP			--not supported by LibFilters yet
-gpc.tradingHouseBrowse_GP 		= GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS
+gpc.tradingHouseBrowse_GP		= GAMEPAD_TRADING_HOUSE_BROWSE --not supported by LibFilters yet. Will be NIL here, and updated later via SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
+gpc.tradingHouseBrowseResults_GP= GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS
 --gpc.tradingHouseListings_GP		= GAMEPAD_TRADING_HOUSE_LISTINGS
 gpc.invGuildStore_GP			= TRADING_HOUSE_GAMEPAD
 gpc.invGuildStoreSell_GP        = GAMEPAD_TRADING_HOUSE_SELL --Attention: is nil until gamepad mode enabled and trading house sell opened :-(
@@ -490,6 +490,7 @@ gpc.invGuildStoreSellScene_GP   = TRADING_HOUSE_GAMEPAD_SCENE
 --[Mail]
 gpc.invMailSendScene_GP         = getScene(SM, "mailManagerGamepad")
 gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD.send
+gpc.invMailSendFragment 		= GAMEPAD_MAIL_SEND_FRAGMENT
 
 
 --[Player 2 player trade]
@@ -1171,8 +1172,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		}, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		--Works, 2021-12-18
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = gpc.invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_MAIL_SEND]                = { ["control"] = nil, 							["scene"] = "mailManagerGamepad", 			["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		--Works, 2021-12-18
+		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.sendControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 
 
@@ -1228,9 +1231,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Not implemented yet
-		--Works: 2021-12-13
-		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = gpc.invGuildStoreSellScene_GP,["fragment"] = nil, },
-		--Works: 2021-12-13
+		--Works, 2021-12-18
+		--The data of control and fragment will not be provided until the gamepad guild store was opened first time!
+		--> So this line will be updated again then via function "SetCurrentMode" -> See file gamepadCustomFragments, SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
+		[LF_GUILDSTORE_BROWSE]        = { ["control"] = gpc.tradingHouseBrowse_GP, 		["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  nil }, --gpc.tradingHouseBrowse_GP.fragment, },
 		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1241,7 +1245,6 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--Works: 2021-12-13
 		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {
@@ -1252,7 +1255,6 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--Works: 2021-12-13
 		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {
@@ -1325,10 +1327,10 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 	--Gamepad mode
-	--TODO check the sort order and order of checkTypes per filterType ! 2021-12-130y0000ä00
+	--TODO check the sort order and order of checkTypes per filterType ! 2021-12-13
 	[true] = {
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "scene", "control", "special", "specialForced" } },
-		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control" } },

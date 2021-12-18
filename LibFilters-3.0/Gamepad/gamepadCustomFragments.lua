@@ -307,10 +307,22 @@ ZO_PreHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
 		invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
 		gamepadLibFiltersGuildStoreSellFragment:Show()
 	else
+		if not gamepadLibFiltersGuildStoreSellFragment.sceneManager then gamepadLibFiltersGuildStoreSellFragment:SetSceneManager(SM) end
+		if not gamepadLibFiltersGuildStoreSellFragment:IsHidden() then gamepadLibFiltersGuildStoreSellFragment:Hide() end
 		if invGuildStoreSellScene_GP:HasFragment(gamepadLibFiltersGuildStoreSellFragment) then
 			invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
 		end
-		if not gamepadLibFiltersGuildStoreSellFragment:IsHidden() then gamepadLibFiltersGuildStoreSellFragment:Hide() end
+	end
+end)
+SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
+	--Update trading house browse
+	if not fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] and GAMEPAD_TRADING_HOUSE_BROWSE ~= nil then
+		local tradingHouseBrowse_GP = GAMEPAD_TRADING_HOUSE_BROWSE
+		libFilters.constants.gamepadConstants.tradingHouseBrowse_GP = tradingHouseBrowse_GP
+		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[LF_GUILDSTORE_BROWSE] = {
+			["control"] = tradingHouseBrowse_GP, ["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  tradingHouseBrowse_GP.fragment,
+		}
+		fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] = true
 	end
 end)
 
@@ -384,8 +396,8 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] = 		g
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersGuildBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersHouseBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]["fragment"] = 	gamepadLibFiltersGuildStoreSellFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       = gamepadLibFiltersMailSendFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           = 				gamepadLibFiltersPlayerTradeFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       = 	gamepadLibFiltersMailSendFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           = 	gamepadLibFiltersPlayerTradeFragment
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -409,7 +421,7 @@ ZO_PreHook(invBank_GP, 'OnOpenBank', function(self, bankBag)
 end)
 
 invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
---invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment) --will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
+invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment) --will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
 
 invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
 invPlayerTradeScene_GP:AddFragment(gamepadLibFiltersPlayerTradeFragment)
