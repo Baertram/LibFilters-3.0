@@ -212,7 +212,7 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 					function(p_sourceFragment, p_targetFragment)
 						if checkFunc ~= nil and checkFunc() ~= true then return end
 						if addAndRemoveFragment == true then
-							if sceneId:Hasfragment(p_targetFragment) then
+							if sceneId:HasFragment(p_targetFragment) then
 								if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .." list FRAGMENT - Removed fragment: " ..tos(p_targetFragment)) end
 								sceneId:RemoveFragment(p_targetFragment)
 							end
