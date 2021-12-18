@@ -75,6 +75,10 @@ if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 -- Local helper functions
 ------------------------------------------------------------------------------------------------------------------------
+local fragmentsHooked = {}
+--local hookedControlsHiddenState = {}
+
+
 --Add the fragment prefix and return the fragment
 local function getCustomLibFiltersFragmentName(libFiltersFilterType)
 	local fragmentName = customFragments_GP[libFiltersFilterType].name
@@ -82,8 +86,9 @@ local function getCustomLibFiltersFragmentName(libFiltersFilterType)
 end
 libFilters.GetCustomLibFiltersFragmentName = getCustomLibFiltersFragmentName
 
+
 local function fragmentChange(oldState, newState, fragmentSource, fragmentTarget, showingFunc, shownFunc, hidingFunc, hiddenFunc)
-	if libFilters.debug then dd("[LibFilters3] Fragment state change "..tos(fragmentTarget).." - State: " ..tos(newState)) end
+	if libFilters.debug then dd("GAMEPAD Fragment state change "..tos(fragmentTarget).." - State: " ..tos(newState)) end
 	if (newState == SCENE_FRAGMENT_SHOWING ) then
 		if showingFunc ~= nil then showingFunc(fragmentSource, fragmentTarget) end
 	elseif (newState == SCENE_FRAGMENT_SHOWN ) then
@@ -95,12 +100,11 @@ local function fragmentChange(oldState, newState, fragmentSource, fragmentTarget
 		end
 end
 
-local fragmentsHooked = {}
+
 --[[
-local hookedControlsHiddenState = {}
 local function hookControlHiddenAndShownAndChangeFragmentState(ctrlToHook, sceneChanged, sourceFragment, targetFragment)
 	sceneChanged:RegisterCallback("StateChange", function(oldState, newState)
-		if libFilters.debug then dd("[LibFilters3]"..tos(sceneChanged:GetName()).." - State: " ..tos(newState)) end
+		if libFilters.debug then dd(""..tos(sceneChanged:GetName()).." - State: " ..tos(newState)) end
 		if not hookedControlsHiddenState[ctrlToHook] then
 			fragmentChange(oldState, newState, sourceFragment, targetFragment,
 					function(p_srcFragment, p_targetFragment)
@@ -108,11 +112,11 @@ local function hookControlHiddenAndShownAndChangeFragmentState(ctrlToHook, scene
 						if not hookedControlsHiddenState[ctrlToHook] then
 							if ctrlToHook ~= nil then
 								ctrlToHook:SetHandler("OnEffectivelyShown", function()
-									if libFilters.debug then dd("[LibFilters3]" ..ctrlToHook:GetName() .. "): shown") end
+									if libFilters.debug then dd("" ..ctrlToHook:GetName() .. "): shown") end
 									p_targetFragment:Show()
 								end)
 								ctrlToHook:SetHandler("OnHide", function()
-									if libFilters.debug then dd("[LibFilters3]" ..ctrlToHook:GetName() .. "): hidden") end
+									if libFilters.debug then dd("" ..ctrlToHook:GetName() .. "): hidden") end
 									p_targetFragment:Hide()
 								end)
 								if ctrlToHook:IsHidden() then
@@ -128,11 +132,11 @@ local function hookControlHiddenAndShownAndChangeFragmentState(ctrlToHook, scene
 						if not hookedControlsHiddenState[ctrlToHook] then
 							if ctrlToHook ~= nil then
 								ctrlToHook:SetHandler("OnEffectivelyShown", function()
-									if libFilters.debug then dd("[LibFilters3]" ..ctrlToHook:GetName() .. "): shown") end
+									if libFilters.debug then dd("" ..ctrlToHook:GetName() .. "): shown") end
 									p_targetFragment:Show()
 								end)
 								ctrlToHook:SetHandler("OnHide", function()
-									if libFilters.debug then dd("[LibFilters3]" ..ctrlToHook:GetName() .. "): hidden") end
+									if libFilters.debug then dd("" ..ctrlToHook:GetName() .. "): hidden") end
 									p_targetFragment:Hide()
 								end)
 								if ctrlToHook:IsHidden() then
@@ -152,6 +156,14 @@ local function hookControlHiddenAndShownAndChangeFragmentState(ctrlToHook, scene
 end
 ]]
 
+local function updateSceneManagerAndHideFragment(targetFragment)
+	if not targetFragment then return end
+	if not targetFragment.sceneManager then targetFragment:SetSceneManager(SM) end
+	if not targetFragment:IsHidden() then
+		targetFragment:Hide()
+	end
+end
+
 local function hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc, addAndRemoveFragment)
 	addAndRemoveFragment = addAndRemoveFragment or false
 	if not fragmentsHooked[hookName] then
@@ -162,17 +174,17 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 				if objectId:IsInDepositMode() then
 					targetFragment:Show()
 				else
-					targetFragment:Hide()
+					updateSceneManagerAndHideFragment(targetFragment)
 				end
 			elseif listName == "withdraw" then
 				if objectId:IsInWithdrawMode() then
 					targetFragment:Show()
 				else
-					targetFragment:Hide()
+					updateSceneManagerAndHideFragment(targetFragment)
 				end
 			end
 		else
-			targetFragment:Hide()
+			updateSceneManagerAndHideFragment(targetFragment)
 		end
 
 		local listFragment
@@ -181,15 +193,16 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 		elseif objectId.GetFragment ~= nil then
 			listFragment = objectId:GetFragment()
 		end
-		if libFilters.debug then dd("[LibFilters3]GAMEPAD " .. tos(hookName) .. " - Fragment exist: " ..tostring(listFragment ~= nil)) end
+		if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .. " - Fragment exist: " ..tostring(listFragment ~= nil)) end
 		if listFragment == nil then return end
 		listFragment:RegisterCallback("StateChange", function(oldState, newState)
-			if libFilters.debug then dd("[LibFilters3]GAMEPAD " .. tos(hookName) .." list FRAGMENT - State: " ..tos(newState)) end
+			if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .." list FRAGMENT - State: " ..tos(newState)) end
 			fragmentChange(oldState, newState, nil, targetFragment,
 					function(p_sourceFragment, p_targetFragment) return end, --showing
 					function(p_sourceFragment, p_targetFragment)
 						if checkFunc ~= nil and checkFunc() ~= true then return end
 						if addAndRemoveFragment == true then
+							if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .." list FRAGMENT - Added fragment: " ..tos(p_targetFragment)) end
 							sceneId:AddFragment(p_targetFragment)
 						end
 						p_targetFragment:Show()
@@ -200,6 +213,7 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 						if checkFunc ~= nil and checkFunc() ~= true then return end
 						if addAndRemoveFragment == true then
 							if sceneId:Hasfragment(p_targetFragment) then
+								if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .." list FRAGMENT - Removed fragment: " ..tos(p_targetFragment)) end
 								sceneId:RemoveFragment(p_targetFragment)
 							end
 						end
@@ -212,18 +226,25 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 	end
 end
 
+
 local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, objectId, listName, listFunctionName, targetFragment, checkFunc, addAndRemoveFragment)
 	if not sceneId or not objectId or not listName or not listFunctionName or not targetFragment then return end
 	SecurePostHook(objectId, listFunctionName, function()
-		if libFilters.debug then dd("[LibFilters3]GAMEPAD fragment - post hook %q - %s, %s", tos(sceneId:GetName()), tos(hookName), tos(listFunctionName)) end
+		if libFilters.debug then dd("GAMEPAD fragment - post hook %q - %s, %s", tos(sceneId:GetName()), tos(hookName), tos(listFunctionName)) end
 		if checkFunc == nil or (checkFunc ~= nil and checkFunc() == true) then
 			hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc, addAndRemoveFragment)
 		end
 	end)
 end
 
+
 ------------------------------------------------------------------------------------------------------------------------
 -- Custom added Gamepad inventory type fragment's sub-class
+-- These fragments will be used to automatically transfer the .additionalFilter via their layoutData and function
+-- self:ApplyInventoryLayout(self.layoutData) to the e.g. PLAYER_INVENTORY.inventories[INV_BANK] etc. as they show
+-- Else one would have been able to e.g. use the via dereferedInitialized created lists' (deposit, withdraw e.g.)
+-- fragments directly, but they do not use this layoutData nor additionalFilters. So LibFilters stores it's
+-- filterFunction in there, like the keyboard mode does
 ------------------------------------------------------------------------------------------------------------------------
 local LibFilters_InventoryLayoutFragment = ZO_SceneFragment:Subclass()
 libFilters.InventoryLayoutFragmentClass = LibFilters_InventoryLayoutFragment
@@ -278,14 +299,18 @@ local gamepadLibFiltersDefaultFragment = LibFilters_InventoryLayoutFragment:New(
 --Player bank deposit
 gamepadLibFiltersBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_BANK_DEPOSIT)] = gamepadLibFiltersBankDepositFragment
-hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP, "deposit", "InitializeLists", gamepadLibFiltersBankDepositFragment,
+hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP,
+		"deposit", "InitializeLists",
+		gamepadLibFiltersBankDepositFragment,
 		function() return GetBankingBag() == BAG_BANK end, true)
 
 
 --House bank deposit
 gamepadLibFiltersHouseBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_HOUSE_BANK_DEPOSIT)]  = gamepadLibFiltersHouseBankDepositFragment
-hookFragmentStateByPostHookListInitFunction("depositHouseBank", invBankScene_GP, invBank_GP, "deposit", "InitializeLists", gamepadLibFiltersHouseBankDepositFragment,
+hookFragmentStateByPostHookListInitFunction("depositHouseBank", invBankScene_GP, invBank_GP,
+		"deposit", "InitializeLists",
+		gamepadLibFiltersHouseBankDepositFragment,
 		function() return IsHouseBankBag(GetBankingBag()) end, true)
 
 -- Gamepad bank and house bank: Used for switching the gamepad bank's fragment depending if house bank or not
@@ -308,7 +333,9 @@ end)
 --Guild bank deposit
 gamepadLibFiltersGuildBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_GUILDBANK_DEPOSIT)]  = gamepadLibFiltersGuildBankDepositFragment
-hookFragmentStateByPostHookListInitFunction("depositGuildBank", invGuildBankScene_GP, invGuildBank_GP, "deposit", "InitializeLists", gamepadLibFiltersGuildBankDepositFragment, nil)
+hookFragmentStateByPostHookListInitFunction("depositGuildBank", invGuildBankScene_GP, invGuildBank_GP,
+		"deposit", "InitializeLists",
+		gamepadLibFiltersGuildBankDepositFragment, nil, false)
 
 
 --Trading house = Guild store sell
@@ -319,13 +346,12 @@ _G[getCustomLibFiltersFragmentName(LF_GUILDSTORE_SELL)]	= gamepadLibFiltersGuild
 --The GAMEPAD_TRADING_HOUSE_SELL variable is not given until gamepad mode is enabled and the trading house sell panel is opened...
 --So we will use TRADING_HOUSE_GAMEPAD instead, function SetCurrentListObject(GAMEPAD_TRADING_HOUSE_SELL)
 ZO_PreHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
-	if libFilters.debug then dd("[LibFilters3]GAMEPAD_TRADING_HOUSE - SetCurrentMode: " ..tos(tradingMode)) end
+	if libFilters.debug then dd("GAMEPAD_TRADING_HOUSE - SetCurrentMode: " ..tos(tradingMode)) end
 	if tradingMode == ZO_TRADING_HOUSE_MODE_SELL then
 		invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
 		gamepadLibFiltersGuildStoreSellFragment:Show()
 	else
-		if not gamepadLibFiltersGuildStoreSellFragment.sceneManager then gamepadLibFiltersGuildStoreSellFragment:SetSceneManager(SM) end
-		if not gamepadLibFiltersGuildStoreSellFragment:IsHidden() then gamepadLibFiltersGuildStoreSellFragment:Hide() end
+		updateSceneManagerAndHideFragment(gamepadLibFiltersGuildStoreSellFragment)
 		if invGuildStoreSellScene_GP:HasFragment(gamepadLibFiltersGuildStoreSellFragment) then
 			invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
 		end
@@ -350,7 +376,7 @@ _G[getCustomLibFiltersFragmentName(LF_MAIL_SEND)]		= gamepadLibFiltersMailSendFr
 --[[
 --Hide/Show with GAMEPAD_MAIL_SEND_FRAGMENT
 GAMEPAD_MAIL_SEND_FRAGMENT:RegisterCallback("StateChange", function(oldState, newState)
-	if libFilters.debug then dd("[LibFilters3]GAMEPAD_MAIL_SEND_FRAGMENT - State: " ..tos(newState)) end
+	if libFilters.debug then dd("GAMEPAD_MAIL_SEND_FRAGMENT - State: " ..tos(newState)) end
 	fragmentChange(oldState, newState, GAMEPAD_MAIL_SEND_FRAGMENT, gamepadLibFiltersMailSendFragment,
 			function(sourceFragment, targetFragment) return end, --showing
 			function(sourceFragment, targetFragment)
@@ -369,8 +395,7 @@ SecurePostHook(invMailSendScene_GP, 'SwitchToFragment', function(self, fragment)
     if fragment == gpc.invMailSendFragment then
         invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
     else
-		if not gamepadLibFiltersMailSendFragment.sceneManager then gamepadLibFiltersMailSendFragment:SetSceneManager(SM) end
-		if not gamepadLibFiltersMailSendFragment:IsHidden() then gamepadLibFiltersMailSendFragment:Hide() end
+		updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
 		if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
 			invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
 		end
