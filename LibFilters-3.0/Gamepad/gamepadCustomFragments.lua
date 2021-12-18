@@ -319,7 +319,7 @@ SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
 	if not fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] and GAMEPAD_TRADING_HOUSE_BROWSE ~= nil then
 		local tradingHouseBrowse_GP = GAMEPAD_TRADING_HOUSE_BROWSE
 		libFilters.constants.gamepad.tradingHouseBrowse_GP = tradingHouseBrowse_GP
-		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[LF_GUILDSTORE_BROWSE] = {
+		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_BROWSE] = {
 			["control"] = tradingHouseBrowse_GP, ["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  tradingHouseBrowse_GP.fragment,
 		}
 		fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] = true
