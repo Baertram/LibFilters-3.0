@@ -214,6 +214,8 @@ local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
 local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 
+--functions
+local getCustomLibFiltersFragmentName = libFilters.GetCustomLibFiltersFragmentName
 
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK state variables
@@ -1915,76 +1917,45 @@ function libFilters:IsCompanionCharacterShown()
 end
 
 
---Check if the Enchanting panel is shown.
---If OPTIONAL parameter number enchantingMode (either ENCHANTING_MODE_CREATION, ENCHANTING_MODE_EXTRACTION or
--- ENCHANTING_MODE_RECIPES) is provided this enchanting mode must be set at the enchanting panel, if it is shown, to return
--- true
---return boolean isShown, number enchantingMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
-function libFilters:IsEnchantingShown(enchantingMode)
-    if enchantingMode and enchantingMode == ENCHANTING_MODE_NONE then return false, 0, nil	end
+--Is the bank shown
+--returns boolean isShown
+function libFilters:IsBankShown()
+	local isBankShown = false
 	if IsGamepad() then
-		if enchantingMode ~= nil then
-			if enchantingInvCtrls_GP[enchantingMode] then
-				local enchantingControl = enchantingInvCtrls_GP[enchantingMode].control
-				return not enchantingControl:IsHidden(), enchantingMode, enchantingControl
-			end
-		else
-			for lEnchantMode, enchantScene in pairs(enchantingInvCtrls_GP) do
-				if enchantScene then
-					local enchantingControl = enchantScene.control
-					local isEnchantingControlShown = not enchantScene.control:IsHidden()
-					if isEnchantingControlShown == true then
-						return true, lEnchantMode, enchantingControl
-					end
-				end
-			end
-		end
+		isBankShown = gpc.invBankScene_GP:IsShowing()
 	else
-		if enchantingInvCtrl ~= nil and not enchantingInvCtrl:IsHidden() then
-			local lEnchantingMode = enchanting.GetEnchantingMode and enchanting:GetEnchantingMode()
-			if enchantingMode ~= nil then
-				if lEnchantingMode and lEnchantingMode == enchantingMode then
-					return true, enchantingMode, enchantingInvCtrl
-				end
-			else
-				return true, lEnchantingMode, enchantingInvCtrl
-			end
-		end
+		isBankShown = kbc.invBankScene:IsShowing()
 	end
-	return false, enchantingMode, nil
+	return isBankShown
 end
 
---Check if the Alchemy panel is shown
---If OPTIONAL parameter number alchemyMode (either ZO_ALCHEMY_MODE_CREATION, ZO_ALCHEMY_MODE_RECIPES is provided this
--- alchemy mode must be set at the alchemy panel, if it is shown, to return true
---return boolean isShown, number alchemyMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
-function libFilters:IsAlchemyShown(alchemyMode)
-	if alchemyMode and alchemyMode == ZO_ALCHEMY_MODE_NONE then return false, alchemyMode, nil end
+
+--Is the guild bank shown
+--returns boolean isShown
+function libFilters:IsGuildBankShown()
+	local isGuildBankShown = false
 	if IsGamepad() then
-		if alchemyCtrl_GP ~= nil and not alchemyCtrl_GP:IsHidden() then
-			local lAlchemyMode = alchemy_GP.mode
-			if alchemyMode ~= nil then
-				if lAlchemyMode and lAlchemyMode == alchemyMode then
-					return true, alchemyMode, alchemyCtrl_GP
-				end
-			else
-				return true, lAlchemyMode, alchemyCtrl_GP
-			end
-		end
+		isGuildBankShown = gpc.invGuildBankScene_GP:IsShowing()
 	else
-		if alchemyCtrl ~= nil and not alchemyCtrl:IsHidden() then
-			local lAlchemyMode = alchemy.mode
-			if alchemyMode ~= nil then
-				if lAlchemyMode and lAlchemyMode == alchemyMode then
-					return true, alchemyMode, alchemyCtrl
-				end
-			else
-				return true, lAlchemyMode, alchemyCtrl
-			end
-		end
+		isGuildBankShown = kbc.invGuildBankScene:IsShowing()
 	end
-	return false, alchemyMode, nil
+	return isGuildBankShown
 end
+
+
+--Is the house bank shown
+--returns boolean isShown
+function libFilters:IsHouseBankShown()
+	local isHouseBankShown = IsHouseBankBag(GetBankingBag())
+	if not isHouseBankShown then return false end
+	if IsGamepad() then
+		isHouseBankShown = gpc.invBankScene_GP:IsShowing()
+	else
+		isHouseBankShown = kbc.invHouseBankScene:IsShowing()
+	end
+	return isHouseBankShown
+end
+
 
 
 --Check if the store (vendor) panel is shown
@@ -2078,12 +2049,84 @@ function libFilters:IsCraftingStationShown(craftType)
 	return retVar
 end
 
+
 --Is the currnt crafting type jewelry?
 --return boolean isJewerlyCrafting
 function libFilters:IsJewelryCrafting()
 	return (gcit() == CRAFTING_TYPE_JEWELRYCRAFTING) or false
 end
 
+
+--Check if the Enchanting panel is shown.
+--If OPTIONAL parameter number enchantingMode (either ENCHANTING_MODE_CREATION, ENCHANTING_MODE_EXTRACTION or
+-- ENCHANTING_MODE_RECIPES) is provided this enchanting mode must be set at the enchanting panel, if it is shown, to return
+-- true
+--return boolean isShown, number enchantingMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
+function libFilters:IsEnchantingShown(enchantingMode)
+    if enchantingMode and enchantingMode == ENCHANTING_MODE_NONE then return false, 0, nil	end
+	if IsGamepad() then
+		if enchantingMode ~= nil then
+			if enchantingInvCtrls_GP[enchantingMode] then
+				local enchantingControl = enchantingInvCtrls_GP[enchantingMode].control
+				return not enchantingControl:IsHidden(), enchantingMode, enchantingControl
+			end
+		else
+			for lEnchantMode, enchantScene in pairs(enchantingInvCtrls_GP) do
+				if enchantScene then
+					local enchantingControl = enchantScene.control
+					local isEnchantingControlShown = not enchantScene.control:IsHidden()
+					if isEnchantingControlShown == true then
+						return true, lEnchantMode, enchantingControl
+					end
+				end
+			end
+		end
+	else
+		if enchantingInvCtrl ~= nil and not enchantingInvCtrl:IsHidden() then
+			local lEnchantingMode = enchanting.GetEnchantingMode and enchanting:GetEnchantingMode()
+			if enchantingMode ~= nil then
+				if lEnchantingMode and lEnchantingMode == enchantingMode then
+					return true, enchantingMode, enchantingInvCtrl
+				end
+			else
+				return true, lEnchantingMode, enchantingInvCtrl
+			end
+		end
+	end
+	return false, enchantingMode, nil
+end
+
+--Check if the Alchemy panel is shown
+--If OPTIONAL parameter number alchemyMode (either ZO_ALCHEMY_MODE_CREATION, ZO_ALCHEMY_MODE_RECIPES is provided this
+-- alchemy mode must be set at the alchemy panel, if it is shown, to return true
+--return boolean isShown, number alchemyMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
+function libFilters:IsAlchemyShown(alchemyMode)
+	if alchemyMode and alchemyMode == ZO_ALCHEMY_MODE_NONE then return false, alchemyMode, nil end
+	if IsGamepad() then
+		if alchemyCtrl_GP ~= nil and not alchemyCtrl_GP:IsHidden() then
+			local lAlchemyMode = alchemy_GP.mode
+			if alchemyMode ~= nil then
+				if lAlchemyMode and lAlchemyMode == alchemyMode then
+					return true, alchemyMode, alchemyCtrl_GP
+				end
+			else
+				return true, lAlchemyMode, alchemyCtrl_GP
+			end
+		end
+	else
+		if alchemyCtrl ~= nil and not alchemyCtrl:IsHidden() then
+			local lAlchemyMode = alchemy.mode
+			if alchemyMode ~= nil then
+				if lAlchemyMode and lAlchemyMode == alchemyMode then
+					return true, alchemyMode, alchemyCtrl
+				end
+			else
+				return true, lAlchemyMode, alchemyCtrl
+			end
+		end
+	end
+	return false, alchemyMode, nil
+end
 
 --**********************************************************************************************************************
 -- HOOKS
@@ -2517,7 +2560,6 @@ end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
 local function ApplyFixesLate()
-
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits

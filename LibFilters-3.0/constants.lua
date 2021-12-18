@@ -293,16 +293,20 @@ kbc.quickslotsFragment            = QUICKSLOT_FRAGMENT
 kbc.invBankDeposit                = BACKPACK_BANK_LAYOUT_FRAGMENT
 kbc.invBankWithdraw               = inventories[invTypeBank]
 kbc.bankWithdrawFragment          = BANK_FRAGMENT
+kbc.invBankScene      		  	  = getScene(SM, "bank")
 
 --Guild bank
 kbc.invGuildBankDeposit           = BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
 kbc.invGuildBankWithdraw          = inventories[invTypeGuildBank]
 kbc.guildBankWithdrawFragment     = GUILD_BANK_FRAGMENT
+kbc.invGuildBankScene      		  = getScene(SM, "guildBank")
 
 --House bank
 kbc.invHouseBankDeposit           = BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
 kbc.invHouseBankWithdraw          = inventories[invTypeHouseBank]
 kbc.houseBankWithdrawFragment     = HOUSE_BANK_FRAGMENT
+kbc.invHouseBankScene      		  = getScene(SM, "houseBank")
+
 
 --[Vendor]
 ----Buy
@@ -416,7 +420,6 @@ gpc.playerInvCtrl_GP            = kbc.playerInvCtrl
 
 --Backpack
 gpc.invBackpack_GP              = GAMEPAD_INVENTORY
-gpc.invGuildBank_GP             = GAMEPAD_GUILD_BANK
 gpc.invRootScene                = GAMEPAD_INVENTORY_ROOT_SCENE
 
 --Character
@@ -436,11 +439,14 @@ gpc.invQuests_GP                = gpc.invBackpack_GP.scene
 --[Banks]
 --Player bank
 gpc.invBank_GP                  = GAMEPAD_BANKING
+gpc.invBankScene_GP      		= getScene(SM, "gamepad_banking")
+
 --deposit: See custom gamepad fragments
 --withdraw: Uses same as keyboard
 
 --Guild bank
-gpc.invGuildBankDepositScene_GP = GAMEPAD_GUILD_BANK_SCENE
+gpc.invGuildBank_GP      = GAMEPAD_GUILD_BANK
+gpc.invGuildBankScene_GP = GAMEPAD_GUILD_BANK_SCENE
 --deposit: See custom gamepad fragments
 --withdraw: Uses same as keyboard
 
@@ -473,7 +479,10 @@ gpc.invFenceSell_GP             = ZO_GamepadFenceSell
 
 --[Guild store]
 --gamepadConstants.guildStoreBuy_GP			--not supported by LibFilters yet
-gpc.invGuildStoreSell_GP        = GAMEPAD_TRADING_HOUSE_SELL
+gpc.tradingHouseBrowse_GP 		= GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS
+--gpc.tradingHouseListings_GP		= GAMEPAD_TRADING_HOUSE_LISTINGS
+gpc.invGuildStore_GP			= TRADING_HOUSE_GAMEPAD
+gpc.invGuildStoreSell_GP        = GAMEPAD_TRADING_HOUSE_SELL --Attention: is nil until gamepad mode enabled and trading house sell opened :-(
 gpc.invGuildStoreSellScene_GP   = TRADING_HOUSE_GAMEPAD_SCENE
 
 
@@ -548,14 +557,16 @@ gpc.reconstruct_GP              = ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 
 --The custom fragment names for the filter panelId in gamepad mode, used in file /Gamepad/gamepadCustomFragments.lua
 -->The fragment=nil will be updated from file /Gamepad/GamepadCustomFragments.lua later on
+-->Their name will get a prefix at creation! See function libFilters.GetCustomLibFiltersFragmentName, and variable
+-->gamepadConstants.customFragmentPrefix
 gpc.customFragments             = {
-	[LF_INVENTORY] 		= 		{name = fragmentPrefix_GP .. "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", 			fragment=nil},
-	[LF_BANK_DEPOSIT] 	= 		{name = fragmentPrefix_GP .. "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", 			fragment=nil},
-	[LF_HOUSE_BANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT",	fragment=nil},
-	[LF_GUILDBANK_DEPOSIT] = 	{name = fragmentPrefix_GP .. "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", 	fragment=nil},
-	[LF_GUILDSTORE_SELL] = 		{name = fragmentPrefix_GP .. "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", 	fragment=nil},
-	[LF_MAIL_SEND] = 			{name = fragmentPrefix_GP .. "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 			fragment=nil},
-	[LF_TRADE] = 				{name = fragmentPrefix_GP .. "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 			fragment=nil},
+	[LF_INVENTORY] 		= 		{name = "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", 			fragment=nil},
+	[LF_BANK_DEPOSIT] 	= 		{name = "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", 		fragment=nil},
+	[LF_HOUSE_BANK_DEPOSIT] = 	{name = "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT",	fragment=nil},
+	[LF_GUILDBANK_DEPOSIT] = 	{name = "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_GUILDSTORE_SELL] = 		{name = "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_MAIL_SEND] = 			{name = "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 			fragment=nil},
+	[LF_TRADE] = 				{name = "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 		fragment=nil},
 }
 
 
@@ -729,39 +740,34 @@ local filterTypeToReference = {
 		--from fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT or others
 		--each time, and thus we need to hook both
 		[LF_INVENTORY]                = { kbc.invBackpackFragment, invBackpack },
-
-		[LF_INVENTORY_QUEST]          = { kbc.invQuests },
 		--PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilter gets updated each time from layoutData.additionalCraftBagFilter
 		--as ZO_InventoryManager:ApplyBackpackLayout(layoutData) is called,
 		[LF_CRAFTBAG]                 = { kbc.invBackpackFragment, kbc.invCraftbag },
-
-		[LF_INVENTORY_COMPANION]      = { kbc.companionEquipment },
+		[LF_INVENTORY_QUEST]          = { kbc.invQuests },
 		[LF_QUICKSLOT]                = { kbc.quickslots },
+		[LF_INVENTORY_COMPANION]      = { kbc.companionEquipment },
+
 		[LF_BANK_WITHDRAW]            = { kbc.invBankWithdraw },
 		[LF_BANK_DEPOSIT]             = { kbc.invBankDeposit },
 		[LF_GUILDBANK_WITHDRAW]       = { kbc.invGuildBankWithdraw },
 		[LF_GUILDBANK_DEPOSIT]        = { kbc.invGuildBankDeposit },
 		[LF_HOUSE_BANK_WITHDRAW]      = { kbc.invHouseBankWithdraw },
 		[LF_HOUSE_BANK_DEPOSIT]       = { kbc.invHouseBankDeposit },
+
 		[LF_VENDOR_BUY]               = { kbc.store },
 		[LF_VENDOR_SELL]              = { kbc.vendorSell },
 		[LF_VENDOR_BUYBACK]           = { kbc.vendorBuyBack },
 		[LF_VENDOR_REPAIR]            = { kbc.vendorRepair },
 		[LF_FENCE_SELL]               = { kbc.invFenceSell },
 		[LF_FENCE_LAUNDER]            = { kbc.invFenceLaunder },
+
 		[LF_GUILDSTORE_SELL]          = { kbc.guildStoreSell },
+
 		[LF_MAIL_SEND]                = { kbc.mailSend },
 		[LF_TRADE]                    = { kbc.player2playerTrade },
+
 		[LF_SMITHING_RESEARCH_DIALOG] = { kbc.researchChooseItemDialog },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { kbc.researchChooseItemDialog },
-
-
-		--Not implemented yet
-		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
-		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 
 
 		--Shared with gamepad mode -> See entry with LF_* at [true] (using gamepadConstants) below
@@ -781,27 +787,8 @@ local filterTypeToReference = {
 		-->Currently disalbed as the Gamepad mode Scenes for enchatning create/extract are used to store the filters in
 		-->.additionalFilter and the helper function ZO_Enchanting_DoesEnchantingItemPassFilter will be used to read the
 		-->scenes for both, keyboard AND gamepad mode
-		 --implemented special, leave empty (not NIL!) to prevent error messages
-		[LF_ENCHANTING_CREATION]	  = {  },
-		[LF_ENCHANTING_EXTRACTION]    = {  },
-	},
-
-	--Gamepad mode
-	[true]  = {
-		[LF_INVENTORY_QUEST]          = { gpc.invQuests_GP },
-		[LF_INVENTORY_COMPANION]      = { gpc.companionEquipment_GP },
-		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
-		[LF_VENDOR_SELL]              = { gpc.vendorSell_GP },
-		[LF_VENDOR_BUYBACK]           = { gpc.vendorBuyBack_GP },
-		[LF_VENDOR_REPAIR]            = { gpc.vendorRepair_GP },
-		[LF_FENCE_SELL]               = { gpc.invFenceSell_GP },
-		[LF_FENCE_LAUNDER]            = { gpc.invFenceLaunder_GP },
-		[LF_SMITHING_RESEARCH_DIALOG] = { gpc.researchChooseItemDialog_GP },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { gpc.researchChooseItemDialog_GP }, --duplicate needed compared to LF_SMITHING_RESEARCH_DIALOG ?
-
-
-		--Not given in gamepad mode
-		[LF_QUICKSLOT]                = {  }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
+		[LF_ENCHANTING_CREATION]	  = {},	--implemented special, leave empty (not NIL!) to prevent error messages
+		[LF_ENCHANTING_EXTRACTION]    = {},	--implemented special, leave empty (not NIL!) to prevent error messages
 
 
 		--Not implemented yet
@@ -810,37 +797,59 @@ local filterTypeToReference = {
 		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+	--Gamepad mode
+	[true]  = {
+		[LF_INVENTORY_QUEST]          = { gpc.invQuests_GP },
+		[LF_INVENTORY_COMPANION]      = { gpc.companionEquipment_GP },
+
+		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
+		[LF_VENDOR_SELL]              = { gpc.vendorSell_GP },
+		[LF_VENDOR_BUYBACK]           = { gpc.vendorBuyBack_GP },
+		[LF_VENDOR_REPAIR]            = { gpc.vendorRepair_GP },
+		[LF_FENCE_SELL]               = { gpc.invFenceSell_GP },
+		[LF_FENCE_LAUNDER]            = { gpc.invFenceLaunder_GP },
+
+		[LF_SMITHING_RESEARCH_DIALOG] = { gpc.researchChooseItemDialog_GP },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { gpc.researchChooseItemDialog_GP }, --duplicate needed compared to LF_SMITHING_RESEARCH_DIALOG ?
+
+
+		--Not given in gamepad mode
+		[LF_QUICKSLOT]                = {}, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_INVENTORY]                = { }, --uses fragment
-		[LF_BANK_DEPOSIT]             = { }, --uses fragment
-		[LF_GUILDBANK_DEPOSIT]        = { }, --uses fragment
-		[LF_HOUSE_BANK_DEPOSIT]       = { }, --uses fragment
-		[LF_GUILDSTORE_SELL]          = { }, --uses fragment
-		[LF_MAIL_SEND]                = { }, --uses fragment
-		[LF_TRADE]                    = { }, --uses fragment
+		[LF_INVENTORY]                = {}, --uses fragment
+		[LF_BANK_DEPOSIT]             = {}, --uses fragment
+		[LF_GUILDBANK_DEPOSIT]        = {}, --uses fragment
+		[LF_HOUSE_BANK_DEPOSIT]       = {}, --uses fragment
+		[LF_GUILDSTORE_SELL]          = {}, --uses fragment
+		[LF_MAIL_SEND]                = {}, --uses fragment
+		[LF_TRADE]                    = {}, --uses fragment
 
 
 		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
-		-->Will only be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
-		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter later on checks for the current gamepad
-		--> or keyboard mode, and only hook the active one!
-		 --implemented special, leave empty (not NIL!) to prevent error messages
-		[LF_CRAFTBAG]                 = {  }, --todo: test if this works, or add "gamepadConstants.invCraftbag_GP" again above!
-		[LF_BANK_WITHDRAW]            = {  },
-		[LF_GUILDBANK_WITHDRAW]       = {  },
-		[LF_HOUSE_BANK_WITHDRAW]      = {  },
-		[LF_SMITHING_REFINE]          = {  }, --todo: test if this works, or add "gamepadConstants.refinementPanel_GP" again above!
-		[LF_SMITHING_DECONSTRUCT]     = {  },
-		[LF_SMITHING_IMPROVEMENT]     = {  },
-		[LF_SMITHING_RESEARCH]        = {  },
-		[LF_JEWELRY_REFINE]           = {  },
-		[LF_JEWELRY_DECONSTRUCT]      = {  },
-		[LF_JEWELRY_IMPROVEMENT]      = {  },
-		[LF_JEWELRY_RESEARCH]         = {  },
-		[LF_ALCHEMY_CREATION]         = {  },
-		[LF_RETRAIT]                  = {  },
+		-->Will ONLY be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
+		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter() later on checks for the current gamepad
+		--> or keyboard mode, and only hooks the currently active one -> Which will fail to load these ones here later on,
+		--> as they need to be loaded via the keyboard hooks!).
+		[LF_CRAFTBAG]                 = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages --todo: test if this works, or add "gamepadConstants.invCraftbag_GP" again above!
+		[LF_BANK_WITHDRAW]            = {},	--implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_GUILDBANK_WITHDRAW]       = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_HOUSE_BANK_WITHDRAW]      = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_REFINE]          = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages --todo: test if this works, or add "gamepadConstants.refinementPanel_GP" again above!
+		[LF_SMITHING_DECONSTRUCT]     = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_IMPROVEMENT]     = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_RESEARCH]        = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_REFINE]           = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_DECONSTRUCT]      = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_IMPROVEMENT]      = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_RESEARCH]         = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_ALCHEMY_CREATION]         = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_RETRAIT]                  = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 
 
 		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
@@ -849,6 +858,14 @@ local filterTypeToReference = {
 		-->Used for gamepad AND keyboard mode with these entries here !!!
 		[LF_ENCHANTING_CREATION]	  = { gpc.enchantingCreate_GP},
 		[LF_ENCHANTING_EXTRACTION]    = { gpc.enchantingExtract_GP},
+
+
+		--Not implemented yet
+		[LF_GUILDSTORE_BROWSE] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_SMITHING_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_JEWELRY_CREATION] 		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_PROVISIONING_COOK]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
+		[LF_PROVISIONING_BREW]		  = {}, --not implemented yet, leave empty (not NIL!) to prevent error messages
 	},
 }
 mapping.LF_FilterTypeToReference = filterTypeToReference
@@ -897,17 +914,17 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = "inventory",			["fragment"] = kbc.quickslotsFragment, },
 		--Works: 2021-12-13
-		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = "bank", 				["fragment"] = kbc.bankWithdrawFragment, },
+		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = kbc.invBankScene, 		["fragment"] = kbc.bankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = "bank", 				["fragment"] = kbc.inventoryFragment, },
+		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = kbc.invBankScene, 		["fragment"] = kbc.inventoryFragment, },
 		--Works: 2021-12-13
-		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = "guildBank",			["fragment"] = kbc.guildBankWithdrawFragment, },
+		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = kbc.invGuildBankScene,	["fragment"] = kbc.guildBankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = "guildBank", 			["fragment"] = kbc.inventoryFragment, },
+		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = kbc.invGuildBankScene, 	["fragment"] = kbc.inventoryFragment, },
 		--Works: 2021-12-13
-		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = "houseBank",			["fragment"] = kbc.houseBankWithdrawFragment, },
+		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = kbc.invHouseBankScene,	["fragment"] = kbc.houseBankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = "houseBank", 			["fragment"] = kbc.inventoryFragment, },
+		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = kbc.invHouseBankScene, 	["fragment"] = kbc.inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
 		--Works: 2021-12-13
@@ -927,7 +944,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = kbc.player2playerTrade, },
 		--Works: 2021-12-13
-		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = kbc.researchPanel.control, 	["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = kbc.researchPanel.control,["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -938,7 +955,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["controlDialog"] = kbc.researchPanel.control,	["scene"] = "smithing",	 			["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["controlDialog"] = kbc.researchPanel.control,["scene"] = "smithing",	 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1097,6 +1114,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {
@@ -1107,6 +1125,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--Works: 2021-12-13
 		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {
@@ -1118,54 +1137,58 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY_QUEST]          = { ["control"] = nil, 							["scene"] = gpc.invQuests_GP, 		["fragment"] = nil, },
-		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP, ["fragment"] = nil, },
-		[LF_VENDOR_SELL]              = { ["control"] = gpc.vendorSell_GP, 				["scene"] = nil,	 				["fragment"] = nil, },
-		[LF_VENDOR_BUYBACK]           = { ["control"] = gpc.vendorBuyBack_GP, 			["scene"] = nil, 					["fragment"] = nil, },
-		[LF_VENDOR_REPAIR]            = { ["control"] = gpc.vendorRepair_GP, 			["scene"] = nil, 					["fragment"] = nil, },
-		[LF_FENCE_SELL]               = { ["control"] = gpc.invFenceSell_GP, 			["scene"] = nil, 					["fragment"] = nil, },
-		[LF_FENCE_LAUNDER]            = { ["control"] = gpc.invFenceLaunder_GP, 		["scene"] = nil, 					["fragment"] = nil, },
-		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP, ["fragment"] = nil, },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP, ["fragment"] = nil, },
+		[LF_INVENTORY_QUEST]          = { ["control"] = nil, 							["scene"] = gpc.invQuests_GP, 				["fragment"] = nil, },
+		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP, 		["fragment"] = nil, },
+		[LF_VENDOR_SELL]              = { ["control"] = gpc.vendorSell_GP, 				["scene"] = nil,	 						["fragment"] = nil, },
+		[LF_VENDOR_BUYBACK]           = { ["control"] = gpc.vendorBuyBack_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		[LF_VENDOR_REPAIR]            = { ["control"] = gpc.vendorRepair_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		[LF_FENCE_SELL]               = { ["control"] = gpc.invFenceSell_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		[LF_FENCE_LAUNDER]            = { ["control"] = gpc.invFenceLaunder_GP, 		["scene"] = nil, 							["fragment"] = nil, },
+		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
 
 
 		--Not given in gamepad mode
-		[LF_QUICKSLOT]                = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
-
-
-		--Not implemented yet
-		[LF_GUILDSTORE_BROWSE] 		  = { ["control"] = nil, 							["scene"] = nil, 					["fragment"] = nil, },
-		[LF_SMITHING_CREATION] 		  = { ["control"] = nil, 							["scene"] = "gamepad_smithing_creation", ["fragment"] = nil, },
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = nil, 							["scene"] = "gamepad_smithing_creation", ["fragment"] = nil, },
-		[LF_PROVISIONING_COOK]		  = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
-		[LF_PROVISIONING_BREW]		  = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
+		[LF_QUICKSLOT]                = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_INVENTORY]                = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_BANK_DEPOSIT]             = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = nil, 							["scene"] = "gamepad_guild_bank", ["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_GUILDSTORE_SELL]          = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_MAIL_SEND]                = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_INVENTORY]                = { ["control"] = nil, 							["scene"] = "gamepad_inventory_root",		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP,	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, ["scene"] = gpc.invGuildBankScene_GP, ["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP, 	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsHouseBankShown",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		}, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = gpc.invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_MAIL_SEND]                = { ["control"] = nil, 							["scene"] = "mailManagerGamepad", 			["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 
 
-		[LF_CRAFTBAG]                 = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
-		[LF_BANK_WITHDRAW]            = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
-		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
-		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = nil, 							["scene"] = nil, 				["fragment"] = nil, },
-		[LF_SMITHING_REFINE]          = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", ["fragment"] = nil, },
+		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 							["scene"] = "gamepad_inventory_root", 							["fragment"] = nil, },
+		[LF_BANK_WITHDRAW]            = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 							["scene"] = nil, 							["fragment"] = nil, },
+		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = nil, 							["scene"] = "gamepad_guild_bank",			["fragment"] = nil, },
+		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, },
+		[LF_SMITHING_REFINE]          = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
 		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
 		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
-		[LF_SMITHING_RESEARCH]        = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research", ["fragment"] = nil, },
-		[LF_JEWELRY_REFINE]           = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", ["fragment"] = nil, },
+		[LF_SMITHING_RESEARCH]        = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research",	["fragment"] = nil, },
+		[LF_JEWELRY_REFINE]           = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
 		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
 		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
-		[LF_JEWELRY_RESEARCH]         = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research", ["fragment"] = nil, },
-		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemySecene_GP, ["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH]         = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research", 	["fragment"] = nil, },
+		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemySecene_GP, 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  gpc.alchemy_GP,
@@ -1182,7 +1205,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
 		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
 		-->Used for gamepad AND keyboard mode with these entries here !!!
-		[LF_ENCHANTING_CREATION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingCreate_GP, ["fragment"] = nil,
+		[LF_ENCHANTING_CREATION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingCreate_GP, 		["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]  =  gpc.enchanting_GP,
@@ -1192,13 +1215,51 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingExtract_GP, ["fragment"] = nil,
+		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingExtract_GP, 		["fragment"] = nil,
 											["special"] = {
 												[1] = {
 													["control"]  =  gpc.enchanting_GP,
 													["funcOrAttribute"] = "GetEnchantingMode",
 													["params"] = {gpc.enchanting_GP},
 													["expectedResults"] = {ENCHANTING_MODE_EXTRACTION},
+												}
+											}
+		},
+
+
+		--Not implemented yet
+		--Works: 2021-12-13
+		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = gpc.invGuildStoreSellScene_GP,["fragment"] = nil, },
+		--Works: 2021-12-13
+		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
+		--Works: 2021-12-13
+		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  kbc.provisioner,
+													["funcOrAttribute"] = "filterType",
+													["params"] = {},
+													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES},
+												}
+											}
+		},
+		--Works: 2021-12-13
+		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  kbc.provisioner,
+													["funcOrAttribute"] = "filterType",
+													["params"] = {},
+													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING},
 												}
 											}
 		},
@@ -1238,7 +1299,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene", "controlDialog" } },
-		{ filterType=LF_JEWELRY_RESEARCH_DIA000LOG, 	checkTypes = { "special", "scene", "controlDialog" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIA000LOG, checkTypes = { "special", "scene", "controlDialog" } },
 		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "special", "scene", "control" } },
@@ -1260,10 +1321,13 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
 	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 	--Gamepad mode
 	--TODO check the sort order and order of checkTypes per filterType ! 2021-12-130y0000ä00
 	[true] = {
-		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "control", "special", "specialForced" } }, --> CraftBagExtended: Handled in specialForced
+		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "scene", "control", "special", "specialForced" } },
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
