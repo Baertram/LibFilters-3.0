@@ -410,6 +410,8 @@ kbc.retraitFragment				  = RETRAIT_STATION_RETRAIT_FRAGMENT
 --Reconstruction
 kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD
 
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepad constants
 ------------------------------------------------------------------------------------------------------------------------
@@ -445,8 +447,8 @@ gpc.invBankScene_GP      		= getScene(SM, "gamepad_banking")
 --withdraw: Uses same as keyboard
 
 --Guild bank
-gpc.invGuildBank_GP      = GAMEPAD_GUILD_BANK
-gpc.invGuildBankScene_GP = GAMEPAD_GUILD_BANK_SCENE
+gpc.invGuildBank_GP      		= GAMEPAD_GUILD_BANK
+gpc.invGuildBankScene_GP 		= GAMEPAD_GUILD_BANK_SCENE
 --deposit: See custom gamepad fragments
 --withdraw: Uses same as keyboard
 

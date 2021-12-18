@@ -152,24 +152,23 @@ local function hookControlHiddenAndShownAndChangeFragmentState(ctrlToHook, scene
 end
 ]]
 
-local function hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc)
+local function hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc, addAndRemoveFragment)
+	addAndRemoveFragment = addAndRemoveFragment or false
 	if not fragmentsHooked[hookName] then
 		if checkFunc ~= nil and checkFunc() ~= true then return end
 
 		if sceneId:IsShowing() then
-			if listName == "deposit" or listName == "withdraw" then
-				if listName == "deposit" then
-					if objectId:IsInDepositMode() then
-						targetFragment:Show()
-					else
-						targetFragment:Hide()
-					end
+			if listName == "deposit" then
+				if objectId:IsInDepositMode() then
+					targetFragment:Show()
 				else
-					if objectId:IsInWithdrawMode() then
-						targetFragment:Show()
-					else
-						targetFragment:Hide()
-					end
+					targetFragment:Hide()
+				end
+			elseif listName == "withdraw" then
+				if objectId:IsInWithdrawMode() then
+					targetFragment:Show()
+				else
+					targetFragment:Hide()
 				end
 			end
 		else
@@ -190,12 +189,20 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 					function(p_sourceFragment, p_targetFragment) return end, --showing
 					function(p_sourceFragment, p_targetFragment)
 						if checkFunc ~= nil and checkFunc() ~= true then return end
+						if addAndRemoveFragment == true then
+							sceneId:AddFragment(p_targetFragment)
+						end
 						p_targetFragment:Show()
 						return
 					end, --shown
 					function(p_sourceFragment, p_targetFragment) return end, --hiding
 					function(p_sourceFragment, p_targetFragment)
 						if checkFunc ~= nil and checkFunc() ~= true then return end
+						if addAndRemoveFragment == true then
+							if sceneId:Hasfragment(p_targetFragment) then
+								sceneId:RemoveFragment(p_targetFragment)
+							end
+						end
 						p_targetFragment:Hide()
 						return
 					end --hidden
@@ -205,12 +212,12 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 	end
 end
 
-local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, objectId, listName, listFunctionName, targetFragment, checkFunc)
+local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, objectId, listName, listFunctionName, targetFragment, checkFunc, addAndRemoveFragment)
 	if not sceneId or not objectId or not listName or not listFunctionName or not targetFragment then return end
 	SecurePostHook(objectId, listFunctionName, function()
 		if libFilters.debug then dd("[LibFilters3]GAMEPAD fragment - post hook %q - %s, %s", tos(sceneId:GetName()), tos(hookName), tos(listFunctionName)) end
 		if checkFunc == nil or (checkFunc ~= nil and checkFunc() == true) then
-			hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc)
+			hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc, addAndRemoveFragment)
 		end
 	end)
 end
@@ -262,42 +269,52 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- Custom added Gamepad inventory type fragments -> Create the fragments now
 ------------------------------------------------------------------------------------------------------------------------
---Player bank deposit
-gamepadLibFiltersBankDepositFragment = LibFilters_InventoryLayoutFragment:New(
+local gamepadLibFiltersDefaultFragment = LibFilters_InventoryLayoutFragment:New(
 		{
 			additionalFilter = function(slot) return true end
 		})
+
+
+--Player bank deposit
+gamepadLibFiltersBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_BANK_DEPOSIT)] = gamepadLibFiltersBankDepositFragment
-gamepadLibFiltersBankDepositFragment:SetConditional(function()
-	return invBankScene_GP:IsShowing() and invBank_GP:IsInDepositMode()
-end)
-hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP, "deposit", "InitializeLists", gamepadLibFiltersBankDepositFragment, nil)
+hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP, "deposit", "InitializeLists", gamepadLibFiltersBankDepositFragment,
+		function() return GetBankingBag() == BAG_BANK end, true)
+
 
 --House bank deposit
-gamepadLibFiltersHouseBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
+gamepadLibFiltersHouseBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_HOUSE_BANK_DEPOSIT)]  = gamepadLibFiltersHouseBankDepositFragment
-gamepadLibFiltersHouseBankDepositFragment:SetConditional(function()
-	return invBankScene_GP:IsShowing() and (IsHouseBankBag(GetBankingBag()) and invBank_GP:IsInDepositMode())
-end)
 hookFragmentStateByPostHookListInitFunction("depositHouseBank", invBankScene_GP, invBank_GP, "deposit", "InitializeLists", gamepadLibFiltersHouseBankDepositFragment,
-		function() return IsHouseBankBag(GetBankingBag()) end)
+		function() return IsHouseBankBag(GetBankingBag()) end, true)
+
+-- Gamepad bank and house bank: Used for switching the gamepad bank's fragment depending if house bank or not
+--[[
+--Not needed anymore as it will be done within hookFragmentStateByPostHookListInitFunction last's parameter addAndRemoveFragment = true
+ZO_PreHook(invBank_GP, 'OnOpenBank', function(self, bankBag)
+	if bankBag == BAG_BANK then
+		invBankScene_GP:RemoveFragment(gamepadLibFiltersHouseBankDepositFragment)
+		invBankScene_GP:AddFragment(gamepadLibFiltersBankDepositFragment)
+	else
+		--House bank
+		invBankScene_GP:RemoveFragment(gamepadLibFiltersBankDepositFragment)
+		invBankScene_GP:AddFragment(gamepadLibFiltersHouseBankDepositFragment)
+	end
+	return false
+end)
+]]
+
 
 --Guild bank deposit
-gamepadLibFiltersGuildBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
+gamepadLibFiltersGuildBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_GUILDBANK_DEPOSIT)]  = gamepadLibFiltersGuildBankDepositFragment
-gamepadLibFiltersGuildBankDepositFragment:SetConditional(function()
-	return invGuildBankScene_GP:IsShowing() and invGuildBank_GP:IsInDepositMode()
-end)
 hookFragmentStateByPostHookListInitFunction("depositGuildBank", invGuildBankScene_GP, invGuildBank_GP, "deposit", "InitializeLists", gamepadLibFiltersGuildBankDepositFragment, nil)
 
---Trading house = Guild store deposit
-gamepadLibFiltersGuildStoreSellFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
+
+--Trading house = Guild store sell
+gamepadLibFiltersGuildStoreSellFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_GUILDSTORE_SELL)]	= gamepadLibFiltersGuildStoreSellFragment
-gamepadLibFiltersGuildStoreSellFragment:SetConditional(function()
-	return invGuildStoreSellScene_GP:IsShowing()
-			and ((invGuildStore_GP ~= nil and invGuildStore_GP:GetCurrentMode() == GAMEPAD_TRADING_HOUSE_SELL)
-			or (ZO_TradingHouse_GamepadMaskContainerSell ~= nil and not ZO_TradingHouse_GamepadMaskContainerSell:IsHidden()))
-end)
+
 
 --The GAMEPAD_TRADING_HOUSE_SELL variable is not given until gamepad mode is enabled and the trading house sell panel is opened...
 --So we will use TRADING_HOUSE_GAMEPAD instead, function SetCurrentListObject(GAMEPAD_TRADING_HOUSE_SELL)
@@ -328,8 +345,9 @@ end)
 
 
 --Mail send
-gamepadLibFiltersMailSendFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
+gamepadLibFiltersMailSendFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_MAIL_SEND)]		= gamepadLibFiltersMailSendFragment
+--[[
 --Hide/Show with GAMEPAD_MAIL_SEND_FRAGMENT
 GAMEPAD_MAIL_SEND_FRAGMENT:RegisterCallback("StateChange", function(oldState, newState)
 	if libFilters.debug then dd("[LibFilters3]GAMEPAD_MAIL_SEND_FRAGMENT - State: " ..tos(newState)) end
@@ -346,23 +364,55 @@ GAMEPAD_MAIL_SEND_FRAGMENT:RegisterCallback("StateChange", function(oldState, ne
 			end --hidden
 	)
 end)
-
+]]
+SecurePostHook(invMailSendScene_GP, 'SwitchToFragment', function(self, fragment)
+    if fragment == gpc.invMailSendFragment then
+        invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
+    else
+		if not gamepadLibFiltersMailSendFragment.sceneManager then gamepadLibFiltersMailSendFragment:SetSceneManager(SM) end
+		if not gamepadLibFiltersMailSendFragment:IsHidden() then gamepadLibFiltersMailSendFragment:Hide() end
+		if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
+			invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
+		end
+    end
+end)
 
 
 --Player to player trade
---[[
-gamepadLibFiltersPlayerTradeFragment = LibFilters_InventoryLayoutFragment:New(
-	{
-		additionalFilter = function(slot) return true end,
-		alwaysReapplyLayout = true
-	})
-	]]
-gamepadLibFiltersPlayerTradeFragment = ZO_DeepTableCopy(gamepadLibFiltersBankDepositFragment)
+gamepadLibFiltersPlayerTradeFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_TRADE)] = gamepadLibFiltersPlayerTradeFragment
 
+
 --Player inventory
-gamepadLibFiltersInventoryDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersPlayerTradeFragment)
+gamepadLibFiltersInventoryDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDepositFragment
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Conditions to check if a fragment should be shown or not
+------------------------------------------------------------------------------------------------------------------------
+gamepadLibFiltersBankDepositFragment:SetConditional(function()
+	return invBankScene_GP:IsShowing() and GetBankingBag() == BAG_BANK and invBank_GP:IsInDepositMode()
+end)
+
+
+gamepadLibFiltersHouseBankDepositFragment:SetConditional(function()
+	return invBankScene_GP:IsShowing() and (IsHouseBankBag(GetBankingBag()) and invBank_GP:IsInDepositMode())
+end)
+
+
+gamepadLibFiltersGuildBankDepositFragment:SetConditional(function()
+	return invGuildBankScene_GP:IsShowing() and invGuildBank_GP:IsInDepositMode()
+end)
+
+--[[
+--Obsolete as fragment will be added/removed to/from guildStore scene with conditions already
+gamepadLibFiltersGuildStoreSellFragment:SetConditional(function()
+	return invGuildStoreSellScene_GP:IsShowing()
+			and ((invGuildStore_GP ~= nil and invGuildStore_GP:GetCurrentMode() == GAMEPAD_TRADING_HOUSE_SELL)
+			or (ZO_TradingHouse_GamepadMaskContainerSell ~= nil and not ZO_TradingHouse_GamepadMaskContainerSell:IsHidden()))
+end)
+]]
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -371,33 +421,33 @@ _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDe
 -- See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
 --> [LF_*] = {name="...", fragment=nil},
 ------------------------------------------------------------------------------------------------------------------------
-local customFragmentsUpdateRef                           			= libFilters.constants.gamepad.customFragments
-customFragmentsUpdateRef[LF_INVENTORY].fragment          			= gamepadLibFiltersInventoryDepositFragment
-customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment      			= gamepadLibFiltersBankDepositFragment
-customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment 			= gamepadLibFiltersGuildBankDepositFragment
-customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment 			= gamepadLibFiltersHouseBankDepositFragment
-customFragmentsUpdateRef[LF_GUILDSTORE_SELL].fragment               = gamepadLibFiltersGuildStoreSellFragment
-customFragmentsUpdateRef[LF_MAIL_SEND].fragment                     = gamepadLibFiltersMailSendFragment
-customFragmentsUpdateRef[LF_TRADE].fragment                         = gamepadLibFiltersPlayerTradeFragment
+local customFragmentsUpdateRef                           						= 	libFilters.constants.gamepad.customFragments
+customFragmentsUpdateRef[LF_INVENTORY].fragment          						= 	gamepadLibFiltersInventoryDepositFragment
+customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment      						= 	gamepadLibFiltersBankDepositFragment
+customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment 						= 	gamepadLibFiltersGuildBankDepositFragment
+customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment 						= 	gamepadLibFiltersHouseBankDepositFragment
+customFragmentsUpdateRef[LF_GUILDSTORE_SELL].fragment               			= 	gamepadLibFiltersGuildStoreSellFragment
+customFragmentsUpdateRef[LF_MAIL_SEND].fragment                     			= 	gamepadLibFiltersMailSendFragment
+customFragmentsUpdateRef[LF_TRADE].fragment                         			= 	gamepadLibFiltersPlayerTradeFragment
 
 --Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 -->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
-LF_FilterTypeToReference[true][LF_INVENTORY]          				= { gamepadLibFiltersInventoryDepositFragment }
-LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       				= { gamepadLibFiltersBankDepositFragment }
-LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  				= { gamepadLibFiltersGuildBankDepositFragment }
-LF_FilterTypeToReference[true][LF_HOUSE_BANK_DEPOSIT] 				= { gamepadLibFiltersHouseBankDepositFragment }
-LF_FilterTypeToReference[true][LF_GUILDSTORE_SELL]                            = { gamepadLibFiltersGuildStoreSellFragment }
-LF_FilterTypeToReference[true][LF_MAIL_SEND]                                  = { gamepadLibFiltersMailSendFragment }
-LF_FilterTypeToReference[true][LF_TRADE]                                      = { gamepadLibFiltersPlayerTradeFragment }
+LF_FilterTypeToReference[true][LF_INVENTORY]          							= 	{ gamepadLibFiltersInventoryDepositFragment }
+LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       							= 	{ gamepadLibFiltersBankDepositFragment }
+LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  							= 	{ gamepadLibFiltersGuildBankDepositFragment }
+LF_FilterTypeToReference[true][LF_HOUSE_BANK_DEPOSIT] 							= 	{ gamepadLibFiltersHouseBankDepositFragment }
+LF_FilterTypeToReference[true][LF_GUILDSTORE_SELL]                            	= 	{ gamepadLibFiltersGuildStoreSellFragment }
+LF_FilterTypeToReference[true][LF_MAIL_SEND]                                  	= 	{ gamepadLibFiltersMailSendFragment }
+LF_FilterTypeToReference[true][LF_TRADE]                                      	= 	{ gamepadLibFiltersPlayerTradeFragment }
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] = 			gamepadLibFiltersInventoryDepositFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] = 		gamepadLibFiltersBankDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		=	gamepadLibFiltersInventoryDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 		=	gamepadLibFiltersBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersGuildBankDepositFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersHouseBankDepositFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]["fragment"] = 	gamepadLibFiltersGuildStoreSellFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       = 	gamepadLibFiltersMailSendFragment
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           = 	gamepadLibFiltersPlayerTradeFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"]= 	gamepadLibFiltersHouseBankDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]["fragment"] 	= 	gamepadLibFiltersGuildStoreSellFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       	= 	gamepadLibFiltersMailSendFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	= 	gamepadLibFiltersPlayerTradeFragment
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -406,24 +456,12 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           = 
 --Gamepd player inventory
 invRootScene:AddFragment(gamepadLibFiltersInventoryDepositFragment)
 
--- Gamepad bank and house bank: Used for switching the gamepad bank's fragment depending if house bank or not
-local gamepadBankingScene = GAMEPAD_BANKING_SCENE
-ZO_PreHook(invBank_GP, 'OnOpenBank', function(self, bankBag)
-	if bankBag == BAG_BANK then
-		gamepadBankingScene:RemoveFragment(gamepadLibFiltersHouseBankDepositFragment)
-		gamepadBankingScene:AddFragment(gamepadLibFiltersBankDepositFragment)
-	else
-		--House bank
-		gamepadBankingScene:RemoveFragment(gamepadLibFiltersBankDepositFragment)
-		gamepadBankingScene:AddFragment(gamepadLibFiltersHouseBankDepositFragment)
-	end
-	return false
-end)
-
 invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
+
 invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment) --will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
 
-invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
+--invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment) --will be added/removed dynamically via function mailManagerGamepadScene:SwitchToFragment() above
+
 invPlayerTradeScene_GP:AddFragment(gamepadLibFiltersPlayerTradeFragment)
 
 
