@@ -234,6 +234,27 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 		if checkFunc == nil or (checkFunc ~= nil and checkFunc() == true) then
 			hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc, addAndRemoveFragment)
 		end
+
+		local fragmentsHookedName = hookName .. "_UpdateFragmentAtIsShown"
+		if not fragmentsHooked[fragmentsHookedName] then
+			--After bank was initialized update the fragments at the libFilters lookup tables for "is shown"
+			if objectId == invBank_GP and listName == "deposit" then
+				if hookName == "depositHouseBank" then
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_WITHDRAW]["fragment"] 	= invBank_GP:GetListFragment("withdraw")
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] 	= targetFragment
+					fragmentsHooked[fragmentsHookedName] = true
+				elseif hookName == "depositBank" then
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["fragment"] 			= invBank_GP:GetListFragment("withdraw")
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 			= targetFragment
+					fragmentsHooked[fragmentsHookedName] = true
+				end
+				--After guild bank was initialized update the fragments at the libFilters lookup tables for "is shown"
+			elseif objectId == invGuildBank_GP and listName == "deposit" then
+				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["fragment"] 		= invGuildBank_GP:GetListFragment("withdraw")
+				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] 			= targetFragment
+				fragmentsHooked[fragmentsHookedName] = true
+			end
+		end
 	end)
 end
 
@@ -481,7 +502,7 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	=
 --Gamepd player inventory
 invRootScene:AddFragment(gamepadLibFiltersInventoryDepositFragment)
 
-invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
+--invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
 
 invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment) --will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
 

@@ -1162,9 +1162,18 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		[LF_INVENTORY]                = { ["control"] = nil, 							["scene"] = "gamepad_inventory_root",		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP,	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, ["scene"] = gpc.invGuildBankScene_GP, ["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP, 	["fragment"] = nil,
+		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,  	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsHouseBankShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { false },
+											  }
+										  }
+		},
+		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = gpc.invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
+		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1173,7 +1182,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 													["expectedResults"] = {true},
 												}
 											}
-		}, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		},
 		--Works, 2021-12-18
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = gpc.invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--Works, 2021-12-18
@@ -1181,10 +1190,28 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 
 
-		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 							["scene"] = "gamepad_inventory_root", 							["fragment"] = nil, },
-		[LF_BANK_WITHDRAW]            = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 							["scene"] = nil, 							["fragment"] = nil, },
-		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = nil, 							["scene"] = "gamepad_guild_bank",			["fragment"] = nil, },
-		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, },
+		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = "gamepad_inventory_root", 	["fragment"] = nil, },
+		[LF_BANK_WITHDRAW]            = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = gpc.invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsHouseBankShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { false },
+											  }
+										  }
+		},
+		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithraw, 	["scene"] = gpc.invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
+		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsHouseBankShown",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 		[LF_SMITHING_REFINE]          = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
 		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
 		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
@@ -1358,13 +1385,13 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_RETRAIT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
 --		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },

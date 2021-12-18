@@ -780,7 +780,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, specialAdd
 	for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
 		if isDebugEnabled then dd("=====================") end
-		if isDebugEnabled then dd(">checking filterType: " .. tos(filterTypeChecked)) end
+		if isDebugEnabled then dd(">checking filterType: %q [%s]", libFilters:GetFilterTypeName(filterTypeChecked), tos(filterTypeChecked)) end
 		if p_filterType == nil or (p_filterType ~= nil and (filterTypeChecked ~= nil and filterTypeChecked == p_filterType)) then
 			local checkTypes = filterTypeControlAndOtherChecks.checkTypes
 			if checkTypes ~= nil then
@@ -1304,7 +1304,7 @@ end
 
 --Returns String LibFilters LF* filterType constant's name for the number filterType
 function libFilters:GetFilterTypeName(filterType)
-	if libFilters.debug then dd("GetFilterTypeName-%s", tos(filterType)) end
+	if libFilters.debug then dd("GetFilterTypeName-%q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid argument to GetFilterTypeName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -1320,7 +1320,7 @@ local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 --or nil if error occured or no filter function type was determined
 -- returns number filterFunctionType
 function libFilters:GetFilterTypeFunctionType(filterType)
-	if libFilters.debug then dd("GetFilterTypeFunctionType-%s", tos(filterType)) end
+	if libFilters.debug then dd("GetFilterTypeFunctionType-%q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid argument to GetFilterTypeFunctionType(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
@@ -1339,7 +1339,7 @@ end
 --INVENTORY_BACKPACK, INVENTORY_BANK, ..., or a SCENE or a control given within table libFilters.mapping.
 --LF_FilterTypeToReference[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
-	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%s", tos(inventoryType)) end
+	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%q", tos(inventoryType)) end
 	if not inventoryType then
 		dfe("Invalid arguments to GetCurrentFilterTypeForInventory(%q).\n>Needed format is: inventoryTypeNumber(e.g. INVENTORY_BACKPACK)/userdata/table/scene/control inventoryType",
 			tos(inventoryType))
