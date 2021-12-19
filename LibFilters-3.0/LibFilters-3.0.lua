@@ -2179,6 +2179,9 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
+		if libFilters.debug then dd("HookAdditionalFilter-HookNow filterType %q, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+				filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode)) end
+
 		if #inventoriesToHookForLFConstant_Table == 0 then return end
 
 		for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
@@ -2187,11 +2190,14 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
 				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
 
-				--Store the filterType at the table to identify the panel
+				--Store the filterType at the layoutData (which could be a fragment.layoutData table or a variable like
+				--PLAYER_INVENTORY.inventories[INVENTORY_*]) table to identify the panel -> will be used e.g. within
+				--LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
 				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
 
 				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
-				--which were added to other fields than "additionalFilter".
+				--which were added to other fields than "additionalFilter" (e.g. "additionalCraftBagFilter" at BACKPACK_MENU_BAR_LAYOUT_FRAGMENT which is copied over to
+				--PLAYER_INVENTORY.inventories[INVENTORY_CARFT_BAG].additionalFilter)
 				--Will be read from layoutData[attributeRead] (attributeRead entry defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType])
 				--and write to (if entry objectWrite and/or subObjectWrite is/are defined at table otherOriginalFilterAttributesAtLayoutData_Table[isInGamepadMode][filterType]
 				--they will be used to write to, else layoutData will be used again to write to)[attributeWrite]
@@ -2201,8 +2207,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 				--Special filterFunction needed, not located at .additionalFilter but e.g. .additionalCraftBag filter?
 				if otherOriginalFilterAttributesAtLayoutData ~= nil then
 					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
-					df("HookAdditionalFilter-HookNow: Found otherOriginalFilterAttributesAtLayoutData: %s, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
-						filterTypeNameAndTypeText, tos(readFromAttribute), tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
+					if libFilters.debug then dd(">filterType: %s, otherOriginalFilterAttributesAtLayoutData: %s", filterTypeNameAndTypeText, tos(readFromAttribute)) end
 					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
 					if readFromObject == nil then
 						--Fallback: Read from the same layoutData
@@ -2219,43 +2224,48 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						return
 					end
 					otherOriginalFilter = readFromObject[readFromAttribute]
-					local useDefaultFunction = false
+					local createFilterFunctionForLibFilters = false
 					if otherOriginalFilter ~= nil then
 						local originalFilterType = type(otherOriginalFilter)
 						if originalFilterType == "function" then
-							useDefaultFunction = false
-							readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+							createFilterFunctionForLibFilters = false
+							if libFilters.debug then dd(">>Updated existing filter function %q", tos(readFromAttribute)) end
+							readFromObject[readFromAttribute] = function(...) --e.g. update BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.additionalCraftBagFilter so it will be copied to PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] at PLAYER_INVENTORY:ApplyBackpackLayout()
 								return otherOriginalFilter(...) and runFilters(filterType, ...)
 							end
 						else
-							useDefaultFunction = true
+							--There was no filterFunction provided yet
+							createFilterFunctionForLibFilters = true
 						end
 					else
-						useDefaultFunction = true
-						--There was no filterFunction provided yet as the attribute was missing
+						--There was no filterFunction provided yet -> the attribute was missing/nil
+						createFilterFunctionForLibFilters = true
 					end
-					if useDefaultFunction == true then
-						readFromObject[readFromAttribute] = function(...) --e.g. .additionalCraftBagFilter at PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+					if createFilterFunctionForLibFilters == true then
+						if libFilters.debug then dd(">>Created new filter function %q", tos(readFromAttribute)) end
+						readFromObject[readFromAttribute] = function(...) --e.g. update BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.additionalCraftBagFilter so it will be copied to PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] at PLAYER_INVENTORY:ApplyBackpackLayout()
 							return runFilters(filterType, ...)
 						end
 					end
 				else
+					if libFilters.debug then dd(">filterType: %s, normal hook: %s", filterTypeNameAndTypeText, tos(defaultOriginalFilterAttributeAtLayoutData)) end
 					local originalFilterType = type(originalFilter)
 					if originalFilterType == "function" then
+						if libFilters.debug then dd(">Updated existing filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
 						--Set the .additionalFilter again with the filter function of the original and LibFilters
 						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 							return originalFilter(...) and runFilters(filterType, ...)
 						end
 					else
+						if libFilters.debug then dd(">Created new filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
 						--Set the .additionalFilter again with the filter function of LibFilters only
 						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 							return runFilters(filterType, ...)
 						end
 					end
 				end
-				if libFilters.debug then dd("HookAdditionalFilter > hookNow-%q,%s,%q,%s", tos(filterType), tos(originalFilter), tos(otherOriginalFilterAttributesAtLayoutData.attributeRead), tos(otherOriginalFilter)) end
 			end
-		end
+		end --for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
 	end
 	------------------------------------------------------------------------------------------------------------------------
 	--Should the LF constant be hooked by any special function of LibFilters?
@@ -2310,7 +2320,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 end
 libFilters_hookAdditionalFilter = libFilters.HookAdditionalFilter
 
-
+--[[
 --Hook the inventory in a special way, e.g. at ENCHANTING where there is only 1 inventory variable and no
 --extra fragment for the different modes (creation, extraction).
 --Uses String specialType to define which special hooks should be used
@@ -2320,7 +2330,7 @@ function libFilters:HookAdditionalFilterSpecial(specialType)
 	if libFilters.debug then dd("HookAdditionalFilterSpecial-%q", tos(specialType)) end
 	if specialHooksDone[specialType] then return end
 
-	--[[
+	--[ [
 	--ENCHANTING keyboard
 	if specialType == "enchanting" then
 
@@ -2357,10 +2367,11 @@ function libFilters:HookAdditionalFilterSpecial(specialType)
 
 		specialHooksDone[specialType] = true
 	end
-	]]
+	] ]
 end
+]]
 
-
+--[[
 --Hook the inventory in a special way, e.g. at ENCHANTING for gamepad using the SCENES to add the .additionalFilter, but
 --using the GAMEPAD_ENCHANTING.inventory to store the current LibFilters3_filterType (constant: defaultLibFiltersAttributeToStoreTheFilterType)
 --Uses String specialType to define which special hooks should be used
@@ -2370,7 +2381,7 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	if libFilters.debug then dd("HookAdditionalFilterSceneSpecial-%q", tos(specialType)) end
 	if specialHooksDone[specialType] then return end
 
---[[
+--[ [
 	--ENCHANTING gamepad
 	if specialType == "enchanting_GamePad" then
 		--The enchanting scenes to hook into
@@ -2416,8 +2427,9 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 
 		specialHooksDone[specialType] = true
 	end
-]]
+ ] ]
 end
+]]
 
 
 --**********************************************************************************************************************
@@ -2570,37 +2582,38 @@ d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
 			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
 			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
 		end)
-	]]
-	--2021-12-19
-	--Fix applied now is: As BACKPACK_MENU_BAR_LAYOUT_FRAGMENT is used for LF_INVENTORY and LF_CRAFTBAG, and
-	--BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType is LF_CRAFTBAG after LibFilters3:HookAdditionalFilter
-	--was called: We need to change BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType accordingly to
-	--the shown panel (inventory or craftbag)
-	-->Only needed for CraftBagExtended addon!
-	if CraftBagExtended then
-		ZO_PreHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-			local filterTypeToAddToLayoutData = (crafBagIsHidden == true and LF_INVENTORY) or LF_CRAFTBAG
-			if libFilters.debug then
-				dd("ApplyBackpackLayout-CraftBag hidden: %s, applied filterType to layout: %s [%s]",
-						tos(crafBagIsHidden), tos(libFilters:GetFilterTypeName(filterTypeToAddToLayoutData)), tos(filterTypeToAddToLayoutData))
-			end
-			--Update the layoutData's filterType of LibFilters now with the correct LF_constant so that the original function call
-			--will use the layout to update PLAYER_INVENTORY.appliedLayout
-			-->See vanilal code at /esoui/ingame/inventory/inventory.lua, function function ZO_InventoryManager:ApplyBackpackLayout(layoutData), self.appliedLayout = layoutData
-			layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterTypeToAddToLayoutData
 
-			--call the original function now to apply the layout to PLAYER_INVENTORY.appliedLayout where LibFilters3:GetCurrentFilterTypeForInventory(INVENTORY_BACKPACK) will read it from
-			return false
-		end)
-	end
+	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+		local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+		d("!!!!! ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
+		if crafBagIsHidden then return end
+		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
+		libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
+	end)
+	]]
+
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
 local function ApplyFixesLate()
-	--Change the BACKPACK_MENU_BAR_LAYOUT_FRAGMENT's layoutData.LibFilters3_filterType to the default value, as it was
-	--overwritten with LF_CRAFTBAG due to the hooks
-	kbc.invBackpackFragment.layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = LF_INVENTORY
+	--2021-12-19
+	--Fix applied now is only needed for CraftBagExtended addon!
+	--The fragments used at mail send/bank deposit/guild bank deposit and guild store sell will apply their additionalFilters
+	--to the normal player inventory PLAYER_INVETORY.appliedLayout.
+	--But the CBE craftbag panel will not filter with these additional filters, but the PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilters
+	--And these are empty at these special CBE filters! So we need to copy them over from BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.additionalCraftBagFilter
+	if CraftBagExtended ~= nil then
+		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+			if libFilters.debug then
+				dd("ApplyBackpackLayout-CraftBag hidden: %s", tos(crafBagIsHidden))
+			end
+			if crafBagIsHidden == true or inventories[invTypeCraftBag].additionalFilter ~= nil then return end
+			local additionalCraftBagFilter = kbc.invBackpackFragment.layoutData.additionalCraftBagFilter
+			if additionalCraftBagFilter == nil then return end
+			inventories[invTypeCraftBag].additionalFilter = additionalCraftBagFilter
+		end)
+	end
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
@@ -2619,6 +2632,7 @@ end
 --Called from EVENT_ADD_ON_LOADED
 local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 	if addonNameLoaded ~= MAJOR then return end
+
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED)
 	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
 	ApplyFixesLate()
@@ -2630,21 +2644,27 @@ end
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
 	if libFilters.debug then dd("InitializeLibFilters - %q", tos(libFilters.isInitialized)) end
-	 if libFilters.isInitialized then return end
-	 libFilters.isInitialized = true
+	if libFilters.isInitialized then return end
+	libFilters.isInitialized = true
 
-	 InstallHelpers()
-	 ApplyAdditionalFilterHooks()
-
-	--TODO for debugging only
-	if GetDisplayName() == "@Baertram" then debugSlashToggle() end
+	--Install the helpers, which override ZOs vanilla code -> See file helpers.lua
+	InstallHelpers()
+	--Hook into the scenes/fragments/controls to apply the filter function "runFilters" to the existing .additionalFilter
+	--and other existing filters, and to add the libFilters filterType to the .LibFilters3_filterType tag (to identify the
+	--inventory/control/fragment again)
+	ApplyAdditionalFilterHooks()
 end
 
 --______________________________________________________________________________________________________________________
 --______________________________________________________________________________________________________________________
 --______________________________________________________________________________________________________________________
+--TODO: Only for debugging
+if GetDisplayName() == "@Baertram" then debugSlashToggle() end
+
+
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
 ApplyFixesEarly()
+EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
+
 if libFilters.debug then dd("LIBRARY MAIN FILE - END") end
 
-EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)

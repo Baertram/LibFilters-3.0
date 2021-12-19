@@ -44,15 +44,16 @@ libFilters.useFilterAllFallback = false
 libFilters.debug = false
 
 --LibDebugLogger & debugging functions
-libFilters.debugFunctions = {}
-local debugFunctions = libFilters.debugFunctions
-
 if LibDebugLogger then
 	 if not libFilters.logger then
 		  libFilters.logger = LibDebugLogger(MAJOR)
 	 end
 end
 local logger = libFilters.logger
+
+--Debugging functions
+libFilters.debugFunctions = {}
+local debugFunctions = libFilters.debugFunctions
 
 
 --Debugging output
@@ -109,11 +110,14 @@ local function dfe(...)
 end
 debugFunctions.dfe = dfe
 
+
+--Debugging slash commands
 local function debugSlashToggle(args)
 	libFilters.debug = not libFilters.debug
 	df("Debugging %s", (not libFilters.debug and "disabled") or "enabled")
 end
 debugFunctions.debugSlashToggle = debugSlashToggle
+
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
 
@@ -594,7 +598,7 @@ local otherOriginalFilterAttributesAtLayoutData_Table = {
 			--e.g. the layoutData used in function PLAYER_INVENTORY:ApplyBackpackLayout(layoutData)
 			--After it was read and enhanced with LibFilters runFilters(filterType) call it will be re-written to
 			--objectRead["attributeRead"] again
-			--["objectRead"] 	= kbc.invCraftbag, --PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG]
+			["objectRead"] 		= kbc.invBackpackFragment.layoutData, --BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
 		}
 	},
 	--Gamepad mode -- 2021-12-11 no fixes needed yet
@@ -749,7 +753,7 @@ local filterTypeToReference = {
 		--LF_INVENTORY or LF_CRAFTBAG! See file LibFilters-3.0.lua, fucntion ApplyFixesEarly() -> SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
 		--Else the last hooked one (LF_CRAFTBAG) will be kept as layoutData.LibFilters3_filterType all the time and filtering at other addons wont
 		--work properly!
-		[LF_CRAFTBAG]                 = { kbc.invBackpackFragment, kbc.invCraftbag },
+		[LF_CRAFTBAG]                 = { kbc.invCraftbag }, --, kbc.invBackpackFragment
 
 		[LF_INVENTORY_QUEST]          = { kbc.invQuests },
 		[LF_QUICKSLOT]                = { kbc.quickslots },

@@ -4,7 +4,7 @@
 ## AddOnVersion: 330
 ## APIVersion: 101032 101033
 ## IsLibrary: true
-## OptionalDependsOn: LibDebugLogger>=220
+## OptionalDependsOn: LibDebugLogger>=220 CraftBagExtended
 
 constants.lua
 Gamepad/gamepadCustomFragments.lua
