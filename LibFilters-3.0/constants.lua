@@ -1210,7 +1210,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithraw, 	["scene"] = gpc.invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
+		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = gpc.invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {

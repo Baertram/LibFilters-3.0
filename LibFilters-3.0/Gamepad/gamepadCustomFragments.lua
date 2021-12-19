@@ -256,7 +256,7 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 				end
 			--After guild bank was initialized update the fragments at the libFilters lookup tables for "is shown"
 			elseif objectId == invGuildBank_GP and listName == "deposit" then
-				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerwithraw
+				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["fragment"] 		= invGuildBank_GP:GetListFragment("withdraw")
 
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerdeposit
