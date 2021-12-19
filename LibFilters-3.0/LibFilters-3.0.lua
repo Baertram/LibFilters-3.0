@@ -2570,32 +2570,35 @@ d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
 			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
 			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
 		end)
+
+		--2021-12-19
+		--Fix applied now is: As BACKPACK_MENU_BAR_LAYOUT_FRAGMENT is used for LF_INVENTORY and LF_CRAFTBAG, and
+		--BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType is LF_CRAFTBAG after LibFilters3:HookAdditionalFilter
+		--was called: We need to change BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType accordingly to
+		--the shown panel (inventory or craftbag)
+		ZO_PreHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+			local filterTypeToAddToLayoutData = (crafBagIsHidden == true and LF_INVENTORY) or LF_CRAFTBAG
+			if libFilters.debug then
+				dd("ApplyBackpackLayout-CraftBag hidden: %s, applied filterType to layout: %s [%s]",
+					tos(crafBagIsHidden), tos(libFilters:GetFilterTypeName(filterTypeToAddToLayoutData)), tos(filterTypeToAddToLayoutData))
+			end
+			--Update the layoutData's filterType of LibFilters now with the correct LF_constant so that the original function call
+			--will use the layout to update PLAYER_INVENTORY.appliedLayout
+			-->See vanilal code at /esoui/ingame/inventory/inventory.lua, function function ZO_InventoryManager:ApplyBackpackLayout(layoutData), self.appliedLayout = layoutData
+			layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterTypeToAddToLayoutData
+
+			--call the original function now to apply the layout to PLAYER_INVENTORY.appliedLayout where LibFilters3:GetCurrentFilterTypeForInventory(INVENTORY_BACKPACK) will read it from
+			return false
+		end)
 	]]
-
-	--2021-12-19
-	--Fix applied now is: As BACKPACK_MENU_BAR_LAYOUT_FRAGMENT is used for LF_INVENTORY and LF_CRAFTBAG, and
-	--BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType is LF_CRAFTBAG after LibFilters3:HookAdditionalFilter
-	--was called: We need to change BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType accordingly to
-	--the shown panel (inventory or craftbag)
-	ZO_PreHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-		local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-		local filterTypeToAddToLayoutData = (crafBagIsHidden == true and LF_INVENTORY) or LF_CRAFTBAG
-		if libFilters.debug then
-			dd("ApplyBackpackLayout-CraftBag hidden: %s, applied filterType to layout: %s [%s]",
-				tos(crafBagIsHidden), tos(libFilters:GetFilterTypeName(filterTypeToAddToLayoutData)), tos(filterTypeToAddToLayoutData))
-		end
-		--Update the layoutData's filterType of LibFilters now with the correct LF_constant so that the original function call
-		--will use the layout to update PLAYER_INVENTORY.appliedLayout
-		-->See vanilal code at /esoui/ingame/inventory/inventory.lua, function function ZO_InventoryManager:ApplyBackpackLayout(layoutData), self.appliedLayout = layoutData
-		layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterTypeToAddToLayoutData
-
-		--call the original function now to apply the layout to PLAYER_INVENTORY.appliedLayout where LibFilters3:GetCurrentFilterTypeForInventory(INVENTORY_BACKPACK) will read it from
-		return false
-	end)
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
 local function ApplyFixesLate()
+	--Change the BACKPACK_MENU_BAR_LAYOUT_FRAGMENT's layoutData.LibFilters3_filterType to the default value, as it was
+	--overwritten with LF_CRAFTBAG due to the hooks
+	kbc.invBackpackFragment.layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = LF_INVENTORY
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
@@ -2642,4 +2645,4 @@ end
 ApplyFixesEarly()
 if libFilters.debug then dd("LIBRARY MAIN FILE - END") end
 
---EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
+EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
