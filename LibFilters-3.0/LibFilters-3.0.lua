@@ -1341,34 +1341,46 @@ end
 --INVENTORY_BACKPACK, INVENTORY_BANK, ..., or a SCENE or a control given within table libFilters.mapping.
 --LF_FilterTypeToReference[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType)
-	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%q", tos(inventoryType)) end
 	if not inventoryType then
 		dfe("Invalid arguments to GetCurrentFilterTypeForInventory(%q).\n>Needed format is: inventoryTypeNumber(e.g. INVENTORY_BACKPACK)/userdata/table/scene/control inventoryType",
-			tos(inventoryType))
+				tos(inventoryType))
 		return
 	end
+	local errorAppeared = false
+	local filterTypeDetected
 	--Get the layoutData from the fragment. If no fragment: Abort
 	if inventoryType == invTypeBackpack then --INVENTORY_BACKPACK
 		local layoutData = playerInv.appliedLayout
 		if layoutData and layoutData[defaultLibFiltersAttributeToStoreTheFilterType] then --.LibFilters3_filterType
-			return layoutData[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+			filterTypeDetected = layoutData[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
 		else
-			return
+			errorAppeared = true
 		end
 	end
-	local invVarIsNumber = (type(inventoryType) == "number") or false
-	if not invVarIsNumber then
-		--Check if inventoryType is a SCENE or fragment, e.g. GAMEPAD_ENCHANTING_CREATION_SCENE
-		if inventoryType.sceneManager ~= nil and inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] ~= nil then --.LibFilters3_filterType
-			return inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+	if not errorAppeared then
+		local invVarIsNumber = (type(inventoryType) == "number") or false
+		if not invVarIsNumber then
+			--Check if inventoryType is a SCENE or fragment, e.g. GAMEPAD_ENCHANTING_CREATION_SCENE
+			if inventoryType.sceneManager ~= nil and inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] ~= nil then --.LibFilters3_filterType
+				filterTypeDetected = inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+			end
+		end
+		--Afterwards:
+		--Get the inventory from PLAYER_INVENTORY.inventories if the "number" check returns true,
+		--and else use inventoryType directly to support enchanting.inventory
+		if filterTypeDetected == nil then
+			local inventory = (invVarIsNumber and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
+			if inventory == nil or inventory[defaultLibFiltersAttributeToStoreTheFilterType] == nil then
+				errorAppeared = true
+			else
+				if filterTypeDetected == nil then
+					filterTypeDetected = inventory[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+				end
+			end
 		end
 	end
-	--Afterwards:
-	--Get the inventory from PLAYER_INVENTORY.inventories if the "number" check returns true,
-	--and else use inventoryType directly to support enchanting.inventory
-	local inventory = (invVarIsNumber and inventories[inventoryType] ~= nil and inventories[inventoryType]) or inventoryType
-	if inventory == nil or inventory[defaultLibFiltersAttributeToStoreTheFilterType] == nil then return end --.LibFilters3_filterType
-	return inventory[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%q: %s, error: %s", tos(inventoryType), tos(filterTypeDetected), tos(errorAppeared)) end
+	return filterTypeDetected
 end
 libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeForInventory
 
@@ -2565,15 +2577,20 @@ d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
 	--BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType is LF_CRAFTBAG after LibFilters3:HookAdditionalFilter
 	--was called: We need to change BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType accordingly to
 	--the shown panel (inventory or craftbag)
-	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-		--if not layoutData or not layoutData[craftBagKBLayoutDataAttribute] then return end --.additionalCraftBagFilter
+	ZO_PreHook(playerInv, "ApplyBackpackLayout", function(layoutData)
 		local crafBagIsHidden = kbc.craftBagClass:IsHidden()
 		local filterTypeToAddToLayoutData = (crafBagIsHidden == true and LF_INVENTORY) or LF_CRAFTBAG
 		if libFilters.debug then
 			dd("ApplyBackpackLayout-CraftBag hidden: %s, applied filterType to layout: %s [%s]",
 				tos(crafBagIsHidden), tos(libFilters:GetFilterTypeName(filterTypeToAddToLayoutData)), tos(filterTypeToAddToLayoutData))
 		end
+		--Update the layoutData's filterType of LibFilters now with the correct LF_constant so that the original function call
+		--will use the layout to update PLAYER_INVENTORY.appliedLayout
+		-->See vanilal code at /esoui/ingame/inventory/inventory.lua, function function ZO_InventoryManager:ApplyBackpackLayout(layoutData), self.appliedLayout = layoutData
 		layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterTypeToAddToLayoutData
+
+		--call the original function now to apply the layout to PLAYER_INVENTORY.appliedLayout where LibFilters3:GetCurrentFilterTypeForInventory(INVENTORY_BACKPACK) will read it from
+		return false
 	end)
 end
 
