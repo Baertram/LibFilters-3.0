@@ -240,17 +240,26 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 			--After bank/house bank was initialized update the fragments at the libFilters lookup tables for "is shown"
 			if objectId == invBank_GP and listName == "deposit" then
 				if hookName == "depositHouseBank" then
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_WITHDRAW]["control"]		= ZO_GamepadBankingTopLevelMaskContainerwithdraw
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_WITHDRAW]["fragment"] 	= invBank_GP:GetListFragment("withdraw")
+
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["control"]		= ZO_GamepadBankingTopLevelMaskContainerdeposit
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] 	= targetFragment
 					fragmentsHooked[fragmentsHookedName] = true
 				elseif hookName == "depositBank" then
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["control"]			= ZO_GamepadBankingTopLevelMaskContainerwithdraw
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["fragment"] 			= invBank_GP:GetListFragment("withdraw")
+
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["control"]			= ZO_GamepadBankingTopLevelMaskContainerwithdraw
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 			= targetFragment
 					fragmentsHooked[fragmentsHookedName] = true
 				end
 			--After guild bank was initialized update the fragments at the libFilters lookup tables for "is shown"
 			elseif objectId == invGuildBank_GP and listName == "deposit" then
+				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerwithraw
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["fragment"] 		= invGuildBank_GP:GetListFragment("withdraw")
+
+				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerdeposit
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] 			= targetFragment
 				fragmentsHooked[fragmentsHookedName] = true
 			end
