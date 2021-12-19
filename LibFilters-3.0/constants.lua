@@ -495,8 +495,8 @@ gpc.invGuildStoreSellScene_GP   = TRADING_HOUSE_GAMEPAD_SCENE
 
 --[Mail]
 gpc.invMailSendScene_GP         = getScene(SM, "mailManagerGamepad")
-gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD.send
-gpc.invMailSendFragment 		= GAMEPAD_MAIL_SEND_FRAGMENT
+gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD
+gpc.invMailSendFragment_GP 		= GAMEPAD_MAIL_SEND_FRAGMENT
 
 
 --[Player 2 player trade]
@@ -1154,14 +1154,23 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 	--Gamepad mode
 	[true]  = {
+		--TODO
 		[LF_INVENTORY_QUEST]          = { ["control"] = nil, 							["scene"] = gpc.invQuests_GP, 				["fragment"] = nil, },
+		--TODO
 		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP, 		["fragment"] = nil, },
+		--TODO
 		[LF_VENDOR_SELL]              = { ["control"] = gpc.vendorSell_GP, 				["scene"] = nil,	 						["fragment"] = nil, },
+		--TODO
 		[LF_VENDOR_BUYBACK]           = { ["control"] = gpc.vendorBuyBack_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		--TODO
 		[LF_VENDOR_REPAIR]            = { ["control"] = gpc.vendorRepair_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		--TODO
 		[LF_FENCE_SELL]               = { ["control"] = gpc.invFenceSell_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		--TODO
 		[LF_FENCE_LAUNDER]            = { ["control"] = gpc.invFenceLaunder_GP, 		["scene"] = nil, 							["fragment"] = nil, },
+		--TODO
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
+		--TODO
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
 
 
@@ -1171,6 +1180,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		[LF_INVENTORY]                = { ["control"] = nil, 							["scene"] = "gamepad_inventory_root",		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		--Works, 2021-12-18
 		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,  	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -1181,7 +1191,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
+		--Works, 2021-12-18
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = gpc.invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
+		--Works, 2021-12-18
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -1195,11 +1207,13 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works, 2021-12-18
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = gpc.invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--Works, 2021-12-18
-		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.sendControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.sendControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		--TODO
 		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 
 
 		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = "gamepad_inventory_root", 	["fragment"] = nil, },
+		--Works, 2021-12-18
 		[LF_BANK_WITHDRAW]            = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = gpc.invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -1210,7 +1224,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
+		--Works, 2021-12-18
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = gpc.invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
+		--Works, 2021-12-18
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -1221,14 +1237,23 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TODO
 		[LF_SMITHING_REFINE]          = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
+		--TODO
 		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
+		--TODO
 		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
+		--TODO
 		[LF_SMITHING_RESEARCH]        = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research",	["fragment"] = nil, },
+		--TODO
 		[LF_JEWELRY_REFINE]           = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
+		--TODO
 		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
+		--TODO
 		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
+		--TODO
 		[LF_JEWELRY_RESEARCH]         = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research", 	["fragment"] = nil, },
+		--TODO
 		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemySecene_GP, 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1239,6 +1264,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TODO
 		[LF_RETRAIT]                  = { ["control"] = nil, ["scene"] = nil, ["fragment"] = nil, },
 
 
@@ -1246,6 +1272,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
 		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
 		-->Used for gamepad AND keyboard mode with these entries here !!!
+		--TODO
 		[LF_ENCHANTING_CREATION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingCreate_GP, 		["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
@@ -1256,6 +1283,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
+		--TODO
 		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingExtract_GP, 		["fragment"] = nil,
 											["special"] = {
 												[1] = {
@@ -1272,7 +1300,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works, 2021-12-18
 		--The data of control and fragment will not be provided until the gamepad guild store was opened first time!
 		--> So this line will be updated again then via function "SetCurrentMode" -> See file gamepadCustomFragments, SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
+		--Works, 2021-12-18
 		[LF_GUILDSTORE_BROWSE]        = { ["control"] = gpc.tradingHouseBrowse_GP, 		["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  nil }, --gpc.tradingHouseBrowse_GP.fragment, },
+		--TODO
 		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1283,6 +1313,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TODO
 		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {
@@ -1293,6 +1324,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TODO
 		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {

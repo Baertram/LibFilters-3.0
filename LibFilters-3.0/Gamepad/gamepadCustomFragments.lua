@@ -48,8 +48,10 @@ local invGuildBankScene_GP 			= 			gpc.invGuildBankScene_GP
 local invGuildBank_GP      			=			gpc.invGuildBank_GP
 local invGuildStore_GP				= 			gpc.invGuildStore_GP
 local invGuildStoreSellScene_GP   	= 			gpc.invGuildStoreSellScene_GP
-local invGuildStoreSell_GP 			= 			gpc.invGuildStoreSell_GP
+--local invGuildStoreSell_GP 			= 			gpc.invGuildStoreSell_GP
 local invMailSendScene_GP         	= 			gpc.invMailSendScene_GP
+local invMailSend_GP  				= 			gpc.invMailSend_GP
+local invMailSendFragment_GP		=			gpc.invMailSendFragment_GP
 local invPlayerTradeScene_GP      	= 			gpc.invPlayerTradeScene_GP
 
 local customFragments_GP          	= 			gpc.customFragments
@@ -421,15 +423,17 @@ GAMEPAD_MAIL_SEND_FRAGMENT:RegisterCallback("StateChange", function(oldState, ne
 	)
 end)
 ]]
-SecurePostHook(invMailSendScene_GP, 'SwitchToFragment', function(self, fragment)
-    if fragment == gpc.invMailSendFragment then
-        invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
-    else
+ZO_PreHook(invMailSend_GP, 'SwitchToFragment', function(self, fragment)
+	if fragment == invMailSendFragment_GP then
+		if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Adding custom mail send fragment") end
+		invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
+	else
 		updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
 		if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
+			if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Removing custom mail send fragment") end
 			invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
 		end
-    end
+	end
 end)
 
 
