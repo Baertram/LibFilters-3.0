@@ -740,12 +740,17 @@ local filterTypeToReference = {
 	[false] = {
 		--2 entries here because ZO_InventoryManager:ApplyBackpackLayout(layoutData) changes
 		--PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK].additionalFilter from layoutData.additionalFilter, where layoutData could be
-		--from fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT or others
-		--each time, and thus we need to hook both
+		--from fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT or others, each time and thus we need to hook both
 		[LF_INVENTORY]                = { kbc.invBackpackFragment, invBackpack },
 		--PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilter gets updated each time from layoutData.additionalCraftBagFilter
-		--as ZO_InventoryManager:ApplyBackpackLayout(layoutData) is called,
+		--as ZO_InventoryManager:ApplyBackpackLayout(layoutData) is called.
+		--Attention: As LF_INVENTORY and LF_CRAFTBAG both get hooked via fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT it needs to be applied a
+		--fix at ZO_InventoryManager:ApplyBackpackLayout in order to update layoutData.LibFilters3_filterType with the correct filterType
+		--LF_INVENTORY or LF_CRAFTBAG! See file LibFilters-3.0.lua, fucntion ApplyFixesEarly() -> SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+		--Else the last hooked one (LF_CRAFTBAG) will be kept as layoutData.LibFilters3_filterType all the time and filtering at other addons wont
+		--work properly!
 		[LF_CRAFTBAG]                 = { kbc.invBackpackFragment, kbc.invCraftbag },
+
 		[LF_INVENTORY_QUEST]          = { kbc.invQuests },
 		[LF_QUICKSLOT]                = { kbc.quickslots },
 		[LF_INVENTORY_COMPANION]      = { kbc.companionEquipment },

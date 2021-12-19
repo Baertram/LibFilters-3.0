@@ -174,6 +174,8 @@ local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOw
 local kbc                      = 	constants.keyboard
 local playerInv                = 	kbc.playerInv
 local inventories              = 	kbc.inventories
+local craftBagFragment 		   = 	kbc.craftBagFragment
+local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
 local store                    = 	kbc.store
 local storeBuy                 = 	kbc.vendorBuy
 local storeSell                = 	kbc.vendorSell
@@ -2156,6 +2158,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 			libFilters[funcName](libFilters, unpack(params)) --pass LibFilters as 1st param "self" TODO: needed?
 		end
 	end
+
 	local function hookNow(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
 		filterTypeNameAndTypeText = filterTypeNameAndTypeText or (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
@@ -2526,7 +2529,7 @@ end
 --**********************************************************************************************************************
 --Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
 local function ApplyFixesEarly()
-	if libFilters.debug then dd("ApplyFixes-GamepadMode") end
+	if libFilters.debug then dd("ApplyFixesEarly") end
 	--[[
 		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
 		 --Added lines with 7.0.4:
@@ -2556,6 +2559,22 @@ d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
 			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
 		end)
 	]]
+
+	--2021-12-19
+	--Fix applied now is: As BACKPACK_MENU_BAR_LAYOUT_FRAGMENT is used for LF_INVENTORY and LF_CRAFTBAG, and
+	--BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType is LF_CRAFTBAG after LibFilters3:HookAdditionalFilter
+	--was called: We need to change BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.LibFilters3_filterType accordingly to
+	--the shown panel (inventory or craftbag)
+	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+		--if not layoutData or not layoutData[craftBagKBLayoutDataAttribute] then return end --.additionalCraftBagFilter
+		local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+		local filterTypeToAddToLayoutData = (crafBagIsHidden == true and LF_INVENTORY) or LF_CRAFTBAG
+		if libFilters.debug then
+			dd("ApplyBackpackLayout-CraftBag hidden: %s, applied filterType to layout: %s [%s]",
+				tos(crafBagIsHidden), tos(libFilters:GetFilterTypeName(filterTypeToAddToLayoutData)), tos(filterTypeToAddToLayoutData))
+		end
+		layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterTypeToAddToLayoutData
+	end)
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
