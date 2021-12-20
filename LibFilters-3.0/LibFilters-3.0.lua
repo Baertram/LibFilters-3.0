@@ -197,6 +197,7 @@ local alchemyCtrl              =	kbc.alchemyCtrl
 --Gamepad
 local gpc                       = 	constants.gamepad
 local invBackpack_GP            = 	gpc.invBackpack_GP
+local invRootScene_GP 			= 	gpc.invRootScene_GP
 local invBank_GP                = 	gpc.invBank_GP
 local invGuildBank_GP           = 	gpc.invGuildBank_GP
 local store_GP                  = 	gpc.store_GP
@@ -1921,12 +1922,64 @@ libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeRefere
 -- API to check if controls/scenes/fragments/userdata/inventories are shown
 --**********************************************************************************************************************
 
+local function isGPInventoryBaseShown()
+	return isSceneFragmentShown(LF_INVENTORY, true, nil, true) and isSceneFragmentShown(LF_INVENTORY, true, nil, false)
+			and not ZO_GamepadInventoryTopLevel:IsHidden()
+end
+
 --Is the inventory control shown
 --returns boolean isShown
+--		  NILABLE control gamepadList (category or item list of the gamepad inventory, which is currently shown)
 function libFilters:IsInventoryShown()
-    --return (IsGamepad() and not playerInvCtrl_GP:IsHidden()) or not playerInvCtrl:IsHidden()
-	return not playerInvCtrl:IsHidden()
+	local isInvShown = false
+	local listShownGP
+	local isCategoryListShown = false
+	local isItemListShown = false
+	if IsGamepad() then
+		if isGPInventoryBaseShown() == true then
+			--Check if the item list is shown and active, and not the category list (containing the main filter buttons)
+			local categoryList = invBackpack_GP.categoryList
+			local itemList = invBackpack_GP.itemList
+			if categoryList:IsActive() then
+				isCategoryListShown = true
+				listShownGP = categoryList
+			elseif itemList:IsActive() then
+				isItemListShown = true
+				listShownGP = itemList
+			end
+			--Check selected vanilla "Inventory" filters for non-supported ones (character, currencies, quests, quickslots)
+			local gamepadInventoryNonSupportedFilters = {
+				[ITEMFILTERTYPE_QUEST] 				= true,
+				[ITEMFILTERTYPE_QUEST_QUICKSLOT] 	= true,
+			}
+			local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
+			--local selectedGPInvEquipmentSlot = invBackpack_GP.selectedEquipSlot -- equipped items = character
+			local selectedItemUniqueId = invBackpack_GP.selectedItemUniqueId
+			local categoryListSelectedIndex = categoryList.selectedIndex --categoryListIndex 2 is 'Vorräte" which got no selectedItemFilterType and no selectedItemUniqueId -> Thus it would return false
+
+			--Categories list is shown (1st level, e.g. material, weapons, armor, consumables, ...)
+			if isCategoryListShown then
+				if  (selectedGPInvFilter ~= nil and gamepadInventoryNonSupportedFilters[selectedGPInvFilter])
+					or (selectedGPInvFilter == nil and categoryListSelectedIndex ~= 2) then --or selectedGPInvEquipmentSlot ~= nil
+					return false, listShownGP
+				end
+
+			--Items list is shown (2nd level with single items, e.g. 2hd weapons, light armor, ...)
+			elseif isItemListShown then
+				if (selectedGPInvFilter ~= nil and gamepadInventoryNonSupportedFilters[selectedGPInvFilter])
+					or (selectedGPInvFilter == nil and selectedItemUniqueId == nil) then --or selectedGPInvEquipmentSlot ~= nil
+					return false, listShownGP
+				end
+
+			end
+			isInvShown = true
+		end
+	else
+		isInvShown = not playerInvCtrl:IsHidden()
+	end
+	return isInvShown, listShownGP
 end
+local libFilters_IsInventoryShown = libFilters.IsInventoryShown
 
 --Is the companion inventory control shown
 --returns boolean isShown
@@ -1937,7 +1990,16 @@ end
 --Is the character control shown
 --returns boolean isShown
 function libFilters:IsCharacterShown()
-    return (IsGamepad() and not characterCtrl_GP:IsHidden()) or not characterCtrl:IsHidden()
+	local isCharShown = false
+	if IsGamepad() then
+		if isGPInventoryBaseShown() == true then
+			local selectedGPInvEquipmentSlot = invBackpack_GP.selectedEquipSlot
+			return (selectedGPInvEquipmentSlot ~= nil and selectedGPInvEquipmentSlot >= 0 and true) or false
+		end
+	else
+		isCharShown = not characterCtrl:IsHidden()
+	end
+	return isCharShown
 end
 
 --Is the companion character control shown

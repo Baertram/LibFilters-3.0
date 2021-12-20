@@ -428,21 +428,24 @@ gpc.playerInvCtrl_GP = kbc.playerInvCtrl
 gpc.invBackpack_GP   			= GAMEPAD_INVENTORY
 local invBackpack_GP 			= gpc.invBackpack_GP
 gpc.invRootScene_GP  			= getScene(SM, "gamepad_inventory_root") --GAMEPAD_INVENTORY_ROOT_SCENE
+local invRootScene_GP 			= gpc.invRootScene_GP
 gpc.invFragment_GP				= GAMEPAD_INVENTORY_FRAGMENT
+local invFragment_GP = gpc.invFragment_GP
 
 
 --Character
-gpc.characterCtrl_GP = kbc.characterCtrl
 
 
 --Craftbag
 --gamepadConstants.invCraftbag_GP =	inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to filterTypeToReference[true] again
 
 --Quest items
-gpc.invQuests_GP                = gpc.invBackpack_GP.scene
+gpc.invQuests_GP                = invRootScene_GP --todo: use gamepad inventory root scene for quest hook? Better use something else like a gamepad quest fragment (if exists)
 
 --Quickslots
---gamepadConstants.quickslots_GP = GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
+gpc.quickslots_GP 				= GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
+gpc.quickslotScene_GP 			= getScene(SM, "gamepad_quickslot")
+gpc.quickslotFragment_GP		= GAMEPAD_QUICKSLOT_FRAGMENT
 
 
 --[Banks]
@@ -836,7 +839,7 @@ local filterTypeToReference = {
 
 
 		--Not given in gamepad mode
-		[LF_QUICKSLOT]                = {}, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
+		[LF_QUICKSLOT]                = { gpc.quickslotFragment_GP }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... / We will just add the fragment here where the .additionalFilter function should be stored, maybe for future implementations
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
@@ -1160,11 +1163,29 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 	--Gamepad mode
 	[true]  = {
+		--Works, 2021-12-20
+		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = invFragment_GP,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = invBackpack_GP,
+												  ["funcOrAttribute"] = "selectedItemFilterType",
+												  ["params"]          = { },
+												  ["expectedResults"] = { ITEMFILTERTYPE_QUEST },
+											  }
+										  }
+		},
 		--TODO
-		[LF_INVENTORY_QUEST]          = { ["control"] = nil, 							["scene"] = gpc.invQuests_GP, 				["fragment"] = nil, },
-		--TODO
-		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP, 		["fragment"] = nil, },
-		--TODO
+		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 		["scene"] = gpc.companionEquipment_GP, 		["fragment"] = nil,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsCompanionInventoryShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { true },
+											  }
+										  }
+		},
+		--Works, 2021-12-19
 		[LF_VENDOR_BUY]               = { ["control"] = storeComponents[ZO_MODE_STORE_BUY].list,	["scene"] = gpc.storeScene_GP, 		["fragment"] = storeComponents[ZO_MODE_STORE_BUY].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -1176,7 +1197,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-19
 		[LF_VENDOR_SELL]              = { ["control"] = storeComponents[ZO_MODE_STORE_SELL].list, 	["scene"] = gpc.storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_SELL].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -1188,7 +1209,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-19
 		[LF_VENDOR_BUYBACK]           = { ["control"] = storeComponents[ZO_MODE_STORE_BUY_BACK].list,	["scene"] = gpc.storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -1200,7 +1221,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-19
 		[LF_VENDOR_REPAIR]            = { ["control"] = storeComponents[ZO_MODE_STORE_REPAIR].list, 	["scene"] = gpc.storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_REPAIR].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -1243,12 +1264,32 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Not given in gamepad mode
-		[LF_QUICKSLOT]                = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, },	--not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
+		--TODO
+		[LF_QUICKSLOT]                = { ["control"] = ZO_GamepadQuickslotToplevel, 	["scene"] = gpc.quickslotScene_GP, 		["fragment"] = gpc.quickslotFragment_GP,		--uses inventory fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = invBackpack_GP,
+												  ["funcOrAttribute"] = "selectedItemFilterType",
+												  ["params"]          = { },
+												  ["expectedResults"] = { ITEMFILTERTYPE_QUICKSLOT },
+											  }
+										  }
+		},	--not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--Works, 2021-12-19
-		[LF_INVENTORY]                = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = gpc.invRootScene_GP,			["fragment"] = nil, },	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_INVENTORY]                = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = invFragment_GP,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsInventoryShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil },
+											  }
+										  }
+		},
 		--Works, 2021-12-18
 		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,  	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
@@ -1281,7 +1322,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 
 		--Works, 2021-12-19
-		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = gpc.invRootScene_GP, 	["fragment"] = gpc.invFragment_GP,
+		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = invBackpack_GP.craftBagList,
@@ -1511,9 +1552,9 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control", "special" } },
-		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
---		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control", "special"  } },
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes

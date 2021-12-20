@@ -216,10 +216,8 @@ local function hookListFragmentsState(hookName, sceneId, objectId, listName, tar
 					function(p_sourceFragment, p_targetFragment)
 						if checkFunc ~= nil and checkFunc() ~= true then return end
 						if addAndRemoveFragment == true then
-							if sceneId:HasFragment(p_targetFragment) then
-								if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .." list FRAGMENT - Removed fragment: " ..tos(p_targetFragment)) end
-								sceneId:RemoveFragment(p_targetFragment)
-							end
+							if libFilters.debug then dd("GAMEPAD " .. tos(hookName) .." list FRAGMENT - Removed fragment: " ..tos(p_targetFragment)) end
+							sceneId:RemoveFragment(p_targetFragment)
 						end
 						p_targetFragment:Hide()
 						return
@@ -386,9 +384,7 @@ ZO_PreHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
 		gamepadLibFiltersGuildStoreSellFragment:Show()
 	else
 		updateSceneManagerAndHideFragment(gamepadLibFiltersGuildStoreSellFragment)
-		if invGuildStoreSellScene_GP:HasFragment(gamepadLibFiltersGuildStoreSellFragment) then
-			invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
-		end
+		invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
 	end
 end)
 SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
@@ -431,10 +427,8 @@ ZO_PreHook(invMailSend_GP, 'SwitchToFragment', function(self, fragment)
 		invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
 	else
 		updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
-		if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
-			if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Removing custom mail send fragment") end
-			invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
-		end
+		if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Removing custom mail send fragment") end
+		invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
 	end
 end)
 
@@ -448,47 +442,72 @@ _G[getCustomLibFiltersFragmentName(LF_TRADE)] = gamepadLibFiltersPlayerTradeFrag
 gamepadLibFiltersInventoryFragment                = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 _G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryFragment
 
+gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldState, newState)
+	if libFilters.debug then dd("GAMEPAD CUSTOM Inventory FRAGMENT - State: " ..tos(newState)) end
+end)
+
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= invBackpack_GP.craftBagList
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= invBackpack_GP.craftBagList
 
+	invFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
+		if libFilters.debug then dd("GAMEPAD Inventory FRAGMENT - State: " ..tos(newState)) end
+		fragmentChange(oldState, newState, nil, gamepadLibFiltersInventoryFragment,
+					function(p_sourceFragment, p_targetFragment) return end, --showing
+					function(p_sourceFragment, p_targetFragment)
+						if invRootScene:HasFragment(p_targetFragment) then
+							if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT - show: " ..tos(p_targetFragment)) end
+							p_targetFragment:Show()
+						end
+						return
+					end, --shown
+					function(p_sourceFragment, p_targetFragment) return end, --hiding
+					function(p_sourceFragment, p_targetFragment)
+						if invRootScene:HasFragment(p_targetFragment) then
+							if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT - hide: " ..tos(p_targetFragment)) end
+							p_targetFragment:Hide()
+						end
+						return
+					end --hidden
+			)
+	end)
 end)
 
 SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 	if list == invBackpack_GP.craftBagList then
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
-		if invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) then
-			if libFilters.debug then dd("GAMEPAD inventory - CraftBag - Removed custom inventory fragment") end
-			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
-		end
+		if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - CraftBag - Removed CUSTOM inventory fragment") end
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 
 	else--if list == invBackpack_GP.categoryList or list == invBackpack_GP.itemList then
-	if libFilters.debug then dd("GAMEPAD inventory - Inventory - Added custom inventory fragment") end
+		if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - Inventory - Added CUSTOM inventory fragment") end
 		invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
 		gamepadLibFiltersInventoryFragment:Show()
 	end
 end)
 
+--Quickslots -> Updating custom inventory fragment's shown state
+-->Should not be needed anymore due to invBackpack_GP.itemList._fragment StateChange above
 --[[
-invFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
-	if libFilters.debug then dd("GAMEPAD inventory FRAGMENT - State: " ..tos(newState)) end
+gpc.quickslotFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
+	if libFilters.debug then dd("GAMEPAD quickslot FRAGMENT - State: " ..tos(newState)) end
 	fragmentChange(oldState, newState, nil, gamepadLibFiltersInventoryFragment,
 			function(p_sourceFragment, p_targetFragment) return end, --showing
 			function(p_sourceFragment, p_targetFragment)
-				if libFilters.debug then dd("GAMEPAD inventory FRAGMENT - Added fragment: " ..tos(p_targetFragment)) end
-				invRootScene:AddFragment(p_targetFragment)
-				p_targetFragment:Show()
+				if invRootScene:HasFragment(p_targetFragment) then
+					if libFilters.debug then dd("GAMEPAD Quickslots - inventory FRAGMENT - hide: " ..tos(p_targetFragment)) end
+					p_targetFragment:Hide()
+				end
 				return
 			end, --shown
 			function(p_sourceFragment, p_targetFragment) return end, --hiding
 			function(p_sourceFragment, p_targetFragment)
 				if invRootScene:HasFragment(p_targetFragment) then
-					if libFilters.debug then dd("GAMEPAD inventory FRAGMENT - Removed fragment: " ..tos(p_targetFragment)) end
-					invRootScene:RemoveFragment(p_targetFragment)
+					if libFilters.debug then dd("GAMEPAD Quickslots - inventory FRAGMENT - show: " ..tos(p_targetFragment)) end
+					p_targetFragment:Show()
 				end
-				p_targetFragment:Hide()
 				return
 			end --hidden
 	)
@@ -552,7 +571,8 @@ LF_FilterTypeToReference[true][LF_MAIL_SEND]                                  	=
 LF_FilterTypeToReference[true][LF_TRADE]                                      	= 	{ gamepadLibFiltersPlayerTradeFragment }
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		= gamepadLibFiltersInventoryFragment
+--LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		= 	gamepadLibFiltersInventoryFragment --uses GAMEPAD_INVENTORY_FRAGMENT now for detection as this' shown state get's updated properly after quickslot wheel was closed again
+--LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_QUEST]["fragment"] 	= 	gamepadLibFiltersInventoryFragment --uses GAMEPAD_INVENTORY_FRAGMENT now for detection as this' shown state get's updated properly after quickslot wheel was closed again
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 		=	gamepadLibFiltersBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersGuildBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"]= 	gamepadLibFiltersHouseBankDepositFragment
