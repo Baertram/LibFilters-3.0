@@ -902,6 +902,7 @@ mapping.LF_FilterTypeToReference = filterTypeToReference
 	  --either control + func + params OR bool can be given!
 	  ["bool"] = booleanVariableOrFunctionReturningABooleanValue,
 	  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
+	  ["expectedResultsMap"] = { [1] = true, [2] = nil } --Optional. Used if the function returns more than one parameter. You are able to to define which result parameter needs to be checked (true), or not (false/nil)
   }
 }
 ]]
@@ -1170,7 +1171,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_BUY },
-												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, nil, storeComponents[ZO_MODE_STORE_BUY].list },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
 										  }
 		},
@@ -1181,7 +1183,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_SELL },
-												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, storeComponents[ZO_MODE_STORE_SELL].list },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
 										  }
 		},
@@ -1192,7 +1195,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_BUY_BACK },
-												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, storeComponents[ZO_MODE_STORE_BUY_BACK].list },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
 										  }
 		},
@@ -1203,7 +1207,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_REPAIR },
-												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, storeComponents[ZO_MODE_STORE_REPAIR].list },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
 										  }
 		},
@@ -1214,7 +1219,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_SELL_STOLEN },
-												  ["expectedResults"] = { true, ZO_MODE_STORE_SELL_STOLEN, storeComponents[ZO_MODE_STORE_SELL_STOLEN].list },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
 										  }
 		},
@@ -1225,7 +1231,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_LAUNDER },
-												  ["expectedResults"] = { true, ZO_MODE_STORE_LAUNDER, storeComponents[ZO_MODE_STORE_LAUNDER].list },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
 										  }
 		},

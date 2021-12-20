@@ -121,6 +121,7 @@ local filters    = libFilters.filters
 --lua API functions
 local tos = tostring
 local strmat = string.match
+local strfor = string.format
 local tins = table.insert
 
 --Game API local speedup
@@ -599,6 +600,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 					end
 					if not skip then
 						local expectedResults = specialRoutineDetails.expectedResults
+						local expectedResultsMap = specialRoutineDetails.expectedResultsMap
 						local results
 						local isFunction = (type(ctrl[funcOrAttribute]) == "function") or false
 						if isFunction == true then
@@ -649,18 +651,32 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 									if isDebugEnabled then checkAborted = ">>expectedResults missing" end
 								else
 									if numResults ~= #expectedResults then
-										loopResult = false
-										if isDebugEnabled then checkAborted = ">>>numResults ~= #expectedResults" end
+										if expectedResultsMap ~= nil then
+											for expectedResultsMapIdx, isExpectedResult in pairs(expectedResultsMap) do
+												if isExpectedResult == true then
+													loopResult = results[expectedResultsMapIdx] ~= nil
+													if loopResult == false then
+														if isDebugEnabled then checkAborted = strfor(">>>expectedResultsMap did not match, index %s", tos(expectedResultsMapIdx)) end
+													end
+												end
+											end
+										else
+											loopResult = false
+											if isDebugEnabled then checkAborted = strfor(">>>numResults [%s] ~= #expectedResults [%s]", tos(numResults), tos(#expectedResults)) end
+										end
 									elseif numResults == 1 then
 										loopResult = results[1] == expectedResults[1]
 										if not loopResult then if isDebugEnabled then checkAborted = ">>>results[1]: "..tos(results[1]) .." ~= expectedResults[1]: " ..tos(expectedResults[1]) end end
-									else
+									end
+									if loopResult == true then
 										for resultIndex, resultOfResults in ipairs(results) do
 											if skip == false then
-												loopResult = (resultOfResults == expectedResults[resultIndex]) or false
-												if not loopResult then
-													skip = true
-													if isDebugEnabled then checkAborted = ">>>results[" .. tos(resultIndex) .."]: "..tos(results[resultIndex]) .." ~= expectedResults[" .. tos(resultIndex) .."]: " ..tos(expectedResults[resultIndex]) end
+												if expectedResults[resultIndex] ~= nil then
+													loopResult = (resultOfResults == expectedResults[resultIndex]) or false
+													if not loopResult then
+														skip = true
+														if isDebugEnabled then checkAborted = ">>>results[" .. tos(resultIndex) .."]: "..tos(results[resultIndex]) .." ~= expectedResults[" .. tos(resultIndex) .."]: " ..tos(expectedResults[resultIndex]) end
+													end
 												end
 											end
 										end
