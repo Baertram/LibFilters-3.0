@@ -41,7 +41,9 @@ local playerInventory = 						kbc.playerInv
 
 --Gamepad
 local gpc                         	= 			constants.gamepad
-local invRootScene                	= 			gpc.invRootScene
+local invRootScene                	= 			gpc.invRootScene_GP
+local invBackpack_GP 				= 			gpc.invBackpack_GP
+local invFragment_GP 				= 			gpc.invFragment_GP
 local invBank_GP                  	= 			gpc.invBank_GP
 local invBankScene_GP      			=			gpc.invBankScene_GP
 local invGuildBankScene_GP 			= 			gpc.invGuildBankScene_GP
@@ -58,7 +60,7 @@ local customFragments_GP          	= 			gpc.customFragments
 local fragmentPrefix              	= 			gpc.customFragmentPrefix
 
 --The local variables for the new created custom LibFilters gamepad fragments
-local gamepadLibFiltersInventoryDepositFragment
+local gamepadLibFiltersInventoryFragment
 local gamepadLibFiltersBankDepositFragment
 local gamepadLibFiltersGuildBankDepositFragment
 local gamepadLibFiltersHouseBankDepositFragment
@@ -299,7 +301,7 @@ function LibFilters_InventoryLayoutFragment:Show()
 end
 function LibFilters_InventoryLayoutFragment:Hide()
 	self:OnHidden()
-	self:ApplyInventoryLayout(gamepadLibFiltersInventoryDepositFragment.layoutData)
+	self:ApplyInventoryLayout(gamepadLibFiltersInventoryFragment.layoutData)
 end
 
 --Use the same layoutData as within Keyboard mode. If the fragments are shown the layoutData, which contains the
@@ -443,9 +445,55 @@ _G[getCustomLibFiltersFragmentName(LF_TRADE)] = gamepadLibFiltersPlayerTradeFrag
 
 
 --Player inventory
-gamepadLibFiltersInventoryDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryDepositFragment
+gamepadLibFiltersInventoryFragment                = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+_G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryFragment
 
+SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
+	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag
+
+	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= invBackpack_GP.craftBagList
+	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= invBackpack_GP.craftBagList
+
+end)
+
+SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
+	if list == invBackpack_GP.craftBagList then
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+		if invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) then
+			if libFilters.debug then dd("GAMEPAD inventory - CraftBag - Removed custom inventory fragment") end
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+		end
+
+	else--if list == invBackpack_GP.categoryList or list == invBackpack_GP.itemList then
+	if libFilters.debug then dd("GAMEPAD inventory - Inventory - Added custom inventory fragment") end
+		invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
+		gamepadLibFiltersInventoryFragment:Show()
+	end
+end)
+
+--[[
+invFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
+	if libFilters.debug then dd("GAMEPAD inventory FRAGMENT - State: " ..tos(newState)) end
+	fragmentChange(oldState, newState, nil, gamepadLibFiltersInventoryFragment,
+			function(p_sourceFragment, p_targetFragment) return end, --showing
+			function(p_sourceFragment, p_targetFragment)
+				if libFilters.debug then dd("GAMEPAD inventory FRAGMENT - Added fragment: " ..tos(p_targetFragment)) end
+				invRootScene:AddFragment(p_targetFragment)
+				p_targetFragment:Show()
+				return
+			end, --shown
+			function(p_sourceFragment, p_targetFragment) return end, --hiding
+			function(p_sourceFragment, p_targetFragment)
+				if invRootScene:HasFragment(p_targetFragment) then
+					if libFilters.debug then dd("GAMEPAD inventory FRAGMENT - Removed fragment: " ..tos(p_targetFragment)) end
+					invRootScene:RemoveFragment(p_targetFragment)
+				end
+				p_targetFragment:Hide()
+				return
+			end --hidden
+	)
+end)
+]]
 
 ------------------------------------------------------------------------------------------------------------------------
 --Conditions to check if a fragment should be shown or not
@@ -473,6 +521,10 @@ gamepadLibFiltersGuildStoreSellFragment:SetConditional(function()
 end)
 ]]
 
+gamepadLibFiltersInventoryFragment:SetConditional(function()
+	return invRootScene:IsShowing() and invBackpack_GP.categoryList:IsActive()
+end)
+
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Add the created fragments to the LibFilters gamepad fragment constants so they are not nil anymore in
@@ -481,7 +533,7 @@ end)
 --> [LF_*] = {name="...", fragment=nil},
 ------------------------------------------------------------------------------------------------------------------------
 local customFragmentsUpdateRef                           						= 	libFilters.constants.gamepad.customFragments
-customFragmentsUpdateRef[LF_INVENTORY].fragment          						= 	gamepadLibFiltersInventoryDepositFragment
+customFragmentsUpdateRef[LF_INVENTORY].fragment          						= gamepadLibFiltersInventoryFragment
 customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment      						= 	gamepadLibFiltersBankDepositFragment
 customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment 						= 	gamepadLibFiltersGuildBankDepositFragment
 customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment 						= 	gamepadLibFiltersHouseBankDepositFragment
@@ -491,7 +543,7 @@ customFragmentsUpdateRef[LF_TRADE].fragment                         			= 	gamepa
 
 --Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 -->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
-LF_FilterTypeToReference[true][LF_INVENTORY]          							= 	{ gamepadLibFiltersInventoryDepositFragment }
+LF_FilterTypeToReference[true][LF_INVENTORY]          							= 	{ gamepadLibFiltersInventoryFragment }
 LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       							= 	{ gamepadLibFiltersBankDepositFragment }
 LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  							= 	{ gamepadLibFiltersGuildBankDepositFragment }
 LF_FilterTypeToReference[true][LF_HOUSE_BANK_DEPOSIT] 							= 	{ gamepadLibFiltersHouseBankDepositFragment }
@@ -500,7 +552,7 @@ LF_FilterTypeToReference[true][LF_MAIL_SEND]                                  	=
 LF_FilterTypeToReference[true][LF_TRADE]                                      	= 	{ gamepadLibFiltersPlayerTradeFragment }
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
-LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		=	gamepadLibFiltersInventoryDepositFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		= gamepadLibFiltersInventoryFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 		=	gamepadLibFiltersBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersGuildBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"]= 	gamepadLibFiltersHouseBankDepositFragment
@@ -513,7 +565,7 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	=
 -- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepd player inventory
-invRootScene:AddFragment(gamepadLibFiltersInventoryDepositFragment)
+--invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
 
 --invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
 

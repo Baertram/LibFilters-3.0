@@ -422,14 +422,17 @@ kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD
 --gamepadConstants
 --[Inventories]
 --Inventory
-gpc.playerInvCtrl_GP            = kbc.playerInvCtrl
+gpc.playerInvCtrl_GP = kbc.playerInvCtrl
 
 --Backpack
-gpc.invBackpack_GP              = GAMEPAD_INVENTORY
-gpc.invRootScene                = GAMEPAD_INVENTORY_ROOT_SCENE
+gpc.invBackpack_GP   			= GAMEPAD_INVENTORY
+local invBackpack_GP 			= gpc.invBackpack_GP
+gpc.invRootScene_GP  			= getScene(SM, "gamepad_inventory_root") --GAMEPAD_INVENTORY_ROOT_SCENE
+gpc.invFragment_GP				= GAMEPAD_INVENTORY_FRAGMENT
+
 
 --Character
-gpc.characterCtrl_GP            = kbc.characterCtrl
+gpc.characterCtrl_GP = kbc.characterCtrl
 
 
 --Craftbag
@@ -463,11 +466,14 @@ gpc.invGuildBankScene_GP 		= GAMEPAD_GUILD_BANK_SCENE
 
 
 --[Vendor]
+gpc.storeScene_GP 				= getScene(SM, "gamepad_store")
+gpc.storeFragment_GP			= GAMEPAD_VENDOR_FRAGMENT
 ----Buy
 gpc.store_GP                    = STORE_WINDOW_GAMEPAD
 gpc.vendorBuy_GP                = ZO_GamepadStoreBuy 			--store_GP.components[ZO_MODE_STORE_BUY].list
+local storeComponents = gpc.store_GP.components
 ---Sell
-gpc.vendorSell_GP               = ZO_GamepadStoreSell 		--store_GP.components[ZO_MODE_STORE_SELL].list
+gpc.vendorSell_GP               = ZO_GamepadStoreSell 			--store_GP.components[ZO_MODE_STORE_SELL].list
 ---Buy back
 gpc.vendorBuyBack_GP            = ZO_GamepadStoreBuyback 		--store_GP.components[ZO_MODE_STORE_BUY_BACK].list
 ---Repair
@@ -907,9 +913,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = "inventory",			["fragment"] = kbc.invQuestFragment, },
 		--Works: 2021-12-13
 		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = kbc.craftBagFragment,
-										  ["special"] = nil,
 										  --Check for CraftBagExtended addon and change the detected CraftBag panel to any other supported, e.g.
-										  --MailSend, Trade, GuildStoreSell
+										  --MailSend, Trade, GuildStoreSell, Bank deposit, guild bank deposit, house bank deposit
 										  ["specialForced"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -1159,15 +1164,71 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--TODO
 		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP, 		["fragment"] = nil, },
 		--TODO
-		[LF_VENDOR_SELL]              = { ["control"] = gpc.vendorSell_GP, 				["scene"] = nil,	 						["fragment"] = nil, },
+		[LF_VENDOR_BUY]               = { ["control"] = storeComponents[ZO_MODE_STORE_BUY].list,	["scene"] = gpc.storeScene_GP, 		["fragment"] = storeComponents[ZO_MODE_STORE_BUY].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsStoreShown",
+												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_BUY },
+												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, nil, storeComponents[ZO_MODE_STORE_BUY].list },
+											  }
+										  }
+		},
 		--TODO
-		[LF_VENDOR_BUYBACK]           = { ["control"] = gpc.vendorBuyBack_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		[LF_VENDOR_SELL]              = { ["control"] = storeComponents[ZO_MODE_STORE_SELL].list, 	["scene"] = gpc.storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_SELL].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsStoreShown",
+												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_SELL },
+												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, storeComponents[ZO_MODE_STORE_SELL].list },
+											  }
+										  }
+		},
 		--TODO
-		[LF_VENDOR_REPAIR]            = { ["control"] = gpc.vendorRepair_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		[LF_VENDOR_BUYBACK]           = { ["control"] = storeComponents[ZO_MODE_STORE_BUY_BACK].list,	["scene"] = gpc.storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsStoreShown",
+												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_BUY_BACK },
+												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, storeComponents[ZO_MODE_STORE_BUY_BACK].list },
+											  }
+										  }
+		},
 		--TODO
-		[LF_FENCE_SELL]               = { ["control"] = gpc.invFenceSell_GP, 			["scene"] = nil, 							["fragment"] = nil, },
+		[LF_VENDOR_REPAIR]            = { ["control"] = storeComponents[ZO_MODE_STORE_REPAIR].list, 	["scene"] = gpc.storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_REPAIR].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsStoreShown",
+												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_REPAIR },
+												  ["expectedResults"] = { true, ZO_MODE_STORE_BUY, storeComponents[ZO_MODE_STORE_REPAIR].list },
+											  }
+										  }
+		},
 		--TODO
-		[LF_FENCE_LAUNDER]            = { ["control"] = gpc.invFenceLaunder_GP, 		["scene"] = nil, 							["fragment"] = nil, },
+		[LF_FENCE_SELL]               = { ["control"] = storeComponents[ZO_MODE_STORE_SELL_STOLEN].list, 	["scene"] = gpc.storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsStoreShown",
+												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_SELL_STOLEN },
+												  ["expectedResults"] = { true, ZO_MODE_STORE_SELL_STOLEN, storeComponents[ZO_MODE_STORE_SELL_STOLEN].list },
+											  }
+										  }
+		},
+		--TODO
+		[LF_FENCE_LAUNDER]            = { ["control"] = storeComponents[ZO_MODE_STORE_LAUNDER].list, 		["scene"] = gpc.storeScene_GP, 	["fragment"] = storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsStoreShown",
+												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_LAUNDER },
+												  ["expectedResults"] = { true, ZO_MODE_STORE_LAUNDER, storeComponents[ZO_MODE_STORE_LAUNDER].list },
+											  }
+										  }
+		},
 		--TODO
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
 		--TODO
@@ -1175,11 +1236,12 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Not given in gamepad mode
-		[LF_QUICKSLOT]                = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
+		[LF_QUICKSLOT]                = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, },	--not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... -- leave empty (not NIL!) to prevent error messages
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_INVENTORY]                = { ["control"] = nil, 							["scene"] = "gamepad_inventory_root",		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		--Works, 2021-12-19
+		[LF_INVENTORY]                = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = gpc.invRootScene_GP,			["fragment"] = nil, },	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--Works, 2021-12-18
 		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = gpc.invBankScene_GP,		["fragment"] = nil,  	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
@@ -1211,8 +1273,17 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--TODO
 		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 
-
-		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = "gamepad_inventory_root", 	["fragment"] = nil, },
+		--Works, 2021-12-19
+		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = gpc.invRootScene_GP, 	["fragment"] = gpc.invFragment_GP,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = invBackpack_GP.craftBagList,
+												  ["funcOrAttribute"] = "IsActive",
+												  ["params"]          = { invBackpack_GP.craftBagList },
+												  ["expectedResults"] = { true },
+											  }
+										  }
+		},
 		--Works, 2021-12-18
 		[LF_BANK_WITHDRAW]            = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = gpc.invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
 										  ["special"] = {
@@ -1399,14 +1470,14 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	--Gamepad mode
 	--TODO check the sort order and order of checkTypes per filterType ! 2021-12-13
 	[true] = {
-		{ filterType=LF_CRAFTBAG, 					checkTypes = { "fragment", "scene", "control", "special", "specialForced" } },
+		{ filterType=LF_CRAFTBAG, 					checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
-		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
+		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FENCE_LAUNDER, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_SMITHING_CREATION, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_CREATION, 			checkTypes = { "special", "scene", "control" } },
@@ -1435,7 +1506,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
 --		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control" } },
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
