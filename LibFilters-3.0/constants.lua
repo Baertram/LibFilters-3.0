@@ -922,10 +922,11 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  ["specialForced"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
-												  ["funcOrAttribute"] = "GetCraftBagExtendedParentFilterType",
+												  ["funcOrAttribute"] = "IsCraftBagExtendedParentFilterType",
 												  ["params"]          = { _G[GlobalLibName], { LF_MAIL_SEND, LF_TRADE,
 																							   LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
-																							   LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT} },
+																							   LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT} --filterTypesToCheck
+												   											 },
 												  ["expectedResults"] = { true },
 											  }
 										  },
@@ -1558,6 +1559,17 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
+
+local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup = {}
+for inputMode, inputModeData in pairs(filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes) do
+	if filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[inputMode] == nil then
+		filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[inputMode] = {}
+	end
+	for idx, filterTypeData in ipairs(inputModeData) do
+		filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[inputMode][filterTypeData.filterType] = idx
+	end
+end
+mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
 
 --[Mapping for filterTypes, to other filterTypes (dependend on crafting)]
 mapping.filterTypeToFilterTypeRespectingCraftType = {
