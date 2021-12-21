@@ -847,6 +847,7 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
 								]]
 								lReferencesToFilterType = currentReferenceFound
 							else
+								lReferencesToFilterType = {}
 								tins(lReferencesToFilterType, currentReferenceFound)
 							end
 						end
@@ -1012,7 +1013,22 @@ end
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
-	if libFilters.debug then dd("SafeUpdateList, inv: " ..tos(...)) end
+	if libFilters.debug then
+		local updatedName = (object and (object.name or (object.GetName and object:GetName()))
+				or (object.list and object.list.GetName and object.list:GetName())
+				or (object.container and object.container.GetName and object.container:GetName())
+				or (object.control and object.control.GetName and object.control:GetName())
+		)
+		if updatedName == nil and ... ~= nil then
+			if object.inventories ~= nil then
+				local playerInventoryInventoriesInvToUpdate = object.inventories[...]
+				updatedName = playerInventoryInventoriesInvToUpdate	and playerInventoryInventoriesInvToUpdate.listView
+						and playerInventoryInventoriesInvToUpdate.listView.GetName and playerInventoryInventoriesInvToUpdate.listView:GetName()
+			end
+		end
+		updatedName = updatedName or "n/a"
+		dd("SafeUpdateList, inv: %s, name: %s", tos(object), tos(updatedName))
+	end
 	local isMouseVisible = SM:IsInUIMode()
 	if isMouseVisible then HideMouse() end
 	object:UpdateList(...)
