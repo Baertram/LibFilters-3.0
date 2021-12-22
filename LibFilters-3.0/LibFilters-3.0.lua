@@ -490,20 +490,22 @@ local function isControlShown(filterType, isInGamepadMode)
 	local checkType = "retCtrl"
 	local ctrlToCheck = retCtrl
 
+	local subControlsToLoop = {
+		[1] = "control",
+		[2] = "container",
+		[3] = "list",
+		[4] = "listView",
+		[5] = "panelControl",
+	}
+
 	if ctrlToCheck ~= nil then
 		if ctrlToCheck.IsHidden == nil then
-			ctrlToCheck = retCtrl.control
-			checkType = "retCtrl.control"
-			if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
-				ctrlToCheck = retCtrl.container
-				checkType = "retCtrl.container"
-				if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
-					ctrlToCheck = retCtrl.list
-					checkType = "retCtrl.list"
-					if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
-						ctrlToCheck = retCtrl.listView
-						checkType = "retCtrl.listView"
-					end
+			for _, subControlName in ipairs(subControlsToLoop)do
+				if ctrlToCheck[subControlName] ~= nil and
+					ctrlToCheck[subControlName].IsHidden ~= nil then
+					ctrlToCheck = ctrlToCheck[subControlName]
+					checkType = "retCtrl." .. subControlName
+					break -- leave the loop
 				end
 			end
 		end
@@ -989,7 +991,7 @@ local function checkIfCachedFilterTypeIsStillShown(filterType, isInGamepadMode)
 	if filterType == nil and libFilters._currentFilterType ~= nil then
 		local filterTypeReference, filterTypeShown = detectShownReferenceNow(libFilters._currentFilterType, isInGamepadMode)
 		if filterTypeReference ~= nil and filterTypeShown ~= nil and filterTypeShown == libFilters._currentFilterType then
-			if isDebugEnabled then dd("checkIfCachedFilterTypeIsStillShown %q: %s", tos(filterType), "YES") end
+			if isDebugEnabled then dd("checkIfCachedFilterTypeIsStillShown %q: %s", tos(filterTypeShown), "YES") end
 			libFilters._currentFilterTypeReferences = filterTypeReference
 			return filterTypeReference, filterTypeShown
 		else
@@ -1561,7 +1563,7 @@ libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeFor
 -- returns number LF*_filterType
 function libFilters:GetCurrentFilterType()
 	local isDebugEnabled = libFilters.debug
-	local filterTypeReference, filterType = libFilters_GetCurrentFilterTypeReference(libFilters)
+	local filterTypeReference, filterType = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
 	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s", tos(filterTypeReference)) end
 	if filterTypeReference == nil then return end
 

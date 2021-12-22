@@ -524,27 +524,32 @@ local smithing_GP               = gpc.smithing_GP
 
 --Refinement
 gpc.refinementPanel_GP          = smithing_GP.refinementPanel
+gpc.refinementScene_GP			= getScene(SM, "gamepad_smithing_refine")
 
 --Create
 gpc.creationPanel_GP            = smithing_GP.creationPanel
+gpc.creationScene_GP			= getScene(SM, "gamepad_smithing_creation")
 
 --Deconstruction
 gpc.deconstructionPanel_GP      = smithing_GP.deconstructionPanel
+gpc.deconstructionScene_GP			= getScene(SM, "gamepad_smithing_deconstruct")
 
 --Improvement
 gpc.improvementPanel_GP         = smithing_GP.improvementPanel
+gpc.improvementScene_GP			= getScene(SM, "gamepad_smithing_improvement")
 
 --Research
 gpc.researchPanel_GP            = smithing_GP.researchPanel
+gpc.researchScene_GP			= getScene(SM, "gamepad_smithing_research")
 gpc.researchChooseItemDialog_GP = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
 
 --Enchanting
 gpc.enchanting_GP               = GAMEPAD_ENCHANTING
-gpc.enchantingCreate_GP         = GAMEPAD_ENCHANTING_CREATION_SCENE
-gpc.enchantingExtract_GP        = GAMEPAD_ENCHANTING_EXTRACTION_SCENE
+gpc.enchantingCreate_GP         = getScene(SM, "gamepad_enchanting_extraction") --GAMEPAD_ENCHANTING_CREATION_SCENE
+gpc.enchantingExtract_GP        = getScene(SM, "gamepad_enchanting_extraction") --GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 gpc.enchantingInvCtrls_GP       = {
-	[ENCHANTING_MODE_CREATION] = 	GAMEPAD_ENCHANTING_CREATION_SCENE,
-	[ENCHANTING_MODE_EXTRACTION] = 	GAMEPAD_ENCHANTING_EXTRACTION_SCENE,
+	[ENCHANTING_MODE_CREATION] = 	gpc.enchantingCreate_GP,
+	[ENCHANTING_MODE_EXTRACTION] = 	gpc.enchantingExtract_GP,
 	[ENCHANTING_MODE_RECIPES] = 	nil, --recipesgot no own scene, maybe a fragment?
 }
 
@@ -1137,6 +1142,17 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
+		--Works: 2021-12-13
 		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
 										   ["special"] = {
 												[1] = {
@@ -1265,7 +1281,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Not given in gamepad mode
-		--TODO
+		--Works, 2021-12-21
 		[LF_QUICKSLOT]                = { ["control"] = ZO_GamepadQuickslotToplevel, 	["scene"] = gpc.quickslotScene_GP, 		["fragment"] = gpc.quickslotFragment_GP,		--uses inventory fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 										  ["special"] = {
 											  [1] = {
@@ -1358,23 +1374,95 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--TODO
-		[LF_SMITHING_REFINE]          = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
+		[LF_SMITHING_REFINE]          = { ["control"] = gpc.refinementPanel_GP, 		["scene"] = gpc.refinementScene_GP, 	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
 		--TODO
-		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
+		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = gpc.deconstructionPanel_GP, 	["scene"] = gpc.deconstructionScene_GP, ["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
 		--TODO
-		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
+		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = gpc.improvementPanel_GP, 		["scene"] = gpc.improvementScene_GP, 	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
 		--TODO
-		[LF_SMITHING_RESEARCH]        = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research",	["fragment"] = nil, },
+		[LF_SMITHING_RESEARCH]        = { ["control"] = gpc.researchPanel_GP, 			["scene"] = gpc.researchScene_GP,		["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
 		--TODO
-		[LF_JEWELRY_REFINE]           = { ["control"] = nil, 							["scene"] = "gamepad_smithing_refine", 		["fragment"] = nil, },
+		[LF_JEWELRY_REFINE]           = { ["control"] = gpc.refinementPanel_GP, 		["scene"] = gpc.refinementScene_GP, 	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 		--TODO
-		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = nil, 							["scene"] = "gamepad_smithing_deconstruct", ["fragment"] = nil, },
+		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = gpc.deconstructionPanel_GP, 	["scene"] = gpc.deconstructionScene_GP, ["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 		--TODO
-		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = nil, 							["scene"] = "gamepad_smithing_improvement", ["fragment"] = nil, },
+		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = gpc.improvementPanel_GP, 		["scene"] = gpc.improvementScene_GP, 	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 		--TODO
-		[LF_JEWELRY_RESEARCH]         = { ["control"] = nil, 							["scene"] = "gamepad_smithing_research", 	["fragment"] = nil, },
+		[LF_JEWELRY_RESEARCH]         = { ["control"] = gpc.researchPanel_GP, 			["scene"] = gpc.researchScene_GP, 		["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 		--TODO
-		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemySecene_GP, 			["fragment"] = nil,
+		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemySecene_GP, 		["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  gpc.alchemy_GP,
@@ -1423,13 +1511,24 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works, 2021-12-18
 		[LF_GUILDSTORE_BROWSE]        = { ["control"] = gpc.tradingHouseBrowse_GP, 		["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  nil }, --gpc.tradingHouseBrowse_GP.fragment, },
 		--TODO
-		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_CREATION] 		  = { ["control"] = gpc.creationPanel_GP,			["scene"] = gpc.creationScene_GP, 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
 													["funcOrAttribute"] = "IsJewelryCrafting",
 													["params"] = {_G[GlobalLibName]},
 													["expectedResults"] = {false},
+												}
+											}
+		},
+		--TODO
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = gpc.creationPanel_GP,			["scene"] = gpc.creationScene_GP, 			["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
 												}
 											}
 		},
