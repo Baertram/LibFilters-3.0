@@ -541,7 +541,7 @@ gpc.improvementScene_GP			= getScene(SM, "gamepad_smithing_improvement")
 --Research
 gpc.researchPanel_GP            = smithing_GP.researchPanel
 gpc.researchScene_GP			= getScene(SM, "gamepad_smithing_research")
-gpc.researchChooseItemDialog_GP = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
+gpc.researchChooseItemDialog_GP = getScene(SM, "gamepad_smithing_research_confirm") --GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
 
 --Enchanting
 gpc.enchanting_GP               = GAMEPAD_ENCHANTING
@@ -1275,9 +1275,27 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--TODO
-		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
+		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {false},
+												}
+											}
+		},
 		--TODO
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,["fragment"] = nil, },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,	["fragment"] = nil,
+										   ["special"] = {
+												[1] = {
+													["control"]  =  _G[GlobalLibName],
+													["funcOrAttribute"] = "IsJewelryCrafting",
+													["params"] = {_G[GlobalLibName]},
+													["expectedResults"] = {true},
+												}
+											}
+		},
 
 
 		--Not given in gamepad mode
@@ -1635,8 +1653,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_JEWELRY_DECONSTRUCT, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_SMITHING_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_IMPROVEMENT, 		checkTypes = { "special", "scene", "control" } },
-		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene", "controlDialog" } },
-		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "special", "scene", "controlDialog" } },
+		{ filterType=LF_SMITHING_RESEARCH_DIALOG,	checkTypes = { "special", "scene" } },
+		{ filterType=LF_JEWELRY_RESEARCH_DIALOG, 	checkTypes = { "special", "scene" } },
 		{ filterType=LF_SMITHING_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_JEWELRY_RESEARCH, 			checkTypes = { "special", "scene", "control" } },
 		{ filterType=LF_ENCHANTING_CREATION, 		checkTypes = { "scene", "control", "special" } },

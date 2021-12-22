@@ -841,15 +841,18 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
 							currentReferenceFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
 						end
 						if currentReferenceFound ~= nil then
-							if type(currentReferenceFound) == "table" then
+							local curRefType = type(currentReferenceFound)
+							if isDebugEnabled then dd(">>>>currentReferenceFound: YES, type: %s", tos(curRefType)) end
+							lReferencesToFilterType = {}
+							if curRefType == "table" then
 								--[[
 								for _, refInRefTab in pairs(currentReferenceFound) do
 									tins(lReferencesToFilterType, refInRefTab)
 								end
 								]]
-								lReferencesToFilterType = currentReferenceFound
+								--lReferencesToFilterType = currentReferenceFound
+								tins(lReferencesToFilterType, currentReferenceFound)
 							else
-								lReferencesToFilterType = {}
 								tins(lReferencesToFilterType, currentReferenceFound)
 							end
 						end
@@ -858,7 +861,7 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
 			end
 		end
 		--Prevent to return different filterTypes and references
-		if lFilterTypeDetected ~= nil and #lReferencesToFilterType > 0 then
+		if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
 			if isDebugEnabled then dd("<<<===== checkIfShownNow = END =") end
 			libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
 			libFilters._currentFilterType = 			lFilterTypeDetected
