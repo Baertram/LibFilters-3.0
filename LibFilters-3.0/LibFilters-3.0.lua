@@ -2646,8 +2646,8 @@ function libFilters:HookAdditionalFilterSceneSpecial(specialType)
 	if specialType == "enchanting_GamePad" then
 		--The enchanting scenes to hook into
 		local enchantingScenesGamepad = {
-			[LF_ENCHANTING_CREATION] = 		gamepadConstants.enchantingCreate_GP,
-			[LF_ENCHANTING_EXTRACTION] = 	gamepadConstants.enchantingExtract_GP,
+			[LF_ENCHANTING_CREATION] = 		gamepadConstants.enchantingCreateScene_GP,
+			[LF_ENCHANTING_EXTRACTION] = 	gamepadConstants.enchantingExtractScene_GP,
 		}
 
 		local function updateLibFilters3_filterTypeAtGamepadEnchantingInventory(enchantingVar)

@@ -536,33 +536,37 @@ gpc.deconstructionScene_GP			= getScene(SM, "gamepad_smithing_deconstruct")
 
 --Improvement
 gpc.improvementPanel_GP         = smithing_GP.improvementPanel
-gpc.improvementScene_GP			= getScene(SM, "gamepad_smithing_improvement")
+gpc.improvementScene_GP         = getScene(SM, "gamepad_smithing_improvement")
 
 --Research
 gpc.researchPanel_GP            = smithing_GP.researchPanel
-gpc.researchScene_GP			= getScene(SM, "gamepad_smithing_research")
+gpc.researchScene_GP            = getScene(SM, "gamepad_smithing_research")
 gpc.researchChooseItemDialog_GP = getScene(SM, "gamepad_smithing_research_confirm") --GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
 
 --Enchanting
 gpc.enchanting_GP               = GAMEPAD_ENCHANTING
-gpc.enchantingCreate_GP         = getScene(SM, "gamepad_enchanting_extraction") --GAMEPAD_ENCHANTING_CREATION_SCENE
-gpc.enchantingExtract_GP        = getScene(SM, "gamepad_enchanting_extraction") --GAMEPAD_ENCHANTING_EXTRACTION_SCENE
+gpc.enchantingCreateScene_GP    = getScene(SM, "gamepad_enchanting_creation") --GAMEPAD_ENCHANTING_CREATION_SCENE
+gpc.enchantingExtractScene_GP   = getScene(SM, "gamepad_enchanting_extraction") --GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 gpc.enchantingInvCtrls_GP       = {
-	[ENCHANTING_MODE_CREATION] = 	gpc.enchantingCreate_GP,
-	[ENCHANTING_MODE_EXTRACTION] = 	gpc.enchantingExtract_GP,
+	[ENCHANTING_MODE_CREATION] = 	gpc.enchantingCreateScene_GP,
+	[ENCHANTING_MODE_EXTRACTION] = 	gpc.enchantingExtractScene_GP,
 	[ENCHANTING_MODE_RECIPES] = 	nil, --recipesgot no own scene, maybe a fragment?
 }
 
 --Alchemy
 gpc.alchemy_GP                  = GAMEPAD_ALCHEMY
-gpc.alchemySecene_GP            = ALCHEMY_SCENE
+gpc.alchemyCreationSecene_GP    = getScene(SM, "gamepad_alchemy_creation")
 gpc.alchemyCtrl_GP              = gpc.alchemy_GP.control
 
 --Retrait
 gpc.retrait_GP                  = ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
+gpc.retraitScene_GP				= getScene(SM, "retrait_gamepad")
+gpc.retraitFragment_GP			= GAMEPAD_RETRAIT_FRAGMENT
 
 --Reconstruction
 gpc.reconstruct_GP              = ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+gpc.reconstructScene_GP			= getScene(SM, "reconstruct_gamepad")
+gpc.reconstructFragment_GP		= GAMEPAD_RECONSTRUCT_FRAGMENT
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -882,8 +886,8 @@ local filterTypeToReference = {
 		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
 		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
 		-->Used for gamepad AND keyboard mode with these entries here !!!
-		[LF_ENCHANTING_CREATION]	  = { gpc.enchantingCreate_GP},
-		[LF_ENCHANTING_EXTRACTION]    = { gpc.enchantingExtract_GP},
+		[LF_ENCHANTING_CREATION]	  = { gpc.enchantingCreateScene_GP },
+		[LF_ENCHANTING_EXTRACTION]    = { gpc.enchantingExtractScene_GP },
 
 
 		--Not implemented yet
@@ -1274,7 +1278,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1285,7 +1289,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1391,7 +1395,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_SMITHING_REFINE]          = { ["control"] = gpc.refinementPanel_GP, 		["scene"] = gpc.refinementScene_GP, 	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1402,7 +1406,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = gpc.deconstructionPanel_GP, 	["scene"] = gpc.deconstructionScene_GP, ["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1413,7 +1417,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = gpc.improvementPanel_GP, 		["scene"] = gpc.improvementScene_GP, 	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1424,7 +1428,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_SMITHING_RESEARCH]        = { ["control"] = gpc.researchPanel_GP, 			["scene"] = gpc.researchScene_GP,		["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1435,7 +1439,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_JEWELRY_REFINE]           = { ["control"] = gpc.refinementPanel_GP, 		["scene"] = gpc.refinementScene_GP, 	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1446,7 +1450,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = gpc.deconstructionPanel_GP, 	["scene"] = gpc.deconstructionScene_GP, ["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1457,7 +1461,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = gpc.improvementPanel_GP, 		["scene"] = gpc.improvementScene_GP, 	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1468,7 +1472,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_JEWELRY_RESEARCH]         = { ["control"] = gpc.researchPanel_GP, 			["scene"] = gpc.researchScene_GP, 		["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1479,8 +1483,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
-		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemySecene_GP, 		["fragment"] = nil,
+		--Works, 2021-12-22
+		[LF_ALCHEMY_CREATION]	  	  = { ["control"] = gpc.alchemy_GP, 				["scene"] = gpc.alchemyCreationSecene_GP, 	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  gpc.alchemy_GP,
@@ -1491,7 +1495,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--TODO
-		[LF_RETRAIT]                  = { ["control"] = nil, ["scene"] = nil, ["fragment"] = nil, },
+		[LF_RETRAIT]                  = { ["control"] = gpc.retrait_GP, ["scene"] = gpc.retraitScene_GP, ["fragment"] = gpc.retraitFragment_GP, },
 
 
 		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
@@ -1499,7 +1503,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
 		-->Used for gamepad AND keyboard mode with these entries here !!!
 		--TODO
-		[LF_ENCHANTING_CREATION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingCreate_GP, 		["fragment"] = nil,
+		[LF_ENCHANTING_CREATION]	  = { ["control"] = gpc.enchanting_GP, ["scene"] = gpc.enchantingCreateScene_GP, ["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]  =  gpc.enchanting_GP,
@@ -1510,7 +1514,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--TODO
-		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = gpc.enchanting_GP, 				["scene"] = gpc.enchantingExtract_GP, 		["fragment"] = nil,
+		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = gpc.enchanting_GP, ["scene"] = gpc.enchantingExtractScene_GP, ["fragment"] = nil,
 											["special"] = {
 												[1] = {
 													["control"]  =  gpc.enchanting_GP,
@@ -1528,7 +1532,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--> So this line will be updated again then via function "SetCurrentMode" -> See file gamepadCustomFragments, SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
 		--Works, 2021-12-18
 		[LF_GUILDSTORE_BROWSE]        = { ["control"] = gpc.tradingHouseBrowse_GP, 		["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  nil }, --gpc.tradingHouseBrowse_GP.fragment, },
-		--TODO
+		--Works, 2021-12-21
 		[LF_SMITHING_CREATION] 		  = { ["control"] = gpc.creationPanel_GP,			["scene"] = gpc.creationScene_GP, 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1539,7 +1543,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-21
 		[LF_JEWELRY_CREATION] 		  = { ["control"] = gpc.creationPanel_GP,			["scene"] = gpc.creationScene_GP, 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -1661,7 +1665,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_ENCHANTING_EXTRACTION, 		checkTypes = { "scene", "control", "special" } },
 		{ filterType=LF_GUILDSTORE_BROWSE, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "control", "special" } },
 		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
