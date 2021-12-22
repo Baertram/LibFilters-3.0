@@ -568,6 +568,10 @@ gpc.reconstruct_GP              = ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 gpc.reconstructScene_GP			= getScene(SM, "reconstruct_gamepad")
 gpc.reconstructFragment_GP		= GAMEPAD_RECONSTRUCT_FRAGMENT
 
+--Provisioning
+gpc.provisioner_GP			     = GAMEPAD_PROVISIONER
+gpc.provisionerScene_GP			 = getScene(SM, "gamepad_provisioner_root")
+gpc.provisionerFragment_GP		 = GAMEPAD_PROVISIONER_FRAGMENT
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
@@ -1494,7 +1498,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-22
 		[LF_RETRAIT]                  = { ["control"] = gpc.retrait_GP, ["scene"] = gpc.retraitScene_GP, ["fragment"] = gpc.retraitFragment_GP, },
 
 
@@ -1502,7 +1506,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
 		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
 		-->Used for gamepad AND keyboard mode with these entries here !!!
-		--TODO
+		--Works, 2021-12-22
 		[LF_ENCHANTING_CREATION]	  = { ["control"] = gpc.enchanting_GP, ["scene"] = gpc.enchantingCreateScene_GP, ["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
@@ -1513,7 +1517,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-22
 		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = gpc.enchanting_GP, ["scene"] = gpc.enchantingExtractScene_GP, ["fragment"] = nil,
 											["special"] = {
 												[1] = {
@@ -1555,10 +1559,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--TODO
-		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+		[LF_PROVISIONING_COOK]		  = { ["control"] = gpc.provisioner_GP,				["scene"] = gpc.provisionerScene_GP, ["fragment"] = gpc.provisionerFragment_GP,
 										   ["special"] = {
 												[1] = {
-													["control"]  =  kbc.provisioner,
+													["control"]  =  gpc.provisioner_GP,
 													["funcOrAttribute"] = "filterType",
 													["params"] = {},
 													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES},
@@ -1566,10 +1570,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--TODO
-		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+		[LF_PROVISIONING_BREW]		  = { ["control"] = gpc.provisioner_GP,				["scene"] = gpc.provisionerScene_GP, ["fragment"] = gpc.provisionerFragment_GP,
 										   ["special"] = {
 												[1] = {
-													["control"]  =  kbc.provisioner,
+													["control"]  =  gpc.provisioner_GP,
 													["funcOrAttribute"] = "filterType",
 													["params"] = {},
 													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING},
@@ -1666,6 +1670,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_GUILDSTORE_BROWSE, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDSTORE_SELL, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "control", "special" } },
+		{ filterType=LF_PROVISIONING_COOK, 			checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_PROVISIONING_BREW, 			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
