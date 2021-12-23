@@ -1259,7 +1259,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-19
 		[LF_FENCE_SELL]               = { ["control"] = storeComponents[ZO_MODE_STORE_SELL_STOLEN].list, 	["scene"] = gpc.storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -1271,7 +1271,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
+		--Works, 2021-12-19
 		[LF_FENCE_LAUNDER]            = { ["control"] = storeComponents[ZO_MODE_STORE_LAUNDER].list, 		["scene"] = gpc.storeScene_GP, 	["fragment"] = storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -1362,7 +1362,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = gpc.invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--Works, 2021-12-18
 		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.sendControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		--TODO
+		--Works, 2021-12-23
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = gpc.invPlayerTradeFragment_GP, },
 
 		--Works, 2021-12-19
@@ -1643,7 +1643,6 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 	--Gamepad mode
-	--TODO check the sort order and order of checkTypes per filterType ! 2021-12-13
 	[true] = {
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control" } },
