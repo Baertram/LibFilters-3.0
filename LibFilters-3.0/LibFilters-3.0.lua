@@ -186,6 +186,7 @@ local kbc                      = 	constants.keyboard
 local playerInv                = 	kbc.playerInv
 local inventories              = 	kbc.inventories
 local inventoryFragment		   = 	kbc.inventoryFragment
+local invBackpackFragment	   = 	kbc.invBackpackFragment
 --local craftBagFragment 		   = 	kbc.craftBagFragment
 --local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
 local store                    = 	kbc.store
@@ -2877,7 +2878,7 @@ end
 
 local function onFragmentStateChange(oldState, newState, filterType, fragment)
 	if libFilters.debug then
-		dd("onFragmentStateChange oldState %s > newState: %q - filterType: %s", oldState, newState, tos(filterType))
+		dd("onFragmentStateChange oldState: %s > newState: %q - filterType: %s", tos(oldState), tos(newState), tos(filterType))
 	end
 	if newState == SCENE_FRAGMENT_SHOWN then
 		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_SHOWN)
@@ -2887,6 +2888,9 @@ local function onFragmentStateChange(oldState, newState, filterType, fragment)
 end
 
 local function createCallbacks()
+	if libFilters.debug then
+		dd("createCallbacks")
+	end
 	local callbacksUsingFragments = {
 		--Keyboard
 		--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
@@ -2895,11 +2899,14 @@ local function createCallbacks()
 		--Gamepad
 		--todo
 	}
-	for fragment, filterType in ipairs(callbacksUsingFragments) do
+
+	for fragment, filterType in pairs(callbacksUsingFragments) do
+		if libFilters.debug then
+			dd(">register fragment StateChange to: %s - filterType: %s", tos(fragment), tos(filterType))
+		end
 		if filterType == 0 then filterType = nil end
 		fragment:RegisterCallback("StateChange",
-				function(...) onFragmentStateChange(..., filterType, fragment)
-				end)
+				function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment) end)
 	end
 end
 
