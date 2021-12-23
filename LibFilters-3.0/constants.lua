@@ -511,6 +511,7 @@ gpc.invMailSendFragment_GP 		= GAMEPAD_MAIL_SEND_FRAGMENT
 --[Player 2 player trade]
 gpc.invPlayerTradeScene_GP      = getScene(SM, "gamepadTrade")
 gpc.invPlayerTrade_GP           = GAMEPAD_TRADE
+gpc.invPlayerTradeFragment_GP   = GAMEPAD_TRADE_FRAGMENT
 
 
 --[Companion]
@@ -1362,7 +1363,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works, 2021-12-18
 		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.sendControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--TODO
-		[LF_TRADE]                    = { ["control"] = nil, 							["scene"] = nil, 							["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = gpc.invPlayerTradeFragment_GP, },
 
 		--Works, 2021-12-19
 		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP,
@@ -1558,7 +1559,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-22
 		[LF_PROVISIONING_COOK]		  = { ["control"] = gpc.provisioner_GP,				["scene"] = gpc.provisionerScene_GP, ["fragment"] = gpc.provisionerFragment_GP,
 										   ["special"] = {
 												[1] = {
@@ -1569,7 +1570,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TODO
+		--Works, 2021-12-22
 		[LF_PROVISIONING_BREW]		  = { ["control"] = gpc.provisioner_GP,				["scene"] = gpc.provisionerScene_GP, ["fragment"] = gpc.provisionerFragment_GP,
 										   ["special"] = {
 												[1] = {
@@ -1646,7 +1647,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	[true] = {
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_TRADE, 						checkTypes = { "scene", "fragment", "control" }, },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control", "special" } },
