@@ -927,7 +927,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 --Keyboard mode
 	[false] = {
 		--Works: 2021-12-13
-		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = nil, 					["fragment"] = kbc.invBackpackFragment },
+		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = "inventory", 			["fragment"] = kbc.inventoryFragment },
 		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = "inventory",			["fragment"] = kbc.invQuestFragment, },
 		--Works: 2021-12-13
 		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = kbc.craftBagFragment,
@@ -1637,7 +1637,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_INVENTORY, 					checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control" } },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

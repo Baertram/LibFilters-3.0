@@ -110,9 +110,10 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
 ------------------------------------------------------------------------------------------------------------------------
-local libFilters = LibFilters3
-local MAJOR      = libFilters.name
-local filters    = libFilters.filters
+local libFilters 	= LibFilters3
+local MAJOR      	= libFilters.name
+local GlobalLibName = libFilters.globalLibName
+local filters    	= libFilters.filters
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -125,6 +126,7 @@ local strfor = string.format
 local tins = table.insert
 
 --Game API local speedup
+local CM = CALLBACK_MANAGER
 local EM = EVENT_MANAGER
 local SM = SCENE_MANAGER
 local IsGamepad = IsInGamepadPreferredMode
@@ -134,7 +136,6 @@ local ncc = NonContiguousCount
 
 local getCurrentScene = SM.GetCurrentScene
 local getScene = SM.GetScene
-local isShowingSceneOrFragment = SM.IsShowing
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -184,15 +185,16 @@ local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOw
 local kbc                      = 	constants.keyboard
 local playerInv                = 	kbc.playerInv
 local inventories              = 	kbc.inventories
-local craftBagFragment 		   = 	kbc.craftBagFragment
-local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
+local inventoryFragment		   = 	kbc.inventoryFragment
+--local craftBagFragment 		   = 	kbc.craftBagFragment
+--local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
 local store                    = 	kbc.store
-local storeBuy                 = 	kbc.vendorBuy
-local storeSell                = 	kbc.vendorSell
-local storeBuyBack             = 	kbc.vendorBuyBack
-local storeRepair              = 	kbc.vendorRepair
+--local storeBuy                 = 	kbc.vendorBuy
+--local storeSell                = 	kbc.vendorSell
+--local storeBuyBack             = 	kbc.vendorBuyBack
+--local storeRepair              = 	kbc.vendorRepair
 local storeWindows             = 	kbc.storeWindows
-local fence                    = 	kbc.fence
+--local fence                    = 	kbc.fence
 local researchChooseItemDialog = 	kbc.researchChooseItemDialog
 local playerInvCtrl            =    kbc.playerInvCtrl
 local companionEquipmentCtrl   = 	kbc.companionEquipment.control
@@ -206,40 +208,43 @@ local alchemyCtrl              =	kbc.alchemyCtrl
 --Gamepad
 local gpc                       = 	constants.gamepad
 local invBackpack_GP            = 	gpc.invBackpack_GP
-local invRootScene_GP 			= 	gpc.invRootScene_GP
+--local invRootScene_GP 			= 	gpc.invRootScene_GP
 local invBank_GP                = 	gpc.invBank_GP
 local invGuildBank_GP           = 	gpc.invGuildBank_GP
 local store_GP                  = 	gpc.store_GP
 local store_componentsGP        = 	store_GP.components
-local storeBuy_GP               = 	gpc.vendorBuy_GP
-local storeSell_GP              = 	gpc.vendorSell_GP
-local storeBuyBack_GP           = 	gpc.vendorBuyBack_GP
-local storeRepair_GP            =	gpc.vendorRepair_GP
-local fence_GP                  =	gpc.fence_GP
+--local storeBuy_GP               = 	gpc.vendorBuy_GP
+--local storeSell_GP              = 	gpc.vendorSell_GP
+--local storeBuyBack_GP           = 	gpc.vendorBuyBack_GP
+--local storeRepair_GP            =	gpc.vendorRepair_GP
+--local fence_GP                  =	gpc.fence_GP
 
 local researchPanel_GP          = 	gpc.researchPanel_GP
-local playerInvCtrl_GP          = 	gpc.playerInvCtrl_GP
+--local playerInvCtrl_GP          = 	gpc.playerInvCtrl_GP
 local companionEquipmentCtrl_GP = 	gpc.companionEquipment_GP.control
-local characterCtrl_GP          =	gpc.characterCtrl_GP
+--local characterCtrl_GP          =	gpc.characterCtrl_GP
 local companionCharacterCtrl_GP = 	gpc.companionCharacterCtrl_GP
-local enchanting_GP             = 	gpc.enchanting_GP
+--local enchanting_GP             = 	gpc.enchanting_GP
 local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
 local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 
 --functions
-local getCustomLibFiltersFragmentName = libFilters.GetCustomLibFiltersFragmentName
+--local getCustomLibFiltersFragmentName = libFilters.GetCustomLibFiltersFragmentName
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK state variables
 ------------------------------------------------------------------------------------------------------------------------
 --Special hooks done? Add the possible special hook names in this table so that function libFilters:HookAdditionalFilterSpecial
 --will not register the special hooks more than once
+--[[
 local specialHooksDone = {
 	 --["enchanting"] = false, --example entry
 }
 --Used in function libFilters:HookAdditionalFilterSpecial
 local specialHooksLibFiltersDataRegistered = {}
+]]
 
 --Local pre-defined function names. Code will be added further down in this file. Only created here already to be re-used
 --in code prior to creation (functions using it won't be called before creation was done, but they are local and more
@@ -1415,7 +1420,7 @@ libFilters.RunFilters = runFilters
 ------------------------------------------------------------------------------------------------------------------------
 --Hook the different inventory panels (LibFilters filterTypes) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
-local function ApplyAdditionalFilterHooks()
+local function applyAdditionalFilterHooks()
 	if libFilters.debug then dd("ApplyAdditionalFilterHooks") end
 	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
@@ -2793,7 +2798,7 @@ libFilters.helpers = {}
 local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
-local function InstallHelpers()
+local function installHelpers()
 	if libFilters.debug then dd("InstallHelpers") end
 	for _, package in pairs(helpers) do
 		local helper = package.helper
@@ -2809,11 +2814,75 @@ local function InstallHelpers()
 end
 
 
+
+--**********************************************************************************************************************
+-- CALLBACKS
+--**********************************************************************************************************************
+--Create callbacks one can register to as the filterType panels show and hide
+--e.g. for LF_SMITHING_REFINE as the panel opens or closes, the signature would be
+--name: LibFilters3-<shown or hidden defined via SCENE_SHOWN and SCENE_HIDDEN constants>-<filterType>
+--variables passed as parameters: filterType, referenceObjects (from table filterTypeToCheckIfReferenceIsHidden), isGamepadModeCallback, shownState, additionalParameters ...
+--e.g. showing LF_SMITHING_REFINE
+--[[
+	CM:FireCallbacks(GlobalLibName .. "-shown-" .. tos(LF_SMITHING_REFINE),
+		LF_SMITHING_REFINE,
+		filterTypeToCheckIfReferenceIsHidden[false][LF_SMITHING_REFINE],
+		false,
+		... ---could be SMITHING.mode in keyboard mode e.g. or other vaiable
+	)
+]]
+--Check wich fragment is shown and rais a callback, if needed
+local function callbackRaiseCheckViaFragment(filterType, fragment, stateStr)
+	local isInGamepadMode = IsGamepad()
+	--Detect the filterType if not given
+	local lReferencesToFilterType
+	lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
+	if filterType == nil then return end
+
+	--Check which fragment is currently used
+	if isInGamepadMode == true then
+	else
+		--Inventory fragment
+		--[[ kbc.inventoryFragment :
+			LF_INVENTORY
+			LF_BANK_DEPOSIT
+			LF_GUILDBANK_DEPOSIT
+			LF_HOUSE_BANK_DEPOSIT
+			LF_VENDOR_SELL
+		]]
+		local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
+		if libFilters.debug then
+			dd("Fragment callback %q - state: %s filterType: %s, gamePadMode: %s", callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
+		end
+		CM:FireCallbacks(callbackName,
+				filterType,
+				lReferencesToFilterType,
+				isInGamepadMode,
+				stateStr
+		)
+	end
+end
+
+
+local function onFragmentStateChange(oldState, newState, filterType, fragment)
+	if newState == SCENE_FRAGMENT_SHOWN then
+		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_SHOWN)
+	elseif newState == SCENE_FRAGMENT_HIDDEN then
+		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_HIDDEN)
+	end
+end
+
+local function createCallbacks()
+	--KEYBOARD
+	inventoryFragment:RegisterCallback("StateChange", function(...) onFragmentStateChange(..., nil, inventoryFragment) end)
+end
+
+
 --**********************************************************************************************************************
 -- FIXES
 --**********************************************************************************************************************
 --Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
-local function ApplyFixesEarly()
+local function applyFixesEarly()
 	if libFilters.debug then dd("ApplyFixesEarly") end
 	--[[
 		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
@@ -2856,7 +2925,7 @@ d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
-local function ApplyFixesLate()
+local function applyFixesLate()
 	--2021-12-19
 	--Fix applied now is only needed for CraftBagExtended addon!
 	--The fragments used at mail send/bank deposit/guild bank deposit and guild store sell will apply their additionalFilters
@@ -2878,7 +2947,7 @@ local function ApplyFixesLate()
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
-local function ApplyFixesLatest()
+local function applyFixesLatest()
 
 end
 
@@ -2886,7 +2955,7 @@ end
 --Called from EVENT_PLAYER_ACTIVATED -> Only once
 local function eventPlayerActivatedCallback(eventId, firstCall)
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED)
-	ApplyFixesLatest()
+	applyFixesLatest()
 end
 
 
@@ -2896,7 +2965,9 @@ local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED)
 	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
-	ApplyFixesLate()
+	applyFixesLate()
+	--Create the callbacks for the filterType's panel show/hide
+	createCallbacks()
 end
 
 --**********************************************************************************************************************
@@ -2909,11 +2980,11 @@ function libFilters:InitializeLibFilters()
 	libFilters.isInitialized = true
 
 	--Install the helpers, which override ZOs vanilla code -> See file helpers.lua
-	InstallHelpers()
+	installHelpers()
 	--Hook into the scenes/fragments/controls to apply the filter function "runFilters" to the existing .additionalFilter
 	--and other existing filters, and to add the libFilters filterType to the .LibFilters3_filterType tag (to identify the
 	--inventory/control/fragment again)
-	ApplyAdditionalFilterHooks()
+	applyAdditionalFilterHooks()
 end
 
 --______________________________________________________________________________________________________________________
@@ -2924,7 +2995,7 @@ if GetDisplayName() == "@Baertram" then debugSlashToggle() end
 
 
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
-ApplyFixesEarly()
+applyFixesEarly()
 EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
 
 if libFilters.debug then dd("LIBRARY MAIN FILE - END") end
