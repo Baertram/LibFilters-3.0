@@ -2838,30 +2838,38 @@ end
 		... ---could be SMITHING.mode in keyboard mode e.g. or other vaiable
 	)
 ]]
+local function callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
+	local lReferencesToFilterType
+	--Detect the filterType if not given
+	lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
+	if filterType == nil then return end
+
+	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
+
+	if libFilters.debug then
+		dd("Fragment callback %q - state: %s, filterType: %s, gamePadMode: %s",
+				callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
+	end
+	CM:FireCallbacks(callbackName,
+			filterType,
+			fragment,
+			lReferencesToFilterType,
+			isInGamepadMode,
+			stateStr
+	)
+end
+
 --Check wich fragment is shown and rais a callback, if needed
 local function callbackRaiseCheckViaFragment(filterType, fragment, stateStr, isInGamepadMode)
-	if isInGamepadMode == ni then isInGamepadMode = IsGamepad() end
-	--Detect the filterType if not given
-	local lReferencesToFilterType
-	--Call the code 1 frame later so the fragment's (and others used within detectShownReferenceNow()) state will be updated properly
-	zo_callLater(function()
-		lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
-		if filterType == nil then return end
-
-		local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
-
-		if libFilters.debug then
-			dd("Fragment callback %q - state: %s, filterType: %s, gamePadMode: %s",
-					callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
-		end
-		CM:FireCallbacks(callbackName,
-				filterType,
-				fragment,
-				lReferencesToFilterType,
-				isInGamepadMode,
-				stateStr
-		)
-	end, 0)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	if stateStr == SCENE_SHOWN then
+		--Call the code 1 frame later so the fragment's (and others used within detectShownReferenceNow()) shown state will be updated properly
+		zo_callLater(function()
+			callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
+		end, 0)
+	else
+		callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
+	end
 end
 
 
