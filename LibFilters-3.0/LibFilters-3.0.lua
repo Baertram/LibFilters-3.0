@@ -150,6 +150,7 @@ libFilters._currentFilterTypeReferences = nil
 --Overall constants & mapping
 local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
+local callbacks = 					mapping.callbacks
 
 local libFiltersFilterConstants = 	constants.filterTypes
 local inventoryTypes = 				constants.inventoryTypes
@@ -185,8 +186,6 @@ local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOw
 local kbc                      = 	constants.keyboard
 local playerInv                = 	kbc.playerInv
 local inventories              = 	kbc.inventories
-local inventoryFragment		   = 	kbc.inventoryFragment
-local invBackpackFragment	   = 	kbc.invBackpackFragment
 --local craftBagFragment 		   = 	kbc.craftBagFragment
 --local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
 local store                    = 	kbc.store
@@ -311,7 +310,8 @@ local function checkIfRefVarIsShown(refVar)
 		isShown = (refVar.control ~= nil and refVar.control.IsHidden ~= nil) and not refVar.control:IsHidden()
 	--Scene or fragment
 	elseif refType == 2 then
-		isShown = (refVar.state == SCENE_FRAGMENT_SHOWN or refVar.state == SCENE_SHOWN) or false
+		if libFilters.debug then dd("checkIfRefVarIsShown - scene/fragment state: %q", tos(refVar.state)) end
+		isShown = ((refVar.state == SCENE_FRAGMENT_SHOWN or refVar.state == SCENE_SHOWN) and true) or (refVar.IsShowing and refVar:IsShowing()) or false
 	--Other
 	elseif refType == 3 then
 		if type(refVar) == "boolean" then
@@ -2839,51 +2839,40 @@ end
 	)
 ]]
 --Check wich fragment is shown and rais a callback, if needed
-local function callbackRaiseCheckViaFragment(filterType, fragment, stateStr)
-	local isInGamepadMode = IsGamepad()
+local function callbackRaiseCheckViaFragment(filterType, fragment, stateStr, isInGamepadMode)
+	if isInGamepadMode == ni then isInGamepadMode = IsGamepad() end
 	--Detect the filterType if not given
 	local lReferencesToFilterType
-	lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
-	if filterType == nil then return end
+	--Call the code 1 frame later so the fragment's (and others used within detectShownReferenceNow()) state will be updated properly
+	zo_callLater(function()
+		lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
+		if filterType == nil then return end
 
-	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
+		local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
 
-	--Check which fragment is currently used
-	if isInGamepadMode == true then
-		--todo
-	else
-		--Inventory fragment
-		--[[ kbc.inventoryFragment :
-			LF_INVENTORY
-			LF_BANK_DEPOSIT
-			LF_GUILDBANK_DEPOSIT
-			LF_HOUSE_BANK_DEPOSIT
-			LF_VENDOR_SELL
-		]]
-	end
-
-	if libFilters.debug then
-		dd("Fragment callback %q - state: %s filterType: %s, gamePadMode: %s",
-				callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
-	end
-	CM:FireCallbacks(callbackName,
-			filterType,
-			fragment,
-			lReferencesToFilterType,
-			isInGamepadMode,
-			stateStr
-	)
+		if libFilters.debug then
+			dd("Fragment callback %q - state: %s, filterType: %s, gamePadMode: %s",
+					callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
+		end
+		CM:FireCallbacks(callbackName,
+				filterType,
+				fragment,
+				lReferencesToFilterType,
+				isInGamepadMode,
+				stateStr
+		)
+	end, 0)
 end
 
 
-local function onFragmentStateChange(oldState, newState, filterType, fragment)
+local function onFragmentStateChange(oldState, newState, filterType, fragment, inputType)
 	if libFilters.debug then
-		dd("onFragmentStateChange oldState: %s > newState: %q - filterType: %s", tos(oldState), tos(newState), tos(filterType))
+		dd("onFragmentStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
 	end
 	if newState == SCENE_FRAGMENT_SHOWN then
-		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_SHOWN)
+		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_SHOWN, inputType)
 	elseif newState == SCENE_FRAGMENT_HIDDEN then
-		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_HIDDEN)
+		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_HIDDEN, inputType)
 	end
 end
 
@@ -2891,22 +2880,18 @@ local function createCallbacks()
 	if libFilters.debug then
 		dd("createCallbacks")
 	end
-	local callbacksUsingFragments = {
-		--Keyboard
-		--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
-		[inventoryFragment] = 0,
+	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+	local callbacksUsingFragments = callbacks.usingFragments
 
-		--Gamepad
-		--todo
-	}
-
-	for fragment, filterType in pairs(callbacksUsingFragments) do
-		if libFilters.debug then
-			dd(">register fragment StateChange to: %s - filterType: %s", tos(fragment), tos(filterType))
+	for inputType, callbackDataPerFilterType in pairs(callbacksUsingFragments) do
+		for fragment, filterType in pairs(callbackDataPerFilterType) do
+			if libFilters.debug then
+				dd(">register fragment StateChange to: %s - filterType: %s", tos(fragment), tos(filterType))
+			end
+			if filterType == 0 then filterType = nil end
+			fragment:RegisterCallback("StateChange",
+					function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment, inputType) end)
 		end
-		if filterType == 0 then filterType = nil end
-		fragment:RegisterCallback("StateChange",
-				function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment) end)
 	end
 end
 

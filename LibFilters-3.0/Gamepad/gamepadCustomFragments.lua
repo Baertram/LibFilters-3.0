@@ -32,6 +32,9 @@ local constants = 								libFilters.constants
 local inventoryTypes = 							constants.inventoryTypes
 local playerInventoryType = 					inventoryTypes["player"] -- INVENTORY_BACKPACK
 local mapping = 								libFilters.mapping
+local callbacks = 								mapping.callbacks
+local callbacksUsingFragments = 				callbacks.usingFragments
+
 local LF_FilterTypeToReference =				mapping.LF_FilterTypeToReference
 local LF_FilterTypeToCheckIfReferenceIsHidden = mapping.LF_FilterTypeToCheckIfReferenceIsHidden
 
@@ -390,6 +393,7 @@ end)
 SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
 	--Update trading house browse
 	if not fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] and GAMEPAD_TRADING_HOUSE_BROWSE ~= nil then
+		--Update the fragment exists checks with the now existing guild store sell fragment
 		local tradingHouseBrowse_GP = GAMEPAD_TRADING_HOUSE_BROWSE
 		libFilters.constants.gamepad.tradingHouseBrowse_GP = tradingHouseBrowse_GP
 		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_BROWSE] = {
@@ -447,6 +451,7 @@ gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldS
 end)
 
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
+	--Update the control and special checks controls with the now existing CraftBag list controls
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= invBackpack_GP.craftBagList
@@ -580,6 +585,14 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]["fragment"] 	=
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       	= 	gamepadLibFiltersMailSendFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	= 	gamepadLibFiltersPlayerTradeFragment
 
+-->Update the new created custom fragments to the callback-by-fragment-StateChange lookup table
+callbacksUsingFragments[true][LF_INVENTORY] 			= gamepadLibFiltersInventoryFragment
+callbacksUsingFragments[true][LF_BANK_DEPOSIT] 			= gamepadLibFiltersBankDepositFragment
+callbacksUsingFragments[true][LF_GUILDBANK_DEPOSIT] 	= gamepadLibFiltersGuildBankDepositFragment
+callbacksUsingFragments[true][LF_HOUSE_BANK_DEPOSIT] 	= gamepadLibFiltersHouseBankDepositFragment
+callbacksUsingFragments[true][LF_GUILDSTORE_SELL] 		= gamepadLibFiltersGuildStoreSellFragment
+callbacksUsingFragments[true][LF_MAIL_SEND] 			= gamepadLibFiltersMailSendFragment
+callbacksUsingFragments[true][LF_TRADE] 				= gamepadLibFiltersPlayerTradeFragment
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly

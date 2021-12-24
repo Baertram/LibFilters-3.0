@@ -269,6 +269,7 @@ kbc.inventories                   = playerInv.inventories
 local inventories                 = kbc.inventories
 kbc.playerInvCtrl                 = ZO_PlayerInventory
 kbc.inventoryFragment 			  = INVENTORY_FRAGMENT
+local inventoryFragment		   = 	kbc.inventoryFragment
 
 --Character
 kbc.characterCtrl                 =	ZO_Character
@@ -927,7 +928,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 --Keyboard mode
 	[false] = {
 		--Works: 2021-12-13
-		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = "inventory", 			["fragment"] = kbc.inventoryFragment },
+		[LF_INVENTORY]                = { ["control"] = invBackpack, 					["scene"] = "inventory", 			["fragment"] = inventoryFragment },
 		[LF_INVENTORY_QUEST]          = { ["control"] = kbc.invQuests, 					["scene"] = "inventory",			["fragment"] = kbc.invQuestFragment, },
 		--Works: 2021-12-13
 		[LF_CRAFTBAG]                 = { ["control"] = kbc.invCraftbag, 				["scene"] = nil, 					["fragment"] = kbc.craftBagFragment,
@@ -952,19 +953,19 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = kbc.invBankScene, 		["fragment"] = kbc.bankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = kbc.invBankScene, 		["fragment"] = kbc.inventoryFragment, },
+		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = kbc.invBankScene, 		["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = kbc.invGuildBankWithdraw, 		["scene"] = kbc.invGuildBankScene,	["fragment"] = kbc.guildBankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = kbc.invGuildBankScene, 	["fragment"] = kbc.inventoryFragment, },
+		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = kbc.invGuildBankDeposit, 		["scene"] = kbc.invGuildBankScene, 	["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = kbc.invHouseBankWithdraw, 		["scene"] = kbc.invHouseBankScene,	["fragment"] = kbc.houseBankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = kbc.invHouseBankScene, 	["fragment"] = kbc.inventoryFragment, },
+		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = kbc.invHouseBankDeposit, 		["scene"] = kbc.invHouseBankScene, 	["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = kbc.vendorBuyFragment, },
 		--Works: 2021-12-13
-		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = kbc.inventoryFragment, },
+		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = kbc.vendorBuyBackFragment, },
 		--Works: 2021-12-13
@@ -1804,4 +1805,33 @@ mapping.updaterNameToFilterType = updaterNameToFilterType
 --keyboard and gamepad mode)
 mapping.inventoryUpdaters = { }
 
+
+--[Mapping for the callbacks as filterType panels are shown/hidden]
+libFilters.mapping.callbacks = {}
+
+--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+local callbacksUsingFragments = {
+	--Keyboard
+	[false] = {
+		--Inventory fragment
+		--[[ kbc.inventoryFragment :
+			LF_INVENTORY
+			LF_BANK_DEPOSIT
+			LF_GUILDBANK_DEPOSIT
+			LF_HOUSE_BANK_DEPOSIT
+			LF_VENDOR_SELL
+		]]
+		[inventoryFragment] = 0,
+	},
+	[true] = {
+		--Gamepad
+		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
+		--todo
+
+	}
+}
+libFilters.mapping.callbacks.usingFragments = callbacksUsingFragments
+
+
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end
+
