@@ -586,13 +586,13 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       	=
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	= 	gamepadLibFiltersPlayerTradeFragment
 
 -->Update the new created custom fragments to the callback-by-fragment-StateChange lookup table
-callbacksUsingFragments[true][LF_INVENTORY] 			= gamepadLibFiltersInventoryFragment
-callbacksUsingFragments[true][LF_BANK_DEPOSIT] 			= gamepadLibFiltersBankDepositFragment
-callbacksUsingFragments[true][LF_GUILDBANK_DEPOSIT] 	= gamepadLibFiltersGuildBankDepositFragment
-callbacksUsingFragments[true][LF_HOUSE_BANK_DEPOSIT] 	= gamepadLibFiltersHouseBankDepositFragment
-callbacksUsingFragments[true][LF_GUILDSTORE_SELL] 		= gamepadLibFiltersGuildStoreSellFragment
-callbacksUsingFragments[true][LF_MAIL_SEND] 			= gamepadLibFiltersMailSendFragment
-callbacksUsingFragments[true][LF_TRADE] 				= gamepadLibFiltersPlayerTradeFragment
+callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 			= LF_INVENTORY
+callbacksUsingFragments[true][gamepadLibFiltersBankDepositFragment] 		= LF_BANK_DEPOSIT
+callbacksUsingFragments[true][gamepadLibFiltersGuildBankDepositFragment] 	= LF_GUILDBANK_DEPOSIT
+callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 	= LF_HOUSE_BANK_DEPOSIT
+callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 		= LF_GUILDSTORE_SELL
+callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 			= LF_MAIL_SEND
+callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 		= LF_TRADE
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
