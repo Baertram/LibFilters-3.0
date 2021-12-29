@@ -2859,15 +2859,18 @@ local function callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
 	)
 end
 
+
 --Check wich fragment is shown and rais a callback, if needed
 local function callbackRaiseCheckViaFragment(filterType, fragment, stateStr, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	if stateStr == SCENE_SHOWN then
-		--Call the code 1 frame later so the fragment's (and others used within detectShownReferenceNow()) shown state will be updated properly
+		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the fragment's shown state (used within detectShownReferenceNow())
+		--will be updated properly. Else it will fire too early and the fragment is still in state "Showing", on it's way to state "Shown"!
 		zo_callLater(function()
 			callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
 		end, 0)
 	else
+		--For the scene fragment hidden check there is no delay needed
 		callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
 	end
 end

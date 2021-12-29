@@ -233,7 +233,7 @@ local kbc 						= constants.keyboard
 
 constants.gamepad    = {}
 --GamepadConstants
-local gpc                      = constants.gamepad
+local gpc						= constants.gamepad
 
 --Custom created fragments for the gamepad mode
 --Prefix of these fragments
@@ -251,12 +251,12 @@ local invTypeGuildBank          =	INVENTORY_GUILD_BANK
 local invTypeHouseBank 			=	INVENTORY_HOUSE_BANK
 local invTypeCraftBag 			= 	INVENTORY_CRAFT_BAG
 constants.inventoryTypes = {}
-constants.inventoryTypes["player"] = 	invTypeBackpack
+constants.inventoryTypes["player"] = 		invTypeBackpack
 constants.inventoryTypes["quest"] = 		invTypeQuest
-constants.inventoryTypes["bank"] = 		invTypeBank
-constants.inventoryTypes["guild_bank"] = invTypeGuildBank
-constants.inventoryTypes["house_bank"] = invTypeHouseBank
-constants.inventoryTypes["craftbag"] = 	invTypeCraftBag
+constants.inventoryTypes["bank"] = 			invTypeBank
+constants.inventoryTypes["guild_bank"] = 	invTypeGuildBank
+constants.inventoryTypes["house_bank"] = 	invTypeHouseBank
+constants.inventoryTypes["craftbag"] = 		invTypeCraftBag
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1808,30 +1808,71 @@ mapping.inventoryUpdaters = { }
 
 --[Mapping for the callbacks as filterType panels are shown/hidden]
 libFilters.mapping.callbacks = {}
+local callbacks = libFilters.mapping.callbacks
 
---[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+--[fragment] = LF_* filterTypeConstant
+--0 means no dedicated LF_* constant can be used and the filterType will be determined
 local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
+		--Example:
+		--[fragmentVariable] = true,
+		--
 		--Inventory fragment
-		--[[ kbc.inventoryFragment :
+		--[[ kbc.inventoryFragment:
 			LF_INVENTORY
 			LF_BANK_DEPOSIT
 			LF_GUILDBANK_DEPOSIT
 			LF_HOUSE_BANK_DEPOSIT
 			LF_VENDOR_SELL
 		]]
-		[inventoryFragment] = 0,
+		[inventoryFragment] 				= 0,
+		--LF_PROVISIONING_COOK
+		--LF_PROVISIONING_BREW
+		[kbc.provisionerFragment]			= 0,
+		--Dedicated fragments
+		[kbc.invQuestFragment] 				= LF_INVENTORY_QUEST,
+		[kbc.bankWithdrawFragment] 			= LF_BANK_WITHDRAW,
+		[kbc.craftBagFragment] 				= LF_CRAFTBAG,
+		[kbc.companionEquipmentFragment] 	= LF_INVENTORY_COMPANION,
+		[kbc.quickslotsFragment] 			= LF_QUICKSLOT,
+		[kbc.guildBankWithdrawFragment]     = LF_GUILDBANK_WITHDRAW,
+		[kbc.houseBankWithdrawFragment]		= LF_HOUSE_BANK_WITHDRAW,
+		[kbc.vendorBuyFragment]  			= LF_VENDOR_BUY,
+		[kbc.vendorBuyBackFragment]			= LF_VENDOR_BUYBACK,
+		[kbc.vendorRepairFragment]			= LF_VENDOR_REPAIR,
+		[kbc.invFenceSell]					= LF_FENCE_SELL,
+		[kbc.invFenceLaunder]				= LF_FENCE_LAUNDER,
+		[kbc.guildStoreSellFragment]		= LF_GUILDSTORE_SELL,
+		[kbc.mailSend]						= LF_MAIL_SEND,
+		[kbc.player2playerTrade]			= LF_TRADE,
+		[kbc.alchemyFragment]				= LF_ALCHEMY_CREATION,
+		[kbc.retraitFragment]				= LF_RETRAIT,
+		[kbc.guildStoreBrowseFragment]		= LF_GUILDSTORE_BROWSE,
 	},
+	--Gamepad
 	[true] = {
-		--Gamepad
 		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
 		--todo
 
 	}
 }
-libFilters.mapping.callbacks.usingFragments = callbacksUsingFragments
+callbacks.usingFragments = callbacksUsingFragments
 
+
+--[control] = LF_* filterTypeConstant
+--0 means no dedicated LF_* constant can be used and the filterType will be determined
+local callbacksUsingControl = {
+	--Keyboard
+	[false] = {
+		--todo
+	},
+	--Gamepad
+	[true] = {
+		--todo
+	},
+}
+callbacks.usingControls = callbacksUsingControl
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end
 
