@@ -270,6 +270,13 @@ local debugSlashToggle = debugFunctions.debugSlashToggle
 SLASH_COMMANDS["/libfiltersdebug"] = 	debugSlashToggle
 SLASH_COMMANDS["/lfdebug"] = 			debugSlashToggle
 
+--Reference type to callback name mapping
+local typeOfRefToCallback = {
+	[1] = "Control",
+	[2] = "Scene",
+	[3] = "Fragment",
+}
+
 
 if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
 
@@ -295,7 +302,7 @@ local function checkIfControlSceneFragmentOrOther(refVar)
 		retVar = 1
 	--Other
 	else
-		retVar = 3
+		retVar = 99
 	end
 	if libFilters.debug then dd("checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
 	return retVar
@@ -313,7 +320,7 @@ local function checkIfRefVarIsShown(refVar)
 		if libFilters.debug then dd("checkIfRefVarIsShown - scene/fragment state: %q", tos(refVar.state)) end
 		isShown = ((refVar.state == SCENE_FRAGMENT_SHOWN or refVar.state == SCENE_SHOWN) and true) or (refVar.IsShowing and refVar:IsShowing()) or false
 	--Other
-	elseif refType == 3 then
+	elseif refType == 99 then
 		if type(refVar) == "boolean" then
 			isShown = refVar
 		else
@@ -2838,7 +2845,8 @@ end
 		... ---could be SMITHING.mode in keyboard mode e.g. or other vaiable
 	)
 ]]
-local function callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
+local function callbackRaise(filterType, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local lReferencesToFilterType
 	--Detect the filterType if not given
 	lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
@@ -2847,12 +2855,13 @@ local function callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
 	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
 
 	if libFilters.debug then
-		dd("Fragment callback %q - state: %s, filterType: %s, gamePadMode: %s",
-				callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
+		local callbackRefType = typeOfRefToCallback[typeOfRef]
+		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s",
+				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
 	end
 	CM:FireCallbacks(callbackName,
 			filterType,
-			fragment,
+			fragmentOrSceneOrControl,
 			lReferencesToFilterType,
 			isInGamepadMode,
 			stateStr
@@ -2861,17 +2870,16 @@ end
 
 
 --Check wich fragment is shown and rais a callback, if needed
-local function callbackRaiseCheckViaFragment(filterType, fragment, stateStr, isInGamepadMode)
-	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+local function callbackRaiseCheck(filterType, fragment, stateStr, isInGamepadMode, typeOfRef)
 	if stateStr == SCENE_SHOWN then
 		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the fragment's shown state (used within detectShownReferenceNow())
 		--will be updated properly. Else it will fire too early and the fragment is still in state "Showing", on it's way to state "Shown"!
 		zo_callLater(function()
-			callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
+			callbackRaise(filterType, fragment, stateStr, isInGamepadMode, typeOfRef)
 		end, 0)
 	else
 		--For the scene fragment hidden check there is no delay needed
-		callbackRaise(filterType, fragment, stateStr, isInGamepadMode)
+		callbackRaise(filterType, fragment, stateStr, isInGamepadMode, typeOfRef)
 	end
 end
 
@@ -2881,16 +2889,52 @@ local function onFragmentStateChange(oldState, newState, filterType, fragment, i
 		dd("onFragmentStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
 	end
 	if newState == SCENE_FRAGMENT_SHOWN then
-		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_SHOWN, inputType)
+		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 2)
 	elseif newState == SCENE_FRAGMENT_HIDDEN then
-		callbackRaiseCheckViaFragment(filterType, fragment, SCENE_HIDDEN, inputType)
+		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 2)
 	end
 end
+
+local function onSceneStateChange(oldState, newState, filterType, fragment, inputType)
+	if libFilters.debug then
+		dd("onSceneStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
+	end
+	if newState == SCENE_SHOWN then
+		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 3)
+	elseif newState == SCENE_HIDDEN then
+		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 3)
+	end
+end
+
+local function onHiddenStateChange(isShown, filterType, fragment, inputType)
+	if libFilters.debug then
+		dd("Hidden state Change hidden %q - filterType: %s, isGamePad: %s", tos(not isShown), tos(filterType), tos(inputType))
+	end
+	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN
+	callbackRaise(filterType, fragment, stateStr, inputType, 1)
+end
+
 
 local function createCallbacks()
 	if libFilters.debug then
 		dd("createCallbacks")
 	end
+	--Scenes
+	--[scene] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+	local callbacksUsingScenes = callbacks.usingScenes
+
+	for inputType, callbackDataPerFilterType in pairs(callbacksUsingScenes) do
+		for scene, filterType in pairs(callbackDataPerFilterType) do
+			if libFilters.debug then
+				dd(">register scene StateChange to: %s - filterType: %s", tos(scene), tos(filterType))
+			end
+			if filterType == 0 then filterType = nil end
+			scene:RegisterCallback("StateChange",
+					function(oldState, newState) onSceneStateChange(oldState, newState, filterType, scene, inputType) end)
+		end
+	end
+
+	--Fragments
 	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	local callbacksUsingFragments = callbacks.usingFragments
 
@@ -2904,6 +2948,46 @@ local function createCallbacks()
 					function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment, inputType) end)
 		end
 	end
+
+	--Controls
+	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+	local callbacksUsingControls = callbacks.usingControls
+
+	for inputType, callbackDataPerFilterType in pairs(callbacksUsingControls) do
+		for controlRef, filterType in pairs(callbackDataPerFilterType) do
+			if libFilters.debug then
+				local ctrlName = (controlRef.GetName ~= nil and controlRef:GetName()) or (controlRef.name ~= nil and controlRef.name)
+				if ctrlName == nil then ctrlName = "n/a" end
+				dd(">register control OnShow/OnHide of: %s - filterType: %s", tos(ctrlName), tos(filterType))
+			end
+			if filterType == 0 then filterType = nil end
+
+			--OnShow
+			local onShowHandler = controlRef:GetHandler("OnEffectivelyShown")
+			if onShowHandler ~= nil then
+				ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
+					onHiddenStateChange(true, filterType, ctrlRef, inputType)
+				end)
+			else
+				controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
+					onHiddenStateChange(true, filterType, ctrlRef, inputType)
+				end)
+			end
+
+			--OnHide
+			local onHideHandler = controlRef:GetHandler("OnHide")
+			if onHideHandler ~= nil then
+				ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
+					onHiddenStateChange(false, filterType, ctrlRef, inputType)
+				end)
+			else
+				controlRef:SetHandler("OnHide", function(ctrlRef)
+					onHiddenStateChange(false, filterType, ctrlRef, inputType)
+				end)
+			end
+		end
+	end
+
 end
 
 

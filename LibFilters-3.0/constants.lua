@@ -336,6 +336,7 @@ kbc.storeWindows                  = {
 	[ZO_MODE_STORE_STABLE] = 		kbc.vendorBuy,
 }
 
+
 --[Fence]
 --Fence launder
 kbc.fence                         = FENCE_KEYBOARD
@@ -396,6 +397,9 @@ kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
 --Enchanting
 kbc.enchantingClass               = ZO_Enchanting
 kbc.enchanting                    =	ENCHANTING
+local enchanting = kbc.enchanting
+kbc.enchantingScene			      = ENCHANTING_SCENE
+local enchantingScene = kbc.enchantingScene
 
 --Alchemy
 kbc.alchemy                       =	ALCHEMY
@@ -517,7 +521,7 @@ gpc.invPlayerTradeFragment_GP   = GAMEPAD_TRADE_FRAGMENT
 
 --[Companion]
 gpc.companionEquipment_GP       = COMPANION_EQUIPMENT_GAMEPAD
-gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel --TODO is this the correct for gamepad mode?
+gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel		--TODO is this the correct for gamepad mode?
 
 
 --[Crafting]
@@ -1115,23 +1119,23 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_RETRAIT]                  = { ["control"] = kbc.retrait, 					["scene"] = "retrait_keyboard_root", ["fragment"] = kbc.retraitFragment, },
 		--Works: 2021-12-13
-		[LF_ENCHANTING_CREATION]	  = { ["control"] = kbc.enchanting, 				["scene"] = "enchanting", 			["fragment"] = nil,
+		[LF_ENCHANTING_CREATION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,	["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
-												  ["control"]  =  kbc.enchanting,
+												  ["control"]  =  enchanting,
 												  ["funcOrAttribute"] = "GetEnchantingMode",
-												  ["params"] = {kbc.enchanting},
+												  ["params"] = {enchanting},
 												  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
 											  }
 										  }
 		},
 		--Works: 2021-12-13
-		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = kbc.enchanting, 				["scene"] = "enchanting", 			["fragment"] = nil,
+		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,	["fragment"] = nil,
 											["special"] = {
 												[1] = {
-													["control"]  =  kbc.enchanting,
+													["control"]  =  enchanting,
 													["funcOrAttribute"] = "GetEnchantingMode",
-													["params"] = {kbc.enchanting},
+													["params"] = {enchanting},
 													["expectedResults"] = {ENCHANTING_MODE_EXTRACTION},
 												}
 											}
@@ -1811,13 +1815,13 @@ libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
 
 --[fragment] = LF_* filterTypeConstant
---0 means no dedicated LF_* constant can be used and the filterType will be determined
+--0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
+--detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
+--Example:
+--[fragmentVariable] = LF_INVENTORY,
 local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
-		--Example:
-		--[fragmentVariable] = true,
-		--
 		--Inventory fragment
 		--[[ kbc.inventoryFragment:
 			LF_INVENTORY
@@ -1860,8 +1864,32 @@ local callbacksUsingFragments = {
 callbacks.usingFragments = callbacksUsingFragments
 
 
+--[scene_Or_sceneName] = LF_* filterTypeConstant
+--0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
+--detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
+--Example:
+--[sceneVariable] = LF_INVENTORY,
+local callbacksUsingScenes = {
+	--Keyboard
+	[false] = {
+		--LF_ENCHANTING_CREATION
+		--LF_ENCHANTING_EXTRACTION
+		[enchantingScene] = 0,
+	},
+	--Gamepad
+	[true] = {
+		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
+		--todo
+
+	}
+}
+callbacks.usingScenes = callbacksUsingScenes
+
+
 --[control] = LF_* filterTypeConstant
 --0 means no dedicated LF_* constant can be used and the filterType will be determined
+--Example:
+--[controlVariable] = LF_INVENTORY,
 local callbacksUsingControl = {
 	--Keyboard
 	[false] = {
