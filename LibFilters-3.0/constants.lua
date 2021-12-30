@@ -22,7 +22,7 @@ local libFilters = {}
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
-_G[GlobalLibName] = 		libFilters --global table LibFilters3
+_G[GlobalLibName] 			= libFilters --global table LibFilters3
 libFilters.name	            = MAJOR
 libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
@@ -348,26 +348,32 @@ kbc.invFenceSell                  = BACKPACK_FENCE_LAYOUT_FRAGMENT
 
 --[Guild store]
 kbc.guildStoreObj                 = ZO_TradingHouse
+local guildStoreObj 			  = kbc.guildStoreObj
 --keyboardConstants.guildStoreBuy = guildStoreBuy			--not supported by LibFilters yet
 kbc.guildStoreBrowseFragment      = TRADING_HOUSE_SEARCH_HISTORY_KEYBOARD_FRAGMENT
+local guildStoreBrowseFragment	  = kbc.guildStoreBrowseFragment
 
 kbc.guildStoreSell                = BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
 kbc.guildStoreSellFragment        = INVENTORY_FRAGMENT
-
+local guildStoreSellFragment 	  = kbc.guildStoreSellFragment
 
 
 --[Mail]
 kbc.mailSendObj                   =	MAIL_SEND
 kbc.mailSend                      =	BACKPACK_MAIL_LAYOUT_FRAGMENT
+local mailSend 					  = kbc.mailSend
 
 --[Player 2 player trade]
 kbc.player2playerTradeObj         = TRADE --TRADE_WINDOW
 kbc.player2playerTrade            = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
+local player2playerTrade 		  = kbc.player2playerTrade
 
 
 --[Companion]
 kbc.companionEquipment            = COMPANION_EQUIPMENT_KEYBOARD
+local companionEquipment 		  = kbc.companionEquipment
 kbc.companionEquipmentFragment	  = COMPANION_EQUIPMENT_KEYBOARD_FRAGMENT
+local companionEquipmentFragment  = kbc.companionEquipmentFragment
 kbc.companionCharacterCtrl        = ZO_CompanionCharacterWindow_Keyboard_TopLevel
 kbc.companionCharacterFragment    = COMPANION_CHARACTER_KEYBOARD_FRAGMENT
 
@@ -379,20 +385,25 @@ local smithing                    = kbc.smithing
 
 --Refinement
 kbc.refinementPanel               = smithing.refinementPanel
+local refinementPanel 			  = kbc.refinementPanel
 
 --Create
 kbc.creationPanel                 = smithing.creationPanel
+local creationPanel 			  = kbc.creationPanel
 
 --Deconstruction
 kbc.deconstructionPanel           = smithing.deconstructionPanel
+local deconstructionPanel 		  = kbc.deconstructionPanel
 
 --Improvement
 kbc.improvementPanel              = smithing.improvementPanel
+local improvementPanel 			  = kbc.improvementPanel
 
 --Research
 kbc.researchPanel                 = smithing.researchPanel
-local researchPanel = kbc.researchPanel
+local researchPanel 			  = kbc.researchPanel
 kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
+local researchChooseItemDialog 	  = kbc.researchChooseItemDialog
 
 --Enchanting
 kbc.enchantingClass               = ZO_Enchanting
@@ -403,21 +414,28 @@ local enchantingScene = kbc.enchantingScene
 
 --Alchemy
 kbc.alchemy                       =	ALCHEMY
+local alchemy 					  = kbc.alchemy
 kbc.alchemyScene                  =	ALCHEMY_SCENE
-kbc.alchemyCtrl                   = kbc.alchemy.control
+local alchemyScene 				  = kbc.alchemyScene
+kbc.alchemyCtrl                   = alchemy.control
 kbc.alchemyFragment               =	ALCHEMY_FRAGMENT
+local alchemyFragment 			  = kbc.alchemyFragment
 
 --Provisioning
 kbc.provisioner			          = PROVISIONER
+local provisioner 				  = kbc.provisioner
 kbc.provisionerFragment			  = PROVISIONER_FRAGMENT
+local provisionerFragment		  = kbc.provisionerFragment
 
 --Retrait
 --keyboardConstants.retraitClass  = ZO_RetraitStation_Retrait_Base
 kbc.retrait                       = ZO_RETRAIT_KEYBOARD
+local retrait 					  = kbc.retrait
 kbc.retraitFragment				  = RETRAIT_STATION_RETRAIT_FRAGMENT
+local retraitFragment 			  = kbc.retraitFragment
 
 --Reconstruction
-kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD
+kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
@@ -785,7 +803,7 @@ local filterTypeToReference = {
 
 		[LF_INVENTORY_QUEST]          = { kbc.invQuests },
 		[LF_QUICKSLOT]                = { kbc.quickslots },
-		[LF_INVENTORY_COMPANION]      = { kbc.companionEquipment },
+		[LF_INVENTORY_COMPANION]      = { companionEquipment },
 
 		[LF_BANK_WITHDRAW]            = { kbc.invBankWithdraw },
 		[LF_BANK_DEPOSIT]             = { kbc.invBankDeposit },
@@ -803,24 +821,24 @@ local filterTypeToReference = {
 
 		[LF_GUILDSTORE_SELL]          = { kbc.guildStoreSell },
 
-		[LF_MAIL_SEND]                = { kbc.mailSend },
-		[LF_TRADE]                    = { kbc.player2playerTrade },
+		[LF_MAIL_SEND]                = { mailSend },
+		[LF_TRADE]                    = { player2playerTrade },
 
-		[LF_SMITHING_RESEARCH_DIALOG] = { kbc.researchChooseItemDialog },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { kbc.researchChooseItemDialog },
+		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog },
 
 
 		--Shared with gamepad mode -> See entry with LF_* at [true] (using gamepadConstants) below
-		[LF_SMITHING_REFINE]          = { kbc.refinementPanel },
-		[LF_SMITHING_DECONSTRUCT]     = { kbc.deconstructionPanel },
-		[LF_SMITHING_IMPROVEMENT]     = { kbc.improvementPanel },
-		[LF_SMITHING_RESEARCH]        = { kbc.researchPanel },
-		[LF_JEWELRY_REFINE]           = { kbc.refinementPanel },
-		[LF_JEWELRY_DECONSTRUCT]      = { kbc.deconstructionPanel },
-		[LF_JEWELRY_IMPROVEMENT]      = { kbc.improvementPanel },
-		[LF_JEWELRY_RESEARCH]         = { kbc.researchPanel },
-		[LF_ALCHEMY_CREATION]         = { kbc.alchemyScene },
-		[LF_RETRAIT]                  = { kbc.retrait },
+		[LF_SMITHING_REFINE]          = { refinementPanel },
+		[LF_SMITHING_DECONSTRUCT]     = { deconstructionPanel },
+		[LF_SMITHING_IMPROVEMENT]     = { improvementPanel },
+		[LF_SMITHING_RESEARCH]        = { researchPanel },
+		[LF_JEWELRY_REFINE]           = { refinementPanel },
+		[LF_JEWELRY_DECONSTRUCT]      = { deconstructionPanel },
+		[LF_JEWELRY_IMPROVEMENT]      = { improvementPanel },
+		[LF_JEWELRY_RESEARCH]         = { researchPanel },
+		[LF_ALCHEMY_CREATION]         = { alchemyScene },
+		[LF_RETRAIT]                  = { retrait },
 
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
@@ -951,7 +969,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  },
 		},
 		--Works: 2021-12-13
-		[LF_INVENTORY_COMPANION]      = { ["control"] = kbc.companionEquipment, 		["scene"] = "companionCharacterKeyboard", ["fragment"] = kbc.companionEquipmentFragment, },
+		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment, 		["scene"] = "companionCharacterKeyboard", ["fragment"] = companionEquipmentFragment, },
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = kbc.quickslots, 				["scene"] = "inventory",			["fragment"] = kbc.quickslotsFragment, },
 		--Works: 2021-12-13
@@ -979,13 +997,13 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_FENCE_LAUNDER]            = { ["control"] = kbc.fence, 						["scene"] = "fence_keyboard", 		["fragment"] = kbc.invFenceLaunder, },
 		--Works: 2021-12-13
-		[LF_GUILDSTORE_SELL]          = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreSellFragment, },
+		[LF_GUILDSTORE_SELL]          = { ["control"] = guildStoreObj, 					["scene"] = "tradinghouse", 		["fragment"] = guildStoreSellFragment, },
 		--Works: 2021-12-13
-		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = kbc.mailSend, },
+		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = mailSend, },
 		--Works: 2021-12-13
-		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = kbc.player2playerTrade, },
+		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = player2playerTrade, },
 		--Works: 2021-12-13
-		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = kbc.researchPanel.control,["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = researchPanelControl,		["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -996,7 +1014,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["controlDialog"] = kbc.researchPanel.control,["scene"] = "smithing",	 			["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["controlDialog"] = researchPanelControl,		["scene"] = "smithing",	 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1007,7 +1025,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_REFINE]          = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_REFINE]          = { ["control"] = refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1018,7 +1036,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 										},
 		--Works: 2021-12-13
-		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1029,7 +1047,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = improvementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1040,7 +1058,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_RESEARCH]        = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_RESEARCH]        = { ["control"] = researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1051,7 +1069,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1062,7 +1080,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_REFINE]           = { ["control"] = kbc.refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_REFINE]           = { ["control"] = refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1073,7 +1091,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = kbc.deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
 												   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1084,7 +1102,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = kbc.improvementPanel, 			["scene"] = "smithing",	 			["fragment"] = nil,
+		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = improvementPanel, 			["scene"] = "smithing",	 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1095,7 +1113,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_RESEARCH]         = { ["control"] = kbc.researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH]         = { ["control"] = researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1106,10 +1124,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_ALCHEMY_CREATION]		  = { ["control"] = kbc.alchemy, 					["scene"] = kbc.alchemyScene, 		["fragment"] = kbc.alchemyFragment,
+		[LF_ALCHEMY_CREATION]		  = { ["control"] = alchemy, 					["scene"] = alchemyScene, 		["fragment"] = alchemyFragment,
 										   ["special"] = {
 												[1] = {
-													["control"]  =  kbc.alchemy,
+													["control"]  =  alchemy,
 													["funcOrAttribute"] = "mode",
 													["params"] = {},
 													["expectedResults"] = {ZO_ALCHEMY_MODE_CREATION},
@@ -1117,9 +1135,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_RETRAIT]                  = { ["control"] = kbc.retrait, 					["scene"] = "retrait_keyboard_root", ["fragment"] = kbc.retraitFragment, },
+		[LF_RETRAIT]                  = { ["control"] = retrait, 					["scene"] = "retrait_keyboard_root",["fragment"] = retraitFragment, },
 		--Works: 2021-12-13
-		[LF_ENCHANTING_CREATION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,	["fragment"] = nil,
+		[LF_ENCHANTING_CREATION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,		["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]  =  enchanting,
@@ -1130,7 +1148,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--Works: 2021-12-13
-		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,	["fragment"] = nil,
+		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,		["fragment"] = nil,
 											["special"] = {
 												[1] = {
 													["control"]  =  enchanting,
@@ -1143,9 +1161,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 		--Not implemented yet
 		--Works: 2021-12-13
-		[LF_GUILDSTORE_BROWSE]        = { ["control"] = kbc.guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = kbc.guildStoreBrowseFragment, },
+		[LF_GUILDSTORE_BROWSE]        = { ["control"] = guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = guildStoreBrowseFragment, },
 		--Works: 2021-12-13
-		[LF_SMITHING_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_CREATION] 		  = { ["control"] = creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1156,7 +1174,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = kbc.creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1167,10 +1185,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_PROVISIONING_COOK]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+		[LF_PROVISIONING_COOK]		  = { ["control"] = provisioner,				["scene"] = "provisioner", 			["fragment"] = provisionerFragment,
 										   ["special"] = {
 												[1] = {
-													["control"]  =  kbc.provisioner,
+													["control"]  =  provisioner,
 													["funcOrAttribute"] = "filterType",
 													["params"] = {},
 													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES},
@@ -1178,10 +1196,10 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_PROVISIONING_BREW]		  = { ["control"] = kbc.provisioner,				["scene"] = "provisioner", 			["fragment"] = kbc.provisionerFragment,
+		[LF_PROVISIONING_BREW]		  = { ["control"] = provisioner,				["scene"] = "provisioner", 			["fragment"] = provisionerFragment,
 										   ["special"] = {
 												[1] = {
-													["control"]  =  kbc.provisioner,
+													["control"]  =  provisioner,
 													["funcOrAttribute"] = "filterType",
 													["params"] = {},
 													["expectedResults"] = {PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING},
@@ -1833,12 +1851,12 @@ local callbacksUsingFragments = {
 		[inventoryFragment] 				= 0,
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
-		[kbc.provisionerFragment]			= 0,
+		[provisionerFragment]				= 0,
 		--Dedicated fragments
 		[kbc.invQuestFragment] 				= LF_INVENTORY_QUEST,
 		[kbc.bankWithdrawFragment] 			= LF_BANK_WITHDRAW,
 		[kbc.craftBagFragment] 				= LF_CRAFTBAG,
-		[kbc.companionEquipmentFragment] 	= LF_INVENTORY_COMPANION,
+		[companionEquipmentFragment] 		= LF_INVENTORY_COMPANION,
 		[kbc.quickslotsFragment] 			= LF_QUICKSLOT,
 		[kbc.guildBankWithdrawFragment]     = LF_GUILDBANK_WITHDRAW,
 		[kbc.houseBankWithdrawFragment]		= LF_HOUSE_BANK_WITHDRAW,
@@ -1847,12 +1865,12 @@ local callbacksUsingFragments = {
 		[kbc.vendorRepairFragment]			= LF_VENDOR_REPAIR,
 		[kbc.invFenceSell]					= LF_FENCE_SELL,
 		[kbc.invFenceLaunder]				= LF_FENCE_LAUNDER,
-		[kbc.guildStoreSellFragment]		= LF_GUILDSTORE_SELL,
-		[kbc.mailSend]						= LF_MAIL_SEND,
-		[kbc.player2playerTrade]			= LF_TRADE,
-		[kbc.alchemyFragment]				= LF_ALCHEMY_CREATION,
-		[kbc.retraitFragment]				= LF_RETRAIT,
-		[kbc.guildStoreBrowseFragment]		= LF_GUILDSTORE_BROWSE,
+		[guildStoreSellFragment]			= LF_GUILDSTORE_SELL,
+		[mailSend]							= LF_MAIL_SEND,
+		[player2playerTrade]				= LF_TRADE,
+		[alchemyFragment]					= LF_ALCHEMY_CREATION,
+		[retraitFragment]					= LF_RETRAIT,
+		[guildStoreBrowseFragment]			= LF_GUILDSTORE_BROWSE,
 	},
 	--Gamepad
 	[true] = {

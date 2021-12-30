@@ -2921,6 +2921,7 @@ local function createCallbacks()
 	if libFilters.debug then
 		dd("createCallbacks")
 	end
+------------------------------------------------------------------------------------------------------------------------
 	--Scenes
 	--[scene] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	local callbacksUsingScenes = callbacks.usingScenes
@@ -2930,12 +2931,12 @@ local function createCallbacks()
 			if libFilters.debug then
 				dd(">register scene StateChange to: %s - filterType: %s", tos(scene), tos(filterType))
 			end
-			if filterType == 0 then filterType = nil end
+			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
 			scene:RegisterCallback("StateChange",
 					function(oldState, newState) onSceneStateChange(oldState, newState, filterType, scene, inputType) end)
 		end
 	end
-
+------------------------------------------------------------------------------------------------------------------------
 	--Fragments
 	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	local callbacksUsingFragments = callbacks.usingFragments
@@ -2945,12 +2946,12 @@ local function createCallbacks()
 			if libFilters.debug then
 				dd(">register fragment StateChange to: %s - filterType: %s", tos(fragment), tos(filterType))
 			end
-			if filterType == 0 then filterType = nil end
+			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
 			fragment:RegisterCallback("StateChange",
 					function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment, inputType) end)
 		end
 	end
-
+------------------------------------------------------------------------------------------------------------------------
 	--Controls
 	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	local callbacksUsingControls = callbacks.usingControls
@@ -2962,7 +2963,7 @@ local function createCallbacks()
 				if ctrlName == nil then ctrlName = "n/a" end
 				dd(">register control OnShow/OnHide of: %s - filterType: %s", tos(ctrlName), tos(filterType))
 			end
-			if filterType == 0 then filterType = nil end
+			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
 
 			--OnShow
 			local onShowHandler = controlRef:GetHandler("OnEffectivelyShown")
@@ -2989,7 +2990,6 @@ local function createCallbacks()
 			end
 		end
 	end
-
 end
 
 
