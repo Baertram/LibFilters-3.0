@@ -1633,16 +1633,16 @@ function libFilters:IsFilterRegistered(filterTag, filterType)
 	end
 	if filterType == nil then
 		--check whether there's any filter with this tag
-		for _, callbacks in pairs(filters) do
-			if callbacks[filterTag] ~= nil then
+		for _, filterCallbacks in pairs(filters) do
+			if filterCallbacks[filterTag] ~= nil then
 				return true
 			end
 		end
 		return false
 	else
 		--check only the specified filter type
-		local callbacks = filters[filterType]
-		return callbacks[filterTag] ~= nil
+		local filterCallbacks = filters[filterType]
+		return filterCallbacks[filterTag] ~= nil
 	end
 end
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
@@ -1657,8 +1657,8 @@ function libFilters:IsAllFilterRegistered(filterTag)
 			tos(filterTag))
 		return
 	end
-	local callbacks = filters[LF_FILTER_ALL]
-	return callbacks[filterTag] ~= nil
+	local filterCallbacks = filters[LF_FILTER_ALL]
+	return filterCallbacks[filterTag] ~= nil
 end
 
 
@@ -1677,8 +1677,8 @@ function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, c
 	compareToLowerCase = compareToLowerCase or false
 	if filterType == nil then
 		--check whether there's any filter with this tag's pattern
-		for _, callbacks in pairs(filters) do
-			for filterTag, _ in pairs(callbacks) do
+		for _, filterCallbacks in pairs(filters) do
+			for filterTag, _ in pairs(filterCallbacks) do
 				local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
 				if strmat(filterTagToCompare, filterTagPattern) ~= nil then
 					return true
@@ -1687,8 +1687,8 @@ function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, c
 		end
 	else
 	--check only the specified filter type
-		local callbacks = filters[filterType]
-		for filterTag, _ in pairs(callbacks) do
+		local filterCallbacks = filters[filterType]
+		for filterTag, _ in pairs(filterCallbacks) do
 			local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
 			if strmat(filterTagToCompare, filterTagPattern) ~= nil then
 				return true
@@ -1709,19 +1709,20 @@ local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s)
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
 	if libFilters.debug then dd("RegisterFilter-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
-	local callbacks = filters[filterType]
-	if not filterTag or not filterType or not callbacks or type(filterCallback) ~= "function" then
+	local filterCallbacks = filters[filterType]
+	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
 		dfe(registerFilteParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
 	noInUseError = noInUseError or false
-	if callbacks[filterTag] ~= nil then
+	if filterCallbacks[filterTag] ~= nil then
 		if not noInUseError then
-			dfe("FilterTag \'%q\' filterType \'%q\' filterCallback function is already in use.\nPlease check via \'LibFilters:IsFilterRegistered(filterTag, filterType)\' before registering filters!", tos(filterTag), tos(filterType))
+			dfe("FilterTag \'%q\' filterType \'%q\' filterCallback function is already in use.\nPlease check via \'LibFilters:IsFilterRegistered(filterTag, filterType)\' before registering filters!",
+					tos(filterTag), tos(filterType))
 		end
 		return false
 	end
-	callbacks[filterTag] = filterCallback
+	filterCallbacks[filterTag] = filterCallback
 	return true
 end
 local libFilters_RegisterFilter = libFilters.RegisterFilter
@@ -1734,9 +1735,10 @@ local libFilters_RegisterFilter = libFilters.RegisterFilter
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
 	if libFilters.debug then dd("RegisterFilterIfUnregistered-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
-	local callbacks = filters[filterType]
-	if not filterTag or not filterType or not callbacks or type(filterCallback) ~= "function" then
-		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+	local filterCallbacks = filters[filterType]
+	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
+		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered",
+				tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
 	noInUseError = noInUseError or false
@@ -1763,9 +1765,9 @@ function libFilters:UnregisterFilter(filterTag, filterType)
 	if filterType == nil then
 		--unregister all filters with this tag
 		local unregisteredFilterFunctions = 0
-		for _, callbacks in pairs(filters) do
-			if callbacks[filterTag] ~= nil then
-				callbacks[filterTag] = nil
+		for _, filterCallbacks in pairs(filters) do
+			if filterCallbacks[filterTag] ~= nil then
+				filterCallbacks[filterTag] = nil
 				unregisteredFilterFunctions = unregisteredFilterFunctions + 1
 			end
 		end
@@ -1774,9 +1776,9 @@ function libFilters:UnregisterFilter(filterTag, filterType)
 		end
 	else
 		--unregister only the specified filter type
-		local callbacks = filters[filterType]
-		if callbacks[filterTag] ~= nil then
-			callbacks[filterTag] = nil
+		local filterCallbacks = filters[filterType]
+		if filterCallbacks[filterTag] ~= nil then
+			filterCallbacks[filterTag] = nil
 			return true
 		end
 	end
@@ -1832,8 +1834,8 @@ function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerC
 	local filterTagToCompare = (compareToLowerCase == true and filterTag:lower()) or filterTag
 	if filterType == nil then
 		--check whether there's any filter with this tag's pattern
-		for lFilterType, callbacks in pairs(filters) do
-			for lFilterTag, filterFunction in pairs(callbacks) do
+		for lFilterType, filterCallbacks in pairs(filters) do
+			for lFilterTag, filterFunction in pairs(filterCallbacks) do
 				local lFilterTagToCompare = (compareToLowerCase == true and lFilterTag:lower()) or lFilterTag
 				if strmat(lFilterTagToCompare, filterTagToCompare) ~= nil then
 					retTab = retTab or {}
@@ -1844,8 +1846,8 @@ function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerC
 		end
 	else
 	--check only the specified filter type
-		local callbacks = filters[filterType]
-		for lFilterTag, filterFunction in pairs(callbacks) do
+		local filterCallbacks = filters[filterType]
+		for lFilterTag, filterFunction in pairs(filterCallbacks) do
 			local lFilterTagToCompare = (compareToLowerCase == true and lFilterTag:lower()) or lFilterTag
 			if strmat(lFilterTagToCompare, filterTagToCompare) ~= nil then
 				retTab = retTab or {}
@@ -1873,8 +1875,8 @@ function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, c
 	local retTab
 	if filterType == nil then
 		--check whether there's any filter with this tag's pattern
-		for lFilterType, callbacks in pairs(filters) do
-			for filterTag, filterFunction in pairs(callbacks) do
+		for lFilterType, filterCallbacks in pairs(filters) do
+			for filterTag, filterFunction in pairs(filterCallbacks) do
 				local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
 				if strmat(filterTagToCompare, filterTagPattern) ~= nil then
 					retTab = retTab or {}
@@ -1885,8 +1887,8 @@ function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, c
 		end
 	else
 	--check only the specified filter type
-		local callbacks = filters[filterType]
-		for filterTag, filterFunction in pairs(callbacks) do
+		local filterCallbacks = filters[filterType]
+		for filterTag, filterFunction in pairs(filterCallbacks) do
 			local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
 			if strmat(filterTagToCompare, filterTagPattern) ~= nil then
 				retTab = retTab or {}
@@ -2889,9 +2891,9 @@ local function onFragmentStateChange(oldState, newState, filterType, fragment, i
 		dd("onFragmentStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
 	end
 	if newState == SCENE_FRAGMENT_SHOWN then
-		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 2)
+		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 3)
 	elseif newState == SCENE_FRAGMENT_HIDDEN then
-		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 2)
+		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 3)
 	end
 end
 
@@ -2900,15 +2902,15 @@ local function onSceneStateChange(oldState, newState, filterType, fragment, inpu
 		dd("onSceneStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
 	end
 	if newState == SCENE_SHOWN then
-		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 3)
+		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 2)
 	elseif newState == SCENE_HIDDEN then
-		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 3)
+		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 2)
 	end
 end
 
 local function onHiddenStateChange(isShown, filterType, fragment, inputType)
 	if libFilters.debug then
-		dd("Hidden state Change hidden %q - filterType: %s, isGamePad: %s", tos(not isShown), tos(filterType), tos(inputType))
+		dd("Hidden state change hidden %q - filterType: %s, isGamePad: %s", tos(not isShown), tos(filterType), tos(inputType))
 	end
 	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN
 	callbackRaise(filterType, fragment, stateStr, inputType, 1)
