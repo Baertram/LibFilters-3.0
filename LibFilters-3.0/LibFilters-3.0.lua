@@ -194,6 +194,7 @@ local store                    = 	kbc.store
 --local storeBuyBack             = 	kbc.vendorBuyBack
 --local storeRepair              = 	kbc.vendorRepair
 local storeWindows             = 	kbc.storeWindows
+local guildStoreSellFragment   = 	kbc.guildStoreSellFragment
 --local fence                    = 	kbc.fence
 local researchChooseItemDialog = 	kbc.researchChooseItemDialog
 local playerInvCtrl            =    kbc.playerInvCtrl
@@ -1251,7 +1252,7 @@ local inventoryUpdaters           = {
 		if IsGamepad() then
 			updateFunction_GP_Vendor(ZO_MODE_STORE_BUY)
 		else
-			if kbc.guildStoreSell.state ~= SCENE_SHOWN then --"shown"
+			if guildStoreSellFragment.state ~= SCENE_SHOWN then --"shown"
 				store:GetStoreItems()
 				SafeUpdateList(store)
 			end
