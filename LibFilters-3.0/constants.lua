@@ -302,10 +302,13 @@ local quickslotsFragment 		  = kbc.quickslotsFragment
 --[Banks]
 --Player bank
 kbc.invBankDeposit                = BACKPACK_BANK_LAYOUT_FRAGMENT
+local invBankDeposit 			  = kbc.invBankDeposit
 kbc.invBankWithdraw               = inventories[invTypeBank]
+local invBankWithdraw 			  = kbc.invBankWithdraw
 kbc.bankWithdrawFragment          = BANK_FRAGMENT
 local bankWithdrawFragment 		  = kbc.bankWithdrawFragment
 kbc.invBankScene      		  	  = getScene(SM, "bank")
+local invBankScene 				  = kbc.invBankScene
 
 --Guild bank
 kbc.invGuildBankDeposit           = BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
@@ -331,28 +334,33 @@ local invHouseBankScene 		  = kbc.invHouseBankScene
 --[Vendor]
 ----Buy
 kbc.store                         = STORE_WINDOW
+local store 					  = kbc.store
 ---Sell
 kbc.vendorBuy                     =	kbc.store
+local vendorBuy 				  = kbc.vendorBuy
 kbc.vendorBuyFragment			  = STORE_FRAGMENT
 local vendorBuyFragment 	  	  = kbc.vendorBuyFragment
 kbc.vendorSell        			  = BACKPACK_STORE_LAYOUT_FRAGMENT
+local vendorSell 				  = kbc.vendorSell
 ---Buy back
 kbc.vendorBuyBack     			  = BUY_BACK_WINDOW
+local vendorBuyBack		  	 	  = kbc.vendorBuyBack
 kbc.vendorBuyBackFragment		  = BUY_BACK_FRAGMENT
 local vendorBuyBackFragment 	  = kbc.vendorBuyBackFragment
 
 ---Repair
 kbc.vendorRepair                  = REPAIR_WINDOW
+local vendorRepair 				  = kbc.vendorRepair
 kbc.vendorRepairFragment          = REPAIR_FRAGMENT
 local vendorRepairFragment 		  = kbc.vendorRepairFragment
 kbc.storeWindows                  = {
-	[ZO_MODE_STORE_BUY] = 			kbc.vendorBuy,
-	[ZO_MODE_STORE_BUY_BACK] = 		kbc.vendorBuyBack,
-	[ZO_MODE_STORE_SELL] = 			kbc.vendorSell, --TODO: Working?
-	[ZO_MODE_STORE_REPAIR] = 		kbc.vendorRepair,
-	[ZO_MODE_STORE_SELL_STOLEN] = 	kbc.vendorSell, --TODO: Working?
-	[ZO_MODE_STORE_LAUNDER] = 		kbc.vendorSell, --TODO: Working?
-	[ZO_MODE_STORE_STABLE] = 		kbc.vendorBuy,
+	[ZO_MODE_STORE_BUY] = 			vendorBuy,
+	[ZO_MODE_STORE_BUY_BACK] = 		vendorBuyBack,
+	[ZO_MODE_STORE_SELL] = 			vendorSell, --TODO: Working?
+	[ZO_MODE_STORE_REPAIR] = 		vendorRepair,
+	[ZO_MODE_STORE_SELL_STOLEN] = 	vendorSell, --TODO: Working?
+	[ZO_MODE_STORE_LAUNDER] = 		vendorSell, --TODO: Working?
+	[ZO_MODE_STORE_STABLE] = 		vendorBuy,
 }
 
 
@@ -432,7 +440,7 @@ kbc.enchantingClass               = ZO_Enchanting
 kbc.enchanting                    =	ENCHANTING
 local enchanting = kbc.enchanting
 kbc.enchantingScene			      = ENCHANTING_SCENE
-local enchantingScene = kbc.enchantingScene
+local enchantingScene 			  = kbc.enchantingScene
 
 --Alchemy
 kbc.alchemy                       =	ALCHEMY
@@ -827,17 +835,17 @@ local filterTypeToReference = {
 		[LF_QUICKSLOT]                = { quickslots },
 		[LF_INVENTORY_COMPANION]      = { companionEquipment },
 
-		[LF_BANK_WITHDRAW]            = { kbc.invBankWithdraw },
-		[LF_BANK_DEPOSIT]             = { kbc.invBankDeposit },
+		[LF_BANK_WITHDRAW]            = { invBankWithdraw },
+		[LF_BANK_DEPOSIT]             = { invBankDeposit },
 		[LF_GUILDBANK_WITHDRAW]       = { invGuildBankWithdraw },
 		[LF_GUILDBANK_DEPOSIT]        = { invGuildBankDeposit },
 		[LF_HOUSE_BANK_WITHDRAW]      = { invHouseBankWithdraw },
 		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit },
 
-		[LF_VENDOR_BUY]               = { kbc.store },
-		[LF_VENDOR_SELL]              = { kbc.vendorSell },
-		[LF_VENDOR_BUYBACK]           = { kbc.vendorBuyBack },
-		[LF_VENDOR_REPAIR]            = { kbc.vendorRepair },
+		[LF_VENDOR_BUY]               = { store },
+		[LF_VENDOR_SELL]              = { vendorSell },
+		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
+		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSellFragment },
 		[LF_FENCE_LAUNDER]            = { invFenceLaunderFragment },
 
@@ -954,13 +962,25 @@ mapping.LF_FilterTypeToReference = filterTypeToReference
 --The control must be a control with IsHidden() function or a .control subtable with that function
 --The scene needs to be a scene name or scene variable with the .state attribute
 --The fragment needs to be a fragment name or fragment variable with the .state and .sceneManager attributes
---Special entries can be added for dynamically done checks -> See LibFilters-3.0.lua, function isSpecialTrue(filterType, isInGamepadMode, ...)
+--Special entries can be added for dynamically done checks -> See LibFilters-3.0.lua, function isSpecialTrue(filterType, isInGamepadMode, false)
 --[[
 ["special"] = {
   [1] = {
 	  ["control"]  =  gamepadConstants.enchanting_GP,
 	  ["funcOrAttribute"] = "GetEnchantingMode",
-	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, ...)
+	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, false, ...)
+	  --either control + func + params OR bool can be given!
+	  ["bool"] = booleanVariableOrFunctionReturningABooleanValue,
+	  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
+	  ["expectedResultsMap"] = { [1] = true, [2] = nil } --Optional. Used if the function returns more than one parameter. You are able to to define which result parameter needs to be checked (true), or not (false/nil)
+  }
+}
+--SpecialForced entries can be added for dynamically done checks -> See LibFilters-3.0.lua, function isSpecialTrue(filterType, isInGamepadMode, true)
+["specialForced"] = {
+  [1] = {
+	  ["control"]  =  gamepadConstants.enchanting_GP,
+	  ["funcOrAttribute"] = "GetEnchantingMode",
+	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, true, ...)
 	  --either control + func + params OR bool can be given!
 	  ["bool"] = booleanVariableOrFunctionReturningABooleanValue,
 	  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
@@ -995,9 +1015,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = quickslots, 					["scene"] = "inventory",			["fragment"] = quickslotsFragment, },
 		--Works: 2021-12-13
-		[LF_BANK_WITHDRAW]            = { ["control"] = kbc.invBankWithdraw, 			["scene"] = kbc.invBankScene, 		["fragment"] = bankWithdrawFragment, },
+		[LF_BANK_WITHDRAW]            = { ["control"] = invBankWithdraw, 				["scene"] = invBankScene, 			["fragment"] = bankWithdrawFragment, },
 		--Works: 2021-12-13
-		[LF_BANK_DEPOSIT]             = { ["control"] = kbc.invBankDeposit, 			["scene"] = kbc.invBankScene, 		["fragment"] = inventoryFragment, },
+		[LF_BANK_DEPOSIT]             = { ["control"] = invBankDeposit, 				["scene"] = invBankScene, 			["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = invGuildBankWithdraw, 			["scene"] = invGuildBankScene,		["fragment"] = guildBankWithdrawFragment, },
 		--Works: 2021-12-13
@@ -1007,13 +1027,13 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = invHouseBankDeposit, 			["scene"] = invHouseBankScene , 	["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
-		[LF_VENDOR_BUY]               = { ["control"] = kbc.store, 						["scene"] = "store", 				["fragment"] = vendorBuyFragment, },
+		[LF_VENDOR_BUY]               = { ["control"] = store, 							["scene"] = "store", 				["fragment"] = vendorBuyFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = inventoryFragment, },
 		--Works: 2021-12-13
-		[LF_VENDOR_BUYBACK]           = { ["control"] = kbc.vendorBuyBack,				["scene"] = "store", 				["fragment"] = vendorBuyBackFragment, },
+		[LF_VENDOR_BUYBACK]           = { ["control"] = vendorBuyBack,					["scene"] = "store", 				["fragment"] = vendorBuyBackFragment, },
 		--Works: 2021-12-13
-		[LF_VENDOR_REPAIR]            = { ["control"] = kbc.vendorRepair, 				["scene"] = "store", 				["fragment"] = vendorRepairFragment, },
+		[LF_VENDOR_REPAIR]            = { ["control"] = vendorRepair, 					["scene"] = "store", 				["fragment"] = vendorRepairFragment, },
 		--Works: 2021-12-13
 		[LF_FENCE_SELL]               = { ["control"] = fence, 							["scene"] = "fence_keyboard",		["fragment"] = invFenceSellFragment, },
 		--Works: 2021-12-13
@@ -1047,7 +1067,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_REFINE]          = { ["control"] = refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_REFINE]          = { ["control"] = refinementPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1058,7 +1078,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 										},
 		--Works: 2021-12-13
-		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_DECONSTRUCT]     = { ["control"] = deconstructionPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1069,7 +1089,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = improvementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_IMPROVEMENT]     = { ["control"] = improvementPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1080,7 +1100,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_RESEARCH]        = { ["control"] = researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_RESEARCH]        = { ["control"] = researchPanel, 					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1091,7 +1111,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1102,7 +1122,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_REFINE]           = { ["control"] = refinementPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_REFINE]           = { ["control"] = refinementPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1113,7 +1133,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = deconstructionPanel, 		["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_DECONSTRUCT]      = { ["control"] = deconstructionPanel, 			["scene"] = "smithing", 			["fragment"] = nil,
 												   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1124,7 +1144,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = improvementPanel, 			["scene"] = "smithing",	 			["fragment"] = nil,
+		[LF_JEWELRY_IMPROVEMENT]      = { ["control"] = improvementPanel, 				["scene"] = "smithing",	 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1135,7 +1155,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_RESEARCH]         = { ["control"] = researchPanel, 				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH]         = { ["control"] = researchPanel, 					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1146,7 +1166,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_ALCHEMY_CREATION]		  = { ["control"] = alchemy, 					["scene"] = alchemyScene, 		["fragment"] = alchemyFragment,
+		[LF_ALCHEMY_CREATION]		  = { ["control"] = alchemy, 						["scene"] = alchemyScene, 		["fragment"] = alchemyFragment,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  alchemy,
@@ -1157,9 +1177,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_RETRAIT]                  = { ["control"] = retrait, 					["scene"] = "retrait_keyboard_root",["fragment"] = retraitFragment, },
+		[LF_RETRAIT]                  = { ["control"] = retrait, 						["scene"] = "retrait_keyboard_root",["fragment"] = retraitFragment, },
 		--Works: 2021-12-13
-		[LF_ENCHANTING_CREATION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,		["fragment"] = nil,
+		[LF_ENCHANTING_CREATION]	  = { ["control"] = enchanting, 					["scene"] = enchantingScene,		["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]  =  enchanting,
@@ -1170,7 +1190,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--Works: 2021-12-13
-		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = enchanting, 				["scene"] = enchantingScene,		["fragment"] = nil,
+		[LF_ENCHANTING_EXTRACTION]	  = { ["control"] = enchanting, 					["scene"] = enchantingScene,		["fragment"] = nil,
 											["special"] = {
 												[1] = {
 													["control"]  =  enchanting,
@@ -1183,9 +1203,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 		--Not implemented yet
 		--Works: 2021-12-13
-		[LF_GUILDSTORE_BROWSE]        = { ["control"] = guildStoreObj, 				["scene"] = "tradinghouse", 		["fragment"] = guildStoreBrowseFragment, },
+		[LF_GUILDSTORE_BROWSE]        = { ["control"] = guildStoreObj, 					["scene"] = "tradinghouse", 		["fragment"] = guildStoreBrowseFragment, },
 		--Works: 2021-12-13
-		[LF_SMITHING_CREATION] 		  = { ["control"] = creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_CREATION] 		  = { ["control"] = creationPanel,					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1196,7 +1216,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,				["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1207,7 +1227,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_PROVISIONING_COOK]		  = { ["control"] = provisioner,				["scene"] = "provisioner", 			["fragment"] = provisionerFragment,
+		[LF_PROVISIONING_COOK]		  = { ["control"] = provisioner,					["scene"] = "provisioner", 			["fragment"] = provisionerFragment,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  provisioner,
@@ -1218,7 +1238,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_PROVISIONING_BREW]		  = { ["control"] = provisioner,				["scene"] = "provisioner", 			["fragment"] = provisionerFragment,
+		[LF_PROVISIONING_BREW]		  = { ["control"] = provisioner,					["scene"] = "provisioner", 			["fragment"] = provisionerFragment,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  provisioner,
@@ -1235,7 +1255,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 	--Gamepad mode
 	[true]  = {
 		--Works, 2021-12-20
-		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = invFragment_GP,
+		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,		["fragment"] = invFragment_GP,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = invBackpack_GP,
@@ -1246,7 +1266,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--TODO
-		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 		["scene"] = gpc.companionEquipment_GP, 		["fragment"] = nil,
+		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = gpc.companionEquipment_GP,["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -1854,6 +1874,7 @@ mapping.inventoryUpdaters = { }
 libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
 
+
 --[fragment] = LF_* filterTypeConstant
 --0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
 --detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
@@ -1876,10 +1897,9 @@ local callbacksUsingFragments = {
 		[provisionerFragment]				= 0,
 		--Dedicated fragments
 		[invQuestFragment] 					= LF_INVENTORY_QUEST,
-		[bankWithdrawFragment] 				= LF_BANK_WITHDRAW,
 		[craftBagFragment] 					= LF_CRAFTBAG,
-		[companionEquipmentFragment] 		= LF_INVENTORY_COMPANION,
 		[quickslotsFragment] 				= LF_QUICKSLOT,
+		[bankWithdrawFragment] 				= LF_BANK_WITHDRAW,
 		[guildBankWithdrawFragment]     	= LF_GUILDBANK_WITHDRAW,
 		[houseBankWithdrawFragment]			= LF_HOUSE_BANK_WITHDRAW,
 		[vendorBuyFragment]  				= LF_VENDOR_BUY,
@@ -1887,12 +1907,13 @@ local callbacksUsingFragments = {
 		[vendorRepairFragment]				= LF_VENDOR_REPAIR,
 		[invFenceSellFragment]				= LF_FENCE_SELL,
 		[invFenceLaunderFragment]			= LF_FENCE_LAUNDER,
+		[guildStoreBrowseFragment]			= LF_GUILDSTORE_BROWSE,
 		[guildStoreSellLayoutFragment]		= LF_GUILDSTORE_SELL,
 		[mailSend]							= LF_MAIL_SEND,
 		[player2playerTrade]				= LF_TRADE,
 		[alchemyFragment]					= LF_ALCHEMY_CREATION,
 		[retraitFragment]					= LF_RETRAIT,
-		[guildStoreBrowseFragment]			= LF_GUILDSTORE_BROWSE,
+		[companionEquipmentFragment] 		= LF_INVENTORY_COMPANION,
 	},
 	--Gamepad
 	[true] = {
@@ -1933,7 +1954,24 @@ callbacks.usingScenes = callbacksUsingScenes
 local callbacksUsingControl = {
 	--Keyboard
 	[false] = {
-		--todo
+	 	--LF_SMITHING_REFINE
+		--LF_JEWELRY_REFINE
+		[refinementPanel] 		= 0,
+	 	--LF_SMITHING_CREATION
+		--LF_JEWELRY_CREATION
+		[creationPanel] 		= 0,
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		[deconstructionPanel] 	= 0,
+		--LF_SMITHING_IMPROVEMENT
+		--LF_JEWELRY_IMPROVEMENT
+		[improvementPanel] 		= 0,
+		--LF_SMITHING_RESEARCH
+		--LF_JEWELRY_RESEARCH
+		[researchPanel] 		= 0,
+		--LF_SMITHING_RESEARCH_DIALOG
+		--LF_JEWELRY_RESEARCH_DIALOG
+		[researchPanelControl] 	= 0,
 	},
 	--Gamepad
 	[true] = {

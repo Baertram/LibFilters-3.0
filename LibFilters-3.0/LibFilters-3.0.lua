@@ -535,14 +535,28 @@ end
 
 
 --[[
+--Special entries can be added for dynamically done checks -> See LibFilters-3.0.lua, function isSpecialTrue(filterType, isInGamepadMode, false, ...)
 ["special"] = {
   [1] = {
 	  ["control"]  =  gamepadConstants.enchanting_GP,
 	  ["funcOrAttribute"] = "GetEnchantingMode",
-	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, ...)
+	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, false, ...)
 	  --either control + func + params OR bool can be given!
 	  ["bool"] = booleanVariableOrFunctionReturningABooleanValue,
 	  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
+	  ["expectedResultsMap"] = { [1] = true, [2] = nil } --Optional. Used if the function returns more than one parameter. You are able to to define which result parameter needs to be checked (true), or not (false/nil)
+  }
+}
+--SpecialForced entries can be added for dynamically done checks -> See LibFilters-3.0.lua, function isSpecialTrue(filterType, isInGamepadMode, true, ...)
+["specialForced"] = {
+  [1] = {
+	  ["control"]  =  gamepadConstants.enchanting_GP,
+	  ["funcOrAttribute"] = "GetEnchantingMode",
+	  ["params"] = {}, --no params used, leave nil to pass in ... from isSpecialTrue(filterType, isInGamepadMode, true, ...)
+	  --either control + func + params OR bool can be given!
+	  ["bool"] = booleanVariableOrFunctionReturningABooleanValue,
+	  ["expectedResults"] = {ENCHANTING_MODE_CREATION},
+	  ["expectedResultsMap"] = { [1] = true, [2] = nil } --Optional. Used if the function returns more than one parameter. You are able to to define which result parameter needs to be checked (true), or not (false/nil)
   }
 }
 ]]
