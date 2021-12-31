@@ -1883,14 +1883,11 @@ local callbacks = libFilters.mapping.callbacks
 local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
-		--Inventory fragment
-		--[[ kbc.inventoryFragment:
-			LF_INVENTORY
-			LF_BANK_DEPOSIT
-			LF_GUILDBANK_DEPOSIT
-			LF_HOUSE_BANK_DEPOSIT
-			LF_VENDOR_SELL
-		]]
+		--LF_INVENTORY
+		--LF_BANK_DEPOSIT
+		--LF_GUILDBANK_DEPOSIT
+		--LF_HOUSE_BANK_DEPOSIT
+		--LF_VENDOR_SELL
 		[inventoryFragment] 				= 0,
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
@@ -1915,11 +1912,23 @@ local callbacksUsingFragments = {
 		[retraitFragment]					= LF_RETRAIT,
 		[companionEquipmentFragment] 		= LF_INVENTORY_COMPANION,
 	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 	--Gamepad
 	[true] = {
 		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
-		--todo
-
+		--LF_INVENTORY
+		--LF_CRAFTBAG
+		--LF_INVENTORY_QUEST
+		[invFragment_GP]					= 0,
+		--Dedicated fragments
+		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= LF_VENDOR_BUY,
+		[storeComponents[ZO_MODE_STORE_SELL].list._fragment] 		= LF_VENDOR_SELL,
+		[storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment] 	= LF_VENDOR_BUYBACK,
+		[storeComponents[ZO_MODE_STORE_REPAIR].list._fragment] 		= LF_VENDOR_REPAIR,
+		[storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment] = LF_FENCE_SELL,
+		[storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment] 	= LF_FENCE_LAUNDER,
 	}
 }
 callbacks.usingFragments = callbacksUsingFragments
@@ -1937,6 +1946,9 @@ local callbacksUsingScenes = {
 		--LF_ENCHANTING_EXTRACTION
 		[enchantingScene] = 0,
 	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 	--Gamepad
 	[true] = {
 		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
@@ -1973,6 +1985,9 @@ local callbacksUsingControl = {
 		--LF_JEWELRY_RESEARCH_DIALOG
 		[researchPanelControl] 	= 0,
 	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 	--Gamepad
 	[true] = {
 		--todo
