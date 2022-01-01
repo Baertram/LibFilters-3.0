@@ -491,16 +491,7 @@ local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode, isInGame
 	return isShown, controlOrFragment, refType
 end
 
---Check if a control is assigned to the filterType and inputType
---returns boolean isShown), controlReference controlWhichIsShown
-local function isControlShown(filterType, isInGamepadMode)
-	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
-	if filterTypeData == nil then
-		if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
-		return false, nil
-	end
-	local retCtrl = filterTypeData["control"]
+local function getCtrl(retCtrl)
 	local checkType = "retCtrl"
 	local ctrlToCheck = retCtrl
 
@@ -524,6 +515,21 @@ local function isControlShown(filterType, isInGamepadMode)
 			end
 		end
 	end
+	return ctrlToCheck, checkType
+end
+
+--Check if a control is assigned to the filterType and inputType
+--returns boolean isShown), controlReference controlWhichIsShown
+local function isControlShown(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
+	if filterTypeData == nil then
+		if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
+		return false, nil
+	end
+	local retCtrl = filterTypeData["control"]
+
+	local ctrlToCheck, checkType = getCtrl(retCtrl)
 	if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
 		if libFilters.debug then dd("isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
 		return false, nil
@@ -2994,14 +3000,16 @@ local function createControlCallback(controlRef, filterType, inputType)
 	if libFilters.debug then
 		local ctrlName = "n/a"
 		if controlRef ~= nil then
+			local controlRefNew, _ = getCtrl(controlRef)
+			controlRef = controlRefNew
 			ctrlName = (controlRef.GetName ~= nil and controlRef:GetName()) or (controlRef.name ~= nil and controlRef.name)
 			dd(">register control OnShow/OnHide of: %s - filterType: %s", tos(ctrlName), tos(filterType))
 		else
 			dd(">register control OnShow/OnHide: control is NIL! - filterType: %s", tos(filterType))
+			--For controls which get created OnDeferredInitialize
+			return
 		end
 	end
-	--For controls which get created OnDeferredInitialize
-	if controlRef == nil then return end
 	if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
 
 	--OnShow
