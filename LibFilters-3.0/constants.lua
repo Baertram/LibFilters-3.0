@@ -1994,7 +1994,7 @@ local callbacksUsingScenes = {
 		[gpc.researchScene_GP] 				= 0,
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[researchPanelControl] 		= 0,
+		[researchChooseItemDialog_GP] 		= 0,
 
 		--Dedicated scenes
 		[gpc.alchemyCreationSecene_GP] 		= LF_ALCHEMY_CREATION,
