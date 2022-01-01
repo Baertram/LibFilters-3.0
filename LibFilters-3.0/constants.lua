@@ -1291,7 +1291,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--TODO
-		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = companionEquipment_GP,["fragment"] = nil,
+		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = companionEquipment_GP,	["fragment"] = nil,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -1302,7 +1302,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--Works, 2021-12-19
-		[LF_VENDOR_BUY]               = { ["control"] = storeComponents[ZO_MODE_STORE_BUY].list,	["scene"] = storeScene_GP, 		["fragment"] = storeComponents[ZO_MODE_STORE_BUY].list._fragment,
+		[LF_VENDOR_BUY]               = { ["control"] = storeComponents[ZO_MODE_STORE_BUY].list,	["scene"] = storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_BUY].list._fragment,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -1994,7 +1994,7 @@ local callbacksUsingScenes = {
 	[false] = {
 		--LF_ENCHANTING_CREATION
 		--LF_ENCHANTING_EXTRACTION
-		[enchantingScene] = 0,
+		[enchantingScene] 					= 0,
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2024,6 +2024,7 @@ local callbacksUsingScenes = {
 		[alchemyCreationSecene_GP] 			= LF_ALCHEMY_CREATION,
 		[enchantingCreateScene_GP] 			= LF_ENCHANTING_CREATION,
 		[enchantingExtractScene_GP] 		= LF_ENCHANTING_EXTRACTION,
+		[companionEquipment_GP]				= LF_INVENTORY_COMPANION,
 	}
 }
 callbacks.usingScenes = callbacksUsingScenes
@@ -2038,22 +2039,22 @@ local callbacksUsingControl = {
 	[false] = {
 	 	--LF_SMITHING_REFINE
 		--LF_JEWELRY_REFINE
-		[refinementPanel] 		= 0,
+		[refinementPanel] 					= 0,
 	 	--LF_SMITHING_CREATION
 		--LF_JEWELRY_CREATION
-		[creationPanel] 		= 0,
+		[creationPanel] 					= 0,
 		--LF_SMITHING_DECONSTRUCT
 		--LF_JEWELRY_DECONSTRUCT
-		[deconstructionPanel] 	= 0,
+		[deconstructionPanel] 				= 0,
 		--LF_SMITHING_IMPROVEMENT
 		--LF_JEWELRY_IMPROVEMENT
-		[improvementPanel] 		= 0,
+		[improvementPanel] 					= 0,
 		--LF_SMITHING_RESEARCH
 		--LF_JEWELRY_RESEARCH
-		[researchPanel] 		= 0,
+		[researchPanel] 					= 0,
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[researchPanelControl] 	= 0,
+		[researchPanelControl] 				= 0,
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
