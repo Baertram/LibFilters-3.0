@@ -2060,7 +2060,7 @@ local callbacksUsingControl = {
 
 	--Gamepad
 	[true] = {
-		[invBackpack_GP.craftBagList] = LF_CRAFTBAG,
+		--[invBackpack_GP.craftBagList] = LF_CRAFTBAG, --Will be updated in file /Gamepad/gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	},
 }
 callbacks.usingControls = callbacksUsingControl

@@ -2932,11 +2932,42 @@ local function onHiddenStateChange(isShown, filterType, fragment, inputType)
 end
 
 
-local function createCallbacks()
+local function createFragmentCallback(fragment, filterType, inputType)
 	if libFilters.debug then
-		dd("createCallbacks")
+		if fragment ~= nil then
+			dd(">register fragment StateChange to: %s - filterType: %s", tos(fragment), tos(filterType))
+		else
+			dd(">fragment is NIL! StateChange not possible - filterType: %s", tos(filterType))
+		end
 	end
-------------------------------------------------------------------------------------------------------------------------
+	--For controls which get created OnDeferredInitialize
+	if fragment == nil then return end
+	if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
+	fragment:RegisterCallback("StateChange",
+			function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment, inputType) end)
+end
+libFilters.CreateFragmentCallback = createFragmentCallback
+
+local function createFragmentCallbacks()
+	if libFilters.debug then
+		dd("createFragmentCallbacks")
+	end
+	--Fragments
+	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+	local callbacksUsingFragments = callbacks.usingFragments
+
+	for inputType, callbackDataPerFilterType in pairs(callbacksUsingFragments) do
+		for fragment, filterType in pairs(callbackDataPerFilterType) do
+			createFragmentCallback(fragment, filterType, inputType)
+		end
+	end
+end
+
+
+local function createSceneCallbacks()
+	if libFilters.debug then
+		dd("createSceneCallbacks")
+	end
 	--Scenes
 	--[scene] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	local callbacksUsingScenes = callbacks.usingScenes
@@ -2944,67 +2975,85 @@ local function createCallbacks()
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingScenes) do
 		for scene, filterType in pairs(callbackDataPerFilterType) do
 			if libFilters.debug then
-				dd(">register scene StateChange to: %s - filterType: %s", tos(scene), tos(filterType))
+				if scene ~= nil then
+					dd(">register scene StateChange to: %s - filterType: %s", tos(scene), tos(filterType))
+				else
+					dd(">scene is NIL! StateChange not possible - filterType: %s", tos(filterType))
+				end
 			end
+			if scene == nil then return end
 			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
 			scene:RegisterCallback("StateChange",
 					function(oldState, newState) onSceneStateChange(oldState, newState, filterType, scene, inputType) end)
 		end
 	end
-------------------------------------------------------------------------------------------------------------------------
-	--Fragments
-	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
-	local callbacksUsingFragments = callbacks.usingFragments
+end
 
-	for inputType, callbackDataPerFilterType in pairs(callbacksUsingFragments) do
-		for fragment, filterType in pairs(callbackDataPerFilterType) do
-			if libFilters.debug then
-				dd(">register fragment StateChange to: %s - filterType: %s", tos(fragment), tos(filterType))
-			end
-			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
-			fragment:RegisterCallback("StateChange",
-					function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment, inputType) end)
+
+local function createControlCallback(controlRef, filterType, inputType)
+	if libFilters.debug then
+		local ctrlName = "n/a"
+		if controlRef ~= nil then
+			ctrlName = (controlRef.GetName ~= nil and controlRef:GetName()) or (controlRef.name ~= nil and controlRef.name)
+			dd(">register control OnShow/OnHide of: %s - filterType: %s", tos(ctrlName), tos(filterType))
+		else
+			dd(">register control OnShow/OnHide: control is NIL! - filterType: %s", tos(filterType))
 		end
 	end
-------------------------------------------------------------------------------------------------------------------------
+	--For controls which get created OnDeferredInitialize
+	if controlRef == nil then return end
+	if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
+
+	--OnShow
+	local onShowHandler = controlRef.GetHandler and controlRef:GetHandler("OnEffectivelyShown")
+	if onShowHandler ~= nil then
+		ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
+			onHiddenStateChange(true, filterType, ctrlRef, inputType)
+		end)
+	else
+		controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
+			onHiddenStateChange(true, filterType, ctrlRef, inputType)
+		end)
+	end
+
+	--OnHide
+	local onHideHandler = controlRef.GetHandler and controlRef:GetHandler("OnHide")
+	if onHideHandler ~= nil then
+		ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
+			onHiddenStateChange(false, filterType, ctrlRef, inputType)
+		end)
+	else
+		controlRef:SetHandler("OnHide", function(ctrlRef)
+			onHiddenStateChange(false, filterType, ctrlRef, inputType)
+		end)
+	end
+end
+libFilters.CreateControlCallback = createControlCallback
+
+
+local function createControlCallbacks()
+	if libFilters.debug then
+		dd("createControlCallbacks")
+	end
 	--Controls
 	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	local callbacksUsingControls = callbacks.usingControls
 
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingControls) do
 		for controlRef, filterType in pairs(callbackDataPerFilterType) do
-			if libFilters.debug then
-				local ctrlName = (controlRef.GetName ~= nil and controlRef:GetName()) or (controlRef.name ~= nil and controlRef.name)
-				if ctrlName == nil then ctrlName = "n/a" end
-				dd(">register control OnShow/OnHide of: %s - filterType: %s", tos(ctrlName), tos(filterType))
-			end
-			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
-
-			--OnShow
-			local onShowHandler = controlRef:GetHandler("OnEffectivelyShown")
-			if onShowHandler ~= nil then
-				ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
-					onHiddenStateChange(true, filterType, ctrlRef, inputType)
-				end)
-			else
-				controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
-					onHiddenStateChange(true, filterType, ctrlRef, inputType)
-				end)
-			end
-
-			--OnHide
-			local onHideHandler = controlRef:GetHandler("OnHide")
-			if onHideHandler ~= nil then
-				ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
-					onHiddenStateChange(false, filterType, ctrlRef, inputType)
-				end)
-			else
-				controlRef:SetHandler("OnHide", function(ctrlRef)
-					onHiddenStateChange(false, filterType, ctrlRef, inputType)
-				end)
-			end
+			createControlCallback(controlRef, filterType, inputType)
 		end
 	end
+end
+
+
+local function createCallbacks()
+	if libFilters.debug then
+		dd("createCallbacks")
+	end
+	createFragmentCallbacks()
+	createSceneCallbacks()
+	createControlCallbacks()
 end
 
 
