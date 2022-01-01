@@ -246,26 +246,35 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 			if objectId == invBank_GP and listName == "deposit" then
 				if hookName == "depositHouseBank" then
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_WITHDRAW]["control"]		= ZO_GamepadBankingTopLevelMaskContainerwithdraw
-					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_WITHDRAW]["fragment"] 	= invBank_GP:GetListFragment("withdraw")
+					local withDrawFragment = invBank_GP:GetListFragment("withdraw")
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_WITHDRAW]["fragment"] 	= withDrawFragment
 
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["control"]		= ZO_GamepadBankingTopLevelMaskContainerdeposit
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] 	= targetFragment
+
+					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= 0 --LF_HOUSE_BANK_WITHDRAW as bank and housebank share the same fragment, 0 will be used to force the detection
 					fragmentsHooked[fragmentsHookedName] = true
 				elseif hookName == "depositBank" then
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["control"]			= ZO_GamepadBankingTopLevelMaskContainerwithdraw
-					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["fragment"] 			= invBank_GP:GetListFragment("withdraw")
+					local withDrawFragment = invBank_GP:GetListFragment("withdraw")
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["fragment"] 			= withDrawFragment
 
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["control"]			= ZO_GamepadBankingTopLevelMaskContainerdeposit
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 			= targetFragment
+
+					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= 0 --LF_BANK_WITHDRAW as bank and housebank share the same fragment, 0 will be used to force the detection
 					fragmentsHooked[fragmentsHookedName] = true
 				end
 			--After guild bank was initialized update the fragments at the libFilters lookup tables for "is shown"
 			elseif objectId == invGuildBank_GP and listName == "deposit" then
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw
-				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["fragment"] 		= invGuildBank_GP:GetListFragment("withdraw")
+				local withDrawFragment = invGuildBank_GP:GetListFragment("withdraw")
+				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_WITHDRAW]["fragment"] 		= withDrawFragment
 
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["control"]			= ZO_GuildBankTopLevel_GamepadMaskContainerdeposit
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] 			= targetFragment
+
+				libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= LF_GUILDBANK_WITHDRAW
 				fragmentsHooked[fragmentsHookedName] = true
 			end
 		end
@@ -399,6 +408,8 @@ SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
 		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_BROWSE] = {
 			["control"] = tradingHouseBrowse_GP, ["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  tradingHouseBrowse_GP.fragment,
 		}
+		libFilters.mapping.callbacks.usingFragments[true][LF_GUILDSTORE_BROWSE]["fragment"] 			 = tradingHouseBrowse_GP.fragment
+
 		fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] = true
 	end
 end)
@@ -557,7 +568,7 @@ end)
 --> [LF_*] = {name="...", fragment=nil},
 ------------------------------------------------------------------------------------------------------------------------
 local customFragmentsUpdateRef                           						= 	libFilters.constants.gamepad.customFragments
-customFragmentsUpdateRef[LF_INVENTORY].fragment          						= gamepadLibFiltersInventoryFragment
+customFragmentsUpdateRef[LF_INVENTORY].fragment          						= 	gamepadLibFiltersInventoryFragment
 customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment      						= 	gamepadLibFiltersBankDepositFragment
 customFragmentsUpdateRef[LF_GUILDBANK_DEPOSIT].fragment 						= 	gamepadLibFiltersGuildBankDepositFragment
 customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment 						= 	gamepadLibFiltersHouseBankDepositFragment

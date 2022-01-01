@@ -596,6 +596,7 @@ gpc.improvementScene_GP         = getScene(SM, "gamepad_smithing_improvement")
 gpc.researchPanel_GP            = smithing_GP.researchPanel
 gpc.researchScene_GP            = getScene(SM, "gamepad_smithing_research")
 gpc.researchChooseItemDialog_GP = getScene(SM, "gamepad_smithing_research_confirm") --GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE
+local researchChooseItemDialog_GP = gpc.researchChooseItemDialog_GP
 
 --Enchanting
 gpc.enchanting_GP               = GAMEPAD_ENCHANTING
@@ -901,8 +902,8 @@ local filterTypeToReference = {
 		[LF_FENCE_SELL]               = { gpc.invFenceSell_GP },
 		[LF_FENCE_LAUNDER]            = { gpc.invFenceLaunder_GP },
 
-		[LF_SMITHING_RESEARCH_DIALOG] = { gpc.researchChooseItemDialog_GP },
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { gpc.researchChooseItemDialog_GP }, --duplicate needed compared to LF_SMITHING_RESEARCH_DIALOG ?
+		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog_GP },
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP }, --duplicate needed compared to LF_SMITHING_RESEARCH_DIALOG ?
 
 
 		--Not given in gamepad mode
@@ -1349,7 +1350,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--Works, 2021-12-21
-		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,	["fragment"] = nil,
+		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = researchChooseItemDialog_GP,	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1360,7 +1361,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works, 2021-12-21
-		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = gpc.researchChooseItemDialog_GP,	["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = researchChooseItemDialog_GP,	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1892,6 +1893,7 @@ local callbacksUsingFragments = {
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
 		[provisionerFragment]				= 0,
+
 		--Dedicated fragments
 		[invQuestFragment] 					= LF_INVENTORY_QUEST,
 		[craftBagFragment] 					= LF_CRAFTBAG,
@@ -1917,11 +1919,17 @@ local callbacksUsingFragments = {
 
 	--Gamepad
 	[true] = {
-		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
-		--LF_INVENTORY
+		--LF_INVENTORY --> Maybe, should be also be triggered via custom fragment "gamepadLibFiltersInventoryFragment"!
 		--LF_CRAFTBAG
 		--LF_INVENTORY_QUEST
 		[invFragment_GP]					= 0,
+		--LF_SMITHING_RESEARCH_DIALOG
+		--LF_JEWELRY_RESEARCH_DIALOG
+		[researchChooseItemDialog_GP]		= 0,
+		--LF_PROVISIONING_COOK
+		--LF_PROVISIONING_BREW
+		[gpc.provisionerFragment_GP] 		= 0,
+
 		--Dedicated fragments
 		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= LF_VENDOR_BUY,
 		[storeComponents[ZO_MODE_STORE_SELL].list._fragment] 		= LF_VENDOR_SELL,
@@ -1929,6 +1937,24 @@ local callbacksUsingFragments = {
 		[storeComponents[ZO_MODE_STORE_REPAIR].list._fragment] 		= LF_VENDOR_REPAIR,
 		[storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment] = LF_FENCE_SELL,
 		[storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment] 	= LF_FENCE_LAUNDER,
+		[gpc.quickslotFragment_GP] 									= LF_QUICKSLOT,
+		[gpc.retraitFragment_GP]									= LF_RETRAIT,
+		[gpc.invPlayerTradeFragment_GP]								= LF_TRADE,			--> Maybe, should be also be triggered via custom fragment "gamepadLibFiltersPlayerTradeFragment"!
+
+		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
+		--The fragments will be updated as bank lists get initialized
+		--callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 		= LF_INVENTORY
+		--callbacksUsingFragments[true][gamepadLibFiltersBankDepositFragment] 		= LF_BANK_DEPOSIT
+		--callbacksUsingFragments[true][gamepadLibFiltersGuildBankDepositFragment] 	= LF_GUILDBANK_DEPOSIT
+		--callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 	= LF_HOUSE_BANK_DEPOSIT
+		--[tradingHouseBrowse_GP.fragment] 											= LF_GUILDSTORE_BROWSE,
+		--callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 	= LF_GUILDSTORE_SELL
+		--callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 			= LF_MAIL_SEND
+		--callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 		= LF_TRADE
+		--[1] = LF_BANK_WITHDRAW,
+		--[1] = LF_GUILDBANK_WITHDRAW,
+		--[1] = LF_HOUSE_BANK_WITHDRAW,
+
 	}
 }
 callbacks.usingFragments = callbacksUsingFragments
@@ -1951,8 +1977,29 @@ local callbacksUsingScenes = {
 
 	--Gamepad
 	[true] = {
-		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
-		--todo
+	 	--LF_SMITHING_REFINE
+		--LF_JEWELRY_REFINE
+		[gpc.refinementScene_GP] 			= 0,
+	 	--LF_SMITHING_CREATION
+		--LF_JEWELRY_CREATION
+		[gpc.creationScene_GP] 				= 0,
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		[gpc.deconstructionScene_GP] 		= 0,
+		--LF_SMITHING_IMPROVEMENT
+		--LF_JEWELRY_IMPROVEMENT
+		[gpc.improvementScene_GP] 			= 0,
+		--LF_SMITHING_RESEARCH
+		--LF_JEWELRY_RESEARCH
+		[gpc.researchScene_GP] 				= 0,
+		--LF_SMITHING_RESEARCH_DIALOG
+		--LF_JEWELRY_RESEARCH_DIALOG
+		[researchPanelControl] 		= 0,
+
+		--Dedicated scenes
+		[gpc.alchemyCreationSecene_GP] 		= LF_ALCHEMY_CREATION,
+		[gpc.enchantingCreateScene_GP] 		= LF_ENCHANTING_CREATION,
+		[gpc.enchantingExtractScene_GP] 	= LF_ENCHANTING_EXTRACTION,
 
 	}
 }
@@ -1990,7 +2037,7 @@ local callbacksUsingControl = {
 
 	--Gamepad
 	[true] = {
-		--todo
+		[invBackpack_GP.craftBagList] = LF_CRAFTBAG,
 	},
 }
 callbacks.usingControls = callbacksUsingControl
