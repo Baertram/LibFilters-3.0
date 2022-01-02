@@ -1995,6 +1995,8 @@ local callbacksUsingScenes = {
 		--LF_ENCHANTING_CREATION
 		--LF_ENCHANTING_EXTRACTION
 		[enchantingScene] 					= 0,
+
+		--Dedicated scenes
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2024,7 +2026,6 @@ local callbacksUsingScenes = {
 		[alchemyCreationSecene_GP] 			= LF_ALCHEMY_CREATION,
 		[enchantingCreateScene_GP] 			= LF_ENCHANTING_CREATION,
 		[enchantingExtractScene_GP] 		= LF_ENCHANTING_EXTRACTION,
-		[companionEquipment_GP]				= LF_INVENTORY_COMPANION,
 	}
 }
 callbacks.usingScenes = callbacksUsingScenes
@@ -2062,6 +2063,9 @@ local callbacksUsingControl = {
 	--Gamepad
 	[true] = {
 		--[invBackpack_GP.craftBagList] = LF_CRAFTBAG, --Will be updated in file /Gamepad/gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
+
+		--Dedicated controls
+		[companionEquipment_GP]				= LF_INVENTORY_COMPANION,
 	},
 }
 callbacks.usingControls = callbacksUsingControl
