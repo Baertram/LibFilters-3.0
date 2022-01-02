@@ -137,6 +137,13 @@ local ncc = NonContiguousCount
 local getCurrentScene = SM.GetCurrentScene
 local getScene = SM.GetScene
 
+local sceneStateToFragmentState = {
+	[SCENE_SHOWING] = SCENE_FRAGMENT_SHOWING,
+	[SCENE_SHOWN] 	= SCENE_FRAGMENT_SHOWN,
+	[SCENE_HIDING] 	= SCENE_FRAGMENT_HIDING,
+	[SCENE_HIDDEN] 	= SCENE_FRAGMENT_HIDDEN,
+}
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL LIBRARY SPEED UP VARIABLES & REFERENCES
@@ -2868,6 +2875,15 @@ end
 		... ---could be SMITHING.mode in keyboard mode e.g. or other vaiable
 	)
 ]]
+
+local callbacksAdded = {}
+--controls
+callbacksAdded[1] = {}
+--scenes
+callbacksAdded[2] = {}
+--fragments
+callbacksAdded[3] = {}
+
 local function callbackRaise(filterType, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local lReferencesToFilterType
@@ -2911,30 +2927,22 @@ local function onFragmentStateChange(oldState, newState, filterType, fragment, i
 	if libFilters.debug then
 		dd("onFragmentStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
 	end
-	if newState == SCENE_FRAGMENT_SHOWN then
-		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 3)
-	elseif newState == SCENE_FRAGMENT_HIDDEN then
-		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 3)
-	end
+	callbackRaiseCheck(filterType, fragment, sceneStateToFragmentState[newState], inputType, 3)
 end
 
-local function onSceneStateChange(oldState, newState, filterType, fragment, inputType)
+local function onSceneStateChange(oldState, newState, filterType, scene, inputType)
 	if libFilters.debug then
 		dd("onSceneStateChange oldState: %s > newState: %q - filterType: %s, isGamePad: %s", tos(oldState), tos(newState), tos(filterType), tos(inputType))
 	end
-	if newState == SCENE_SHOWN then
-		callbackRaiseCheck(filterType, fragment, SCENE_SHOWN, inputType, 2)
-	elseif newState == SCENE_HIDDEN then
-		callbackRaiseCheck(filterType, fragment, SCENE_HIDDEN, inputType, 2)
-	end
+	callbackRaiseCheck(filterType, scene, newState, inputType, 2)
 end
 
-local function onHiddenStateChange(isShown, filterType, fragment, inputType)
+local function onControlHiddenStateChange(isShown, filterType, ctrlRef, inputType)
 	if libFilters.debug then
-		dd("Hidden state change hidden %q - filterType: %s, isGamePad: %s", tos(not isShown), tos(filterType), tos(inputType))
+		dd("Control hidden state change to %q - filterType: %s, isGamePad: %s", tos(not isShown), tos(filterType), tos(inputType))
 	end
-	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN
-	callbackRaise(filterType, fragment, stateStr, inputType, 1)
+	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN --using the SCENE_* constants to unify the callback name for fragments, scenes and controls
+	callbackRaise(filterType, ctrlRef, stateStr, inputType, 1)
 end
 
 
@@ -2948,9 +2956,18 @@ local function createFragmentCallback(fragment, filterType, inputType)
 	end
 	--For controls which get created OnDeferredInitialize
 	if fragment == nil then return end
-	if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
-	fragment:RegisterCallback("StateChange",
-			function(oldState, newState) onFragmentStateChange(oldState, newState, filterType, fragment, inputType) end)
+	--Only add the callback once per input type
+	if callbacksAdded[3][fragment] == nil and not callbacksAdded[3][fragment][inputType] then
+		if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
+		fragment:RegisterCallback("StateChange",
+				function(oldState, newState)
+					onFragmentStateChange(oldState, newState, filterType, fragment, inputType)
+				end
+		)
+		callbacksAdded[3][fragment] = callbacksAdded[3][fragment] or {}
+		if filterType ~= nil then callbacksAdded[3][fragment]._filterType = filterType end
+		callbacksAdded[3][fragment][inputType] = true
+	end
 end
 libFilters.CreateFragmentCallback = createFragmentCallback
 
@@ -2988,9 +3005,15 @@ local function createSceneCallbacks()
 				end
 			end
 			if scene == nil then return end
-			if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
-			scene:RegisterCallback("StateChange",
-					function(oldState, newState) onSceneStateChange(oldState, newState, filterType, scene, inputType) end)
+			--Only add the callback once per input type
+			if callbacksAdded[2][scene] == nil and not callbacksAdded[2][scene][inputType] then
+				if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
+				scene:RegisterCallback("StateChange",
+						function(oldState, newState) onSceneStateChange(oldState, newState, filterType, scene, inputType) end)
+				callbacksAdded[2][scene] = callbacksAdded[2][scene] or {}
+				if filterType ~= nil then callbacksAdded[2][scene]._filterType = filterType end
+				callbacksAdded[2][scene][inputType] = true
+			end
 		end
 	end
 end
@@ -3010,30 +3033,36 @@ local function createControlCallback(controlRef, filterType, inputType)
 			return
 		end
 	end
-	if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
+	--Only add the callback once per input type
+	if callbacksAdded[1][controlRef] == nil and not callbacksAdded[1][controlRef][inputType] then
+		if filterType == 0 then filterType = nil end --if 0 -> set nil to use function detectShownReferenceNow()
 
-	--OnShow
-	local onShowHandler = controlRef.GetHandler and controlRef:GetHandler("OnEffectivelyShown")
-	if onShowHandler ~= nil then
-		ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
-			onHiddenStateChange(true, filterType, ctrlRef, inputType)
-		end)
-	else
-		controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
-			onHiddenStateChange(true, filterType, ctrlRef, inputType)
-		end)
-	end
+		--OnShow
+		local onShowHandler = controlRef.GetHandler and controlRef:GetHandler("OnEffectivelyShown")
+		if onShowHandler ~= nil then
+			ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
+				onControlHiddenStateChange(true, filterType, ctrlRef, inputType)
+			end)
+		else
+			controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
+				onControlHiddenStateChange(true, filterType, ctrlRef, inputType)
+			end)
+		end
 
-	--OnHide
-	local onHideHandler = controlRef.GetHandler and controlRef:GetHandler("OnHide")
-	if onHideHandler ~= nil then
-		ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
-			onHiddenStateChange(false, filterType, ctrlRef, inputType)
-		end)
-	else
-		controlRef:SetHandler("OnHide", function(ctrlRef)
-			onHiddenStateChange(false, filterType, ctrlRef, inputType)
-		end)
+		--OnHide
+		local onHideHandler = controlRef.GetHandler and controlRef:GetHandler("OnHide")
+		if onHideHandler ~= nil then
+			ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
+				onControlHiddenStateChange(false, filterType, ctrlRef, inputType)
+			end)
+		else
+			controlRef:SetHandler("OnHide", function(ctrlRef)
+				onControlHiddenStateChange(false, filterType, ctrlRef, inputType)
+			end)
+		end
+		callbacksAdded[1][controlRef] = callbacksAdded[1][controlRef] or {}
+		if filterType ~= nil then callbacksAdded[1][controlRef]._filterType = filterType end
+		callbacksAdded[1][controlRef][inputType] = true
 	end
 end
 libFilters.CreateControlCallback = createControlCallback
@@ -3059,8 +3088,8 @@ local function createCallbacks()
 	if libFilters.debug then
 		dd("createCallbacks")
 	end
-	createFragmentCallbacks()
 	createSceneCallbacks()
+	createFragmentCallbacks()
 	createControlCallbacks()
 end
 
