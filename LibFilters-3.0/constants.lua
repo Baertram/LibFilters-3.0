@@ -46,7 +46,7 @@ libFilters.debug = false
 --LibDebugLogger & debugging functions
 if LibDebugLogger then
 	 if not libFilters.logger then
-		  libFilters.logger = LibDebugLogger(MAJOR)
+		  libFilters.logger = LibDebugLogger(GlobalLibName)
 	 end
 end
 local logger = libFilters.logger
@@ -221,7 +221,7 @@ constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeA
 
 
 --The prefix for the updater name used in libFilters:RequestUpdate()
-local updaterNamePrefix = GlobalLibName .. "_updateInventory_"
+local updaterNamePrefix = GlobalLibName .. "_update_"
 constants.updaterNamePrefix = updaterNamePrefix
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -574,7 +574,10 @@ local invPlayerTradeFragment_GP = gpc.invPlayerTradeFragment_GP
 --[Companion]
 gpc.companionEquipment_GP       = COMPANION_EQUIPMENT_GAMEPAD
 local companionEquipment_GP 	= gpc.companionEquipment_GP
-gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel		--TODO is this the correct for gamepad mode?
+gpc.companionEquipmentScene_GP	= COMPANION_EQUIPMENT_GAMEPAD_SCENE
+gpc.companionEquipmentFragment_GP = COMPANION_EQUIPMENT_GAMEPAD_FRAGMENT
+local companionEquipmentFragment_GP = gpc.companionEquipmentFragment_GP
+gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel		--TODO is this the correct for gamepad mode of companion character?
 
 
 --[Crafting]
@@ -1290,8 +1293,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--TODO
-		[LF_INVENTORY_COMPANION]      = { ["control"] = nil, 							["scene"] = companionEquipment_GP,	["fragment"] = nil,
+		--Works, 2022-01-02
+		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment_GP, 						["scene"] = gpc.companionEquipmentScene_GP,	["fragment"] = companionEquipmentFragment_GP,
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -1766,7 +1769,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_RETRAIT, 					checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "control", "special" } },
+		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "scene", "control" } },
 		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control", "special" } },
@@ -1900,11 +1903,12 @@ libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
 
 
---[fragment] = LF_* filterTypeConstant
+--[fragment] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ... } -> Will be checked in this order
 --0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
 --detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
+-->0 should be added as last entry if an automated check should be done at the end!
 --Example:
---[fragmentVariable] = LF_INVENTORY,
+--[fragmentVariable] = { LF_INVENTORY, 0}
 local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
@@ -1913,30 +1917,30 @@ local callbacksUsingFragments = {
 		--LF_GUILDBANK_DEPOSIT
 		--LF_HOUSE_BANK_DEPOSIT
 		--LF_VENDOR_SELL
-		[inventoryFragment] 				= 0,
+		[inventoryFragment] 				= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL },
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
-		[provisionerFragment]				= 0,
+		[provisionerFragment]				= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
 
 		--Dedicated fragments
-		[invQuestFragment] 					= LF_INVENTORY_QUEST,
-		[craftBagFragment] 					= LF_CRAFTBAG,
-		[quickslotsFragment] 				= LF_QUICKSLOT,
-		[bankWithdrawFragment] 				= LF_BANK_WITHDRAW,
-		[guildBankWithdrawFragment]     	= LF_GUILDBANK_WITHDRAW,
-		[houseBankWithdrawFragment]			= LF_HOUSE_BANK_WITHDRAW,
-		[vendorBuyFragment]  				= LF_VENDOR_BUY,
-		[vendorBuyBackFragment]				= LF_VENDOR_BUYBACK,
-		[vendorRepairFragment]				= LF_VENDOR_REPAIR,
-		[invFenceSellFragment]				= LF_FENCE_SELL,
-		[invFenceLaunderFragment]			= LF_FENCE_LAUNDER,
-		[guildStoreBrowseFragment]			= LF_GUILDSTORE_BROWSE,
-		[guildStoreSellLayoutFragment]		= LF_GUILDSTORE_SELL,
-		[mailSend]							= LF_MAIL_SEND,
-		[player2playerTrade]				= LF_TRADE,
-		[alchemyFragment]					= LF_ALCHEMY_CREATION,
-		[retraitFragment]					= LF_RETRAIT,
-		[companionEquipmentFragment] 		= LF_INVENTORY_COMPANION,
+		[invQuestFragment] 					= { LF_INVENTORY_QUEST },
+		[craftBagFragment] 					= { LF_CRAFTBAG },
+		[quickslotsFragment] 				= { LF_QUICKSLOT },
+		[bankWithdrawFragment] 				= { LF_BANK_WITHDRAW },
+		[guildBankWithdrawFragment]     	= { LF_GUILDBANK_WITHDRAW },
+		[houseBankWithdrawFragment]			= { LF_HOUSE_BANK_WITHDRAW },
+		[vendorBuyFragment]  				= { LF_VENDOR_BUY },
+		[vendorBuyBackFragment]				= { LF_VENDOR_BUYBACK },
+		[vendorRepairFragment]				= { LF_VENDOR_REPAIR },
+		[invFenceSellFragment]				= { LF_FENCE_SELL },
+		[invFenceLaunderFragment]			= { LF_FENCE_LAUNDER },
+		[guildStoreBrowseFragment]			= { LF_GUILDSTORE_BROWSE },
+		[guildStoreSellLayoutFragment]		= { LF_GUILDSTORE_SELL },
+		[mailSend]							= { LF_MAIL_SEND },
+		[player2playerTrade]				= { LF_TRADE },
+		[alchemyFragment]					= { LF_ALCHEMY_CREATION },
+		[retraitFragment]					= { LF_RETRAIT },
+		[companionEquipmentFragment] 		= { LF_INVENTORY_COMPANION },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1946,55 +1950,57 @@ local callbacksUsingFragments = {
 		--LF_INVENTORY --> Maybe, should be also be triggered via custom fragment "gamepadLibFiltersInventoryFragment"!
 		--LF_CRAFTBAG
 		--LF_INVENTORY_QUEST
-		[invFragment_GP]					= 0,
+		[invFragment_GP]					= { LF_INVENTORY, LF_CRAFTBAG, LF_INVENTORY_QUEST },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[researchChooseItemDialog_GP]		= 0,
+		[researchChooseItemDialog_GP]		= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
-		[provisionerFragment_GP] 			= 0,
+		[provisionerFragment_GP] 			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
 
 		--Dedicated fragments
-		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= LF_VENDOR_BUY,
-		[storeComponents[ZO_MODE_STORE_SELL].list._fragment] 		= LF_VENDOR_SELL,
-		[storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment] 	= LF_VENDOR_BUYBACK,
-		[storeComponents[ZO_MODE_STORE_REPAIR].list._fragment] 		= LF_VENDOR_REPAIR,
-		[storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment] = LF_FENCE_SELL,
-		[storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment] 	= LF_FENCE_LAUNDER,
-		[quickslotFragment_GP] 										= LF_QUICKSLOT,
-		[retraitFragment_GP]										= LF_RETRAIT,
-		[invPlayerTradeFragment_GP]									= LF_TRADE,			--> Maybe, should be also be triggered via custom fragment "gamepadLibFiltersPlayerTradeFragment"!
+		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= { LF_VENDOR_BUY },
+		[storeComponents[ZO_MODE_STORE_SELL].list._fragment] 		= { LF_VENDOR_SELL },
+		[storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment] 	= { LF_VENDOR_BUYBACK },
+		[storeComponents[ZO_MODE_STORE_REPAIR].list._fragment] 		= { LF_VENDOR_REPAIR },
+		[storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment] = { LF_FENCE_SELL },
+		[storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment] 	= { LF_FENCE_LAUNDER },
+		[quickslotFragment_GP] 										= { LF_QUICKSLOT },
+		[retraitFragment_GP]										= { LF_RETRAIT },
+		[invPlayerTradeFragment_GP]									= { LF_TRADE },			--> Maybe, should be also be triggered via custom fragment "gamepadLibFiltersPlayerTradeFragment"!
+		[companionEquipmentFragment_GP]								= { LF_INVENTORY_COMPANION }
 
 		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
 		--The fragments will be updated as bank lists get initialized
-		--callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 		= LF_INVENTORY
-		--callbacksUsingFragments[true][gamepadLibFiltersBankDepositFragment] 		= LF_BANK_DEPOSIT
-		--callbacksUsingFragments[true][gamepadLibFiltersGuildBankDepositFragment] 	= LF_GUILDBANK_DEPOSIT
-		--callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 	= LF_HOUSE_BANK_DEPOSIT
-		--[tradingHouseBrowse_GP.fragment] 											= LF_GUILDSTORE_BROWSE,
-		--callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 	= LF_GUILDSTORE_SELL
-		--callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 			= LF_MAIL_SEND
-		--callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 		= LF_TRADE
-		--[1] = LF_BANK_WITHDRAW,
-		--[1] = LF_GUILDBANK_WITHDRAW,
-		--[1] = LF_HOUSE_BANK_WITHDRAW,
+		--callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 		= { LF_INVENTORY }
+		--callbacksUsingFragments[true][gamepadLibFiltersBankDepositFragment] 		= { LF_BANK_DEPOSIT }
+		--callbacksUsingFragments[true][gamepadLibFiltersGuildBankDepositFragment] 	= { LF_GUILDBANK_DEPOSIT }
+		--callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 	= { LF_HOUSE_BANK_DEPOSIT }
+		--[tradingHouseBrowse_GP.fragment] 											= { LF_GUILDSTORE_BROWSE }
+		--callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 	= { LF_GUILDSTORE_SELL }
+		--callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 			= { LF_MAIL_SEND }
+		--callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 		= { LF_TRADE }
+		--[1] = { LF_BANK_WITHDRAW },
+		--[1] = { LF_GUILDBANK_WITHDRAW },
+		--[1] = { LF_HOUSE_BANK_WITHDRAW },
 
 	}
 }
 callbacks.usingFragments = callbacksUsingFragments
 
 
---[scene_Or_sceneName] = LF_* filterTypeConstant
+--[scene_Or_sceneName] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ... }
 --0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
 --detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
+-->0 should be added as last entry if an automated check should be done at the end!
 --Example:
---[sceneVariable] = LF_INVENTORY,
+--[sceneVariable] = { LF_INVENTORY, 0 }
 local callbacksUsingScenes = {
 	--Keyboard
 	[false] = {
 		--LF_ENCHANTING_CREATION
 		--LF_ENCHANTING_EXTRACTION
-		[enchantingScene] 					= 0,
+		[enchantingScene] 					= { LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION },
 
 		--Dedicated scenes
 	},
@@ -2005,57 +2011,58 @@ local callbacksUsingScenes = {
 	[true] = {
 	 	--LF_SMITHING_REFINE
 		--LF_JEWELRY_REFINE
-		[refinementScene_GP] 				= 0,
+		[refinementScene_GP] 				= { LF_SMITHING_REFINE, LF_JEWELRY_REFINE },
 	 	--LF_SMITHING_CREATION
 		--LF_JEWELRY_CREATION
-		[creationScene_GP] 					= 0,
+		[creationScene_GP] 					= { LF_SMITHING_CREATION, LF_JEWELRY_CREATION },
 		--LF_SMITHING_DECONSTRUCT
 		--LF_JEWELRY_DECONSTRUCT
-		[deconstructionScene_GP] 			= 0,
+		[deconstructionScene_GP] 			= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT },
 		--LF_SMITHING_IMPROVEMENT
 		--LF_JEWELRY_IMPROVEMENT
-		[improvementScene_GP] 				= 0,
+		[improvementScene_GP] 				= { LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT },
 		--LF_SMITHING_RESEARCH
 		--LF_JEWELRY_RESEARCH
-		[researchScene_GP] 					= 0,
+		[researchScene_GP] 					= { LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[researchChooseItemDialog_GP] 		= 0,
+		[researchChooseItemDialog_GP] 		= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
 
 		--Dedicated scenes
-		[alchemyCreationSecene_GP] 			= LF_ALCHEMY_CREATION,
-		[enchantingCreateScene_GP] 			= LF_ENCHANTING_CREATION,
-		[enchantingExtractScene_GP] 		= LF_ENCHANTING_EXTRACTION,
+		[alchemyCreationSecene_GP] 			= { LF_ALCHEMY_CREATION },
+		[enchantingCreateScene_GP] 			= { LF_ENCHANTING_CREATION },
+		[enchantingExtractScene_GP] 		= { LF_ENCHANTING_EXTRACTION },
 	}
 }
 callbacks.usingScenes = callbacksUsingScenes
 
 
---[control] = LF_* filterTypeConstant
+--[control] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ...}
 --0 means no dedicated LF_* constant can be used and the filterType will be determined
+-->0 should be added as last entry if an automated check should be done at the end!
 --Example:
---[controlVariable] = LF_INVENTORY,
+--[controlVariable] = { LF_INVENTORY, 0 }
 local callbacksUsingControl = {
 	--Keyboard
 	[false] = {
 	 	--LF_SMITHING_REFINE
 		--LF_JEWELRY_REFINE
-		[refinementPanel] 					= 0,
+		[refinementPanel] 					= { LF_SMITHING_REFINE, LF_JEWELRY_REFINE },
 	 	--LF_SMITHING_CREATION
 		--LF_JEWELRY_CREATION
-		[creationPanel] 					= 0,
+		[creationPanel] 					= { LF_SMITHING_CREATION, LF_JEWELRY_CREATION },
 		--LF_SMITHING_DECONSTRUCT
 		--LF_JEWELRY_DECONSTRUCT
-		[deconstructionPanel] 				= 0,
+		[deconstructionPanel] 				= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT },
 		--LF_SMITHING_IMPROVEMENT
 		--LF_JEWELRY_IMPROVEMENT
-		[improvementPanel] 					= 0,
+		[improvementPanel] 					= { LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT },
 		--LF_SMITHING_RESEARCH
 		--LF_JEWELRY_RESEARCH
-		[researchPanel] 					= 0,
+		[researchPanel] 					= { LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[researchPanelControl] 				= 0,
+		[researchPanelControl] 				= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2065,7 +2072,6 @@ local callbacksUsingControl = {
 		--[invBackpack_GP.craftBagList] = LF_CRAFTBAG, --Will be updated in file /Gamepad/gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 
 		--Dedicated controls
-		[companionEquipment_GP]				= LF_INVENTORY_COMPANION,
 	},
 }
 callbacks.usingControls = callbacksUsingControl
