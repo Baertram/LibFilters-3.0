@@ -253,7 +253,7 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] 	= targetFragment
 
 					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }
-					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW })
+					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }, true)
 					fragmentsHooked[fragmentsHookedName] = true
 				elseif hookName == "depositBank" then
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["control"]			= ZO_GamepadBankingTopLevelMaskContainerwithdraw
@@ -264,7 +264,7 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 			= targetFragment
 
 					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }
-					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW })
+					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }, true)
 					fragmentsHooked[fragmentsHookedName] = true
 				end
 			--After guild bank was initialized update the fragments at the libFilters lookup tables for "is shown"
@@ -277,7 +277,7 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 				libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] 			= targetFragment
 
 				libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_GUILDBANK_WITHDRAW }
-				libFilters.CreateFragmentCallback(withDrawFragment, { LF_GUILDBANK_WITHDRAW })
+				libFilters.CreateFragmentCallback(withDrawFragment, { LF_GUILDBANK_WITHDRAW }, true)
 				fragmentsHooked[fragmentsHookedName] = true
 			end
 		end
@@ -413,7 +413,7 @@ SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
 			["control"] = tradingHouseBrowse_GP, ["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  tradingHouseFragment,
 		}
 		libFilters.mapping.callbacks.usingFragments[true][tradingHouseFragment] = { LF_GUILDSTORE_BROWSE }
-		libFilters.CreateFragmentCallback(tradingHouseFragment, { LF_GUILDSTORE_BROWSE })
+		libFilters.CreateFragmentCallback(tradingHouseFragment, { LF_GUILDSTORE_BROWSE }, true)
 
 		fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] = true
 	end
@@ -475,7 +475,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList
 
 	libFilters.mapping.callbacks.usingControls[true][craftBagList] = { LF_CRAFTBAG }
-	libFilters.CreateControlCallback(craftBagList, { LF_CRAFTBAG })
+	libFilters.CreateControlCallback(craftBagList, { LF_CRAFTBAG }, true)
 
 	invFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
 		if libFilters.debug then dd("GAMEPAD Inventory FRAGMENT - State: " ..tos(newState)) end

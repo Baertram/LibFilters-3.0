@@ -219,7 +219,6 @@ local defaultOriginalFilterAttributeAtLayoutData = "additionalFilter"
 constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeAtLayoutData
 
 
-
 --The prefix for the updater name used in libFilters:RequestUpdate()
 local updaterNamePrefix = GlobalLibName .. "_update_"
 constants.updaterNamePrefix = updaterNamePrefix
@@ -238,11 +237,28 @@ local gpc						= constants.gamepad
 --Custom created fragments for the gamepad mode
 --Prefix of these fragments
 gpc.customFragmentPrefix        = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
-local fragmentPrefix_GP         = gpc.customFragmentPrefix
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
 ------------------------------------------------------------------------------------------------------------------------
+--The types of reference variables for the filterTypes and their detection
+constants.typeOfRef = {
+	[1] =   1, -- Control
+	[2] =   2, -- Scene
+	[3] =   3, -- Fragment
+	[99] = 99, -- Other
+}
+
+--The names of the type of reference
+constants.typeOfRefToName = {
+	[1] = "Control",
+	[2] = "Scene",
+	[3] = "Fragment",
+	[99]= "Other",
+}
+
+
 --[Inventory types]
 local invTypeBackpack           =	INVENTORY_BACKPACK
 local invTypeQuest              = 	INVENTORY_QUEST_ITEM

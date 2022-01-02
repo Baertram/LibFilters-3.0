@@ -149,8 +149,11 @@ local fragmentStateToSceneState = {
 --LOCAL LIBRARY SPEED UP VARIABLES & REFERENCES
 ------------------------------------------------------------------------------------------------------------------------
 --Cashed current data (placeholders, currently nil)
-libFilters._currentFilterType = nil
+libFilters._currentFilterType 			= nil
 libFilters._currentFilterTypeReferences = nil
+--Cashed "last" data, before current (placeholders, currently nil)
+libFilters._lastFilterType 				= nil
+libFilters._lastFilterTypeReferences 	= nil
 
 
 --LibFilters local speedup and reference variables
@@ -237,6 +240,15 @@ local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
 local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 
+
+--The costants for the reference types
+local typeOfRefConstants = constants.typeOfRef
+local LIBFILTERS_CON_TYPEOFREF_CONTROL 	= typeOfRefConstants[1]
+local LIBFILTERS_CON_TYPEOFREF_SCENE 	= typeOfRefConstants[2]
+local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = typeOfRefConstants[3]
+local LIBFILTERS_CON_TYPEOFREF_OTHER 	= typeOfRefConstants[99]
+local typeOfRefToName    = constants.typeOfRefToName
+
 --functions
 --local getCustomLibFiltersFragmentName = libFilters.GetCustomLibFiltersFragmentName
 
@@ -261,6 +273,7 @@ local libFilters_hookAdditionalFilter
 local libFilters_GetCurrentFilterTypeForInventory
 local libFilters_GetCurrentFilterTypeReference
 local libFilters_GetFilterTypeReferences
+local libFilters_GetFilterTypeName
 
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
@@ -278,19 +291,28 @@ local debugSlashToggle = debugFunctions.debugSlashToggle
 SLASH_COMMANDS["/libfiltersdebug"] = 	debugSlashToggle
 SLASH_COMMANDS["/lfdebug"] = 			debugSlashToggle
 
---Reference type to callback name mapping
-local typeOfRefToCallback = {
-	[1] = "Control",
-	[2] = "Scene",
-	[3] = "Fragment",
-}
-
 
 if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
 
+
 ------------------------------------------------------------------------------------------------------------------------
---LOCAL HELPER FUNCTIONS - Scenes
+--LOCAL HELPER FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
+--Copy the current filterType to lastFilterType (same for the referenceVariables table) if the filterType / refVariables
+--table needs an update
+local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterTyp, doNotUpdateLast)
+	doNotUpdateLast = doNotUpdateLast or false
+	if not doNotUpdateLast then
+		local currentFilterTypeBefore 			= libFilters._currentFilterType
+		libFilters._lastFilterType 				= currentFilterTypeBefore
+		local currentFilterTypeReferencesBefore = libFilters._currentFilterTypeReferences
+		libFilters._lastFilterTypeReferences 	= currentFilterTypeReferencesBefore
+	end
+	libFilters._currentFilterType 				= lFilterTypeDetected
+	libFilters._currentFilterTypeReferences 	= lReferencesToFilterTyp
+end
+
+
 --Get the currently shown scene and sceneName
 local function getCurrentSceneInfo()
 	if not SM then return nil, "" end
@@ -305,16 +327,16 @@ local function checkIfControlSceneFragmentOrOther(refVar)
 	--Scene or fragment
 	if refVar.sceneManager and refVar.state then
 		if refVar.name ~= nil or refVar.fragments ~= nil then
-			retVar = 2 -- Scene
+			retVar = LIBFILTERS_CON_TYPEOFREF_SCENE -- Scene
 		else
-			retVar = 3 -- Fragment
+			retVar = LIBFILTERS_CON_TYPEOFREF_FRAGMENT -- Fragment
 		end
 	--Control
 	elseif refVar.control then
-		retVar = 1 -- Control
+		retVar = LIBFILTERS_CON_TYPEOFREF_CONTROL -- Control
 	--Other
 	else
-		retVar = 99
+		retVar = LIBFILTERS_CON_TYPEOFREF_OTHER -- Other, e.g. boolean
 	end
 	if libFilters.debug then dd("checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
 	return retVar
@@ -352,7 +374,7 @@ local function checkIfRefVarIsShown(refVar)
 	local refType = checkIfControlSceneFragmentOrOther(refVar)
 	--Control
 	local isShown = false
-	if refType == 1 then
+	if refType == LIBFILTERS_CON_TYPEOFREF_CONTROL then
 		local refCtrl = getCtrl(refVar)
 		if refCtrl == nil or refCtrl.IsHidden == nil then
 			isShown = false
@@ -360,15 +382,15 @@ local function checkIfRefVarIsShown(refVar)
 			isShown = not refCtrl:IsHidden()
 		end
 	--Scene
-	elseif refType == 2 then
+	elseif refType == LIBFILTERS_CON_TYPEOFREF_SCENE then
 		if libFilters.debug then dd("checkIfRefVarIsShown - scene state: %q", tos(refVar.state)) end
 		isShown = ((refVar.state == SCENE_SHOWN and true) or (refVar.IsShowing ~= nil and refVar:IsShowing())) or false
 	--Fragment
-	elseif refType == 3 then
+	elseif refType == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
 		if libFilters.debug then dd("checkIfRefVarIsShown - fragment state: %q", tos(refVar.state)) end
 		isShown = ((refVar.state == SCENE_FRAGMENT_SHOWN and true) or (refVar.IsShowing ~= nil and refVar:IsShowing())) or false
 	--Other
-	elseif refType == 99 then
+	elseif refType == LIBFILTERS_CON_TYPEOFREF_OTHER then
 		if type(refVar) == "boolean" then
 			isShown = refVar
 		else
@@ -875,13 +897,13 @@ local function craftBagExtendedCheckForCurrentModule(filterType)
 	return nil, nil
 end
 
-local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
+local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden)
 	local isDebugEnabled = libFilters.debug
 	local lReferencesToFilterType, lFilterTypeDetected
 	if filterTypeControlAndOtherChecks ~= nil then
 		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
 		if isDebugEnabled then dd(">>>===== checkIfShownNow = START =") end
-		if isDebugEnabled then dd(">checking filterType: %q [%s]", libFilters:GetFilterTypeName(filterTypeChecked), tos(filterTypeChecked)) end
+		if isDebugEnabled then dd(">checking filterType: %q [%s]", libFilters_GetFilterTypeName(libFilters, filterTypeChecked), tos(filterTypeChecked)) end
 		if filterTypeChecked ~= nil then
 			local checkTypes = filterTypeControlAndOtherChecks.checkTypes
 			if checkTypes ~= nil then
@@ -947,11 +969,10 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
 				end
 			end
 		end
+
 		--Prevent to return different filterTypes and references
 		if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
 			if isDebugEnabled then dd("<<<===== checkIfShownNow = END =") end
-			libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
-			libFilters._currentFilterType = 			lFilterTypeDetected
 			--Abort the for ... do loop now as data was found
 			return lReferencesToFilterType, lFilterTypeDetected
 		end
@@ -959,8 +980,9 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
 	return lReferencesToFilterType, lFilterTypeDetected
 end
 
-local function detectShownReferenceNow(p_filterType, isInGamepadMode)
+local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHidden)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	checkIfHidden = checkIfHidden or false
 	local lFilterTypeDetected = nil
 	local lReferencesToFilterType = {}
 	local isDebugEnabled = libFilters.debug
@@ -975,121 +997,44 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode)
 		if filterTypeChecksIndex ~= nil then
 			local filterTypeControlAndOtherChecks = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode][filterTypeChecksIndex]
 			--Check if still shown
-			lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
+			lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden)
+			if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
+				if isDebugEnabled then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
+				updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
+			end
 		end
 		return lReferencesToFilterType, lFilterTypeDetected
 	end
 
 	--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
 	for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
-		lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode)
-
-		--[[
-		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
-		if isDebugEnabled then dd("=====================") end
-		if isDebugEnabled then dd(">checking filterType: %q [%s]", libFilters:GetFilterTypeName(filterTypeChecked), tos(filterTypeChecked)) end
-		if filterTypeChecked ~= nil then
-			local checkTypes = filterTypeControlAndOtherChecks.checkTypes
-			if checkTypes ~= nil then
-				local currentReferenceFound
-				local resultOfCurrentLoop = true
-				local resultLoop = false
-				local doSpecialForcedCheckAtEnd = false
-				for _, checkTypeToExecute in ipairs(checkTypes) do
-					--Only go on with checks if not any check was false before
-					if resultOfCurrentLoop == true then
-						resultLoop = false
-						if checkTypeToExecute == "control" then
-							resultLoop, currentReferenceFound = isControlShown(filterTypeChecked, isInGamepadMode)
-						elseif checkTypeToExecute == "controlDialog" then
-							resultLoop, currentReferenceFound = isListDialogShownWrapper(filterTypeChecked, isInGamepadMode)
-						elseif checkTypeToExecute == "fragment" then
-							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, false)
-						elseif checkTypeToExecute == "scene" then
-							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, nil, true)
-						elseif checkTypeToExecute == "special" then
-							--local paramsForFilterTypeSpecialCheck = {} --todo create  function to get needed parameters for the special check per filterType?
-							resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
-						elseif checkTypeToExecute == "specialForced" then
-							if resultOfCurrentLoop == true then resultLoop = true end
-							doSpecialForcedCheckAtEnd = true
-						end
-						if isDebugEnabled then dd(">>foundInLoop: %s, checkType: %s", tos(resultLoop), tos(checkTypeToExecute)) end
-					else
-						if isDebugEnabled then dd(">>>skipped checkType: %s  - resultOfCurrentLoop was false already", tos(checkTypeToExecute) ) end
-					end
-					resultOfCurrentLoop = resultOfCurrentLoop and resultLoop
-				end
-				--End checks
-				if resultOfCurrentLoop == true then
-					if doSpecialForcedCheckAtEnd == true then
-						resultOfCurrentLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, true, nil)
-						if isDebugEnabled then dd(">>>specialCheckAtEnd: " ..tos(resultOfCurrentLoop)) end
-					end
-					if resultOfCurrentLoop == true then
-						lFilterTypeDetected = filterTypeChecked
-						if currentReferenceFound == nil then
-							if isDebugEnabled then dd(">>>>currentReferenceFound is nil, detecing it...") end
-							currentReferenceFound = libFilters_GetFilterTypeReferences(libFilters, filterTypeChecked, isInGamepadMode)
-						end
-						if currentReferenceFound ~= nil then
-							if type(currentReferenceFound) == "table" then
-								-- --[ [
-								--for _, refInRefTab in pairs(currentReferenceFound) do
-								--	tins(lReferencesToFilterType, refInRefTab)
-								--end
-								-- ] ]
-								lReferencesToFilterType = currentReferenceFound
-							else
-								tins(lReferencesToFilterType, currentReferenceFound)
-							end
-						end
-					end
-				end
-			end
-		end
-
-		--Prevent to return different filterTypes and references
-		if lFilterTypeDetected ~= nil and #lReferencesToFilterType > 0 then
-			if isDebugEnabled then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
-			libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
-			libFilters._currentFilterType = 			lFilterTypeDetected
-			--Abort the for ... do loop now as data was found
-			return lReferencesToFilterType, lFilterTypeDetected
-		end
-		]]
+		lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden)
 
 		if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
 			if isDebugEnabled then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
-			libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
-			libFilters._currentFilterType = 			lFilterTypeDetected
+			updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 			--Abort the for ... do loop now as data was found
 			return lReferencesToFilterType, lFilterTypeDetected
 		end
 	end --for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 
 	if isDebugEnabled then dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<") end
-	libFilters._currentFilterTypeReferences = 	lReferencesToFilterType
-	libFilters._currentFilterType = 			lFilterTypeDetected
 	return lReferencesToFilterType, lFilterTypeDetected
 end
 
 --Is the filterType cached at libFilters._currentFilterType (set during call to updater functions and other functions)
 --still the valid one, and it's reference is still shown?
-local function checkIfCachedFilterTypeIsStillShown(filterType, isInGamepadMode)
+local function checkIfCachedFilterTypeIsStillShown(isInGamepadMode)
 	local isDebugEnabled = libFilters.debug
-	if filterType == nil and libFilters._currentFilterType ~= nil then
+	if libFilters._currentFilterType ~= nil then
 		local filterTypeReference, filterTypeShown = detectShownReferenceNow(libFilters._currentFilterType, isInGamepadMode)
 		if filterTypeReference ~= nil and filterTypeShown ~= nil and filterTypeShown == libFilters._currentFilterType then
 			if isDebugEnabled then dd("checkIfCachedFilterTypeIsStillShown %q: %s", tos(filterTypeShown), "YES") end
-			libFilters._currentFilterTypeReferences = filterTypeReference
+			updateLastAndCurrentFilterType(filterTypeShown, filterTypeReference, true)
 			return filterTypeReference, filterTypeShown
-		else
-			libFilters._currentFilterTypeReferences = nil
-			libFilters._currentFilterType = nil
 		end
 	end
-	if isDebugEnabled then dd("checkIfCachedFilterTypeIsStillShown %q: %s", tos(filterType), "NO") end
+	if isDebugEnabled then dd("checkIfCachedFilterTypeIsStillShown - currentFilterType %q: No", tos(libFilters._currentFilterType)) end
 	return nil, nil
 end
 
@@ -1571,7 +1516,7 @@ function libFilters:GetFilterTypeName(filterType)
 	end
 	return libFiltersFilterConstants[filterType] or ""
 end
-local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
+libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 
 
 --Returns number typeOfFilterFunction used for the number LibFilters LF* filterType constant.
@@ -1599,6 +1544,7 @@ end
 --LF_FilterTypeToReference[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 	noRefUpdate = noRefUpdate or false
+	local currentFilterTypeReferences
 	if not inventoryType then
 		dfe("Invalid arguments to GetCurrentFilterTypeForInventory(%q).\n>Needed format is: inventoryTypeNumber(e.g. INVENTORY_BACKPACK)/userdata/table/scene/control inventoryType",
 				tos(inventoryType))
@@ -1637,11 +1583,11 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 			end
 		end
 	end
+	--Was the filterType referenceVariableTable updated at calling function already?
 	if not noRefUpdate then
-		--Was updated at calling function already
-		libFilters._currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterTypeDetected)
+		currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterTypeDetected)
+		updateLastAndCurrentFilterType(filterTypeDetected, currentFilterTypeReferences, false)
 	end
-	libFilters._currentFilterType = 			filterTypeDetected
 
 	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%q: %s, error: %s", tos(inventoryType), tos(filterTypeDetected), tos(errorAppeared)) end
 	return filterTypeDetected
@@ -1657,7 +1603,7 @@ function libFilters:GetCurrentFilterType()
 	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s", tos(filterTypeReference)) end
 	if filterTypeReference == nil then return end
 
-	libFilters._currentFilterTypeReferences = filterTypeReference
+	updateLastAndCurrentFilterType(nil, filterTypeReference, false)
 
 	local currentFilterType = filterType
 	--FilterType was not detected yet (e.g. from cached filterType currently shown)
@@ -1673,7 +1619,8 @@ function libFilters:GetCurrentFilterType()
 		end
 	end
 
-	libFilters._currentFilterType = currentFilterType
+	updateLastAndCurrentFilterType(currentFilterType, nil, true)
+
 	if isDebugEnabled then dd("currentFilterType: %s", tos(currentFilterType)) end
 	return currentFilterType
 end
@@ -2026,8 +1973,8 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 		if libFilters.debug then dd("RequestUpdateByName->Filter update called, updaterName: %s, filterType: %s, delay: %s", tos(updaterName), tos(filterType), tos(delay)) end
 
 		--Update the cashed filterType and it's references
-		libFilters._currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterType, nil)
-		libFilters._currentFilterType = filterType
+		local currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterType, nil)
+		updateLastAndCurrentFilterType(filterType, currentFilterTypeReferences)
 
 		inventoryUpdaters[updaterName](filterType)
 	end
@@ -2165,15 +2112,13 @@ libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 
-	--Check if the cached filterType is given and still shown -> Only if no filterType was explicitly passed in
-	local filterTypeReference, filterTypeShown = checkIfCachedFilterTypeIsStillShown(filterType, isInGamepadMode)
-	if filterTypeReference ~= nil and filterTypeShown ~= nil then
-		return filterTypeReference, filterTypeShown
+	--Check if the cached "current filterType" is given and still shown -> Only if no filterType was explicitly passed in
+	if filterType == nil then
+		local filterTypeReference, filterTypeShown = checkIfCachedFilterTypeIsStillShown(filterType, isInGamepadMode)
+		if filterTypeReference ~= nil and filterTypeShown ~= nil then
+			return filterTypeReference, filterTypeShown
+		end
 	end
-
-	--Reset cached variables
-	libFilters._currentFilterTypeReferences = 	nil
-	libFilters._currentFilterType = 			nil
 	------------------------------------------------------------------------------------------------------------------------
 
 	--CraftBagExtended addon is active? We got a currently shown fragment of CBE then e.g. but the "parent" filterType will be something like
@@ -2536,7 +2481,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		for _, filterTypeRefToHook in ipairs(inventoriesToHookForLFConstant_Table) do
 			if filterTypeRefToHook ~= nil then
 				local typeOfRef = checkIfControlSceneFragmentOrOther(filterTypeRefToHook)
-				local typeOfRefStr = typeOfRefToCallback[typeOfRef]
+				local typeOfRefStr = typeOfRefToName[typeOfRef]
 
 				local layoutData = filterTypeRefToHook.layoutData or filterTypeRefToHook
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
@@ -2935,11 +2880,22 @@ callbacksAdded[3] = {}
 callbacks.added = callbacksAdded
 
 local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef)
+	if filterTypes == nil or fragmentOrSceneOrControl == nil or stateStr == nil or stateStr == "" then return end
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local lReferencesToFilterType, filterType
+
+	--Are we hiding or is a control/scene/fragment already hidden?
+	--The shown checks might not work properly then, so we need to "cache" the last used filterType and reference variables!
+	local lastKnownFilterType, lastKnownRefVars
+	if stateStr == SCENE_HIDING or stateStr == SCENE_HIDDEN then
+		lastKnownFilterType = libFilters._currentFilterType
+		lastKnownRefVars 	= libFilters._currentFilterTypeReferences
+	end
+
+	--Detect which control/fragment/scene is currently shown
 	if #filterTypes == 0 then
-		--Detect the currently shown one
-		lReferencesToFilterType, filterType = detectShownReferenceNow(filterType, isInGamepadMode)
+		--Detect the currently shown control/fragment/scene and get the filterType
+		lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode)
 	else
 		local checkForAllPanelsAtTheEnd = false
 		--Check the given filterTypes first
@@ -2964,17 +2920,28 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				end
 			end
 		end
+		--At the end: was any entry with filterType = 0 provided in the filterTypes table?
 		if checkForAllPanelsAtTheEnd == true and filterType == nil and lReferencesToFilterType == nil then
+			--Detect the currently shown control/fragment/scene and get the filterType
 			lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode)
 		end
 	end
-	if filterType == nil then return end
+	if filterType == nil then
+		--Are we at hiding/hidden state?
+		if lastKnownFilterType ~= nil and lastKnownRefVars ~= nil then
+			--The last used filterType should be the one used before hiding then -> Use it
+			filterType 				= lastKnownFilterType
+			lReferencesToFilterType = lastKnownRefVars
+		else
+			return
+		end
+	end
 
 	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
 
 	if libFilters.debug then
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
-		local callbackRefType = typeOfRefToCallback[typeOfRef]
+		local callbackRefType = typeOfRefToName[typeOfRef]
 		df(">!!! CALLBACK - filterType: %q [%s] - %s !!!>", tos(filterTypeName), tos(filterType), tos(stateStr))
 		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s",
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
@@ -3050,8 +3017,7 @@ local function createFragmentCallback(fragment, filterTypes, inputType)
 				end
 		)
 		callbacksAdded[3][fragment] = callbacksAdded[3][fragment] or {}
-		callbacksAdded[3][fragment]._filterType = filterTypes
-		callbacksAdded[3][fragment][inputType] = true
+		callbacksAdded[3][fragment][inputType] = filterTypes
 	end
 end
 libFilters.CreateFragmentCallback = createFragmentCallback
@@ -3096,8 +3062,7 @@ local function createSceneCallbacks()
 					scene:RegisterCallback("StateChange",
 							function(oldState, newState) onSceneStateChange(oldState, newState, filterTypes, scene, inputType) end)
 					callbacksAdded[2][scene] = callbacksAdded[2][scene] or {}
-					callbacksAdded[2][scene]._filterTypes = filterTypes
-					callbacksAdded[2][scene][inputType] = true
+					callbacksAdded[2][scene][inputType] = filterTypes
 				end
 			end
 		end
@@ -3146,8 +3111,7 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 			end)
 		end
 		callbacksAdded[1][controlRef] = callbacksAdded[1][controlRef] or {}
-		callbacksAdded[1][controlRef]._filterTypes = filterTypes
-		callbacksAdded[1][controlRef][inputType] = true
+		callbacksAdded[1][controlRef][inputType] = filterTypes
 	end
 end
 libFilters.CreateControlCallback = createControlCallback
