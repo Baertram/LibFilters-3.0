@@ -566,17 +566,21 @@ end
 
 local function getFragmentControlName(fragment)
 	if fragment ~= nil then
-		if fragment.GetControl then
-			local fragmentControl = getCtrl(fragment:GetControl())
-			if fragmentControl then
-				local fragmentControlName = (fragmentControl.GetName ~= nil and fragmentControl:GetName())
-						or (fragmentControl.name ~= nil and fragmentControl.name)
-				if fragmentControlName ~= nil and fragmentControlName ~= "" then return fragmentControlName end
-			end
-		elseif fragment.name ~= nil then
+		local fragmentControl
+		if fragment.name ~= nil then
 			return fragment.name
 		elseif fragment._name ~= nil then
 			return fragment._name
+		elseif fragment.GetControl then
+			fragmentControl = getCtrl(fragment:GetControl())
+		elseif fragment.control then
+			fragmentControl = getCtrl(fragment.control)
+		end
+
+		if fragmentControl ~= nil then
+			local fragmentControlName = (fragmentControl.GetName ~= nil and fragmentControl:GetName())
+					or (fragmentControl.name ~= nil and fragmentControl.name)
+			if fragmentControlName ~= nil and fragmentControlName ~= "" then return fragmentControlName end
 		end
 	end
 	return "n/a"

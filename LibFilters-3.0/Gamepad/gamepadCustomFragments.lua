@@ -514,10 +514,17 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 		if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - CraftBag - Removed CUSTOM inventory fragment") end
 		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 
-	else--if list == invBackpack_GP.categoryList or list == invBackpack_GP.itemList then
-		if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - Inventory - Added CUSTOM inventory fragment") end
-		invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
-		gamepadLibFiltersInventoryFragment:Show()
+	else
+		--Check for non-inventory selected entries in the categoryliest, like "quests" or "quickslots" and remove the custom inv. fragment then
+		if libFilters:IsInventoryShown() then
+			if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - Inventory - Added CUSTOM inventory fragment") end
+			invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
+			gamepadLibFiltersInventoryFragment:Show()
+		else
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+			if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - Non-inventory - Removed CUSTOM inventory fragment") end
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+		end
 	end
 end)
 
