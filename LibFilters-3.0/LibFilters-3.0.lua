@@ -401,6 +401,7 @@ local function checkIfRefVarIsShown(refVar)
 	return isShown, refVar, refType
 end
 
+
 --[[
 --Compare the String/table sceneOrFragmentToCompare with the currentSceneOrFragment, or the sceneOrFragmentToCompare.name
 --(of if it's a string it is the name already so compare it directly) with currentSceneOrFragmentName
@@ -572,6 +573,10 @@ local function getFragmentControlName(fragment)
 						or (fragmentControl.name ~= nil and fragmentControl.name)
 				if fragmentControlName ~= nil and fragmentControlName ~= "" then return fragmentControlName end
 			end
+		elseif fragment.name ~= nil then
+			return fragment.name
+		elseif fragment._name ~= nil then
+			return fragment._name
 		end
 	end
 	return "n/a"
@@ -587,6 +592,23 @@ local function getSceneName(scene)
 				if sceneName ~= "" then return sceneName end
 			end
 		end
+	end
+	return "n/a"
+end
+
+local function getCtrlName(ctrlVar)
+	local ctrlName = (ctrlVar.GetName ~= nil and ctrlVar:GetName()) or (ctrlVar.name ~= nil and ctrlVar.name)
+	if ctrlName ~= nil and ctrlName ~= "" then return ctrlName end
+	return "n/a"
+end
+
+local function getTypeOfRefName(typeOfRef, filterTypeRefToHook)
+	if typeOfRef == LIBFILTERS_CON_TYPEOFREF_CONTROL then
+		return getCtrlName(filterTypeRefToHook)
+	elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_SCENE then
+		return getSceneName(filterTypeRefToHook)
+	elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
+		return getFragmentControlName(filterTypeRefToHook)
 	end
 	return "n/a"
 end
@@ -2473,7 +2495,9 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
-		if libFilters.debug then dd("HookAdditionalFilter-HookNow filterType %q, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+		if libFilters.debug then
+			dd(">____________________>")
+			dd("[HookNow]filterType %q, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
 				filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode)) end
 
 		if #inventoriesToHookForLFConstant_Table == 0 then return end
@@ -2482,6 +2506,10 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 			if filterTypeRefToHook ~= nil then
 				local typeOfRef = checkIfControlSceneFragmentOrOther(filterTypeRefToHook)
 				local typeOfRefStr = typeOfRefToName[typeOfRef]
+				if libFilters.debug then
+					local typeOfRefName = getTypeOfRefName(typeOfRef, filterTypeRefToHook)
+					dd(">Hooking into %q, type: %s", tos(typeOfRefName), tos(typeOfRefStr))
+				end
 
 				local layoutData = filterTypeRefToHook.layoutData or filterTypeRefToHook
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
@@ -2504,7 +2532,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 				--Special filterFunction needed, not located at .additionalFilter but e.g. .additionalCraftBag filter?
 				if otherOriginalFilterAttributesAtLayoutData ~= nil then
 					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
-					if libFilters.debug then dd(">filterType: %s, otherOriginalFilterAttributesAtLayoutData: %s", filterTypeNameAndTypeText, tos(readFromAttribute)) end
+					if libFilters.debug then dd(">>filterType: %s, otherOriginalFilterAttributesAtLayoutData: %s", filterTypeNameAndTypeText, tos(readFromAttribute)) end
 					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
 					if readFromObject == nil then
 						--Fallback: Read from the same layoutData
@@ -2513,8 +2541,9 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					if readFromObject == nil then
 						--This will happen once for LF_CraftBag as PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] does not seem to exist yet
 						--as we try to add the .additionalCraftBagFilter to it
-						dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s. But the readFrom data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
+						dfe("HookAdditionalFilter-HookNow found a \"fix\" for filterType %s, type: %s. But the readFrom data (%q/%q) is invalid/missing!, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
 								filterTypeNameAndTypeText,
+								tos(typeOfRefStr),
 								tos((readFromObject ~= nil and "readFromObject=" .. tos(readFromObject)) or "readFromObject is missing"),
 								tos((readFromAttribute ~= nil and "readFromAttribute=" .. readFromAttribute) or "readFromAttribute is missing"),
 								tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
@@ -2526,7 +2555,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						local originalFilterType = type(otherOriginalFilter)
 						if originalFilterType == "function" then
 							createFilterFunctionForLibFilters = false
-							if libFilters.debug then dd(">>Updated existing filter function %q", tos(readFromAttribute)) end
+							if libFilters.debug then dd(">>>Updated existing filter function %q", tos(readFromAttribute)) end
 							readFromObject[readFromAttribute] = function(...) --e.g. update BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.additionalCraftBagFilter so it will be copied to PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] at PLAYER_INVENTORY:ApplyBackpackLayout()
 								return otherOriginalFilter(...) and runFilters(filterType, ...)
 							end
@@ -2539,22 +2568,22 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						createFilterFunctionForLibFilters = true
 					end
 					if createFilterFunctionForLibFilters == true then
-						if libFilters.debug then dd(">>Created new filter function %q", tos(readFromAttribute)) end
+						if libFilters.debug then dd(">>>Created new filter function %q", tos(readFromAttribute)) end
 						readFromObject[readFromAttribute] = function(...) --e.g. update BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.additionalCraftBagFilter so it will be copied to PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] at PLAYER_INVENTORY:ApplyBackpackLayout()
 							return runFilters(filterType, ...)
 						end
 					end
 				else
-					if libFilters.debug then dd(">filterType: %s, normal hook: %s", filterTypeNameAndTypeText, tos(defaultOriginalFilterAttributeAtLayoutData)) end
+					if libFilters.debug then dd(">>filterType: %s, normal hook: %s", filterTypeNameAndTypeText, tos(defaultOriginalFilterAttributeAtLayoutData)) end
 					local originalFilterType = type(originalFilter)
 					if originalFilterType == "function" then
-						if libFilters.debug then dd(">Updated existing filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
+						if libFilters.debug then dd(">>>Updated existing filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
 						--Set the .additionalFilter again with the filter function of the original and LibFilters
 						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 							return originalFilter(...) and runFilters(filterType, ...)
 						end
 					else
-						if libFilters.debug then dd(">Created new filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
+						if libFilters.debug then dd(">>>Created new filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
 						--Set the .additionalFilter again with the filter function of LibFilters only
 						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 							return runFilters(filterType, ...)
@@ -2990,7 +3019,7 @@ end
 
 local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType)
 	if libFilters.debug then
-		local ctrlName = (ctrlRef.GetName ~= nil and ctrlRef:GetName()) or (ctrlRef.name ~= nil and ctrlRef.name)
+		local ctrlName = getCtrlName(ctrlRef)
 		dd("~~~ CONTROL HIDDEN STATE CHANGE ~~~")
 		dd("Control %q - hidden state change: %s - #filterTypes: %s, isGamePad: %s", tos(ctrlName), tos(not isShown), #filterTypes, tos(inputType))
 	end
@@ -3076,7 +3105,7 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 		if controlRef ~= nil then
 			local controlRefNew, _ = getCtrl(controlRef)
 			controlRef = controlRefNew
-			ctrlName = (controlRef.GetName ~= nil and controlRef:GetName()) or (controlRef.name ~= nil and controlRef.name)
+			ctrlName = getCtrlName(controlRef)
 			dd(">register control %q OnShow/OnHide - #filterType: %s", tos(ctrlName), #filterTypes)
 		else
 			dd(">register control OnShow/OnHide: control is NIL! - #filterTypes: %s", #filterTypes)

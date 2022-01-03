@@ -344,8 +344,9 @@ local gamepadLibFiltersDefaultFragment = LibFilters_InventoryLayoutFragment:New(
 
 
 --Player bank deposit
-gamepadLibFiltersBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_BANK_DEPOSIT)] = gamepadLibFiltersBankDepositFragment
+gamepadLibFiltersBankDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersBankDepositFragment._name 		= getCustomLibFiltersFragmentName(LF_BANK_DEPOSIT)
+_G[gamepadLibFiltersBankDepositFragment._name]	= gamepadLibFiltersBankDepositFragment
 hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP,
 		"deposit", "InitializeLists",
 		gamepadLibFiltersBankDepositFragment,
@@ -353,8 +354,9 @@ hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invB
 
 
 --House bank deposit
-gamepadLibFiltersHouseBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_HOUSE_BANK_DEPOSIT)]  = gamepadLibFiltersHouseBankDepositFragment
+gamepadLibFiltersHouseBankDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersHouseBankDepositFragment._name 	= getCustomLibFiltersFragmentName(LF_HOUSE_BANK_DEPOSIT)
+_G[gamepadLibFiltersHouseBankDepositFragment._name]	= gamepadLibFiltersHouseBankDepositFragment
 hookFragmentStateByPostHookListInitFunction("depositHouseBank", invBankScene_GP, invBank_GP,
 		"deposit", "InitializeLists",
 		gamepadLibFiltersHouseBankDepositFragment,
@@ -378,16 +380,18 @@ end)
 
 
 --Guild bank deposit
-gamepadLibFiltersGuildBankDepositFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_GUILDBANK_DEPOSIT)]  = gamepadLibFiltersGuildBankDepositFragment
+gamepadLibFiltersGuildBankDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersGuildBankDepositFragment._name 	= getCustomLibFiltersFragmentName(LF_GUILDBANK_DEPOSIT)
+_G[gamepadLibFiltersGuildBankDepositFragment._name]	= gamepadLibFiltersGuildBankDepositFragment
 hookFragmentStateByPostHookListInitFunction("depositGuildBank", invGuildBankScene_GP, invGuildBank_GP,
 		"deposit", "InitializeLists",
 		gamepadLibFiltersGuildBankDepositFragment, nil, false)
 
 
 --Trading house = Guild store sell
-gamepadLibFiltersGuildStoreSellFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_GUILDSTORE_SELL)]	= gamepadLibFiltersGuildStoreSellFragment
+gamepadLibFiltersGuildStoreSellFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersGuildStoreSellFragment._name 		= getCustomLibFiltersFragmentName(LF_GUILDSTORE_SELL)
+_G[gamepadLibFiltersGuildStoreSellFragment._name]	= gamepadLibFiltersGuildStoreSellFragment
 
 
 --The GAMEPAD_TRADING_HOUSE_SELL variable is not given until gamepad mode is enabled and the trading house sell panel is opened...
@@ -421,8 +425,9 @@ end)
 
 
 --Mail send
-gamepadLibFiltersMailSendFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_MAIL_SEND)]		= gamepadLibFiltersMailSendFragment
+gamepadLibFiltersMailSendFragment 				= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersMailSendFragment._name 		= getCustomLibFiltersFragmentName(LF_MAIL_SEND)
+_G[gamepadLibFiltersMailSendFragment._name]		= gamepadLibFiltersMailSendFragment
 --[[
 --Hide/Show with GAMEPAD_MAIL_SEND_FRAGMENT
 GAMEPAD_MAIL_SEND_FRAGMENT:RegisterCallback("StateChange", function(oldState, newState)
@@ -454,13 +459,15 @@ end)
 
 
 --Player to player trade
-gamepadLibFiltersPlayerTradeFragment = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_TRADE)] = gamepadLibFiltersPlayerTradeFragment
+gamepadLibFiltersPlayerTradeFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersPlayerTradeFragment._name 		= getCustomLibFiltersFragmentName(LF_TRADE)
+_G[gamepadLibFiltersPlayerTradeFragment._name] 	= gamepadLibFiltersPlayerTradeFragment
 
 
 --Player inventory
-gamepadLibFiltersInventoryFragment                = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
-_G[getCustomLibFiltersFragmentName(LF_INVENTORY)] = gamepadLibFiltersInventoryFragment
+gamepadLibFiltersInventoryFragment              = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersInventoryFragment._name 		= getCustomLibFiltersFragmentName(LF_INVENTORY)
+_G[gamepadLibFiltersInventoryFragment._name]	= gamepadLibFiltersInventoryFragment
 
 gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldState, newState)
 	if libFilters.debug then dd("GAMEPAD CUSTOM Inventory FRAGMENT - State: " ..tos(newState)) end
