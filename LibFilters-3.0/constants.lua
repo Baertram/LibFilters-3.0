@@ -1963,10 +1963,8 @@ local callbacksUsingFragments = {
 
 	--Gamepad
 	[true] = {
-		--LF_INVENTORY --> Maybe, should be also be triggered via custom fragment "gamepadLibFiltersInventoryFragment"!
-		--LF_CRAFTBAG
 		--LF_INVENTORY_QUEST
-		[invFragment_GP]					= { LF_INVENTORY, LF_CRAFTBAG, LF_INVENTORY_QUEST },
+		[invFragment_GP]					= { LF_INVENTORY_QUEST },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
 		[researchChooseItemDialog_GP]		= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
@@ -1987,7 +1985,7 @@ local callbacksUsingFragments = {
 		[companionEquipmentFragment_GP]								= { LF_INVENTORY_COMPANION }
 
 		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
-		--The fragments will be updated as bank lists get initialized
+		--The fragments will be updated as inv/bank lists get initialized
 		--callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 		= { LF_INVENTORY }
 		--callbacksUsingFragments[true][gamepadLibFiltersBankDepositFragment] 		= { LF_BANK_DEPOSIT }
 		--callbacksUsingFragments[true][gamepadLibFiltersGuildBankDepositFragment] 	= { LF_GUILDBANK_DEPOSIT }

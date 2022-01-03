@@ -484,9 +484,10 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	libFilters.mapping.callbacks.usingControls[true][craftBagList] = { LF_CRAFTBAG }
 	libFilters.CreateControlCallback(craftBagList, { LF_CRAFTBAG }, true)
 
+	--Add StateChange callback to GAMEPAD_INVENTORY_FRAGMENT and show/hide the custom inventory fragment of LibFilters with this vanilla fragment
 	invFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
 		if libFilters.debug then dd("GAMEPAD Inventory FRAGMENT - State: " ..tos(newState)) end
-		fragmentChange(oldState, newState, nil, gamepadLibFiltersInventoryFragment,
+		fragmentChange(oldState, newState, invFragment_GP, gamepadLibFiltersInventoryFragment,
 					function(p_sourceFragment, p_targetFragment) return end, --showing
 					function(p_sourceFragment, p_targetFragment)
 						if invRootScene:HasFragment(p_targetFragment) then
