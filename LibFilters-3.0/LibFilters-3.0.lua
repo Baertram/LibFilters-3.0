@@ -96,15 +96,20 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				0
+--Bugs total: 				5
 --Feature requests total: 	0
 
 --[Bugs]
--- #1) 2021-12-06, ESOUI addon comments, SantaClaus:	Merry christmas :-)
+-- #1) 2022-01-03, Baertram: Gamepad mode - returning from quickslots to the normal inv does not trigger the custom inventory fragment's show state callback
+-- #2) 2022-01-03, Baertram: Gamepad mode - callback for filterType LF_INVENTORY does not fire as callback get's added to the fragment as the inventory lists get initialized the 1st time
+-- #3) 2022-01-03, Baertram: Gamepad mode - why is the custom inv. fragment LIBFILTERS3_BACKPACK_INVENTORY_GAMEPAD_FRAGMENT hiding directly after it was added to the scene (see error #1) as we
+--		get back from the quickslots to "Consumable" inventory items? GAMEPAD_INVENTORY_FRAGMENT is still shown. Maybe the conditional categoryList:IsActive check??
+-- #4 IMPORTANT) 2022-01-03, Baertram: Add a "throttled call" to detectShownReference function so that old calls do not override currently new added checks by fragments shown new!
+-- #5 IMPORTANT) 2022-01-03, Baertram: Add a "isHidden" check to detectShownReference function so that one can check if the control/scene/fragment is currently hidden too (for "OnHide" and scene/fragment StateChange hiding/hidden)
 
 
 --[Feature requests]
--- #f1) 2021-12-06, ESOUI addon comments, SantaClaus:	Let the bells jingle
+-- #f1)
 
 
 ------------------------------------------------------------------------------------------------------------------------

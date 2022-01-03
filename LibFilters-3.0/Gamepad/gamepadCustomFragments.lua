@@ -493,6 +493,12 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 						if invRootScene:HasFragment(p_targetFragment) then
 							if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT - show: " ..tos(p_targetFragment)) end
 							p_targetFragment:Show()
+						else
+							if libFilters:IsInventoryShown() then
+								if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT > ADDED - show: " ..tos(p_targetFragment)) end
+								invRootScene:AddFragment(p_targetFragment)
+								p_targetFragment:Show()
+							end
 						end
 						return
 					end, --shown
@@ -581,7 +587,8 @@ end)
 ]]
 
 gamepadLibFiltersInventoryFragment:SetConditional(function()
-	return invRootScene:IsShowing() and invBackpack_GP.categoryList:IsActive()
+	return invRootScene:IsShowing() and (invBackpack_GP.craftBagList == nil
+										or (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive() == false))
 end)
 
 
