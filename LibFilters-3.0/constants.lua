@@ -104,6 +104,12 @@ local function df(...)
 end
 debugFunctions.df = df
 
+--Vebose "spammy" message
+local function dv(...)
+	debugMessageCaller('V', ...)
+end
+debugFunctions.dv = dv
+
 --Error message
 local function dfe(...)
 	debugMessageCaller('E', ...)
@@ -1997,7 +2003,7 @@ local callbacksUsingFragments = {
 		--[1] = { LF_BANK_WITHDRAW },
 		--[1] = { LF_GUILDBANK_WITHDRAW },
 		--[1] = { LF_HOUSE_BANK_WITHDRAW },
-
+		--[invBackpack_GP.craftBagList._fragment] = { LF_CRAFTBAG }, --Will be updated in file /Gamepad/gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	}
 }
 callbacks.usingFragments = callbacksUsingFragments
@@ -2083,7 +2089,6 @@ local callbacksUsingControl = {
 
 	--Gamepad
 	[true] = {
-		--[invBackpack_GP.craftBagList] = LF_CRAFTBAG, --Will be updated in file /Gamepad/gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 
 		--Dedicated controls
 	},

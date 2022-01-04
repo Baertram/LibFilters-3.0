@@ -475,14 +475,15 @@ end)
 
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	--Update the control and special checks controls with the now existing CraftBag list controls
-	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag
-	local craftBagList = invBackpack_GP.craftBagList
+	local craftBagList_GP = invBackpack_GP.craftBagList
+	local craftBagFragment_GP = craftBagList_GP._fragment
+	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = craftBagFragment_GP.control  --ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
-	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList
-	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList
+	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList_GP
+	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList_GP
 
-	libFilters.mapping.callbacks.usingControls[true][craftBagList] = { LF_CRAFTBAG }
-	libFilters.CreateControlCallback(craftBagList, { LF_CRAFTBAG }, true)
+	libFilters.mapping.callbacks.usingFragments[true][craftBagFragment_GP] = { LF_CRAFTBAG }
+	libFilters.CreateFragmentCallback(craftBagFragment_GP, { LF_CRAFTBAG }, true)
 
 	--Add StateChange callback to GAMEPAD_INVENTORY_FRAGMENT and show/hide the custom inventory fragment of LibFilters with this vanilla fragment
 	invFragment_GP:RegisterCallback("StateChange", function(oldState, newState)
