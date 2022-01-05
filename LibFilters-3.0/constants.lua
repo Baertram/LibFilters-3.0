@@ -282,6 +282,18 @@ constants.inventoryTypes["craftbag"] 	=	invTypeCraftBag
 
 
 ------------------------------------------------------------------------------------------------------------------------
+--Other addons
+------------------------------------------------------------------------------------------------------------------------
+--CraftBagExtended
+local cbeSupportedFilterPanels = {
+	LF_MAIL_SEND, LF_TRADE,
+	LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
+	LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT
+}
+constants.cbeSupportedFilterPanels = cbeSupportedFilterPanels
+
+
+------------------------------------------------------------------------------------------------------------------------
 --Keyboard constants
 ------------------------------------------------------------------------------------------------------------------------
 --Inventory
@@ -292,6 +304,7 @@ local inventories                 = kbc.inventories
 kbc.playerInvCtrl                 = ZO_PlayerInventory
 kbc.inventoryFragment 			  = INVENTORY_FRAGMENT
 local inventoryFragment		   	  =	kbc.inventoryFragment
+inventoryFragment._name = "INVENTORY_FRAGMENT"
 
 --Character
 kbc.characterCtrl                 =	ZO_Character
@@ -300,6 +313,7 @@ kbc.characterCtrl                 =	ZO_Character
 kbc.invBackpack                   = inventories[invTypeBackpack]
 local invBackpack                 = kbc.invBackpack
 kbc.invBackpackFragment           = BACKPACK_MENU_BAR_LAYOUT_FRAGMENT
+kbc.invBackpackFragment._name = "BACKPACK_MENU_BAR_LAYOUT_FRAGMENT"
 
 --Craftbag
 kbc.craftBagClass  				  = ZO_CraftBag
@@ -307,48 +321,57 @@ kbc.invCraftbag                   = inventories[invTypeCraftBag]
 local invCraftbag 				  = kbc.invCraftbag
 kbc.craftBagFragment 			  = CRAFT_BAG_FRAGMENT
 local craftBagFragment 			  = kbc.craftBagFragment
+craftBagFragment._name = "CRAFT_BAG_FRAGMENT"
 
 --Quest items
 kbc.invQuests                     = inventories[invTypeQuest]
 local invQuests					  = kbc.invQuests
 kbc.invQuestFragment			  = QUEST_ITEMS_FRAGMENT
 local invQuestFragment 			  = kbc.invQuestFragment
+invQuestFragment._name = "QUEST_ITEMS_FRAGMENT"
 
 --Quickslots
 kbc.quickslots                    = QUICKSLOT_WINDOW
 local quickslots 				  = kbc.quickslots
 kbc.quickslotsFragment            = QUICKSLOT_FRAGMENT
 local quickslotsFragment 		  = kbc.quickslotsFragment
+quickslotsFragment._name = "QUICKSLOT_FRAGMENT"
 
 
 --[Banks]
 --Player bank
 kbc.invBankDeposit                = BACKPACK_BANK_LAYOUT_FRAGMENT
 local invBankDeposit 			  = kbc.invBankDeposit
+invBankDeposit._name = "BACKPACK_BANK_LAYOUT_FRAGMENT"
 kbc.invBankWithdraw               = inventories[invTypeBank]
 local invBankWithdraw 			  = kbc.invBankWithdraw
 kbc.bankWithdrawFragment          = BANK_FRAGMENT
 local bankWithdrawFragment 		  = kbc.bankWithdrawFragment
+bankWithdrawFragment._name = "BANK_FRAGMENT"
 kbc.invBankScene      		  	  = getScene(SM, "bank")
 local invBankScene 				  = kbc.invBankScene
 
 --Guild bank
 kbc.invGuildBankDeposit           = BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT
 local invGuildBankDeposit 		  = kbc.invGuildBankDeposit
+invGuildBankDeposit._name = "BACKPACK_GUILD_BANK_LAYOUT_FRAGMENT"
 kbc.invGuildBankWithdraw          = inventories[invTypeGuildBank]
 local invGuildBankWithdraw 		  = kbc.invGuildBankWithdraw
 kbc.guildBankWithdrawFragment     = GUILD_BANK_FRAGMENT
 local guildBankWithdrawFragment   = kbc.guildBankWithdrawFragment
+guildBankWithdrawFragment._name = "GUILD_BANK_FRAGMENT"
 kbc.invGuildBankScene      		  = getScene(SM, "guildBank")
 local invGuildBankScene 		  = kbc.invGuildBankScene
 
 --House bank
 kbc.invHouseBankDeposit           = BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT
 local invHouseBankDeposit 		  = kbc.invHouseBankDeposit
+invHouseBankDeposit._name = "BACKPACK_HOUSE_BANK_LAYOUT_FRAGMENT"
 kbc.invHouseBankWithdraw          = inventories[invTypeHouseBank]
 local invHouseBankWithdraw	  	  = kbc.invHouseBankWithdraw
 kbc.houseBankWithdrawFragment     = HOUSE_BANK_FRAGMENT
 local houseBankWithdrawFragment	  = kbc.houseBankWithdrawFragment
+houseBankWithdrawFragment._name = "HOUSE_BANK_FRAGMENT"
 kbc.invHouseBankScene      		  = getScene(SM, "houseBank")
 local invHouseBankScene 		  = kbc.invHouseBankScene
 
@@ -362,19 +385,24 @@ kbc.vendorBuy                     =	kbc.store
 local vendorBuy 				  = kbc.vendorBuy
 kbc.vendorBuyFragment			  = STORE_FRAGMENT
 local vendorBuyFragment 	  	  = kbc.vendorBuyFragment
+vendorBuyFragment._name = "STORE_FRAGMENT"
 kbc.vendorSell        			  = BACKPACK_STORE_LAYOUT_FRAGMENT
 local vendorSell 				  = kbc.vendorSell
+vendorSell._name = "BACKPACK_STORE_LAYOUT_FRAGMENT"
+
 ---Buy back
 kbc.vendorBuyBack     			  = BUY_BACK_WINDOW
 local vendorBuyBack		  	 	  = kbc.vendorBuyBack
 kbc.vendorBuyBackFragment		  = BUY_BACK_FRAGMENT
 local vendorBuyBackFragment 	  = kbc.vendorBuyBackFragment
+vendorBuyBackFragment._name = "BUY_BACK_FRAGMENT"
 
 ---Repair
 kbc.vendorRepair                  = REPAIR_WINDOW
 local vendorRepair 				  = kbc.vendorRepair
 kbc.vendorRepairFragment          = REPAIR_FRAGMENT
 local vendorRepairFragment 		  = kbc.vendorRepairFragment
+vendorRepairFragment._name = "REPAIR_FRAGMENT"
 kbc.storeWindows                  = {
 	[ZO_MODE_STORE_BUY] = 			vendorBuy,
 	[ZO_MODE_STORE_BUY_BACK] = 		vendorBuyBack,
@@ -392,10 +420,12 @@ kbc.fence                         = FENCE_KEYBOARD
 local fence = kbc.fence
 kbc.invFenceLaunderFragment       = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
 local invFenceLaunderFragment 	  = kbc.invFenceLaunderFragment
+invFenceLaunderFragment._name = "BACKPACK_LAUNDER_LAYOUT_FRAGMENT"
 
 --Fence sell
 kbc.invFenceSellFragment 		  = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local invFenceSellFragment 		  = kbc.invFenceSellFragment
+invFenceSellFragment._name = "BACKPACK_FENCE_LAYOUT_FRAGMENT"
 
 --[Guild store]
 kbc.guildStoreObj                 = ZO_TradingHouse
@@ -403,22 +433,26 @@ local guildStoreObj 			  = kbc.guildStoreObj
 --keyboardConstants.guildStoreBuy = guildStoreBuy			--not supported by LibFilters yet
 kbc.guildStoreBrowseFragment      = TRADING_HOUSE_SEARCH_HISTORY_KEYBOARD_FRAGMENT
 local guildStoreBrowseFragment	  = kbc.guildStoreBrowseFragment
+guildStoreBrowseFragment._name = "TRADING_HOUSE_SEARCH_HISTORY_KEYBOARD_FRAGMENT"
 
 kbc.guildStoreSellLayoutFragment  = BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT
 local guildStoreSellLayoutFragment= kbc.guildStoreSellLayoutFragment
-kbc.guildStoreSellFragment        = INVENTORY_FRAGMENT
+guildStoreSellLayoutFragment._name = "BACKPACK_TRADING_HOUSE_LAYOUT_FRAGMENT"
+kbc.guildStoreSellFragment        = inventoryFragment
 local guildStoreSellFragment 	  = kbc.guildStoreSellFragment
 
 
 --[Mail]
-kbc.mailSendObj                   =	MAIL_SEND
-kbc.mailSend                      =	BACKPACK_MAIL_LAYOUT_FRAGMENT
-local mailSend 					  = kbc.mailSend
+kbc.mailSendObj        			= MAIL_SEND
+kbc.mailSendFragment   			= BACKPACK_MAIL_LAYOUT_FRAGMENT
+local mailSendFragment 			= kbc.mailSendFragment
+mailSendFragment._name 			= "BACKPACK_MAIL_LAYOUT_FRAGMENT"
 
 --[Player 2 player trade]
 kbc.player2playerTradeObj         = TRADE --TRADE_WINDOW
-kbc.player2playerTrade            = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
-local player2playerTrade 		  = kbc.player2playerTrade
+kbc.player2playerTradeFragment 	  = BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT
+local player2playerTradeFragment = kbc.player2playerTradeFragment
+player2playerTradeFragment._name = "BACKPACK_PLAYER_TRADE_LAYOUT_FRAGMENT"
 
 
 --[Companion]
@@ -426,8 +460,10 @@ kbc.companionEquipment            = COMPANION_EQUIPMENT_KEYBOARD
 local companionEquipment 		  = kbc.companionEquipment
 kbc.companionEquipmentFragment	  = COMPANION_EQUIPMENT_KEYBOARD_FRAGMENT
 local companionEquipmentFragment  = kbc.companionEquipmentFragment
+companionEquipmentFragment._name = "COMPANION_EQUIPMENT_KEYBOARD_FRAGMENT"
 kbc.companionCharacterCtrl        = ZO_CompanionCharacterWindow_Keyboard_TopLevel
 kbc.companionCharacterFragment    = COMPANION_CHARACTER_KEYBOARD_FRAGMENT
+kbc.companionCharacterFragment._name = "COMPANION_CHARACTER_KEYBOARD_FRAGMENT"
 
 
 
@@ -472,12 +508,14 @@ local alchemyScene 				  = kbc.alchemyScene
 kbc.alchemyCtrl                   = alchemy.control
 kbc.alchemyFragment               =	ALCHEMY_FRAGMENT
 local alchemyFragment 			  = kbc.alchemyFragment
+alchemyFragment._name = "ALCHEMY_FRAGMENT"
 
 --Provisioning
 kbc.provisioner			          = PROVISIONER
 local provisioner 				  = kbc.provisioner
 kbc.provisionerFragment			  = PROVISIONER_FRAGMENT
 local provisionerFragment		  = kbc.provisionerFragment
+provisionerFragment._name = "PROVISIONER_FRAGMENT"
 
 --Retrait
 --keyboardConstants.retraitClass  = ZO_RetraitStation_Retrait_Base
@@ -485,6 +523,7 @@ kbc.retrait                       = ZO_RETRAIT_KEYBOARD
 local retrait 					  = kbc.retrait
 kbc.retraitFragment				  = RETRAIT_STATION_RETRAIT_FRAGMENT
 local retraitFragment 			  = kbc.retraitFragment
+retraitFragment._name = "RETRAIT_STATION_RETRAIT_FRAGMENT"
 
 --Reconstruction
 kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
@@ -901,8 +940,8 @@ local filterTypeToReference = {
 
 		[LF_GUILDSTORE_SELL]          = { guildStoreSellLayoutFragment },
 
-		[LF_MAIL_SEND]                = { mailSend },
-		[LF_TRADE]                    = { player2playerTrade },
+		[LF_MAIL_SEND]                = { mailSendFragment },
+		[LF_TRADE]                    = { player2playerTradeFragment },
 
 		[LF_SMITHING_RESEARCH_DIALOG] = { researchChooseItemDialog },
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog },
@@ -1052,10 +1091,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsCraftBagExtendedParentFilterType",
-												  ["params"]          = { _G[GlobalLibName], { LF_MAIL_SEND, LF_TRADE,
-																							   LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
-																							   LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT} --filterTypesToCheck
-												   											 },
+												  ["params"]          = { _G[GlobalLibName], cbeSupportedFilterPanels },
 												  ["expectedResults"] = { true },
 											  }
 										  },
@@ -1091,9 +1127,9 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_GUILDSTORE_SELL]          = { ["control"] = guildStoreObj, 					["scene"] = "tradinghouse", 		["fragment"] = guildStoreSellFragment, },
 		--Works: 2021-12-13
-		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = mailSend, },
+		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = mailSendFragment, },
 		--Works: 2021-12-13
-		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = player2playerTrade, },
+		[LF_TRADE]                    = { ["control"] = kbc.player2playerTradeObj, 		["scene"] = "trade", 				["fragment"] = player2playerTradeFragment, },
 		--Works: 2021-12-13
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["controlDialog"] = researchPanelControl,		["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
@@ -1797,7 +1833,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control", "special" } },
-		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control", "special"  } },
+		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control", "special" } },
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
@@ -1939,30 +1975,30 @@ local callbacksUsingFragments = {
 		--LF_GUILDBANK_DEPOSIT
 		--LF_HOUSE_BANK_DEPOSIT
 		--LF_VENDOR_SELL
-		[inventoryFragment] 				= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL },
+		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL },
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
-		[provisionerFragment]				= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
+		[provisionerFragment]			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
 
 		--Dedicated fragments
-		[invQuestFragment] 					= { LF_INVENTORY_QUEST },
-		[craftBagFragment] 					= { LF_CRAFTBAG },
-		[quickslotsFragment] 				= { LF_QUICKSLOT },
-		[bankWithdrawFragment] 				= { LF_BANK_WITHDRAW },
-		[guildBankWithdrawFragment]     	= { LF_GUILDBANK_WITHDRAW },
-		[houseBankWithdrawFragment]			= { LF_HOUSE_BANK_WITHDRAW },
-		[vendorBuyFragment]  				= { LF_VENDOR_BUY },
-		[vendorBuyBackFragment]				= { LF_VENDOR_BUYBACK },
-		[vendorRepairFragment]				= { LF_VENDOR_REPAIR },
-		[invFenceSellFragment]				= { LF_FENCE_SELL },
-		[invFenceLaunderFragment]			= { LF_FENCE_LAUNDER },
-		[guildStoreBrowseFragment]			= { LF_GUILDSTORE_BROWSE },
-		[guildStoreSellLayoutFragment]		= { LF_GUILDSTORE_SELL },
-		[mailSend]							= { LF_MAIL_SEND },
-		[player2playerTrade]				= { LF_TRADE },
-		[alchemyFragment]					= { LF_ALCHEMY_CREATION },
-		[retraitFragment]					= { LF_RETRAIT },
-		[companionEquipmentFragment] 		= { LF_INVENTORY_COMPANION },
+		[invQuestFragment] 				= { LF_INVENTORY_QUEST },
+		[craftBagFragment] 				= { LF_CRAFTBAG },
+		[quickslotsFragment]			= { LF_QUICKSLOT },
+		[bankWithdrawFragment]         	= { LF_BANK_WITHDRAW },
+		[guildBankWithdrawFragment]    	= { LF_GUILDBANK_WITHDRAW },
+		[houseBankWithdrawFragment]    	= { LF_HOUSE_BANK_WITHDRAW },
+		[vendorBuyFragment]            	= { LF_VENDOR_BUY },
+		[vendorBuyBackFragment]        	= { LF_VENDOR_BUYBACK },
+		[vendorRepairFragment]         	= { LF_VENDOR_REPAIR },
+		[invFenceSellFragment]         	= { LF_FENCE_SELL },
+		[invFenceLaunderFragment]      	= { LF_FENCE_LAUNDER },
+		[guildStoreBrowseFragment]     	= { LF_GUILDSTORE_BROWSE },
+		[guildStoreSellLayoutFragment] 	= { LF_GUILDSTORE_SELL },
+		[mailSendFragment]             	= { LF_MAIL_SEND },
+		[player2playerTradeFragment]   	= { LF_TRADE },
+		[alchemyFragment]              	= { LF_ALCHEMY_CREATION },
+		[retraitFragment]              	= { LF_RETRAIT },
+		[companionEquipmentFragment]   	= { LF_INVENTORY_COMPANION },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2094,6 +2130,7 @@ local callbacksUsingControl = {
 	},
 }
 callbacks.usingControls = callbacksUsingControl
+
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end
 
