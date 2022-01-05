@@ -3046,11 +3046,11 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 		-->In order to leave only the craftbag fragment active we need to check the later called "non-craftbag" (layout) fragments and do not fire
 		--> their state change
 		if isInGamepadMode == false and CraftBagExtended ~= nil and currentFilterType == LF_CRAFTBAG then
-			if libFilters.debug then dv(">>CraftBagExtended active") end
+			--if libFilters.debug then dv(">>CraftBagExtended active") end
 			if #filterTypes == 0 or ZO_FilteredNumericallyIndexedTableIterator(filterTypes, {isCraftBagExtendedSupportedPanel}) then
-				if libFilters.debug then dv(">>>CraftBagExtended supported panel was found") end
-				if craftbagRefsFragment[fragmentOrSceneOrControl] then
-					if libFilters.debug then dv(">>>Current fragment is not the craftbag fragment") end
+				--if libFilters.debug then dv(">>>CraftBagExtended supported panel was found") end
+				if not craftbagRefsFragment[fragmentOrSceneOrControl] then
+					--if libFilters.debug then dv(">>>Current fragment is not the craftbag fragment") end
 					if libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels) then
 						if libFilters.debug then dv("<<CraftBagExtended craftbagFragment was shown already") end
 						return
@@ -3059,7 +3059,7 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 			end
 		end
 	end
-	
+
 	--Check for shown controls/fragments/scenes -> Only for the stateStr SCENE_SHOWN, SCENE_HIDING and SCENE_HIDDEN
 	--if skipIsShownChecks == false then
 		--Detect which control/fragment/scene is currently shown
