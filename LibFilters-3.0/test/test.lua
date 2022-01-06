@@ -17,6 +17,12 @@
 local libFilters = LibFilters3
 if not libFilters then return end
 
+local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
+local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
+local libFilters_RegisterFilter = libFilters.RegisterFilter
+local libFilters_UnregisterFilter = libFilters.UnregisterFilter
+local libFilters_RequestUpdate = libFilters.RequestUpdate
+
 local function checkIfInitDone()
 	if libFilters.isInitialized then return end
 	libFilters:InitializeLibFilters()
@@ -75,18 +81,18 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 	checkIfInitDone()
 
 	noUpdate = noUpdate or false
-	local filterTypeName = libFilters:GetFilterTypeName(filterType)
+	local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 	local filterFunc = (filterTypeToFilterFunctionType[filterType] == LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT and filterFuncForInventories) or filterFuncForCrafting
 
-	if libFilters:IsFilterRegistered(filterTag, filterType) then
-		libFilters:UnregisterFilter(filterTag, filterType)
+	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
+		libFilters_UnregisterFilter(libFilters, filterTag, filterType)
 		d("<"..prefixBr .. "Test filter for \'" .. filterTypeName .. "\'  unregistered!")
 	else
-		libFilters:RegisterFilter(filterTag, filterType, function(...) filterFunc(...) end)
+		libFilters_RegisterFilter(libFilters, filterTag, filterType, function(...) filterFunc(...) end)
 		d(">" ..prefixBr .. "Test filter for \'" .. filterTypeName .. "\' registered!")
 	end
 	if noUpdate then return end
-	libFilters:RequestUpdate(filterType)
+	libFilters_RequestUpdate(libFilters, filterType)
 end
 
 --	LibFilters3_Test_TLC
@@ -352,19 +358,19 @@ local function registerFilter(filterType, filterTypeName)
 
 	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
 	d(prefixBr .. "TEST - Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
-	libFilters:RegisterFilter(filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
+	libFilters_RegisterFilter(libFilters, filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
 end
 
 local function refresh(dataList)
 	for _, filterData in pairs(filterTypesToCategory) do
 		local filterType = filterData.filterType
-		local isRegistered = libFilters:IsFilterRegistered(filterTag, filterType)
-		local filterTypeName = libFilters:GetFilterTypeName(filterType)
+		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
+		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		
 		if enabledFilters[filterType] then
 			local data = {
-				['filterType'] = filterType,
-				['name'] = filterTypeName
+				['filterType'] 	= filterType,
+				['name'] 		= filterTypeName
 			}
 			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
 			if not isRegistered then
@@ -372,7 +378,7 @@ local function refresh(dataList)
 			end
 		elseif isRegistered then
 			d(prefixBr .. "TEST - Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
-			libFilters:UnregisterFilter(filterTag, filterType)
+			libFilters_UnregisterFilter(libFilters, filterTag, filterType)
 		end
 	end
 end
@@ -396,11 +402,11 @@ local function refreshEnableList()
 	for _, filterData in pairs(filterTypesToCategory) do
 		local listType = LIST_TYPE
 		local filterType = filterData.filterType
-		local filterTypeName = libFilters:GetFilterTypeName(filterType)
+		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		
 		local data = {
-			['filterType'] = filterType,
-			['name'] = filterTypeName
+			['filterType'] 	= filterType,
+			['name'] 		= filterTypeName
 		}
 		
 		if lastCategory ~= filterData.category then
@@ -589,7 +595,7 @@ local function addFilterUIListDataTypes()
 		setupRow(rowControl, data, function(btn)
 			local filterType = data.filterType
 			d(prefixBr .. "TEST - Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
-			libFilters:RequestUpdate(filterType)
+			libFilters_RequestUpdate(libFilters, filterType)
 		end)
 	end
 		
@@ -620,7 +626,7 @@ local function parseArguments(args, slashCommand)
 				retTab[1] = LF_FILTER_ALL --specify that the function is to be used for all LF_* constants
 				retTab[2] = filterFunction
 			end
-			--FilterType LF* and filterFunction were both given
+		--FilterType LF* and filterFunction were both given
 		elseif numElements == 2 then
 			filterType = elements[1]
 			filterFunction = elements[2]
@@ -691,7 +697,7 @@ SLASH_COMMANDS["/lftestenchant"] = function()
 	if not ItemSaver then return end
 	checkIfInitDone()
 
-	local isRegistered = libFilters:IsFilterRegistered(filterTag, LF_ENCHANTING_CREATION)
+	local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, LF_ENCHANTING_CREATION)
 
 	local function filterCallback(slotOrBagId, slotIndex)
 		local bagId
@@ -710,15 +716,15 @@ SLASH_COMMANDS["/lftestenchant"] = function()
 	end
 
 	if not isRegistered then
-		libFilters:RegisterFilter(filterTag, LF_ENCHANTING_CREATION, filterCallback)
-		libFilters:RequestUpdate(LF_ENCHANTING_CREATION)
-		libFilters:RegisterFilter(filterTag, LF_ENCHANTING_EXTRACTION, filterCallback)
-		libFilters:RequestUpdate(LF_ENCHANTING_EXTRACTION)
+		libFilters_RegisterFilter(libFilters, filterTag, LF_ENCHANTING_CREATION, filterCallback)
+		libFilters_RequestUpdate(libFilters, LF_ENCHANTING_CREATION)
+		libFilters_RegisterFilter(libFilters, filterTag, LF_ENCHANTING_EXTRACTION, filterCallback)
+		libFilters_RequestUpdate(libFilters, LF_ENCHANTING_EXTRACTION)
 	else
-		libFilters:UnregisterFilter(filterTag, LF_ENCHANTING_CREATION)
-		libFilters:RequestUpdate(LF_ENCHANTING_CREATION)
-		libFilters:UnregisterFilter(filterTag, LF_ENCHANTING_EXTRACTION)
-		libFilters:RequestUpdate(LF_ENCHANTING_EXTRACTION)
+		libFilters_UnregisterFilter(libFilters, filterTag, LF_ENCHANTING_CREATION)
+		libFilters_RequestUpdate(libFilters, LF_ENCHANTING_CREATION)
+		libFilters_UnregisterFilter(libFilters, filterTag, LF_ENCHANTING_EXTRACTION)
+		libFilters_RequestUpdate(libFilters, LF_ENCHANTING_EXTRACTION)
 	end
 end
 
@@ -728,6 +734,7 @@ end
 -->refresh of the scene's list contents
 --> See here: esoui/ingame/crafting/gamepad/smithingresearch_gamepad.lua
 -->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
+--[[
 local researchConfirmSceneCallbackAdded = false
 SLASH_COMMANDS["/lftestresearchdialog"] = function()
 	if researchConfirmSceneCallbackAdded then return end
@@ -738,13 +745,13 @@ SLASH_COMMANDS["/lftestresearchdialog"] = function()
 	local origStateChangeFunc = GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1]
 	GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange[1][1] = function(...)
 		local oldState, newState = select(1, ...)
-		d("OGIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..strfor("oldState: %s, newState: %s", tos(oldState), tos(newState)))
+		d("ORIG: - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE [1] - StateChange: " ..strfor("oldState: %s, newState: %s", tos(oldState), tos(newState)))
 		origStateChangeFunc(...)
 	end
 	d(prefixBr .. "Test scene callback for Gamepad research confirm scene was added! ReloadUI to remove it.")
 	researchConfirmSceneCallbackAdded = true
 end
-
+]]
 
 ------------------------------------------------------------------------------------------------------------------------
 -- SLASH COMMANDS for toggle & update tests
