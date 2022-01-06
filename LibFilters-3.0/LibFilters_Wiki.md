@@ -103,9 +103,9 @@ Uncomment (remove the ##) the 2 files in the LibFilters-x.x.xt file to enable te
 
 You will be able to use the slash command
 <pre>
-/libfilterstest <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <OPTIONAL globalFilterFunctionUsingBagIdAndSlotIndex>
+/lftestfilters OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor OPTIONAL globalFilterFunctionUsingBagIdAndSlotIndex
 </pre>
-to show the testing UI. It will allow you to click the given filterTypes in a list to enable/disbale their filters. Click the buttons at the test UI to register/unregister the filters selected (refresh button). The panels using these registered filterTypes' filterFunction will filter with a standard filterFunction then which will do some itemType and quality checks, or stackCount checks:
+to show the testing UI. It will allow you to click the given filterTypes in a list to enable/disable their filters. Click the buttons at the test UI to register/unregister the filters selected (refresh button). The panels using these registered filterTypes' filterFunction will filter with a standard filterFunction then which will do some itemType and quality checks, or stackCount checks:
 <pre>
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
@@ -137,8 +137,8 @@ end
 
 ### Specify own test filterFunction
 You can specify your own global filterFunction from your addon to test the filtering by providing them via the slash command
-<pre>/libfilterstest <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex></pre> as parameters.
-If no 1st param <LF_filterTypeConstantToAddTheFilterFunctionFor> was given it will use LF_FILTER_ALL and register the <globalFilterFunctionUsingBagIdAndSlotIndex> filterFunction provided for all filterTypes in the test environment.
+<pre>/lftestfilters OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor globalFilterFunctionUsingBagIdAndSlotIndex</pre> as parameters.
+If no 1st param LF_filterTypeConstantToAddTheFilterFunctionFor was given it will use LF_FILTER_ALL and register the globalFilterFunctionUsingBagIdAndSlotIndex filterFunction provided for all filterTypes in the test environment.
 
 **Attention: Your filterFunction passed in needs to use bagId and slotIndex for ALL filterTypes!**<br>
 It does not differ between inventorySlot or bagId & slotIndex as normal filterFunctions do!
@@ -218,7 +218,6 @@ end
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
 ```
-
 
 
 ----------------------------------------------------------------------------------------------------------------------
