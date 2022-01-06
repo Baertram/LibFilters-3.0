@@ -1959,6 +1959,8 @@ mapping.inventoryUpdaters = { }
 --[Mapping for the callbacks as filterType panels are shown/hidden]
 libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
+--The pattern for the filterPanel shown/hidden callbacks, e.g. "LibFilters3-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY
+libFilters.callbackPattern = GlobalLibName .. "-%s-%s"
 
 
 --[fragment] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ... } -> Will be checked in this order

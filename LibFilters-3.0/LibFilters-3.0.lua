@@ -1,97 +1,6 @@
 --======================================================================================================================
 -- 													LibFilters 3.0
 --======================================================================================================================
---This library is used to filter inventory items (show/hide) at the different panels/inventories -> LibFilters uses the
---term "filterType" for the different filter panels. Each filterType is represented by the help of a number constant
---starting with LF_<panelName> (e.g. LF_INVENTORY, LF_BANK_WITHDRAW), which is used to add filterFunctions of different
---adddons to this inventory. See table libFiltersFilterConstants for the value = "filterPanel name" constants.
---The number of the constant increases by 1 with each new added constant/panel.
---The minimum valueis LF_FILTER_MIN (1) and the maximum is LF_FILTER_MAX (#libFiltersFilterConstants). There exists a
---"fallback" constant LF_FILTER_ALL (9999) which can be used to register filters for ALL exisitng LF_* constants. If any
---LF_* constant got no filterFunction registered, the entries in filters[LF_FILTER_ALL] will be used instead (if
---existing, and the flag to use the LF_FILTER_ALL fallback is enabled (boolean true) via function
---libFilters:SetFilterAllState(boolean newState)
---
---The filterType (LF_* constant) of the currently shown panel (see function libFilters:GetCurrentFilterTypeForInventory(inventoryType))
---will be stored at the "LibFilters3_filterType" (constant saved at "defaultLibFiltersAttributeToStoreTheFilterType")
---attribute at the inventory/layoutData/scene/control involved for the filtering. See function libFilters:HookAdditionalFilter
---
---The registered filterFunctions will run as the inventories are refreshed/updated, either by internal update routines as
---the inventory's "dirty" flag was set to true. Or via function SafeUpdateList (see below), or via some other update/refresh/
---ShouldAddItemToSlot function (some of them are overwriting vanilla UI source code in the file helpers.lua).
---LibFilters3 will use the inventory/fragment (normal hooks), or some special hooks (e.g. ENCHANTING -> OnModeUpdated) to
---add the LF* constant to the inventory/fragment/variables.
---With the addition of Gamepad support the special hoks like enchanting were even changed to use the gamepad scenes of
---enchanting as "object to store the" the .additionalFilter (constant saved at "defaultOriginalFilterAttributeAtLayoutData")
---entry for the LibFilters filter functions.
---
---The filterFunctions will be placed at the inventory.additionalFilter entry, and will enhance existing functions, so
---that filter funtions summarize (e.g. addon1 registers a "Only show stolen filter" and addon2 registers "only show level
---10 items filter" -> Only level 10 stolen items will be shown then).
---
---The function InstallHelpers below will call special code from the file "helper.lua". In this file you define the
---variable(s) and function name(s) which LibFilters should "REPLACE" -> Means it will overwrite those functions to add
---the call to the LibFilters internal filterFunctions (e.g. at SMITHING crafting tables, function
---EnumerateInventorySlotsAndAddToScrollData -> ZOs vanilla UI code + usage of self.additionalFilter where Libfilters
---added it's filterFunctions).
---
---The files in the Gamepad folder define the custom fragments which were created for the Gamepad scenes to try to keep it
---similar to the keyboard fragments (as inventory shares the same PLAYER_INVENTORY variables for e.g. player inventory,
---bank/guild bank/house bank deposit, mail send and player2player trade there needs to be one unique object per panel to
---store the .additionalFilter entry. And this are the fragments in keyboard mode, and now custom fragemnts starting with
---LIBFILTERS3_ in gamepad mode.
---
---[Important]
---You need to call LibFilters3:InitializeLibFilters() once in any of the addons that use LibFilters, to
---create the hooks and init the library properly!
---
---
---[Example filter functions]
---Here is the mapping which filterId constant LF* uses which type of filter function: inventorySlot or bagdId & slotIndex
---Example filter functions:
---[[
---Filter function with inventorySlot
-local function FilterSavedItemsForSlot(inventorySlot)
-  return true -- show the item in the list / false = hide item
-end
-
---Filter function with bagId and slotIndex (often used at crafting tables)
-local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
-  return true -- show the item in the list / false = hide item
-end
--- 
---All LF_ constants except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
---are using the InventorySlot filter function!
---
---Filter function with bagId and slotIndex (most of them are crafting related ones)
---[LF_SMITHING_REFINE]                        = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_SMITHING_DECONSTRUCT]                   = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_SMITHING_IMPROVEMENT]                   = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_SMITHING_RESEARCH]                      = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_SMITHING_RESEARCH_DIALOG]               = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_JEWELRY_REFINE]                         = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_JEWELRY_DECONSTRUCT]                    = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_JEWELRY_IMPROVEMENT]                    = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_JEWELRY_RESEARCH]                       = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_JEWELRY_RESEARCH_DIALOG]                = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_ENCHANTING_CREATION]                    = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_ENCHANTING_EXTRACTION]                  = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_RETRAIT]                                = FilterSavedItemsForBagIdAndSlotIndex,
---[LF_ALCHEMY_CREATION]                       = FilterSavedItemsForBagIdAndSlotIndex,
---
--- See constants.lua -> table libFilters.constants.filterTypes.UsingBagIdAndSlotIndexFilterFunction and table
--- libFilters.constants.filterTypes.UsingInventorySlotFilterFunction
--- to dynamically determine the functionType to use. The following constants for the functionTypes exist:
--- libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 1
--- libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
---
---
---[Wording / Glossary]
----filterTag = The string defined by an addon to uniquely describe and reference the filter in the internal tables
-----(e.g. "addonName1FilterForInventory")
----filterType (or libFiltersFilterType) = The LF_* constant of the filter, describing the panel where it will be filtered (e.g. LF_INVENTORY)
---
-]]
 
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
@@ -164,6 +73,7 @@ libFilters._lastFilterTypeReferences 	= nil
 local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
 local callbacks = 					mapping.callbacks
+local callbackPattern = 			libFilters.callbackPattern
 local callbacksUsingScenes = 		callbacks.usingScenes
 local callbacksUsingFragments = 	callbacks.usingFragments
 local callbacksUsingControls = 		callbacks.usingControls
@@ -2894,12 +2804,20 @@ end
 local libFilters_IsCraftBagExtendedParentFilterType = libFilters.IsCraftBagExtendedParentFilterType
 
 
+--Create the callbackname for a libFilters filterPanel shown/hidden callback
+--number filterType needs to be a valid LF_* filterType constant
+--boolean isShown true means SCENE_SHOWn will be used, and false means SCENE_HIDDEN will be used for the callbackname
+--Returns String callbackNameGenerated
+function libFilters:CreateCallbackName(filterType, isShown)
+	isShown = isShown or false
+	return strfor(callbackPattern, (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType))
+end
+
 --**********************************************************************************************************************
 -- END LibFilters API functions END
 --**********************************************************************************************************************
 --**********************************************************************************************************************
 --**********************************************************************************************************************
-
 
 --**********************************************************************************************************************
 -- HELPERS
@@ -3318,44 +3236,6 @@ end
 --Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
 local function applyFixesEarly()
 	if libFilters.debug then dd("ApplyFixesEarly") end
-	--[[
-		--Fix for the CraftBag on PTS API100035, v7.0.4-> As ApplyBackpackLayout currently always overwrites the additionalFilter :-(
-		 --Added lines with 7.0.4:
-		 local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
-		 craftBag.additionalFilter = layoutData.additionalFilter
-
-		--Fix applied before was:
-		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-			d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
-			if crafBagIsHidden then return end
-			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
-		end)
-
-		--Update 2021-12-06: ZOs changed with version 7.1.5 to usage of own layoutData.additionalCraftBagFilter now
-		--But it still overwrites the filters "in general" and thus breaks this library
-		local craftBag = self.inventories[INVENTORY_CRAFT_BAG]
-		craftBag.additionalFilter = layoutData.additionalCraftBagFilter
-		 --So we need to apply a fix to HookAdditionalFilter to read the .additionalCraftBagFilter attribute of
-		 --PLAYER_INVENTORY.appliedLayout and use this as filterFunctions
-		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-d("ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
-			if crafBagIsHidden then return end
-			--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-			libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
-		end)
-
-	SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-		local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-		d("!!!!! ApplyBackpackLayout-ZO_CraftBag:IsHidden(): " ..tos(crafBagIsHidden))
-		if crafBagIsHidden then return end
-		--Re-Apply the .additionalFilter to CraftBag again, on each open of it
-		libFilters_hookAdditionalFilter(libFilters, LF_CRAFTBAG)
-	end)
-	]]
-
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits

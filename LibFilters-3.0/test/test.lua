@@ -69,6 +69,7 @@ local function filterFuncForCrafting(bagId, slotIndex)
 	return false --simulate "not allowed" -> filtered
 end
 
+
 --test function to register/unregister (toggle) a filterType, and update the inventory afterwards
 local function toggleFilterForFilterType(filterType, noUpdate)
 	checkIfInitDone()
