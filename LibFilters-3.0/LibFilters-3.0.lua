@@ -2196,7 +2196,7 @@ end
 function libFilters:IsCharacterShown()
 	local isCharShown = false
 	if IsGamepad() then
-		if isGPInventoryBaseShown() == true then
+		if isInventoryBaseShown() == true then
 			local selectedGPInvEquipmentSlot = invBackpack_GP.selectedEquipSlot
 			return (selectedGPInvEquipmentSlot ~= nil and selectedGPInvEquipmentSlot >= 0 and true) or false
 		end
@@ -2804,6 +2804,9 @@ end
 local libFilters_IsCraftBagExtendedParentFilterType = libFilters.IsCraftBagExtendedParentFilterType
 
 
+--**********************************************************************************************************************
+-- Callback API
+--**********************************************************************************************************************
 --Create the callbackname for a libFilters filterPanel shown/hidden callback
 --number filterType needs to be a valid LF_* filterType constant
 --boolean isShown true means SCENE_SHOWn will be used, and false means SCENE_HIDDEN will be used for the callbackname
@@ -2818,38 +2821,6 @@ end
 --**********************************************************************************************************************
 --**********************************************************************************************************************
 --**********************************************************************************************************************
-
---**********************************************************************************************************************
--- HELPERS
---**********************************************************************************************************************
---Register all the helper functions of LibFilters, for some special panels like the Research or ResearchDialog, or
---even deconstruction and improvement, etc.
---These helper functions overwrite original ESO functions in order to use their own "predicate" or
--- "filterFunction".
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--- IMPORTANT: You need to check the funtion code and compare it to Zos vanilla code after updates as if ZOs code changes
--- the helpers may need to change as well!
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
---> See file helper.lua
-libFilters.helpers = {}
-local helpers      = libFilters.helpers
-
---Install the helpers from table helpers now -> See file helper.lua, table "helpers"
-local function installHelpers()
-	if libFilters.debug then dd("InstallHelpers") end
-	for _, package in pairs(helpers) do
-		local helper = package.helper
-		local funcName = helper.funcName
-		local func = helper.func
-
-		for _, location in pairs(package.locations) do
-			--e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
-			--function from helpers table, param "func"
-			location[funcName] = func
-		end
-	end
-end
-
 
 
 --**********************************************************************************************************************
@@ -3266,6 +3237,41 @@ local function applyFixesLatest()
 end
 
 
+--**********************************************************************************************************************
+-- HELPERS
+--**********************************************************************************************************************
+--Register all the helper functions of LibFilters, for some special panels like the Research or ResearchDialog, or
+--even deconstruction and improvement, etc.
+--These helper functions overwrite original ESO functions in order to use their own "predicate" or
+-- "filterFunction".
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- IMPORTANT: You need to check the funtion code and compare it to Zos vanilla code after updates as if ZOs code changes
+-- the helpers may need to change as well!
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+--> See file helper.lua
+libFilters.helpers = {}
+local helpers      = libFilters.helpers
+
+--Install the helpers from table helpers now -> See file helper.lua, table "helpers"
+local function installHelpers()
+	if libFilters.debug then dd("InstallHelpers") end
+	for _, package in pairs(helpers) do
+		local helper = package.helper
+		local funcName = helper.funcName
+		local func = helper.func
+
+		for _, location in pairs(package.locations) do
+			--e.g. ZO_SmithingExtractionInventory["GetIndividualInventorySlotsAndAddToScrollData"] = overwritten
+			--function from helpers table, param "func"
+			location[funcName] = func
+		end
+	end
+end
+
+
+--**********************************************************************************************************************
+-- EVENTs
+--**********************************************************************************************************************
 --Called from EVENT_PLAYER_ACTIVATED -> Only once
 local function eventPlayerActivatedCallback(eventId, firstCall)
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED)
@@ -3283,6 +3289,7 @@ local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 	--Create the callbacks for the filterType's panel show/hide
 	createCallbacks()
 end
+
 
 --**********************************************************************************************************************
 -- LIBRARY LOADING / INITIALIZATION
