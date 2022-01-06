@@ -39,7 +39,7 @@ the call to the LibFilters internal filterFunctions (e.g. at SMITHING crafting t
 EnumerateInventorySlotsAndAddToScrollData -> ZOs vanilla UI code + usage of self.additionalFilter where Libfilters
 added it's filterFunctions) via the registered filterFunctions at .additionalFilter
 
-## Gamepad mode
+## Gamepad mode - custom fragments
 The files in the Gamepad folder define the custom fragments which were created for the Gamepad scenes to try to keep it
 similar to the keyboard fragments (as inventory shares the same PLAYER_INVENTORY variables for e.g. player inventory,
 bank/guild bank/house bank deposit, mail send and player2player trade) there needs to be one unique object per panel to
