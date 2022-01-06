@@ -2834,10 +2834,10 @@ end
 --name: LibFilters3-<shown or hidden defined via SCENE_SHOWN and SCENE_HIDDEN constants>-<filterType>
 --variables passed as parameters:
 --filterType,
+--shownState,
+--isGamepadModeCallback,
 --fragment/scene/control that was used to raise the callback,
 --referenceObjects (from table filterTypeToCheckIfReferenceIsHidden),
---isGamepadModeCallback,
---shownState,
 --additionalParameters ...
 --e.g. showing LF_SMITHING_REFINE
 --[[
@@ -2852,12 +2852,11 @@ end
 		--Makes: "LibFilters3-shown-1"
 
 		--The callbackFunction you register to it needs to provide the following parameters:
-		--number filterType, refVar fragmentOrSceneOrControl, table lReferencesToFilterType, boolean isInGamepadMode, string stateStr
 		--number filterType is the LF_* constantfor the panel currently shown/hidden
+		--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
+		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
 		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
-		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
-		--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
 ]]
 local sceneStatesSupportedForCallbacks = {
 	[SCENE_SHOWN] 	= true,
@@ -2928,18 +2927,18 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				end
 			end
 		end
-	--[[
-		elseif stateStr == SCENE_SHOWING then
-			--!!! 2022-01-04 Not used !!!
-			--If a fragment/scene is showing the controls etc. needed for the "detectShownReferenceNow" check below will be
-			--sill hidden/not properly created. The last used filterType does neither help so we need to check if 1 dedicated
-			--filterType was passed in and if so: Fire the callback "showing" for that filterType
-			if #filterTypes == 1 then
-				lastKnownFilterType = filterTypes[1]
-				lastKnownRefVars = libFilters_GetFilterTypeReferences(libFilters, lastKnownFilterType, isInGamepadMode)
-				skipIsShownChecks = true
-			end
-	]]
+		--[[
+            elseif stateStr == SCENE_SHOWING then
+                --!!! 2022-01-04 Not used !!!
+                --If a fragment/scene is showing the controls etc. needed for the "detectShownReferenceNow" check below will be
+                --sill hidden/not properly created. The last used filterType does neither help so we need to check if 1 dedicated
+                --filterType was passed in and if so: Fire the callback "showing" for that filterType
+                if #filterTypes == 1 then
+                    lastKnownFilterType = filterTypes[1]
+                    lastKnownRefVars = libFilters_GetFilterTypeReferences(libFilters, lastKnownFilterType, isInGamepadMode)
+                    skipIsShownChecks = true
+                end
+        ]]
 	elseif stateStr == SCENE_SHOWN then
 		local currentFilterType = libFilters._currentFilterType
 
@@ -2964,40 +2963,43 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 
 	--Check for shown controls/fragments/scenes -> Only for the stateStr SCENE_SHOWN, SCENE_HIDING and SCENE_HIDDEN
 	--if skipIsShownChecks == false then
-		--Detect which control/fragment/scene is currently shown
-		if #filterTypes == 0 then
-			--Detect the currently shown control/fragment/scene and get the filterType
-			lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
-		else
-			local checkForAllPanelsAtTheEnd = false
-			--Check the given filterTypes first
-			for idx, filterTypeInLoop in ipairs(filterTypes) do
-				if filterType == nil and lReferencesToFilterType == nil then
-					local skipCheck = false
-					if filterTypeInLoop == 0 then
-						--If the entry is not the last entry in the table "dynamically move it there"
-						if idx ~= #filterTypes then
-							checkForAllPanelsAtTheEnd = true
-							skipCheck = true
-						else
-							checkForAllPanelsAtTheEnd = false
-							filterTypeInLoop = nil
-						end
+	--Detect which control/fragment/scene is currently shown
+	if #filterTypes == 0 then
+d(">1")
+		--Detect the currently shown control/fragment/scene and get the filterType
+		lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
+	else
+		local checkForAllPanelsAtTheEnd = false
+		--Check the given filterTypes first
+		for idx, filterTypeInLoop in ipairs(filterTypes) do
+			if filterType == nil and lReferencesToFilterType == nil then
+				local skipCheck = false
+				if filterTypeInLoop == 0 then
+					--If the entry is not the last entry in the table "dynamically move it there"
+					if idx ~= #filterTypes then
+						checkForAllPanelsAtTheEnd = true
+						skipCheck = true
+					else
+						checkForAllPanelsAtTheEnd = false
+						filterTypeInLoop = nil
 					end
-					if not skipCheck then
-						lReferencesToFilterType, filterType = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
-						if filterType ~= nil and lReferencesToFilterType ~= nil then
-							break -- leave the loop if filterType and reference were found
-						end
+				end
+				if not skipCheck then
+d(">2")
+					lReferencesToFilterType, filterType = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
+					if filterType ~= nil and lReferencesToFilterType ~= nil then
+						break -- leave the loop if filterType and reference were found
 					end
 				end
 			end
-			--At the end: was any entry with filterType = 0 provided in the filterTypes table?
-			if checkForAllPanelsAtTheEnd == true and filterType == nil and lReferencesToFilterType == nil then
-				--Detect the currently shown control/fragment/scene and get the filterType
-				lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
-			end
 		end
+		--At the end: was any entry with filterType = 0 provided in the filterTypes table?
+		if checkForAllPanelsAtTheEnd == true and filterType == nil and lReferencesToFilterType == nil then
+			--Detect the currently shown control/fragment/scene and get the filterType
+d(">3")
+			lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
+		end
+	end
 	--end
 	--Was a filterType found or provided (SCENE_HIDING/SCENE_HIDDEN: libFilters._currentFilterType as the callback was raised;
 	--SCENE_SHOWING: passed in filterType if only 1 was passed in)
@@ -3006,11 +3008,13 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 		if lastKnownFilterType ~= nil and lastKnownRefVars ~= nil then
 			--The last used filterType should be the one used before hiding then -> Use it
 			filterType 				= lastKnownFilterType
+d(">4")
 			lReferencesToFilterType = lastKnownRefVars
 		else
 			return
 		end
 	end
+	if lReferencesToFilterType == nil then lReferencesToFilterType = {} end
 
 	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
 
@@ -3025,10 +3029,10 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 	--Fire the callback now
 	CM:FireCallbacks(callbackName,
 			filterType,
-			fragmentOrSceneOrControl,
-			lReferencesToFilterType,
+			stateStr,
 			isInGamepadMode,
-			stateStr
+			fragmentOrSceneOrControl,
+			lReferencesToFilterType
 	)
 end
 

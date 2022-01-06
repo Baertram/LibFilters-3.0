@@ -17,11 +17,17 @@
 local libFilters = LibFilters3
 if not libFilters then return end
 
+local GlobalLibName = libFilters.globalLibName
+local libPrefix = "[" .. GlobalLibName .. "] "
+
+local CM = CALLBACK_MANAGER
+
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 local libFilters_RegisterFilter = libFilters.RegisterFilter
 local libFilters_UnregisterFilter = libFilters.UnregisterFilter
 local libFilters_RequestUpdate = libFilters.RequestUpdate
+local libFilters_CreateCallbackName = libFilters.CreateCallbackName
 
 local function checkIfInitDone()
 	if libFilters.isInitialized then return end
@@ -268,6 +274,7 @@ local LIST_TYPE = 1
 local HEADER_TYPE = 2
 local enableList = {}
 local updateList = {}
+local currentFilterPanelLabel
 local useFilter = false
 
 --Via slash command added filter functions for the LF_* constants
@@ -472,6 +479,20 @@ local function allButtonToggle()
 	end
 end
 
+local function updateCurrentFilterPanelLabel(stateStr)
+	if currentFilterPanelLabel == nil then return end
+	local currentFilterPanel = libFilters._currentFilterType
+	local currentFilterPanelName
+	if stateStr == SCENE_SHOWN then
+		if (currentFilterPanel == nil or currentFilterPanel == 0) then return end
+		currentFilterPanelName = libFilters_GetFilterTypeName(libFilters, currentFilterPanel)
+		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" end
+	else
+		currentFilterPanelName = ""
+	end
+	currentFilterPanelLabel:SetText("Current filterPanel: " .. tos(currentFilterPanelName))
+end
+
 local function intializeFilterUI()
 	local _, height = GuiRoot:GetDimensions()
 	local adjustedHeight = (height * 0.75)
@@ -497,11 +518,17 @@ local function intializeFilterUI()
 		ZO_Tooltips_HideTextTooltip()
 	end)
 
+	--Create the current filterPanel label
+	currentFilterPanelLabel = CreateControlFromVirtual("$(parent)CurrentFilterPanelLabel", tlc, "LibFilters_Test_CurrentFilterPanelTemplate")
+	currentFilterPanelLabel:SetDimensions(345, 25)
+	currentFilterPanelLabel:SetAnchor(TOPLEFT, tlc, nil, 5, 5)
+	currentFilterPanelLabel:SetText("Current filterPanel: ")
+
 	-- create main LF_constants list
 	-- this list is used to enable/disable LF_constants filters
 	enableList = CreateControlFromVirtual("$(parent)EnableList", tlc, "ZO_ScrollList")
 	enableList:SetDimensions(345, adjustedHeight * 0.5)
-	enableList:SetAnchor(TOPLEFT, tlc, nil, 0, 25)
+	enableList:SetAnchor(TOPLEFT, currentFilterPanelLabel, BOTTOMLEFT, -5, 0)
 	
 	-- button container for clear and refresh
 	local buttons = CreateControl("$(parent)Buttons", tlc, CT_CONTROL)	
@@ -550,7 +577,7 @@ local function intializeFilterUI()
 	updateList = CreateControlFromVirtual("$(parent)UpdateList", tlc, "ZO_ScrollList")
 	updateList:SetDimensions(345, ul_Hight)
 	updateList:SetAnchor(TOP, buttons, BOTTOM, 0, 0)
-	
+
 	-- initialize lists
 	ZO_ScrollList_Initialize(enableList)
 	enableList:SetMouseEnabled(true)
@@ -602,6 +629,21 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(updateList, LIST_TYPE, testUItemplate, 40, setupUpdateRow)
 	ZO_ScrollList_AddDataType(enableList, LIST_TYPE, testUItemplate, 40, setupEnableRow)
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 80, setupEnableRowWithHeader)
+end
+
+local function callbackFunctionForPanelShowOrHide(filterTypeName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType)
+	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
+	d(libPrefix .. " - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
+	updateCurrentFilterPanelLabel(stateStr)
+end
+
+local function enableFilterTypeCallbacks()
+	local libFiltersFilterConstants = libFilters.constants.filterTypes
+	--For each filterType register a stateChange for show/hidestate change
+	for filterType, filterTypeName in ipairs(libFiltersFilterConstants) do
+		local callbackName = libFilters_CreateCallbackName(libFilters, filterType, true)
+		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
+	end
 end
 
 local function parseArguments(args, slashCommand)
@@ -657,6 +699,7 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 		checkIfInitDone()
 		intializeFilterUI()
 		addFilterUIListDataTypes()
+		enableFilterTypeCallbacks()
 	end
 
 	--Parse the slash commands for LF_* filter constant (optional! If not given LF_FILTER_ALL will be used) and a
@@ -693,6 +736,7 @@ end
 -- Custom SLASH COMMANDS for tests
 ------------------------------------------------------------------------------------------------------------------------
 --depends on Item Saver by Randactyl
+--[[
 SLASH_COMMANDS["/lftestenchant"] = function()
 	if not ItemSaver then return end
 	checkIfInitDone()
@@ -727,6 +771,7 @@ SLASH_COMMANDS["/lftestenchant"] = function()
 		libFilters_RequestUpdate(libFilters, LF_ENCHANTING_EXTRACTION)
 	end
 end
+]]
 
 
 --testing Gamepad research dialog confirm scene: Add [2] to GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE.callbackRegistry.StateChange
@@ -757,6 +802,7 @@ end
 -- SLASH COMMANDS for toggle & update tests
 ------------------------------------------------------------------------------------------------------------------------
 --Alchemy
+--[[
 SLASH_COMMANDS["/lftestalchemy"] = function()
 	toggleFilterForFilterType(LF_ALCHEMY_CREATION)
 end
@@ -786,3 +832,4 @@ end
 SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
 	toggleFilterForFilterType(LF_HOUSE_BANK_WITHDRAW)
 end
+]]
