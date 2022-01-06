@@ -46,7 +46,7 @@ local nccnt = NonContiguousCount
 local gcit = GetCraftingInteractionType
 local ncc = NonContiguousCount
 
-local getCurrentScene = SM.GetCurrentScene
+--local getCurrentScene = SM.GetCurrentScene
 local getScene = SM.GetScene
 
 local fragmentStateToSceneState = {
@@ -1455,7 +1455,7 @@ end
 libFilters.GetMinFilter = libFilters.GetMinFilterType
 
 
---Returns number the maxium possible filterType
+--Returns number the maximum possible filterType
 function libFilters:GetMaxFilterType()
 	 return LF_FILTER_MAX
 end
@@ -1464,7 +1464,8 @@ libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 
 
 --Set the state of the LF_FILTER_ALL "fallback" filter possibilities.
---If boolean newState is enabled: function runFilters will also check for LF_FILTER_ALL filter functions and run them
+--If boolean newState is enabled: function runFilters will also check for LF_FILTER_ALL filter functions and run them:
+--If the filterType passed to runfilters function got no registered filterTags with filterFunctions, the LF_FILTER_ALL "fallback" will be checked (if existing and enabled via this API function) and be run!
 --If boolean newState is disabled: function runFilters will NOT use LF_FILTER_ALL fallback functions
 function libFilters:SetFilterAllState(newState)
 	if libFilters.debug then dd("SetFilterAllState-%s", tos(newState)) end
@@ -2112,7 +2113,6 @@ end
 libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeReference
 
 
-
 --**********************************************************************************************************************
 -- API to check if controls/scenes/fragments/userdata/inventories are shown
 --**********************************************************************************************************************
@@ -2129,6 +2129,7 @@ local function isInventoryBaseShown(isInGamepadMode)
 	end
 	return false
 end
+
 
 --Is the inventory control shown
 --returns boolean isShown
@@ -2183,13 +2184,15 @@ function libFilters:IsInventoryShown()
 	end
 	return isInvShown, listShownGP
 end
-local libFilters_IsInventoryShown = libFilters.IsInventoryShown
+
 
 --Is the companion inventory control shown
 --returns boolean isShown
 function libFilters:IsCompanionInventoryShown()
     return (IsGamepad() and not companionEquipmentCtrl_GP:IsHidden()) or not companionEquipmentCtrl:IsHidden()
 end
+
+
 
 --Is the character control shown
 --returns boolean isShown
@@ -2205,6 +2208,7 @@ function libFilters:IsCharacterShown()
 	end
 	return isCharShown
 end
+
 
 --Is the companion character control shown
 --returns boolean isShown
@@ -2251,7 +2255,6 @@ function libFilters:IsHouseBankShown()
 	end
 	return isHouseBankShown
 end
-
 
 
 --Check if the store (vendor) panel is shown
@@ -2838,14 +2841,24 @@ end
 --additionalParameters ...
 --e.g. showing LF_SMITHING_REFINE
 --[[
-	CM:FireCallbacks(GlobalLibName .. "-shown-" .. tos(LF_SMITHING_REFINE),
-		LF_SMITHING_REFINE,
-		filterTypeToCheckIfReferenceIsHidden[false][LF_SMITHING_REFINE],
-		false,
-		... ---could be SMITHING.mode in keyboard mode e.g. or other vaiable
-	)
-]]
+		--The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
+		--The callback name is build by the library prefix "LibFilters3-" (constant provided is LibFilters3.globalLibName) followed by the state of the
+		--filterPanel as the callback fires (can be either the constant SCENE_SHOWN or SCENE_HIDDEN), followed by "-" and the suffix is the filterType constant
+		--of the panel.
+		--The library provides the API function libfilters:CreateCallbackName(filterType, isShown) to generate the callback name for you. isShown is a boolean.
+		--if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
+		--e.g. for LF_INVENTORY shown it would be
+		local callbackNameInvShown = libfilters:CreateCallbackName(LF_INVENTORY, true)
+		--Makes: "LibFilters3-shown-1"
 
+		--The callbackFunction you register to it needs to provide the following parameters:
+		--number filterType, refVar fragmentOrSceneOrControl, table lReferencesToFilterType, boolean isInGamepadMode, string stateStr
+		--number filterType is the LF_* constantfor the panel currently shown/hidden
+		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
+		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
+		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
+		--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
+]]
 local sceneStatesSupportedForCallbacks = {
 	[SCENE_SHOWN] 	= true,
 	[SCENE_HIDDEN] 	= true,
@@ -3009,6 +3022,7 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
 		df("<!!! end CALLBACK - filterType: %q [%s] - %s !!!>", tos(filterTypeName), tos(filterType), tos(stateStr))
 	end
+	--Fire the callback now
 	CM:FireCallbacks(callbackName,
 			filterType,
 			fragmentOrSceneOrControl,
@@ -3065,7 +3079,6 @@ end
 local function createFragmentCallback(fragment, filterTypes, inputType)
 	if libFilters.debug then
 		if fragment ~= nil then
-			local fragmentName = getFragmentControlName(fragment)
 			dv(">register fragment StateChange to: %s - #filterTypes: %s", tos(fragmentName), #filterTypes)
 		else
 			dv(">fragment is NIL! StateChange not possible - #filterTypes: %s", #filterTypes)
@@ -3129,7 +3142,6 @@ local function createSceneCallbacks()
 	end
 end
 
-
 local function createControlCallback(controlRef, filterTypes, inputType)
 	if libFilters.debug then
 		local ctrlName = "n/a"
@@ -3176,7 +3188,6 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 end
 libFilters.CreateControlCallback = createControlCallback
 
-
 local function createControlCallbacks()
 	if libFilters.debug then
 		dd("createControlCallbacks")
@@ -3189,7 +3200,6 @@ local function createControlCallbacks()
 		end
 	end
 end
-
 
 local function createCallbacks()
 	if libFilters.debug then

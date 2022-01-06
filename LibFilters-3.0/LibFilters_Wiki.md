@@ -1,20 +1,13 @@
-# Wording / Glossary
-## filterTag
-The string defined by an addon to uniquely describe and reference the filter in the internal tables
-(e.g. "addonName1FilterForInventory"). Often the filterType (see bwlow) constant will be concatenated with a prefixed "-" at the end of the filterTag to identify the filterTag's filterType, e.g. "addonName1FilterForInventory-" .. tostring(LF_INVENTORY) -> "addonName1FilterForInventory-1"
-## filterType
-Also libFiltersFilterType or LF_*constant: The LF_* number constant of the filter, describing the panel where it will be filtered (e.g. LF_INVENTORY for Player Inventory). LF_INVENTORY is number 1 and each other constant increases the number by 1. Never change those constants or exisitng addons will fail/break!
-## filterPanel
-Basically this is the scene/fragment/control/environment shown where the filterType is used. Player inventory si the panel for LF_INVENTORY
-## filterReference
-The referenced panel's control/fragment/scene/userdata/table where the filterType applies to. The reference is used for the "is shown"/"is hidden" callbacks of the filterTypes
-## filterFunction
-A function used to filter the items at the given filterType (filterPanel). The filterFunction will be added to existing ZOs vavilla filter function code (often ZOs stores them in a table attribute ".additionalFilter" at e.g. the PLAYER_INVENTORY.inventories tables or some fragments used for the layout) or to other functions (see helper.lua for the changed ZOs vanilla code functions where LibFilters needs to "hack" into to add it's own filterFunction in addition). Each filterTag and filterType "registered" as a new filter of any addon will be added to the filterfunctions and will be run "in combination" (vanille UI ZOs filterFunctions + LibFilters filterFunctions + maybe other addons filterFunctions -> if the other addons check for existing filterFunctions and do not just overwrite the existing ones and thus break LibFilters).
-FilterFunctions can have different parameters (either "inventorySlot" or "bagId, slotIndex"), depending on the filterType they are registered for. Please read below at "Filter functions"
+# LibFilters
+**An Elder Scrolls Online library to filter your items at the different inventories**
 
-# [LibFilters]
+Current version: 3, last updated: 2022-01-06
+
 This library is used to filter inventory items (show/hide) at the different panels/inventories -> LibFilters uses the
-term "filterType" for the different filter panels. Each filterType is represented by the help of a number constant
+term "filterType" for the different inventories (also called filterPanels).
+Check the wording/glossary Wiki page for more descriptions.
+
+Each filterType is represented by the help of a number constant
 starting with LF_<panelName> (e.g. LF_INVENTORY, LF_BANK_WITHDRAW), which is used to add filterFunctions of different
 adddons to this inventory. See table libFiltersFilterConstants for the value = "filterPanel name" constants.
 The number of the constant increases by 1 with each new added constant/panel.
@@ -142,9 +135,13 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 end
 </pre>
 
-You can specify a new global filterFunction from your addon to test the filtering by providing them via the slash command
-/libfilterstest <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex> as parameters.
-If no 1st param <LF_filterTypeConstantToAddTheFilterFunctionFor> was given it will use LF_FILTER_ALL and register the <globalFilterFunctionUsingBagIdAndSlotIndex as parameter> filterFunction provided for all filterTypes in the test environment.
+### Specify own test filterFunction
+You can specify your own global filterFunction from your addon to test the filtering by providing them via the slash command
+<pre>/libfilterstest <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex></pre> as parameters.
+If no 1st param <LF_filterTypeConstantToAddTheFilterFunctionFor> was given it will use LF_FILTER_ALL and register the <globalFilterFunctionUsingBagIdAndSlotIndex> filterFunction provided for all filterTypes in the test environment.
+
+**Attention: Your filterFunction passed in needs to use bagId and slotIndex for ALL filterTypes!**<br>
+It does not differ between inventorySlot or bagId & slotIndex as normal filterFunctions do!
 
 ## Example usage
 You need to initialize the library once (See above "Library initialization").
@@ -222,26 +219,16 @@ end
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
 ```
 
-# Addons using LibFilters
-AdvancedFilters
-FCOItemSaver
-FCOCraftFilter
-HarvensStolenFilters
-HideBoundItems
-ItemSaver
-NTakLootNSteal
 
 
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+-- API
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
 
-
-
-
------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------
---API
------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------
 # API functions of LibFilters
 
 ## Filter types
@@ -250,11 +237,12 @@ NTakLootNSteal
 function libFilters:GetMinFilterType()
 
 
---Returns number the maxium possible filterType
+--Returns number the maximum possible filterType
 function libFilters:GetMaxFilterType()
 
 --Set the state of the LF_FILTER_ALL "fallback" filter possibilities.
---If boolean newState is enabled: function runFilters will also check for LF_FILTER_ALL filter functions and run them
+--If boolean newState is enabled: function runFilters will also check for LF_FILTER_ALL filter functions and run them:
+--If the filterType passed to runfilters function got no registered filterTags with filterFunctions, the LF_FILTER_ALL "fallback" will be checked (if existing and enabled via this API function) and be run!
 --If boolean newState is disabled: function runFilters will NOT use LF_FILTER_ALL fallback functions
 function libFilters:SetFilterAllState(newState)
 
