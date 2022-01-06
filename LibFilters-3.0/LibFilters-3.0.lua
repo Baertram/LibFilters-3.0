@@ -3079,6 +3079,7 @@ end
 local function createFragmentCallback(fragment, filterTypes, inputType)
 	if libFilters.debug then
 		if fragment ~= nil then
+			local fragmentName = getFragmentControlName(fragment)
 			dv(">register fragment StateChange to: %s - #filterTypes: %s", tos(fragmentName), #filterTypes)
 		else
 			dv(">fragment is NIL! StateChange not possible - #filterTypes: %s", #filterTypes)
