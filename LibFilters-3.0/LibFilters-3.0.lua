@@ -2965,7 +2965,6 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 	--if skipIsShownChecks == false then
 	--Detect which control/fragment/scene is currently shown
 	if #filterTypes == 0 then
-d(">1")
 		--Detect the currently shown control/fragment/scene and get the filterType
 		lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
 	else
@@ -2985,7 +2984,6 @@ d(">1")
 					end
 				end
 				if not skipCheck then
-d(">2")
 					lReferencesToFilterType, filterType = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
 					if filterType ~= nil and lReferencesToFilterType ~= nil then
 						break -- leave the loop if filterType and reference were found
@@ -2996,7 +2994,6 @@ d(">2")
 		--At the end: was any entry with filterType = 0 provided in the filterTypes table?
 		if checkForAllPanelsAtTheEnd == true and filterType == nil and lReferencesToFilterType == nil then
 			--Detect the currently shown control/fragment/scene and get the filterType
-d(">3")
 			lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
 		end
 	end
@@ -3008,7 +3005,6 @@ d(">3")
 		if lastKnownFilterType ~= nil and lastKnownRefVars ~= nil then
 			--The last used filterType should be the one used before hiding then -> Use it
 			filterType 				= lastKnownFilterType
-d(">4")
 			lReferencesToFilterType = lastKnownRefVars
 		else
 			return

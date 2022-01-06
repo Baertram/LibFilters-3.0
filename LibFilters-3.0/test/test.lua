@@ -17,9 +17,6 @@
 local libFilters = LibFilters3
 if not libFilters then return end
 
-local GlobalLibName = libFilters.globalLibName
-local libPrefix = "[" .. GlobalLibName .. "] "
-
 local CM = CALLBACK_MANAGER
 
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
@@ -111,7 +108,7 @@ local helpUIInstructionsParts = {
 	"Use \'"..GetString(SI_APPLY).."\' button to register the selected filters and populate the registered LF_* constants at the bottom list.", --"Apply" button
 	"At any time, LF_* constants can be added or removed by clicking the LF_* constant in the top list and pressing " .. GetString(SI_APPLY) .. ".",
 	"The \'".. GetString(SI_GAMEPAD_BANK_FILTER_HEADER) .."\' button enables/disables filtering of the registered filters.", --"Filter" button
-	"The bottom list LF_* constants buttons will call the filter refresh for that button.",
+	"The bottom list LF_* constants buttons will call the filter refresh for that button, if you click it.",
 	"With a scene containing a filterable inventory, enable/disable filtering and press the according LF_* button in the bottom",
 	"list. Chat output will show you some information if the default filterFunction of test.lua is used (\'/test/test.lua/defaultFilterFunction\').",
 	"The \'".. GetString(SI_BUFFS_OPTIONS_ALL_ENABLED) .."\' button, will enable/disable all LF_* constants", --"All" button
@@ -374,7 +371,7 @@ local function refresh(dataList)
 		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		
-		if enabledFilters[filterType] then
+		if enabledFilters[filterType] == true then
 			local data = {
 				['filterType'] 	= filterType,
 				['name'] 		= filterTypeName
@@ -396,7 +393,7 @@ local function refreshUpdateList()
 	ZO_ScrollList_Commit(updateList)
 	
 	-- changing hidden state to make the scrollbar show. Otherwise updateList's scrollbar will not show 
-	-- if the list was not populated with enough itmes prior to enabling /lftestfilters
+	-- if the list was not populated with enough items prior to enabling /lftestfilters
 	tlw:SetHidden(true)
 	tlw:SetHidden(false)
 end
@@ -633,7 +630,7 @@ end
 
 local function callbackFunctionForPanelShowOrHide(filterTypeName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType)
 	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
-	d(libPrefix .. " - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
+	d(prefixBr .. "filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
 	updateCurrentFilterPanelLabel(stateStr)
 end
 

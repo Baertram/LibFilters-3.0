@@ -202,13 +202,12 @@ end
 local callbackNameInvShown = libfilters:CreateCallbackName(LF_INVENTORY, true)
 --Makes: "LibFilters3-shown-1"
 
---The callbackFunction you register to it needs to provide the following parameters:
---number filterType, refVar fragmentOrSceneOrControl, table lReferencesToFilterType, boolean isInGamepadMode, string stateStr
+--The callbackFunction you register to it needs to provide the following parameters in the following order:
 --number filterType is the LF_* constantfor the panel currently shown/hidden
+--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
+--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
 --refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 --table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
---boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
---string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
 
 local function callbackFunctionForInvShown(filterType, fragmentOrSceneOrControl, lReferencesToFilterType, isInGamepadMode, stateStr)
   --Register your filterFunction here e.g. or do whatever is needed, like adding custom controls of your addon to the currently shown panel
@@ -224,6 +223,8 @@ end
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
 ```
+
+
 
 
 ----------------------------------------------------------------------------------------------------------------------
