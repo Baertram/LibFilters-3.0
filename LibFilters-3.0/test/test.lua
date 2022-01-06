@@ -103,10 +103,10 @@ end
 local helpUIInstructionsParts = {
 	"Select any number of LF_* constants in the top list. Clicking them will enable them. Clicking them again will disable them.",
 	"Use \'"..GetString(SI_APPLY).."\' button to register the selected filters and populate the registered LF_* constants at the bottom list.", --"Apply" button
-	"At any time, LF_* constants can be added or removed by clicking the LF_* constant in the top list and pressing refresh.",
+	"At any time, LF_* constants can be added or removed by clicking the LF_* constant in the top list and pressing " .. GetString(SI_APPLY) .. ".",
 	"The \'".. GetString(SI_GAMEPAD_BANK_FILTER_HEADER) .."\' button enables/disables filtering of the registered filters.", --"Filter" button
 	"The bottom list LF_* constants buttons will call the filter refresh for that button.",
-	"With a scene containing a filerable inventory, enable/disable filtering and press the according LF_* button in the bottom",
+	"With a scene containing a filterable inventory, enable/disable filtering and press the according LF_* button in the bottom",
 	"list. Chat output will show you some information if the default filterFunction of test.lua is used (\'/test/test.lua/defaultFilterFunction\').",
 	"The \'".. GetString(SI_BUFFS_OPTIONS_ALL_ENABLED) .."\' button, will enable/disable all LF_* constants", --"All" button
 	"Use /lftestfilters without any parameters to open the test UI",

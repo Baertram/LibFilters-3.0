@@ -105,7 +105,13 @@ You will be able to use the slash command
 <pre>
 /lftestfilters OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor OPTIONAL globalFilterFunctionUsingBagIdAndSlotIndex
 </pre>
-to show the testing UI. It will allow you to click the given filterTypes in a list to enable/disable their filters. Click the buttons at the test UI to register/unregister the filters selected (refresh button). The panels using these registered filterTypes' filterFunction will filter with a standard filterFunction then which will do some itemType and quality checks, or stackCount checks:
+to show the testing UI. It will allow you to click the given filterTypes in a selection list (upper list (1)) to add their filters to the enabled list (lower list (2)). Click the buttons at the top list (1) to enable the filters. Yellow buttons are enabled, and a chat message shows the enabled/disabled state of the filter.
+![LibFilters test UI](https://i.imgur.com/Mj9bJfu.png)
+Click the "apply" button (3) to add the selected filter buttons from the upper list to the lower list (2). Only buttons shown at the bottom list (2) are currently filtered.
+Click the "all" button (4) to add all filters of the upper list to the lower list, or click it again to remove all from the lower list again.
+Click the "Filter" button (5) to enable/disable filters in total.
+
+The panels using these registered filterTypes' filterFunction will filter with a standard filterFunction then which will do some itemType and quality checks, or stackCount checks:
 <pre>
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
