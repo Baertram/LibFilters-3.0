@@ -527,6 +527,7 @@ local function intializeFilterUI()
 	currentFilterPanelLabel:SetDimensions(345, 25)
 	currentFilterPanelLabel:SetAnchor(TOPLEFT, tlc, nil, 5, 5)
 	currentFilterPanelLabel:SetText("Current filterPanel: ")
+	updateCurrentFilterPanelLabel(SCENE_SHOWN)
 
 	-- create main LF_constants list
 	-- this list is used to enable/disable LF_constants filters
