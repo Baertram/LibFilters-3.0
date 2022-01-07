@@ -17,6 +17,8 @@
 --     be somehow detected as false positive
 -- #5) 2022-01-07, Baertram: Keyboard mode - The control callbacks need to delay the SHOWN callbacks a bt more as e.g. switching from smithing creation to smithing refine will call the smithing refine SHOW
 --     first and then it tries to do the HIDE on smithing creation, but the internal values already point to smithing refine -> And thus it shows a smithing refine HIDE directly after the show ?!
+-- #6) 2022-01-07, Baertram: Keyboard mode - Switching from Smithing improvement to research will show improvement HIDDEN and then improvement SHOWN (instead of research SHOWN), and the filterTypes checked
+--	   within function detectShownReference are 36 (LF_SMITHING_RESEARCH_DIALOG) and 37 instead of 18 (LF_SMITHING_RESEARCH) and 35
 
 
 --[Feature requests]
@@ -3125,7 +3127,15 @@ local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputTy
 		dd("ControlHiddenStateChange: %q  - hidden: %s - #filterTypes: %s, isGamePad: %s", tos(ctrlName), tos(not isShown), #filterTypes, tos(inputType))
 	end
 	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN --using the SCENE_* constants to unify the callback name for fragments, scenes and controls
-	callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+	if isShown == true then
+		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the controls' shown state (used within detectShownReferenceNow())
+		--will be updated properly. Else it will fire too early and the control is still in another state, on it's way to state "Shown"!
+		zo_callLater(function()
+			callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+		end, 0)
+	else
+		callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+	end
 end
 
 local function createFragmentCallback(fragment, filterTypes, inputType)

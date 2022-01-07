@@ -889,7 +889,7 @@ mapping.smithingMapping = {
 		[SMITHING_MODE_RESEARCH] = {
 			filterType 			= LF_SMITHING_RESEARCH,
 			filterTypeJewelry 	= LF_JEWELRY_RESEARCH,
-			ctrl 				= researchPanel.control,
+			ctrl 				= researchPanelControl,
 		},
 	}
 
@@ -1217,7 +1217,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_SMITHING_RESEARCH]        = { ["control"] = researchPanel, 					["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_SMITHING_RESEARCH]        = { ["control"] = researchPanelControl, 					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -1272,7 +1272,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 											}
 		},
 		--Works: 2021-12-13
-		[LF_JEWELRY_RESEARCH]         = { ["control"] = researchPanel, 					["scene"] = "smithing", 			["fragment"] = nil,
+		[LF_JEWELRY_RESEARCH]         = { ["control"] = researchPanelControl, 					["scene"] = "smithing", 			["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -2151,7 +2151,7 @@ local callbacksUsingControl = {
 		[researchPanel] 					= { LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[researchPanelControl] 				= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
+		[researchChooseItemDialog] 			= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
