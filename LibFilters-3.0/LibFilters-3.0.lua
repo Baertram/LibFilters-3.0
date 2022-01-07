@@ -13,6 +13,10 @@
 -- #2) 2022-01-03, Baertram: Gamepad mode - callback for filterType LF_INVENTORY does not fire as callback get's added to the fragment as the inventory lists get initialized the 1st time
 -- #3) 2022-01-03, Baertram: Keyboard mode - CraftBagExtended CRAFTBAG_FRAGMENT (at mail send panel e.g.) will fire it's "shown" callback first, and then LF_MAIL_SEND callback will fire too afterwards.
 --	   Any way to suppress the BACKPACK_MAIL_SEND_LAYOUT_FRAGMENT callback fire?
+-- #4) 2022-01-07, Baertram: Keyboard mode - PROVISIONER_FRAGMENT will be called at smithing recipes tab too -> This will cause problems as the callback tries to detect and fire and thus the fragment will
+--     be somehow detected as false positive
+-- #5) 2022-01-07, Baertram: Keyboard mode - The control callbacks need to delay the SHOWN callbacks a bt more as e.g. switching from smithing creation to smithing refine will call the smithing refine SHOW
+--     first and then it tries to do the HIDE on smithing creation, but the internal values already point to smithing refine -> And thus it shows a smithing refine HIDE directly after the show ?!
 
 
 --[Feature requests]
@@ -515,8 +519,10 @@ local function getSceneName(scene)
 end
 
 local function getCtrlName(ctrlVar)
-	local ctrlName = (ctrlVar.GetName ~= nil and ctrlVar:GetName()) or (ctrlVar.name ~= nil and ctrlVar.name)
-	if ctrlName ~= nil and ctrlName ~= "" then return ctrlName end
+	if ctrlVar ~= nil then
+		local ctrlName = (ctrlVar.GetName ~= nil and ctrlVar:GetName()) or (ctrlVar.name ~= nil and ctrlVar.name)
+		if ctrlName ~= nil and ctrlName ~= "" then return ctrlName end
+	end
 	return "n/a"
 end
 
@@ -3270,6 +3276,7 @@ local function createSpecialCallbacks()
 		end
 	end)
 
+	--[[
 	--LF_SMITHING_REFINE, LF_SMITHING_CREATION, LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT,LF_SMITHING_RESEARCH
 	--LF_JEWELRY_REFINE, LF_JEWELRY_CREATION, LF_JEWELRY_DECONSTRUCT, LF_JEWELRY_IMPROVEMENT,LF_JEWELRY_RESEARCH
 	-->ZO_Smithing:SetMode(mode)
@@ -3296,6 +3303,7 @@ df("LibFilters3 - smithing:SetMode: %s, filterType: %s, doShow: %s", tos(mode), 
 			onControlHiddenStateChange(doShow, { filterType }, smithingCtrl, false)
 		end
 	end)
+	]]
 
 	--[Gamepad mode]
 
