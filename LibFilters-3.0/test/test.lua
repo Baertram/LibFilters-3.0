@@ -468,8 +468,8 @@ local function refreshEnableList()
 end
 
 local function setButtonToggleColor(control, filtered)
-libFilters.test.buttonControl = control
 	control:SetAlpha((filtered and 1) or 0.4)
+	control._selected = filtered
 end
 
 local function hasUnenabledFilters()
@@ -621,15 +621,21 @@ local function intializeFilterUI()
 	customFilterFunctionEdit.saveButton = GetControl(customFilterFunctionEdit:GetName(), "SaveButton")
 	customFilterFunctionEdit.saveButton.OnClickedCallback = function(selfButton)
 		customFilterFunctionEdit:LoseFocus()
+		local refreshNeeded = false
 		local filterFunctionName = customFilterFunctionEdit:GetText()
 		if not filterFunctionName then return end
 
 		local filterTypes = {}
 		local usingLfAll = true
 		--Check if any filterType is selected at the upper enableList
-		for i=1, #filterTypesToCategory do
-			local filterType = filterTypesToCategory[i].filterType
-			if enabledFilters[filterType] then
+		local dataList = ZO_ScrollList_GetDataList(enableList)
+		for i=1, #dataList do
+			local dataOfEnableListEntry = dataList[i]
+			local data = dataOfEnableListEntry.data
+			local filterType = data.filterType
+			--Check if the entry of the enabledList is currently selected
+			local isSelected = enabledFilters[filterType] or false
+			if isSelected == true then
 				tins(filterTypes, filterType)
 				usingLfAll = false
 			end
@@ -645,6 +651,7 @@ local function intializeFilterUI()
 			if not allCustomFilterFunctionsDisabled then
 				d(strfor(prefixBr.. "resetting filter function for %s filterTypes to default", filterTypesSelectedStr))
 				updateCustomFilterFunction(filterTypes, nil, nil)
+				refreshNeeded= true
 			end
 			if usingLfAll == true then
 				allCustomFilterFunctionsDisabled = true
@@ -661,6 +668,11 @@ local function intializeFilterUI()
 			d(strfor(prefixBr.. "Setting filter function %q for %s filterTypes", filterFunctionName, filterTypesSelectedStr))
 			updateCustomFilterFunction(filterTypes, filterFunction, filterFunctionName)
 			allCustomFilterFunctionsDisabled = false
+			refreshNeeded= true
+		end
+		if refreshNeeded then
+			refreshEnableList()
+			--refreshUpdateList()
 		end
 	end
 	customFilterFunctionEdit.saveButton.data = {
@@ -732,7 +744,12 @@ local function addFilterUIListDataTypes()
  	local function setupUpdateRow(rowControl, data)
 		setupRow(rowControl, data, function(btn)
 			local filterType = data.filterType
-			d(prefixBr .. "- Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
+			local customFilterFunctionName = data.customFilterFunctionName
+			local customFilterFunctionSuffix = ""
+			if customFilterFunctionName ~= nil and customFilterFunctionName ~= "" then
+				customFilterFunctionSuffix = ", custom filterFunction: \'" .. customFilterFunctionName .. "\'"
+			end
+			d(prefixBr .. "- Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]" .. customFilterFunctionSuffix)
 			libFilters_RequestUpdate(libFilters, filterType)
 		end)
 	end
@@ -841,12 +858,13 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 	if numRetTab == 2 then
 		local filterType = retTab[1]
 		local filterFunctionName = retTab[2]
-
+		local refreshNeeded = false
 		--Reset to default filterFunction?
 		if filterFunctionName == "" then
 			if not allCustomFilterFunctionsDisabled then
 				d(strfor(prefixBr.. "resetting filter function for filterType %s to default", tos(filterType)))
 				updateCustomFilterFunction({ filterType }, nil, nil)
+				refreshNeeded = true
 			end
 			if filterType == LF_FILTER_ALL then
 				allCustomFilterFunctionsDisabled = true
@@ -862,6 +880,11 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 			d(strfor(prefixBr.. "Setting filter function %q for %s filterTypes", filterFunctionName, filterTypesSelectedStr))
 			updateCustomFilterFunction({ filterType }, filterFunction, filterFunctionName)
 			allCustomFilterFunctionsDisabled = false
+			refreshNeeded = true
+		end
+		if refreshNeeded then
+			refreshEnableList()
+			--refreshUpdateList()
 		end
 	end
 	
