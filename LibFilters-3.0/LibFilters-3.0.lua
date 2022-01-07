@@ -820,7 +820,7 @@ local function craftBagExtendedCheckForCurrentModule(filterType)
 	local cbeCurrentModule = cbe.currentModule
 	if cbeCurrentModule == nil then
 		if isDebugEnabled then dv("<no current CBE module found") end
-		return true, LF_INVENTORY
+		return false, nil
 	end
 	local cbeDescriptorOfCraftBag = 4402 --GetString(4402) = "CraftBag"
 	--Check if the CBE button at the menu is activated -> Means te CBE fragment is shown
@@ -896,9 +896,16 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode,
 								end
 							end
 						end
-						if isDebugEnabled then
-							local resultLoopStr = (resultLoop == true and ">>") or "<<"
-							dv("%sfoundInLoop: %s, checkType: %s", tos(resultLoopStr), tos(resultLoop), tos(checkTypeToExecute))
+						if not skipSpecialChecks then
+							if isDebugEnabled then
+								local resultLoopStr = (resultLoop == true and ">>") or "<<"
+								dv("%sfoundInLoop: %s, checkType: %s", tos(resultLoopStr), tos(resultLoop), tos(checkTypeToExecute))
+							end
+						else
+							if checkTypeToExecute == "special" or checkTypeToExecute == "specialForced" then
+								if isDebugEnabled then dv("<<<skipped special check: %s", tos(checkTypeToExecute)) end
+								resultLoop = true
+							end
 						end
 					else
 						if isDebugEnabled then dv("<<<skipped checkType: %s  - resultOfCurrentLoop was false already", tos(checkTypeToExecute) ) end
@@ -2793,19 +2800,24 @@ function libFilters:IsCraftBagExtendedParentFilterType(filterTypesToCheck)
 				if libFilters.debug then dv(">filterTypeChecked: %s, filterTypeParent: %q",
 						tos(filterTypeToCheck), tos(filterTypeParent)) end
 				return true
-			elseif referencesToFilterType == true and filterTypeParent == LF_INVENTORY then
-				--Normal craftbag at player inventory is shown
-				return true
 			end
 		end
-		return false
 	end
 	if libFilters.debug then dv(">CBE: %s, filterTypeParent: %q",
 			tos(CraftBagExtended ~= nil), tos(filterTypeParent)) end
-	return true
+	return false
 end
 local libFilters_IsCraftBagExtendedParentFilterType = libFilters.IsCraftBagExtendedParentFilterType
 
+--Is any CarftBag shown, vanilla UI or CraftBagExtended
+function libFilters:IsCraftBagShown()
+	local lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_CRAFTBAG, nil, false, true)
+	local vanillaUICraftBagShown = ((lFilterTypeDetected == LF_CRAFTBAG and lReferencesToFilterType ~= nil) and true) or false0
+	local cbeCraftBagShown = libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels)
+	df(">vanillaUICraftBagShown: %s, cbeCraftBagShown: %s", tos(vanillaUICraftBagShown), tos(cbeCraftBagShown))
+	if vanillaUICraftBagShown == true or cbeCraftBagShown == true then return true end
+	return false
+end
 
 --**********************************************************************************************************************
 -- Callback API

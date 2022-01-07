@@ -363,6 +363,8 @@ local function registerFilter(filterType, filterTypeName)
 	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
 	d(prefixBr .. "TEST - Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
 	libFilters_RegisterFilter(libFilters, filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
+
+	return useDefaultFilterFunction
 end
 
 local function refresh(dataList)
@@ -370,16 +372,21 @@ local function refresh(dataList)
 		local filterType = filterData.filterType
 		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
-		
+		local usesDefaultFilterFunction = false
 		if enabledFilters[filterType] == true then
+			if not isRegistered then
+				usesDefaultFilterFunction = registerFilter(filterType, filterTypeName)
+			end
+			if usesDefaultFilterFunction == false then
+				filterTypeName = filterTypeName .. " - Custom"
+			end
+
 			local data = {
 				['filterType'] 	= filterType,
 				['name'] 		= filterTypeName
 			}
 			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
-			if not isRegistered then
-				registerFilter(filterType, filterTypeName)
-			end
+
 		elseif isRegistered then
 			d(prefixBr .. "TEST - Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
 			libFilters_UnregisterFilter(libFilters, filterTag, filterType)

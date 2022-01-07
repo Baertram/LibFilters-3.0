@@ -1090,8 +1090,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 										  ["specialForced"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
-												  ["funcOrAttribute"] = "IsCraftBagExtendedParentFilterType",
-												  ["params"]          = { _G[GlobalLibName], cbeSupportedFilterPanels },
+												  ["funcOrAttribute"] = "IsCraftBagShown",
+												  ["params"]          = { _G[GlobalLibName] },
 												  ["expectedResults"] = { true },
 											  }
 										  },
