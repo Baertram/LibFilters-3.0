@@ -20,6 +20,17 @@
             />
         </Button>
 
+		<Button name="LibFilters_Test_CloseButton" override="true" virtual="true" mouseEnabled="true">
+			<Dimensions x="36" y="36" />
+			<Textures normal="/esoui/art/buttons/closebutton_up.dds"
+					  pressed="/esoui/art/buttons/closebutton_down.dds"
+					  mouseOver="/esoui/art/buttons/closebutton_mouseOver.dds"
+					  disabled="/esoui/art/buttons/closebutton_disabled.dds" />
+			<OnClicked>
+				self:OnClickedCallback()
+			</OnClicked>
+		</Button>
+
 		<Label name="LibFilters_Test_CurrentFilterPanelTemplate" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER" tier="HIGH" override="true" mouseEnabled="false" virtual="true">
 			<Dimensions x="345" y="25"/>
 		</Label>

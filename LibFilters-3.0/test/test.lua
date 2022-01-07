@@ -106,20 +106,29 @@ end
 -- TEST UI
 ------------------------------------------------------------------------------------------------------------------------
 local helpUIInstructionsParts = {
-	"Select any number of LF_* constants in the top list. Clicking them will enable them. Clicking them again will disable them.",
-	"Use \'"..GetString(SI_APPLY).."\' button to register the selected filters and populate the registered LF_* constants at the bottom list.", --"Apply" button
-	"At any time, LF_* constants can be added or removed by clicking the LF_* constant in the top list and pressing " .. GetString(SI_APPLY) .. ".",
+	"Use /lftestfilters without any parameters to open/close the test UI. Click the small 'x' button at the top-right edge to close the UI and clear all filters.",
+	"Select any number of LF_* filterTypes in the top list. Clicking them will select them. Clicking them again will deselct them.",
+	"Use \'"..GetString(SI_APPLY).."\' button to register the selected filters and populate the registered LF_* filterTypes to the bottom list.", --"Apply" button
+	"At any time, LF_* filterTypes can be added or removed by selecting/deselcting the button in the top list, and pressing the button \'" .. GetString(SI_APPLY) .. "\'.",
 	"The \'".. GetString(SI_GAMEPAD_BANK_FILTER_HEADER) .."\' button enables/disables filtering of the registered filters.", --"Filter" button
-	"The bottom list LF_* constants buttons will call the filter refresh for that button, if you click it.",
-	"With a scene containing a filterable inventory, enable/disable filtering and press the according LF_* button in the bottom",
-	"list. Chat output will show you some information if the default filterFunction of test.lua is used (\'/test/test.lua/defaultFilterFunction\').",
-	"The \'".. GetString(SI_BUFFS_OPTIONS_ALL_ENABLED) .."\' button, will enable/disable all LF_* constants", --"All" button
-	"Use /lftestfilters without any parameters to open the test UI",
-	"Use /lftestfilters <LF_constant_to_add> <globalFilterFunctionToUseForThatLF_Constant> to register a special filterFunction for the provided LF_Constants",
-	"e.g. /lftestfilters LF_SMITHIG_REFINE MyGlobalAddonVar.filterFunctionForSmithingRefine",
-	"Use /lftestfilters without any parameter again to close the UI and unregister all registered LF_* constants",
+	"If you click the buttons of the LF_* filterTypes at the bottom list it will refresh/update the clicked filterType panel (if it's currently shown).",
+	"Means: With a fragment/scene containing a filterable inventory, enable/disable filtering (middle button) and press the according LF_* button in the bottom",
+	"list. Chat output will show you some information about the filtered items then. A default filterFunction is used but can be chanegd for each filterType -> See filterFunction editbox.",
+	"The \'".. GetString(SI_BUFFS_OPTIONS_ALL_ENABLED) .."\' button will move down/move up all LF_* filterTypes at once.", --"All" button
 }
 local helpUIInstructions = gTab.concat(helpUIInstructionsParts, "\n")
+local helpUICustomFilterFunctionParts = {
+	"You can use the filterFunction editbox and the \'OK\' button to set a custom filterFunction for the selected (upper list) filterTypes.",
+	"Important: The filterFunction name provided must be existing in the global table _G, and it needs to be a function with 2 parameters: bagId, slotIndex!",
+	"If no filterType is selected at the upper list, the fallback LF_FILTER_ALL will be used (applies to all filterTypes). Dedicated filterTypes selected will",
+	"always overwrite the LF_FILTER_ALL fallback filterType!",
+	"Alternatively use the slash command /lftestfilters <LF_filterType> <globalFilterFunctionName> to register a special filterFunction",
+	"for the provided LF_ filterType: e.g. /lftestfilters LF_SMITHIG_REFINE MyGlobalAddonFilterFunctionForSmithingRefine",
+	"Use /lftestfilters <LF_filterType> without any additional filterFunctionName to reset the custom filterFunction for that filtertype to the default.",
+	"If custom filterFunctions were added to a filterType the filterType button (upper and lower list) shows a \'(C)\' after the filterType number, and a tooltip shows more info.",
+	"Any change to the custom filterFunctions needs to be applied to already added filterTypes (lower list) by the \'" .. GetString(SI_APPLY) .. "\' button!"
+}
+local helpUICustomFilterFunctions = gTab.concat(helpUICustomFilterFunctionParts, "\n")
 
 local filterTypesToCategory = {
 	{
@@ -275,6 +284,7 @@ local enableList = {}
 local updateList = {}
 local currentFilterPanelLabel
 local customFilterFunctionEdit
+local closeUIButton
 local useFilter = false
 
 --Via slash command added filter functions for the LF_* constants
@@ -496,15 +506,25 @@ local function addAll()
 	setButtonToggleColor(btnFilter, useFilter)
 end
 
-local function clearAll()
+local function clearAll(disableCustomFilters)
+	disableCustomFilters = disableCustomFilters or false
+	local filterTypes = {}
 	for filterType, enabled in pairs(enabledFilters) do
 		if enabled then
 			enabledFilters[filterType] = false
 		end
 	end
+	if disableCustomFilters == true then
+		for i=1, #filterTypesToCategory do
+			local filterType = filterTypesToCategory[i].filterType
+			tins(filterTypes, filterType)
+		end
+		tins(filterTypes, LF_FILTER_ALL)
+		updateCustomFilterFunction(filterTypes, nil, nil)
+	end
 	refreshEnableList()
 	refreshUpdateList()
-	
+
 	useFilter = false
 	setButtonToggleColor(btnFilter, useFilter)
 end
@@ -513,7 +533,7 @@ local function allButtonToggle()
 	if hasUnenabledFilters() then
 		addAll()
 	else
-		clearAll()
+		clearAll(false)
 	end
 end
 
@@ -530,6 +550,25 @@ local function updateCurrentFilterPanelLabel(stateStr)
 		currentFilterPanelName = ""
 	end
 	currentFilterPanelLabel:SetText("Current filterPanel: " .. tos(currentFilterPanelName))
+end
+
+local helpWasNotShownYet = true
+local function toggleUI(numRetTab, doCloseOverride)
+	doCloseOverride = doCloseOverride or false
+	if not tlw:IsHidden() then
+		if doCloseOverride == true or (numRetTab ~= nil and numRetTab < 2) then
+			clearAll()
+			tlw:SetHidden(true)
+			return
+		end
+	end
+	if helpWasNotShownYet then
+		d(prefixBr .. "==============================\n" .. helpUIInstructions .. "==============================\n")
+		helpWasNotShownYet = false
+	end
+
+	tlw:SetHidden(false)
+	refreshEnableList()
 end
 
 local function intializeFilterUI()
@@ -618,6 +657,14 @@ local function intializeFilterUI()
 	customFilterFunctionEdit:SetHandler("OnTextChanged", function(selfEdit)
 		ZO_EditDefaultText_OnTextChanged(selfEdit)
 	end )
+	customFilterFunctionEdit:SetHandler("OnMouseEnter", function()
+		ZO_Tooltips_ShowTextTooltip(tlw, LEFT, helpUICustomFilterFunctions)
+	end)
+	customFilterFunctionEdit:SetHandler("OnMouseExit", function()
+		ZO_Tooltips_HideTextTooltip()
+	end)
+
+
 	customFilterFunctionEdit.saveButton = GetControl(customFilterFunctionEdit:GetName(), "SaveButton")
 	customFilterFunctionEdit.saveButton.OnClickedCallback = function(selfButton)
 		customFilterFunctionEdit:LoseFocus()
@@ -686,6 +733,14 @@ local function intializeFilterUI()
 	updateList = CreateControlFromVirtual("$(parent)UpdateList", tlw, "ZO_ScrollList")
 	updateList:SetDimensions(345, ul_Height)
 	updateList:SetAnchor(TOP, buttons, BOTTOM, 0, 0)
+
+	--Close button
+	closeUIButton =  CreateControlFromVirtual("$(parent)CloseUIButton", tlw, "LibFilters_Test_CloseButton")
+	closeUIButton:SetDimensions(24, 24)
+	closeUIButton:SetAnchor(BOTTOMRIGHT, tlw, TOPRIGHT, 6, 4)
+	closeUIButton.OnClickedCallback = function()
+		toggleUI(nil, true)
+	end
 
 	-- initialize lists
 	ZO_ScrollList_Initialize(enableList)
@@ -834,7 +889,6 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- SLASH COMMAND for filter UI
 ------------------------------------------------------------------------------------------------------------------------
-local helpWasNotShownYet = true
 SLASH_COMMANDS["/lftestfilters"] = function(args)
 --[[ is there a way to check if a virtual control exists?
 	-- is test.xml enabled
@@ -858,13 +912,13 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 	if numRetTab == 2 then
 		local filterType = retTab[1]
 		local filterFunctionName = retTab[2]
-		local refreshNeeded = false
+		--local refreshNeeded = false
 		--Reset to default filterFunction?
 		if filterFunctionName == "" then
 			if not allCustomFilterFunctionsDisabled then
 				d(strfor(prefixBr.. "resetting filter function for filterType %s to default", tos(filterType)))
 				updateCustomFilterFunction({ filterType }, nil, nil)
-				refreshNeeded = true
+				--refreshNeeded = true
 			end
 			if filterType == LF_FILTER_ALL then
 				allCustomFilterFunctionsDisabled = true
@@ -882,27 +936,13 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 			allCustomFilterFunctionsDisabled = false
 			refreshNeeded = true
 		end
-		if refreshNeeded then
-			refreshEnableList()
+		--if refreshNeeded then
+			--refreshEnableList()
 			--refreshUpdateList()
-		end
-	end
-	
-	if not tlw:IsHidden() then
-		clearAll()
-		if numRetTab < 2 then
-			tlw:SetHidden(true)
-			return
-		end
-	end
-	if helpWasNotShownYet then
-		d(prefixBr .. "==============================\n" .. helpUIInstructions .. "==============================\n")
-		helpWasNotShownYet = false
+		--end
 	end
 
-	tlw:SetHidden(false)
-
-	refreshEnableList()
+	toggleUI(numRetTab, false)
 end
 --	/script testFilter = function(bagId, slotIndex) if slotIndex == 1 then return false end return true end
 --	/lftestfilters testFilter
