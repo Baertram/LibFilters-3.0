@@ -133,6 +133,7 @@ local enchantingInvCtrl        = 	enchanting.inventoryControl
 local alchemy                  = 	kbc.alchemy
 local alchemyCtrl              =	kbc.alchemyCtrl
 local provisioner			   =    kbc.provisioner
+local smithing				   =    kbc.smithing
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 
 
@@ -3253,23 +3254,48 @@ local function createSpecialCallbacks()
 	-->ZO_Provisioner:OnTabFilterChanged(filterData)
 	local provCtrl = provisioner.control
 	SecurePostHook(provisioner, "OnTabFilterChanged", function(selfProvisioner, filterTabData)
-libFilters._selfProvisioner = selfProvisioner
 		local doShow = true
 		local currentProvFilterType = selfProvisioner.filterType
 		local filterType
 		if currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES then
-			filterType = LF_PROVISIONER_COOK
+			filterType = LF_PROVISIONING_COOK
 		elseif currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING then
-			filterType = LF_PROVISIONER_BREW
+			filterType = LF_PROVISIONING_BREW
 		elseif currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then
 			doShow = false
 		end
-df("LibFilters3 - OnTabFilterChanged: %s, filterType: %s, doShow: %s", tos(currentProvFilterType), tos(filterType), tos(doShow))
+--df("LibFilters3 - Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s", tos(currentProvFilterType), tos(filterType), tos(doShow))
 		if doShow == false or (doShow == true and filterType ~= nil) then
 			onControlHiddenStateChange(doShow, { filterType }, provCtrl, false)
 		end
 	end)
 
+	--LF_SMITHING_REFINE, LF_SMITHING_CREATION, LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT,LF_SMITHING_RESEARCH
+	--LF_JEWELRY_REFINE, LF_JEWELRY_CREATION, LF_JEWELRY_DECONSTRUCT, LF_JEWELRY_IMPROVEMENT,LF_JEWELRY_RESEARCH
+	-->ZO_Smithing:SetMode(mode)
+	local smithignMappingTab = mapping.smithingMapping
+	SecurePostHook(smithing, "SetMode", function(selfSmithing, mode)
+		local doShow = true
+		local craftingType = gcit()
+		local filterType
+		local smithingCtrl
+		local mappingData = smithignMappingTab[mode]
+		if not mappingData then
+			doShow = false
+		else
+			smithingCtrl = mappingData.ctrl
+			if craftingType == CRAFTING_TYPE_JEWELRYCRAFTING then
+				filterType = mappingData.filterTypeJewelry
+			else
+				filterType = mappingData.filterType
+			end
+		end
+
+df("LibFilters3 - smithing:SetMode: %s, filterType: %s, doShow: %s", tos(mode), tos(filterType), tos(doShow))
+		if doShow == false or (doShow == true and filterType ~= nil) then
+			onControlHiddenStateChange(doShow, { filterType }, smithingCtrl, false)
+		end
+	end)
 
 	--[Gamepad mode]
 

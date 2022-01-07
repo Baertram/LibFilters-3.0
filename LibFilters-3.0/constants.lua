@@ -863,6 +863,37 @@ local enchantingModeToFilterType = {
 }
 mapping.enchantingModeToFilterType = enchantingModeToFilterType
 ]]
+
+--Mapping for the smithing panels, and their filterTypes
+mapping.smithingMapping = {
+		[SMITHING_MODE_REFINEMENT] = {
+			filterType 			= LF_SMITHING_REFINE,
+			filterTypeJewelry 	= LF_JEWELRY_REFINE,
+			ctrl 				= refinementPanel.control,
+		},
+		[SMITHING_MODE_CREATION] = {
+			filterType 			= LF_SMITHING_CREATION,
+			filterTypeJewelry 	= LF_JEWELRY_CREATION,
+			ctrl 				= creationPanel.control,
+		},
+		[SMITHING_MODE_DECONSTRUCTION] = {
+			filterType 			= LF_SMITHING_DECONSTRUCT,
+			filterTypeJewelry 	= LF_JEWELRY_DECONSTRUCT,
+			ctrl 				= deconstructionPanel.control,
+		},
+		[SMITHING_MODE_IMPROVEMENT] = {
+			filterType 			= LF_SMITHING_IMPROVEMENT,
+			filterTypeJewelry 	= LF_JEWELRY_IMPROVEMENT,
+			ctrl 				= improvementPanel.control,
+		},
+		[SMITHING_MODE_RESEARCH] = {
+			filterType 			= LF_SMITHING_RESEARCH,
+			filterTypeJewelry 	= LF_JEWELRY_RESEARCH,
+			ctrl 				= researchPanel.control,
+		},
+	}
+
+
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
 local standardSceneSpecialHookFunc = 	"HookAdditionalFilterSceneSpecial"	--LibFilters:HookAdditionalFilterSceneSpecial
