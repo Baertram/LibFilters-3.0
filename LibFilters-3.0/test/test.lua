@@ -484,10 +484,11 @@ local function allButtonToggle()
 end
 
 local function updateCurrentFilterPanelLabel(stateStr)
+d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
 	if currentFilterPanelLabel == nil then return end
-	local currentFilterPanel = libFilters._currentFilterType
 	local currentFilterPanelName
 	if stateStr == SCENE_SHOWN then
+		local currentFilterPanel = libFilters._currentFilterType
 		if (currentFilterPanel == nil or currentFilterPanel == 0) then return end
 		currentFilterPanelName = libFilters_GetFilterTypeName(libFilters, currentFilterPanel)
 		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" end
@@ -638,7 +639,7 @@ end
 
 local function callbackFunctionForPanelShowOrHide(filterTypeName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType)
 	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
-	d(prefixBr .. "filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
+	d(prefixBr .. "TEST callback - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
 	updateCurrentFilterPanelLabel(stateStr)
 end
 
@@ -646,7 +647,11 @@ local function enableFilterTypeCallbacks()
 	local libFiltersFilterConstants = libFilters.constants.filterTypes
 	--For each filterType register a stateChange for show/hidestate change
 	for filterType, filterTypeName in ipairs(libFiltersFilterConstants) do
+		--Shown callbacks
 		local callbackName = libFilters_CreateCallbackName(libFilters, filterType, true)
+		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
+		--Hidden callbacks
+		callbackName = libFilters_CreateCallbackName(libFilters, filterType, false)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
 	end
 end
