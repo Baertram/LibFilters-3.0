@@ -1,4 +1,4 @@
-<GuiXml>
+<GuiXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sir.insidi.at/or/schema/esoui.xsd">
 	<Controls>
 		<Button name="LibFilters_Test_DefaultButton" font="ZoFontGameBold" endCapWidth="9" verticalAlignment="CENTER" mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound" virtual="true">
             <Dimensions x="128" y="28" />
@@ -24,6 +24,26 @@
 			<Dimensions x="345" y="25"/>
 		</Label>
 
+		 <EditBox name="LibFilters_Test_FilterFunction_Edit_Template" inherits="ZO_DefaultEditForBackdrop ZO_EditDefaultText" font="ZoFontWinH5" tier="HIGH" mouseEnabled="true" override="true" virtual="true">
+			<Dimensions x="318" y="25"/>
+			<OnInitialized>
+				ZO_EditDefaultText_Initialize(self, "Enter global filter function, w/o (param, ...)")
+			</OnInitialized>
+			<Controls>
+				<Label name="$(parent)Text" font="ZoFontGame" override="true">
+					<Dimensions x="310" y="25"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-28" offsetY="0"/>
+				</Label>
+				<Button name="$(parent)SaveButton" override="true" tier="HIGH" inherits="ZO_DefaultButton" text="OK" mouseEnabled="true">
+					<Dimensions x="25" y="25"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Text" relativePoint="TOPRIGHT" offsetX="1" offsetY="0"/>
+					<OnClicked>
+						self:OnClickedCallback()
+					</OnClicked>
+				</Button>
+			</Controls>
+		</EditBox>
 
 		<Control name="LibFilters_Test_Template" tier="MEDIUM" virtual="true">
 			<Dimensions x="345" y="40"/>

@@ -51,19 +51,21 @@ local tins = gTab.insert
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
-local prefixBr = "[" .. prefix .. "]"
+local prefixBr = "[" .. prefix .. "] TEST "
 local testUItemplate = "LibFilters_Test_Template"
 
 local filterTag = prefix .."_TestFilters_"
 local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
 local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
 
+local customFilterFunctionTag = " (C)"
+local allCustomFilterFunctionsDisabled = true
 
 --UI
 libFilters.test = {}
 local tlw
-local tlc
 local btnFilter
+
 
 
 --filter function for inventories
@@ -89,10 +91,10 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 
 	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
 		libFilters_UnregisterFilter(libFilters, filterTag, filterType)
-		d("<"..prefixBr .. "Test filter for \'" .. filterTypeName .. "\'  unregistered!")
+		d("<"..prefixBr .. "filter for \'" .. filterTypeName .. "\'  unregistered!")
 	else
 		libFilters_RegisterFilter(libFilters, filterTag, filterType, function(...) filterFunc(...) end)
-		d(">" ..prefixBr .. "Test filter for \'" .. filterTypeName .. "\' registered!")
+		d(">" ..prefixBr .. "filter for \'" .. filterTypeName .. "\' registered!")
 	end
 	if noUpdate then return end
 	libFilters_RequestUpdate(libFilters, filterType)
@@ -272,6 +274,7 @@ local HEADER_TYPE = 2
 local enableList = {}
 local updateList = {}
 local currentFilterPanelLabel
+local customFilterFunctionEdit
 local useFilter = false
 
 --Via slash command added filter functions for the LF_* constants
@@ -281,12 +284,24 @@ local testAdditionalFilterFunctions = {
 	--If [LF_FILTER_ALL] is added this is the filterFunction to use for all LF_ constants!
 }
 libFilters.test.additionalFilterFunctions = testAdditionalFilterFunctions
+--The String names of the custom filterFunctions
+local testAdditionalFilterFunctionsNames = {}
+libFilters.test.testAdditionalFilterFunctionsNames = testAdditionalFilterFunctionsNames
+
+local function checkIfAllCustomFilterFunctionsDisabled()
+	for filterType, customFilterFunc in pairs(testAdditionalFilterFunctions) do
+		if filterType ~= nil and customFilterFunc ~= nil then
+			allCustomFilterFunctionsDisabled = false
+			return
+		end
+	end
+	allCustomFilterFunctionsDisabled = true
+end
 
 --The default filter function to use. Generalized to be compatible with inventorySlots and bagId/slotIndex parameters (crafting tables e.g.)
 --Will filter depending on the itemType and hide items with quality below "blue"
 --and if weapons/armor also if it's locked by ZOs vanilla UI lock functionality and non companion items
 --and poisons or potions or reagents by their stackCount <= 100
-local useDefaultFilterFunction = false
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
@@ -326,16 +341,25 @@ local function resultCheckFunc(p_result, p_filterTypeName, p_useDefaultFilterFun
 	end
 end
 
-local function registerFilter(filterType, filterTypeName)
+local function getCustomFilterFunctionInfo(filterType)
+	local useDefaultFilterFunction = true
+	local customFilterFunctionName = ""
 	--Use the custom registered filterFunction for the LF_ filter constant, or a registered filterFunction for all LF_ constants,
 	--or use the default filterFunction "defaultFilterFunction" of this test file
 	local testAdditionalFilterFunctionToUse = testAdditionalFilterFunctions[filterType] or testAdditionalFilterFunctions[LF_FILTER_ALL]
 	if testAdditionalFilterFunctionToUse == nil then
-		useDefaultFilterFunction = true
 		testAdditionalFilterFunctionToUse = defaultFilterFunction
 	else
 		useDefaultFilterFunction = false
+		customFilterFunctionName = testAdditionalFilterFunctionsNames[filterType] or testAdditionalFilterFunctionsNames[LF_FILTER_ALL]
+		if customFilterFunctionName == nil then customFilterFunctionName = "" end
 	end
+	return customFilterFunctionName, useDefaultFilterFunction, testAdditionalFilterFunctionToUse
+end
+
+
+local function registerFilter(filterType, filterTypeName)
+	local customFilterFunctionName, useDefaultFilterFunction, testAdditionalFilterFunctionToUse = getCustomFilterFunctionInfo(filterType)
 
 	local function filterBagIdAndSlotIndexCallback(bagId, slotIndex)
 		if not useFilter then return true end
@@ -343,7 +367,7 @@ local function registerFilter(filterType, filterTypeName)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
+		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount) --custom filterFunction will only use bagId and slotIndex, no 3rd param stackCount
 		resultCheckFunc(result, filterTypeName, useDefaultFilterFunction, bagId, slotIndex, itemLink, stackCount)
 		return result
 	end
@@ -355,16 +379,32 @@ local function registerFilter(filterType, filterTypeName)
 		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
-		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount)
+		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount) --custom filterFunction will only use bagId and slotIndex, no 3rd param stackCount
 		resultCheckFunc(result, filterTypeName, useDefaultFilterFunction, bagId, slotIndex, itemLink, stackCount)
 		return result
 	end
 
-	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType]
-	d(prefixBr .. "TEST - Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction: " .. (useDefaultFilterFunction and "default") or "custom" .. ", invSlotFilterFunction: " .. tos(not usingBagAndSlot))
-	libFilters_RegisterFilter(libFilters, filterTag, filterType, (usingBagAndSlot and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
+	local usingBagAndSlot = usingBagIdAndSlotIndexFilterFunction[filterType] or false
+	local filterFunctioNameStr = (useDefaultFilterFunction == true and "default") or (useDefaultFilterFunction == false and "custom: \'" .. tos(customFilterFunctionName) .."\'")
+	d(prefixBr .. "- Registering " .. filterTypeName .. " [" ..tos(filterType) .."], filterFunction " .. tos(filterFunctioNameStr) .. ", bagAndSlotFilterFunction: " .. tos(usingBagAndSlot))
+	libFilters_RegisterFilter(libFilters, filterTag, filterType, (usingBagAndSlot == true and filterBagIdAndSlotIndexCallback) or filterSlotDataCallback)
 
-	return useDefaultFilterFunction
+	return useDefaultFilterFunction, customFilterFunctionName
+end
+
+local function updateCustomFilterFunction(filterTypes, filterFunction, filterFunctionName)
+	if filterFunction == nil then
+		if filterFunctionName ~= nil then
+			return
+		end
+	end
+	if filterTypes == nil then return end
+	if #filterTypes == 0 then return end
+
+	for _, filterType in ipairs(filterTypes) do
+		testAdditionalFilterFunctions[filterType] = filterFunction
+		testAdditionalFilterFunctionsNames[filterType] = filterFunctionName
+	end
 end
 
 local function refresh(dataList)
@@ -372,23 +412,21 @@ local function refresh(dataList)
 		local filterType = filterData.filterType
 		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
-		local usesDefaultFilterFunction = false
+		local customFilterFunctionName, _, _ = getCustomFilterFunctionInfo(filterType)
 		if enabledFilters[filterType] == true then
-			if not isRegistered then
-				usesDefaultFilterFunction = registerFilter(filterType, filterTypeName)
-			end
-			if usesDefaultFilterFunction == false then
-				filterTypeName = filterTypeName .. " - Custom"
-			end
-
 			local data = {
 				['filterType'] 	= filterType,
-				['name'] 		= filterTypeName
+				['name'] 		= filterTypeName,
+				['customFilterFunctionName'] = customFilterFunctionName
 			}
 			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
 
+			if not isRegistered then
+				registerFilter(filterType, filterTypeName)
+			end
+
 		elseif isRegistered then
-			d(prefixBr .. "TEST - Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
+			d(prefixBr .. "- Unregistering " .. filterTypeName .. " [" ..tos(filterType) .."]")
 			libFilters_UnregisterFilter(libFilters, filterTag, filterType)
 		end
 	end
@@ -398,11 +436,6 @@ local function refreshUpdateList()
 	ZO_ScrollList_Clear(updateList)
 	refresh(ZO_ScrollList_GetDataList(updateList))
 	ZO_ScrollList_Commit(updateList)
-	
-	-- changing hidden state to make the scrollbar show. Otherwise updateList's scrollbar will not show 
-	-- if the list was not populated with enough items prior to enabling /lftestfilters
-	tlw:SetHidden(true)
-	tlw:SetHidden(false)
 end
 
 local function refreshEnableList()
@@ -414,10 +447,12 @@ local function refreshEnableList()
 		local listType = LIST_TYPE
 		local filterType = filterData.filterType
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
-		
+		local customFilterFunctionName, _, _ = getCustomFilterFunctionInfo(filterType)
+
 		local data = {
 			['filterType'] 	= filterType,
-			['name'] 		= filterTypeName
+			['name'] 		= filterTypeName,
+			['customFilterFunctionName'] = customFilterFunctionName
 		}
 		
 		if lastCategory ~= filterData.category then
@@ -430,7 +465,6 @@ local function refreshEnableList()
 		tins(dataList, newData)
 	end
 	ZO_ScrollList_Commit(enableList)
-	
 end
 
 local function setButtonToggleColor(control, filtered)
@@ -484,7 +518,7 @@ local function allButtonToggle()
 end
 
 local function updateCurrentFilterPanelLabel(stateStr)
-d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
+--d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
 	if currentFilterPanelLabel == nil then return end
 	local currentFilterPanelName
 	if stateStr == SCENE_SHOWN then
@@ -502,47 +536,45 @@ local function intializeFilterUI()
 	local _, height = GuiRoot:GetDimensions()
 	local adjustedHeight = (height * 0.75)
 	local y_Adj = (height - adjustedHeight) / 2
-	
-    tlw = CreateTopLevelWindow("LibFilters_Test_TLW")
+
+	tlw = CreateTopLevelWindow("LibFilters_Test_TLW")
 	libFilters.test.tlw = tlw
 	tlw:SetHidden(true)
 
-	tlc = CreateControl("LibFilters_Test_TLC", tlw, CT_TOPLEVELCONTROL)
-	libFilters.test.tlc = tlc
-	tlc:SetMouseEnabled(true)
-	tlc:SetMovable(true)
-	tlc:SetClampedToScreen(true)
-	tlc:SetDimensions(350, adjustedHeight)
-	tlc:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, nil, y_Adj)
-    local backdrop = CreateControlFromVirtual("$(parent)Bg", tlc, "ZO_DefaultBackdrop")
+	tlw:SetMouseEnabled(true)
+	tlw:SetMovable(true)
+	tlw:SetClampedToScreen(true)
+	tlw:SetDimensions(350, adjustedHeight)
+	tlw:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, nil, y_Adj)
+	local backdrop = CreateControlFromVirtual("$(parent)Bg", tlw, "ZO_DefaultBackdrop")
 	backdrop:SetAnchorFill()
-	tlc:SetHandler("OnMouseEnter", function()
-		ZO_Tooltips_ShowTextTooltip(tlc, LEFT, helpUIInstructions)
+	tlw:SetHandler("OnMouseEnter", function()
+		ZO_Tooltips_ShowTextTooltip(tlw, LEFT, helpUIInstructions)
 	end)
-	tlc:SetHandler("OnMouseExit", function()
+	tlw:SetHandler("OnMouseExit", function()
 		ZO_Tooltips_HideTextTooltip()
 	end)
 
 	--Create the current filterPanel label
-	currentFilterPanelLabel = CreateControlFromVirtual("$(parent)CurrentFilterPanelLabel", tlc, "LibFilters_Test_CurrentFilterPanelTemplate")
+	currentFilterPanelLabel = CreateControlFromVirtual("$(parent)CurrentFilterPanelLabel", tlw, "LibFilters_Test_CurrentFilterPanelTemplate")
 	currentFilterPanelLabel:SetDimensions(345, 25)
-	currentFilterPanelLabel:SetAnchor(TOPLEFT, tlc, nil, 5, 5)
+	currentFilterPanelLabel:SetAnchor(TOPLEFT, tlw, nil, 5, 5)
 	currentFilterPanelLabel:SetText("Current filterPanel: ")
 	updateCurrentFilterPanelLabel(SCENE_SHOWN)
 
 	-- create main LF_constants list
 	-- this list is used to enable/disable LF_constants filters
-	enableList = CreateControlFromVirtual("$(parent)EnableList", tlc, "ZO_ScrollList")
+	enableList = CreateControlFromVirtual("$(parent)EnableList", tlw, "ZO_ScrollList")
 	enableList:SetDimensions(345, adjustedHeight * 0.5)
 	enableList:SetAnchor(TOPLEFT, currentFilterPanelLabel, BOTTOMLEFT, -5, 0)
-	
+
 	-- button container for clear and refresh
-	local buttons = CreateControl("$(parent)Buttons", tlc, CT_CONTROL)	
-	buttons:SetDimensions(340, 60)
+	local buttons = CreateControl("$(parent)Buttons", tlw, CT_CONTROL)
+	buttons:SetDimensions(340, 80)
 	buttons:SetAnchor(TOP, enableList, BOTTOM, 3, 15)
-    local buttonshBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
+	local buttonshBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
 	buttonshBackdrop:SetAnchorFill()
-	
+
 	-- create All button
 	-- enable all filters if any are not enabled, else disables all filters
 	local btnAll = CreateControlFromVirtual("$(parent)AllButton", buttons, "ZO_DefaultButton")
@@ -577,31 +609,104 @@ local function intializeFilterUI()
 	btnRefresh:SetHandler("OnMouseUp", function(btn)
 		refreshUpdateList()
 	end)
-	
+
+	--The custom filterFunction edit box
+	customFilterFunctionEdit = CreateControlFromVirtual("$(parent)CustomFilterFunctionEdit", buttons, "LibFilters_Test_FilterFunction_Edit_Template")
+	customFilterFunctionEdit:SetHidden(false)
+	customFilterFunctionEdit:SetDimensions(318, 25)
+	customFilterFunctionEdit:SetAnchor(TOPLEFT, btnAll, BOTTOMLEFT, 5, 3)
+	customFilterFunctionEdit:SetHandler("OnTextChanged", function(selfEdit)
+		ZO_EditDefaultText_OnTextChanged(selfEdit)
+	end )
+	customFilterFunctionEdit.saveButton = GetControl(customFilterFunctionEdit:GetName(), "SaveButton")
+	customFilterFunctionEdit.saveButton.OnClickedCallback = function(selfButton)
+		customFilterFunctionEdit:LoseFocus()
+		local filterFunctionName = customFilterFunctionEdit:GetText()
+		if not filterFunctionName then return end
+
+		local filterTypes = {}
+		local usingLfAll = true
+		--Check if any filterType is selected at the upper enableList
+		for i=1, #filterTypesToCategory do
+			local filterType = filterTypesToCategory[i].filterType
+			if enabledFilters[filterType] then
+				tins(filterTypes, filterType)
+				usingLfAll = false
+			end
+		end
+		if #filterTypes == 0 then
+			tins(filterTypes, LF_FILTER_ALL)
+			usingLfAll = true
+		end
+		local filterTypesSelectedStr = (usingLfAll == true and "ALL") or "selected"
+
+		--Reset to default filterFunction?
+		if filterFunctionName == "" then
+			if not allCustomFilterFunctionsDisabled then
+				d(strfor(prefixBr.. "resetting filter function for %s filterTypes to default", filterTypesSelectedStr))
+				updateCustomFilterFunction(filterTypes, nil, nil)
+			end
+			if usingLfAll == true then
+				allCustomFilterFunctionsDisabled = true
+			else
+				checkIfAllCustomFilterFunctionsDisabled()
+			end
+		else
+			--Apply custom global filterFunction
+			local filterFunction = _G[filterFunctionName]
+			if filterFunction == nil or type(filterFunction) ~= "function" then
+				d(strfor(prefixBr.. "ERROR -  global filter function %q does not exist!", filterFunctionName))
+				return
+			end
+			d(strfor(prefixBr.. "Setting filter function %q for %s filterTypes", filterFunctionName, filterTypesSelectedStr))
+			updateCustomFilterFunction(filterTypes, filterFunction, filterFunctionName)
+			allCustomFilterFunctionsDisabled = false
+		end
+	end
+	customFilterFunctionEdit.saveButton.data = {
+		tooltipText = "Enter a global filterFunction name, without specifying the () or the parameters.\nNeeded parameters at the filterFunction are \'bagId, slotIndex\'.\n\nClicking on the \'OK\' button will set the filterFunction to all selected (upper list) filterTypes.\nIf no filterType is selected the filterFunction will be applied to all filterTypes!\n\nLeave the edit field empty to set the default filterFunction again."
+	}
+	customFilterFunctionEdit.saveButton:SetHandler("OnMouseEnter", 	ZO_Options_OnMouseEnter)
+	customFilterFunctionEdit.saveButton:SetHandler("OnMouseExit", 	ZO_Options_OnMouseExit)
+
 	-- create list for LF_constants update functions
-	local ul_Hight = tlc:GetBottom() -  buttons:GetBottom() - 15
-	updateList = CreateControlFromVirtual("$(parent)UpdateList", tlc, "ZO_ScrollList")
-	updateList:SetDimensions(345, ul_Hight)
+	local ul_Height = tlw:GetBottom() - buttons:GetBottom() - 15
+	updateList = CreateControlFromVirtual("$(parent)UpdateList", tlw, "ZO_ScrollList")
+	updateList:SetDimensions(345, ul_Height)
 	updateList:SetAnchor(TOP, buttons, BOTTOM, 0, 0)
 
 	-- initialize lists
 	ZO_ScrollList_Initialize(enableList)
 	enableList:SetMouseEnabled(true)
 	ZO_ScrollList_Initialize(updateList)
-	
---	tlc:SetHidden(true)
 end
 
 local function setupRow(rowControl, data, onMouseUp)
 	rowControl.data = data
 	local filterType = data.filterType
-	local row = rowControl:GetNamedChild("Button")
-	row:SetText(data.name .. " [" ..tos(filterType) .. "]")
-	
+	local rowButton  = rowControl:GetNamedChild("Button")
+
+	data.tooltiptext = nil
+	local customFilterFunctionName = data.customFilterFunctionName
+	local customFilterFunctionSuffix = ""
+	if customFilterFunctionName ~= nil and customFilterFunctionName ~= "" then
+		customFilterFunctionSuffix = " " .. customFilterFunctionTag
+		data.tooltipText = "Uses custom filterFunction:\' " ..tos(customFilterFunctionName) .. "\'"
+	end
+	rowButton:SetText(data.name .. " [" ..tos(filterType) .. "]" .. customFilterFunctionSuffix)
+
 	rowControl:SetHidden(false)
 	setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
-	
-	row:SetHandler("OnMouseUp", onMouseUp)
+
+	rowButton:SetHandler("OnMouseUp", 	onMouseUp)
+	rowButton:SetHandler("OnMouseEnter", function(rowBtnCtrl)
+		if rowControl.data and rowControl.data.tooltipText then
+			ZO_Options_OnMouseEnter(rowControl)
+		else
+			ZO_Options_OnMouseExit(rowControl)
+		end
+	end)
+	rowButton:SetHandler("OnMouseExit", 	ZO_Options_OnMouseExit)
 end
 
 local function addFilterUIListDataTypes()
@@ -627,7 +732,7 @@ local function addFilterUIListDataTypes()
  	local function setupUpdateRow(rowControl, data)
 		setupRow(rowControl, data, function(btn)
 			local filterType = data.filterType
-			d(prefixBr .. "TEST - Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
+			d(prefixBr .. "- Requesting update for filterType \'" .. tos(data.name) .. "\' [" .. tos(filterType) .. "]")
 			libFilters_RequestUpdate(libFilters, filterType)
 		end)
 	end
@@ -639,7 +744,7 @@ end
 
 local function callbackFunctionForPanelShowOrHide(filterTypeName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType)
 	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
-	d(prefixBr .. "TEST callback - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
+	d(prefixBr .. "callback - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
 	updateCurrentFilterPanelLabel(stateStr)
 end
 
@@ -669,23 +774,40 @@ local function parseArguments(args, slashCommand)
 
 	--Slash command check
 	if slashCommand == "lftestfilters" then
-		local filterType, filterFunction
+		local filterType, filterFunctionName
 		--Parameter checks
 		--No filterType is given, only a function was specified?
 		if numElements == 1 then
-			filterFunction = elements[1]
-			if filterFunction and type(filterFunction) == "function" then
-				retTab[1] = LF_FILTER_ALL --specify that the function is to be used for all LF_* constants
-				retTab[2] = filterFunction
+			retTab[1] = LF_FILTER_ALL --specify that the function is to be used for all LF_* constants
+
+			filterFunctionName = elements[1]
+			if filterFunctionName ~= nil and _G[filterFunctionName] ~= nil and type(_G[filterFunctionName]) == "function" then
+				retTab[2] = filterFunctionName
+			elseif filterFunctionName ~= nil and filterFunctionName == "" then
+				retTab[2] = ""
+			else
+				d(strfor(prefixBr.. "ERROR -  filterFunction %q does not exist!", tos(filterFunctionName)))
+				return { }
 			end
+
 		--FilterType LF* and filterFunction were both given
 		elseif numElements == 2 then
-			filterType = elements[1]
-			filterFunction = elements[2]
-			if filterType ~= nil and type(filterType) == "number" and filterType <= LF_FILTER_MAX
-					and filterFunction ~= nil and type(filterFunction) == "function" then
+			filterType = tonumber(elements[1])
+			if filterType ~= nil and type(filterType) == "number" and filterType >= LF_FILTER_MIN and filterType <= LF_FILTER_MAX then
 				retTab[1] = filterType
-				retTab[2] = filterFunction
+			else
+				d(strfor(prefixBr.. "ERROR -  filterType %q does not exist!", tos(filterType)))
+				return { }
+			end
+
+			filterFunctionName = elements[2]
+			if filterFunctionName ~= nil and _G[filterFunctionName] ~= nil and type(_G[filterFunctionName]) == "function" then
+				retTab[2] = filterFunctionName
+			elseif filterFunctionName ~= nil and filterFunctionName == "" then
+				retTab[2] = ""
+			else
+				d(strfor(prefixBr.. "ERROR -  filterFunction %q does not exist!", tos(filterFunctionName)))
+				return { }
 			end
 		end
 	end
@@ -715,15 +837,35 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 	--Parse the slash commands for LF_* filter constant (optional! If not given LF_FILTER_ALL will be used) and a
 	--custom global filterFunction to use
 	local retTab = parseArguments(args, "lftestfilters")
-	local numRetTab = #retTab
-	if retTab and numRetTab == 2 then
-		testAdditionalFilterFunctions[retTab[1]] = retTab[2]
-		useDefaultFilterFunction = false
-	else
-		useDefaultFilterFunction = true
+	local numRetTab = (retTab == nil and 0) or #retTab
+	if numRetTab == 2 then
+		local filterType = retTab[1]
+		local filterFunctionName = retTab[2]
+
+		--Reset to default filterFunction?
+		if filterFunctionName == "" then
+			if not allCustomFilterFunctionsDisabled then
+				d(strfor(prefixBr.. "resetting filter function for filterType %s to default", tos(filterType)))
+				updateCustomFilterFunction({ filterType }, nil, nil)
+			end
+			if filterType == LF_FILTER_ALL then
+				allCustomFilterFunctionsDisabled = true
+			else
+				checkIfAllCustomFilterFunctionsDisabled()
+			end
+		else
+			local filterFunction = _G[filterFunctionName]
+			if filterFunction == nil or type(filterFunction) ~= "function" then
+				d(strfor(prefixBr.. "ERROR -  global filter function %q does not exist!", filterFunctionName))
+				return
+			end
+			d(strfor(prefixBr.. "Setting filter function %q for %s filterTypes", filterFunctionName, filterTypesSelectedStr))
+			updateCustomFilterFunction({ filterType }, filterFunction, filterFunctionName)
+			allCustomFilterFunctionsDisabled = false
+		end
 	end
 	
-	if not tlc:IsHidden() then
+	if not tlw:IsHidden() then
 		clearAll()
 		if numRetTab < 2 then
 			tlw:SetHidden(true)
