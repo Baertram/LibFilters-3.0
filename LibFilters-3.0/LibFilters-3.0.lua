@@ -132,6 +132,7 @@ local enchanting               = 	kbc.enchanting
 local enchantingInvCtrl        = 	enchanting.inventoryControl
 local alchemy                  = 	kbc.alchemy
 local alchemyCtrl              =	kbc.alchemyCtrl
+local provisioner			   =    kbc.provisioner
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 
 
@@ -3246,6 +3247,34 @@ local function createControlCallbacks()
 	end
 end
 
+local function createSpecialCallbacks()
+	--[Keyboard mode]
+	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
+	-->ZO_Provisioner:OnTabFilterChanged(filterData)
+	local provCtrl = provisioner.control
+	SecurePostHook(provisioner, "OnTabFilterChanged", function(selfProvisioner, filterTabData)
+libFilters._selfProvisioner = selfProvisioner
+		local doShow = true
+		local currentProvFilterType = selfProvisioner.filterType
+		local filterType
+		if currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES then
+			filterType = LF_PROVISIONER_COOK
+		elseif currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING then
+			filterType = LF_PROVISIONER_BREW
+		elseif currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then
+			doShow = false
+		end
+df("LibFilters3 - OnTabFilterChanged: %s, filterType: %s, doShow: %s", tos(currentProvFilterType), tos(filterType), tos(doShow))
+		if doShow == false or (doShow == true and filterType ~= nil) then
+			onControlHiddenStateChange(doShow, { filterType }, provCtrl, false)
+		end
+	end)
+
+
+	--[Gamepad mode]
+
+end
+
 local function createCallbacks()
 	if libFilters.debug then
 		dd("createCallbacks")
@@ -3253,6 +3282,7 @@ local function createCallbacks()
 	createSceneCallbacks()
 	createFragmentCallbacks()
 	createControlCallbacks()
+	createSpecialCallbacks()
 end
 
 
