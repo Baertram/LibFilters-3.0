@@ -2151,7 +2151,7 @@ local callbacksUsingControl = {
 		[researchPanel] 					= { LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[ZO_ListDialog1] 					= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
+		[ZO_ListDialog1] 					= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG, },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2164,6 +2164,29 @@ local callbacksUsingControl = {
 }
 callbacks.usingControls = callbacksUsingControl
 
+--Special callbacks at controls e.g. OnHide of ZO_ListDialog1 -> Detect the shown panel again to e.g. change the currentFilterType from LF_SMITHING_RESEARCH_DIALOG to
+--LF_SMITHING_RESEARCH again
+--[controlOrSceneOrFragentReference] = { [SCENE_SHOWN  or SCENE_HIDDEN] =
+-- function(controlOrSceneOrFragmentRef, stateStr, inputType, refType) yourFunction(controlOrSceneOrFragmentRef, stateStr, inputType, refType) end }
+callbacks.special = {
+	--LF_SMITHING_RESEARCH_DIALOG
+	--LF_JEWELRY_RESEARCH_DIALOG
+	[ZO_ListDialog1] = {
+		[SCENE_HIDDEN] = function(controlOrSceneOrFragmentRef, stateStr, inputType, refType)
+			if libFilters.debug then dv(">>>Special callback: ZO_ListDialog1:OnHide") end
+			--Detect the shown panel again
+			if not libFilters:IsCraftingStationShown() then return end
+			local lReferencesOfShownFilterType, shownFilterType = libFilters:GetCurrentFilterTypeReference(nil, inputType)
+			if shownFilterType ~= nil and lReferencesOfShownFilterType ~= nil then
+				--Raise the callback of the filterType with SCENE_SHOWN
+				local filterTypes = { shownFilterType }
+				local refVar = lReferencesOfShownFilterType[1]
+				local typeOfRef = libFilters.checkIfControlSceneFragmentOrOther(refVar)
+				libFilters.CallbackRaise(filterTypes, refVar, SCENE_SHOWN, inputType, typeOfRef)
+			end
+		end,
+	},
+}
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end
 

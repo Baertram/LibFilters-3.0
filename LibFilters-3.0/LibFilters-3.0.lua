@@ -83,6 +83,7 @@ local callbackPattern = 			libFilters.callbackPattern
 local callbacksUsingScenes = 		callbacks.usingScenes
 local callbacksUsingFragments = 	callbacks.usingFragments
 local callbacksUsingControls = 		callbacks.usingControls
+local specialCallbacks = 			callbacks.special
 
 
 local libFiltersFilterConstants = 	constants.filterTypes
@@ -267,6 +268,7 @@ local function checkIfControlSceneFragmentOrOther(refVar)
 	if libFilters.debug then dv("!checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
 	return retVar
 end
+libFilters.checkIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 local function getCtrl(retCtrl)
 	local checkType = "retCtrl"
@@ -3085,9 +3087,26 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 			lReferencesToFilterType
 	)
 end
+libFilters.CallbackRaise = callbackRaise
 
---Check wich fragment is shown and rais a callback, if needed
-local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
+local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef, stateStr, inputType, refType, refName)
+	if libFilters.debug then
+		dv(">checkIfSpecialCallbackNeedsToBeAdded - %q, stateStr: %s, refType: %s", tos(refName), tos(stateStr), tos(refType))
+	end
+	local specialCallbackForCtrl = specialCallbacks[controlOrSceneOrFragmentRef]
+	if specialCallbackForCtrl ~= nil then
+		local funcToCall = specialCallbackForCtrl[stateStr]
+		if funcToCall ~= nil and type(funcToCall) == "function" then
+			if libFilters.debug then
+				dv(">>special callback function will be called now...")
+			end
+			funcToCall(controlOrSceneOrFragmentRef, stateStr, inputType, refType)
+		end
+	end
+end
+
+--Check which fragment is shown and raise a callback, if needed
+local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 	--Only fire callbacks for the scene states supported
 	if not sceneStatesSupportedForCallbacks[stateStr] then return end
 	if stateStr == SCENE_SHOWN then
@@ -3095,34 +3114,39 @@ local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGa
 		--will be updated properly. Else it will fire too early and the fragment is still in state "Showing", on it's way to state "Shown"!
 		zo_callLater(function()
 			callbackRaise(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
+			checkIfSpecialCallbackNeedsToBeAdded(fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 		end, 0)
 	else
 		--For the scene fragment hiding, hidden and showing check there is no delay needed
 		callbackRaise(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
+		checkIfSpecialCallbackNeedsToBeAdded(fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 	end
 end
 
 local function onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
+	local fragmentName
 	if libFilters.debug then
-		local fragmentName = getFragmentControlName(fragment)
+		fragmentName = getFragmentControlName(fragment)
 		dd("~~~ FRAGMENT STATE CHANGE ~~~")
 		dd("onFragmentStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(fragmentName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
 	end
-	callbackRaiseCheck(filterTypes, fragment, fragmentStateToSceneState[newState], inputType, 3)
+	callbackRaiseCheck(filterTypes, fragment, fragmentStateToSceneState[newState], inputType, 3, fragmentName)
 end
 
 local function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
+	local sceneName
 	if libFilters.debug then
-		local sceneName = getSceneName(scene)
+		sceneName = getSceneName(scene)
 		dd("~~~ SCENE STATE CHANGE ~~~")
 		dd("onSceneStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(sceneName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
 	end
-	callbackRaiseCheck(filterTypes, scene, newState, inputType, 2)
+	callbackRaiseCheck(filterTypes, scene, newState, inputType, 2, sceneName)
 end
 
 local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType)
+	local ctrlName
 	if libFilters.debug then
-		local ctrlName = getCtrlName(ctrlRef)
+		ctrlName = getCtrlName(ctrlRef)
 		dd("~~~ CONTROL HIDDEN STATE CHANGE ~~~")
 		dd("ControlHiddenStateChange: %q  - hidden: %s - #filterTypes: %s, isGamePad: %s", tos(ctrlName), tos(not isShown), #filterTypes, tos(inputType))
 	end
@@ -3132,9 +3156,11 @@ local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputTy
 		--will be updated properly. Else it will fire too early and the control is still in another state, on it's way to state "Shown"!
 		zo_callLater(function()
 			callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+			checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 		end, 0)
 	else
 		callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 	end
 end
 
@@ -3206,8 +3232,8 @@ local function createSceneCallbacks()
 end
 
 local function createControlCallback(controlRef, filterTypes, inputType)
+	local ctrlName = "n/a"
 	if libFilters.debug then
-		local ctrlName = "n/a"
 		if controlRef ~= nil then
 			local controlRefNew, _ = getCtrl(controlRef)
 			controlRef = controlRefNew
