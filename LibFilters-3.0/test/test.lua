@@ -17,6 +17,8 @@
 local libFilters = LibFilters3
 if not libFilters then return end
 
+local svTest
+
 local CM = CALLBACK_MANAGER
 
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
@@ -339,8 +341,8 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	return stackCount > 1
 end
 
-local filterChatOutputPerItemDefaultStr = "--test, itemLink: %s, stackCount:( %s ), bagId/slotIndex: (%s/%s), filterType:( %s )"
-local filterChatOutputPerItemCustomStr = "--test, itemLink: %s, bagId/slotIndex: (%s/%s), filterType:( %s )"
+local filterChatOutputPerItemDefaultStr = "--test filters->not met! %s, stackCount: (%s), bagId/slotIndex: (%s/%s), filterType: (%s)"
+local filterChatOutputPerItemCustomStr = "--test filters->not met! %s, bagId/slotIndex: (%s/%s), filterType: (%s)"
 local function resultCheckFunc(p_result, p_filterTypeName, p_useDefaultFilterFunction, p_bagId, p_slotIndex, p_itemLink, p_stackCount)
 	if p_result == true then return end
 	if p_useDefaultFilterFunction then
@@ -549,7 +551,7 @@ local function updateCurrentFilterPanelLabel(stateStr)
 	else
 		currentFilterPanelName = ""
 	end
-	currentFilterPanelLabel:SetText("Current filterPanel: " .. tos(currentFilterPanelName))
+	currentFilterPanelLabel:SetText("Current panel: " .. tos(currentFilterPanelName))
 end
 
 local helpWasNotShownYet = true
@@ -584,7 +586,15 @@ local function intializeFilterUI()
 	tlw:SetMovable(true)
 	tlw:SetClampedToScreen(true)
 	tlw:SetDimensions(350, adjustedHeight)
-	tlw:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, nil, y_Adj)
+
+	local left = svTest.testUI.left
+	local top = svTest.testUI.top
+	if left == nil or top == nil then
+		tlw:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, nil, y_Adj)
+	else
+		tlw:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, left, top)
+	end
+
 	local backdrop = CreateControlFromVirtual("$(parent)Bg", tlw, "ZO_DefaultBackdrop")
 	backdrop:SetAnchorFill()
 	tlw:SetHandler("OnMouseEnter", function()
@@ -593,12 +603,16 @@ local function intializeFilterUI()
 	tlw:SetHandler("OnMouseExit", function()
 		ZO_Tooltips_HideTextTooltip()
 	end)
+	tlw:SetHandler("OnMoveStop", function()
+		svTest.testUI.left = tlw:GetLeft()
+		svTest.testUI.top  = tlw:GetTop()
+	end)
 
 	--Create the current filterPanel label
 	currentFilterPanelLabel = CreateControlFromVirtual("$(parent)CurrentFilterPanelLabel", tlw, "LibFilters_Test_CurrentFilterPanelTemplate")
 	currentFilterPanelLabel:SetDimensions(345, 25)
 	currentFilterPanelLabel:SetAnchor(TOPLEFT, tlw, nil, 5, 5)
-	currentFilterPanelLabel:SetText("Current filterPanel: ")
+	currentFilterPanelLabel:SetText("Current panel: ")
 	updateCurrentFilterPanelLabel(SCENE_SHOWN)
 
 	-- create main LF_constants list
@@ -897,6 +911,14 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 		return
 	end
 ]]
+
+	--Get SavedVariables
+	LIBFILTERS_SV_TEST = LIBFILTERS_SV_TEST or {}
+	svTest = LIBFILTERS_SV_TEST
+	svTest._lastAccount = 	GetDisplayName()
+	svTest._lastCharacter = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitName("player"))
+	svTest._lastLoaded = 	os.date("%c", GetTimeStamp())
+	svTest.testUI = svTest.testUI or {}
 
 	if not tlw then
 		checkIfInitDone()

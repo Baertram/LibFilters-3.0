@@ -5,6 +5,7 @@
 ## APIVersion: 101032 101033
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=220 CraftBagExtended
+## SavedVariables: LIBFILTERS_SV_TEST
 
 constants.lua
 Gamepad/gamepadCustomFragments.lua

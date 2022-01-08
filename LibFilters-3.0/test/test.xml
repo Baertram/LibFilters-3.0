@@ -31,7 +31,7 @@
 			</OnClicked>
 		</Button>
 
-		<Label name="LibFilters_Test_CurrentFilterPanelTemplate" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER" tier="HIGH" override="true" mouseEnabled="false" virtual="true">
+		<Label name="LibFilters_Test_CurrentFilterPanelTemplate" font="ZoFontGameSmall" horizontalAlignment="LEFT" verticalAlignment="CENTER" tier="HIGH" override="true" mouseEnabled="false" virtual="true">
 			<Dimensions x="345" y="25"/>
 		</Label>
 

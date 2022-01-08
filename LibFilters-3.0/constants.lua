@@ -14,6 +14,7 @@ local strup = string.upper
 local tins = table.insert
 
 --local ZOs speed-up variables
+local IsGamepad = IsInGamepadPreferredMode
 local SM = SCENE_MANAGER
 local getScene = SM.GetScene
 
@@ -203,6 +204,7 @@ LF_FILTER_ALL					= 9999
 --Add the filterTypes to the constants
 constants.filterTypes = libFiltersFilterConstants
 
+
 --The default attribute at an inventory/layoutData/scene/control/userdata used within table filterTypeToReference
 --to store the libFilters 3.0 filterType. This will be used to determine which filterType is currently used and store the
 --filters + run the filter of the filterType.
@@ -249,12 +251,18 @@ gpc.customFragmentPrefix        = GlobalLibName:upper() .. "_" -- LIBFILTERS3_
 --CONSTANTS (*_GP is the gamepad mode constant, the others are commonly used with both, or keyboard only constants)
 ------------------------------------------------------------------------------------------------------------------------
 --The types of reference variables for the filterTypes and their detection
-constants.typeOfRef = {
+local typeOfRefConstants = {
 	[1] =   1, -- Control
 	[2] =   2, -- Scene
 	[3] =   3, -- Fragment
 	[99] = 99, -- Other
 }
+constants.typeOfRef = typeOfRefConstants
+local LIBFILTERS_CON_TYPEOFREF_CONTROL 	= typeOfRefConstants[1]
+local LIBFILTERS_CON_TYPEOFREF_SCENE 	= typeOfRefConstants[2]
+local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = typeOfRefConstants[3]
+local LIBFILTERS_CON_TYPEOFREF_OTHER 	= typeOfRefConstants[99]
+
 
 --The names of the type of reference
 constants.typeOfRefToName = {
@@ -892,6 +900,32 @@ mapping.smithingMapping = {
 			ctrl 				= researchPanelControl,
 		},
 	}
+
+--Mapping for the crafting related filterTypes
+
+local isCraftingFilterType = {
+	[LF_SMITHING_REFINE] = true,
+	[LF_JEWELRY_REFINE] = true,
+	[LF_SMITHING_CREATION] = true,
+	[LF_JEWELRY_CREATION] = true,
+	[LF_SMITHING_DECONSTRUCT] = true,
+	[LF_JEWELRY_DECONSTRUCT] = true,
+	[LF_SMITHING_IMPROVEMENT] = true,
+	[LF_JEWELRY_IMPROVEMENT] = true,
+	[LF_SMITHING_RESEARCH] = true,
+	[LF_JEWELRY_RESEARCH] = true,
+	[LF_SMITHING_RESEARCH_DIALOG] = true,
+	[LF_JEWELRY_RESEARCH_DIALOG] = true,
+	[LF_ALCHEMY_CREATION] = true,
+	[LF_PROVISIONING_BREW] = true,
+	[LF_PROVISIONING_COOK] = true,
+	[LF_ENCHANTING_CREATION] = true,
+	[LF_ENCHANTING_EXTRACTION] = true,
+	--Is this crafting?
+	--[LF_RETRAIT] = true,
+}
+mapping.isCraftingFilterType = isCraftingFilterType
+
 
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
@@ -2131,7 +2165,7 @@ callbacks.usingScenes = callbacksUsingScenes
 -->0 should be added as last entry if an automated check should be done at the end!
 --Example:
 --[controlVariable] = { LF_INVENTORY, 0 }
-local callbacksUsingControl = {
+local callbacksUsingControls = {
 	--Keyboard
 	[false] = {
 	 	--LF_SMITHING_REFINE
@@ -2162,7 +2196,48 @@ local callbacksUsingControl = {
 		--Dedicated controls
 	},
 }
-callbacks.usingControls = callbacksUsingControl
+callbacks.usingControls = callbacksUsingControls
+
+
+--The mapping tables to determine the callback's reference variables by the filterType and inputType
+local filterTypeToCallbackRef = {
+	--Keyboard
+	[false] = {
+	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+	--Gamepad
+	[true] = {
+	},
+}
+--Fill the mapping table above for each type of reference and inputType
+--Scenes
+for inputType, sceneCallbackData in pairs(callbacksUsingScenes) do
+	for sceneVar, filterTypes in pairs(sceneCallbackData) do
+		for _, filterType in ipairs(filterTypes) do
+			filterTypeToCallbackRef[inputType][filterType] = { ref = sceneVar, refType = LIBFILTERS_CON_TYPEOFREF_SCENE }
+		end
+	end
+end
+--Fragments
+for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
+	for fragmentVar, filterTypes in pairs(fragmentCallbackData) do
+		for _, filterType in ipairs(filterTypes) do
+			filterTypeToCallbackRef[inputType][filterType] = { ref = fragmentVar, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+		end
+	end
+end
+--Controls
+for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
+	for controlVar, filterTypes in pairs(controlsCallbackData) do
+		for _, filterType in ipairs(filterTypes) do
+			filterTypeToCallbackRef[inputType][filterType] = { ref = controlVar, refType = LIBFILTERS_CON_TYPEOFREF_CONTROL }
+		end
+	end
+end
+callbacks.filterTypeToCallbackRef = filterTypeToCallbackRef
+
 
 --Special callbacks at controls e.g. OnHide of ZO_ListDialog1 -> Detect the shown panel again to e.g. change the currentFilterType from LF_SMITHING_RESEARCH_DIALOG to
 --LF_SMITHING_RESEARCH again
@@ -2176,14 +2251,7 @@ callbacks.special = {
 			if libFilters.debug then dv(">>>Special callback: ZO_ListDialog1:OnHide") end
 			--Detect the shown panel again
 			if not libFilters:IsCraftingStationShown() then return end
-			local lReferencesOfShownFilterType, shownFilterType = libFilters:GetCurrentFilterTypeReference(nil, inputType)
-			if shownFilterType ~= nil and lReferencesOfShownFilterType ~= nil then
-				--Raise the callback of the filterType with SCENE_SHOWN
-				local filterTypes = { shownFilterType }
-				local refVar = lReferencesOfShownFilterType[1]
-				local typeOfRef = libFilters.checkIfControlSceneFragmentOrOther(refVar)
-				libFilters.CallbackRaise(filterTypes, refVar, SCENE_SHOWN, inputType, typeOfRef)
-			end
+			libFilters:RaiseShownFilterTypeCallback(SCENE_SHOWN, inputType)
 		end,
 	},
 }

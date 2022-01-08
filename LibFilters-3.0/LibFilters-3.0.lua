@@ -5,20 +5,12 @@
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				5
+--Bugs total: 				8
 --Feature requests total: 	0
 
 --[Bugs]
 -- #1) 2022-01-03, Baertram: Gamepad mode - returning from craftbag to the normal inv does not trigger the custom inventory fragment's show state callback
 -- #2) 2022-01-03, Baertram: Gamepad mode - callback for filterType LF_INVENTORY does not fire as callback get's added to the fragment as the inventory lists get initialized the 1st time
--- #3) 2022-01-03, Baertram: Keyboard mode - CraftBagExtended CRAFTBAG_FRAGMENT (at mail send panel e.g.) will fire it's "shown" callback first, and then LF_MAIL_SEND callback will fire too afterwards.
---	   Any way to suppress the BACKPACK_MAIL_SEND_LAYOUT_FRAGMENT callback fire?
--- #4) 2022-01-07, Baertram: Keyboard mode - PROVISIONER_FRAGMENT will be called at smithing recipes tab too -> This will cause problems as the callback tries to detect and fire and thus the fragment will
---     be somehow detected as false positive
--- #5) 2022-01-07, Baertram: Keyboard mode - The control callbacks need to delay the SHOWN callbacks a bt more as e.g. switching from smithing creation to smithing refine will call the smithing refine SHOW
---     first and then it tries to do the HIDE on smithing creation, but the internal values already point to smithing refine -> And thus it shows a smithing refine HIDE directly after the show ?!
--- #6) 2022-01-07, Baertram: Keyboard mode - Switching from Smithing improvement to research will show improvement HIDDEN and then improvement SHOWN (instead of research SHOWN), and the filterTypes checked
---	   within function detectShownReference are 36 (LF_SMITHING_RESEARCH_DIALOG) and 37 instead of 18 (LF_SMITHING_RESEARCH) and 35
 
 
 --[Feature requests]
@@ -84,9 +76,10 @@ local callbacksUsingScenes = 		callbacks.usingScenes
 local callbacksUsingFragments = 	callbacks.usingFragments
 local callbacksUsingControls = 		callbacks.usingControls
 local specialCallbacks = 			callbacks.special
-
+local filterTypeToCallbackRef = 	callbacks.filterTypeToCallbackRef
 
 local libFiltersFilterConstants = 	constants.filterTypes
+local isCraftingFilterType = 		mapping.isCraftingFilterType
 local inventoryTypes = 				constants.inventoryTypes
 local invTypeBackpack = 			inventoryTypes["player"]
 local invTypeQuest =				inventoryTypes["quest"]
@@ -2903,7 +2896,7 @@ callbacksAdded[2] = {}
 callbacksAdded[3] = {}
 callbacks.added = callbacksAdded
 
-local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef)
+function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef)
 	local isShown = (stateStr == SCENE_SHOWN and true) or false
 
 	--Update lastFilterType and ref and reset the currentFilterType and ref to nil
@@ -2949,11 +2942,11 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				if sceneOfLastFilterType ~= nil then
 					if ZO_IsElementInNumericallyIndexedTable(sceneOfLastFilterType, lastKnownFilterType) == false then
 						if libFilters.debug then dv("<<sceneOfLastFilterType not valid") end
-						return
+						return false
 					end
 				else
 					if libFilters.debug then dv("<<sceneOfLastFilterType not found", tos(lastKnownFilterType)) end
-					return
+					return false
 				end
 
 			elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
@@ -2962,11 +2955,11 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				if fragmentOfLastFilterType ~= nil then
 					if ZO_IsElementInNumericallyIndexedTable(fragmentOfLastFilterType, lastKnownFilterType) == false then
 						if libFilters.debug then dv("<<fragmentOfLastFilterType not valid") end
-						return
+						return false
 					end
 				else
 					if libFilters.debug then dv("<<fragmentOfLastFilterType not found") end
-					return
+					return false
 				end
 			end
 		end
@@ -3005,7 +2998,7 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				end
 				if isCBESupportedPanel == true and libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels) then
 					if libFilters.debug then dv("<<CraftBagExtended craftbagFragment was shown already") end
-					return
+					return false
 				end
 			end
 		end
@@ -3036,6 +3029,7 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 				if not skipCheck then
 					lReferencesToFilterType, filterType = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
 					if filterType ~= nil and lReferencesToFilterType ~= nil then
+						if libFilters.debug then dv("<<filterType was found in loop: %s", tos(filterType)) end
 						break -- leave the loop if filterType and reference were found
 					end
 				end
@@ -3052,12 +3046,12 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 	--SCENE_SHOWING: passed in filterType if only 1 was passed in)
 	if filterType == nil then
 		--Are we at hiding/hidden state?
-		if lastKnownFilterType ~= nil and lastKnownRefVars ~= nil then
-			--The last used filterType should be the one used before hiding then -> Use it
+		if stateStr == SCENE_HIDDEN and lastKnownFilterType ~= nil and lastKnownRefVars ~= nil then
+			--The last used filterType used before hiding is given? -> Use it for the hiding now
 			filterType 				= lastKnownFilterType
 			lReferencesToFilterType = lastKnownRefVars
 		else
-			return
+			return false
 		end
 	end
 	if lReferencesToFilterType == nil then lReferencesToFilterType = {} end
@@ -3086,8 +3080,52 @@ local function callbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, is
 			fragmentOrSceneOrControl,
 			lReferencesToFilterType
 	)
+	return true
 end
-libFilters.CallbackRaise = callbackRaise
+local libFilters_CallbackRaise = libFilters.CallbackRaise
+
+
+--Get the relevant reference variable (scene, fragment, control) for the callback of a filterType and inputType
+--returns the reference variable, and the type of reference variable
+function libFilters:GetCallbackReference(filterType, inputType)
+	if inputType == nil then inputType = IsGamepad() end
+	local callbackRefData = filterTypeToCallbackRef[inputType][filterType]
+	if callbackRefData == nil then return end
+	return callbackRefData.ref, callbackRefData.refType
+end
+local libFilters_GetCallbackReference = libFilters.GetCallbackReference
+
+
+--For the special callbacks: Detect the currently shown filterType and panel reference variables, and then raise the
+--callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
+--returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured
+function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType)
+	if inputType == nil then inputType = IsGamepad() end
+	local lReferencesOfShownFilterType, shownFilterType = detectShownReferenceNow(nil, inputType, false, false)
+	if shownFilterType == nil or lReferencesOfShownFilterType == nil then return end
+	--Raise the callback of the filterType with SCENE_SHOWN
+	local filterTypes = { shownFilterType }
+	--local refVar = lReferencesOfShownFilterType[1]
+	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, shownFilterType, inputType)
+	if not refVar then return end
+	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef)
+end
+
+--Raise the callback of a dedicated filterType
+--callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
+--returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured
+function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType)
+	if filterType == nil or stateStr == nil then return end
+	if inputType == nil then inputType = IsGamepad() end
+	--Raise the callback of the filterType with SCENE_SHOWN
+	local filterTypes = { filterType }
+	--local refVar = lReferencesOfShownFilterType[1]
+	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, filterType, inputType)
+	if not refVar then return end
+	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef)
+end
+local libFilters_RaiseFilterTypeCallback = libFilters.RaiseFilterTypeCallback
+
 
 local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef, stateStr, inputType, refType, refName)
 	if libFilters.debug then
@@ -3113,12 +3151,12 @@ local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGa
 		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the fragment's shown state (used within detectShownReferenceNow())
 		--will be updated properly. Else it will fire too early and the fragment is still in state "Showing", on it's way to state "Shown"!
 		zo_callLater(function()
-			callbackRaise(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
+			libFilters_CallbackRaise(libFilters, filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
 			checkIfSpecialCallbackNeedsToBeAdded(fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 		end, 0)
 	else
 		--For the scene fragment hiding, hidden and showing check there is no delay needed
-		callbackRaise(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
+		libFilters_CallbackRaise(libFilters, filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef)
 		checkIfSpecialCallbackNeedsToBeAdded(fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 	end
 end
@@ -3155,11 +3193,11 @@ local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputTy
 		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the controls' shown state (used within detectShownReferenceNow())
 		--will be updated properly. Else it will fire too early and the control is still in another state, on it's way to state "Shown"!
 		zo_callLater(function()
-			callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, 1)
 			checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 		end, 0)
 	else
-		callbackRaise(filterTypes, ctrlRef, stateStr, inputType, 1)
+		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, 1)
 		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 	end
 end
@@ -3312,34 +3350,20 @@ local function createSpecialCallbacks()
 		end
 	end)
 
-	--[[
-	--LF_SMITHING_REFINE, LF_SMITHING_CREATION, LF_SMITHING_DECONSTRUCT, LF_SMITHING_IMPROVEMENT,LF_SMITHING_RESEARCH
-	--LF_JEWELRY_REFINE, LF_JEWELRY_CREATION, LF_JEWELRY_DECONSTRUCT, LF_JEWELRY_IMPROVEMENT,LF_JEWELRY_RESEARCH
-	-->ZO_Smithing:SetMode(mode)
-	local smithignMappingTab = mapping.smithingMapping
-	SecurePostHook(smithing, "SetMode", function(selfSmithing, mode)
-		local doShow = true
-		local craftingType = gcit()
-		local filterType
-		local smithingCtrl
-		local mappingData = smithignMappingTab[mode]
-		if not mappingData then
-			doShow = false
-		else
-			smithingCtrl = mappingData.ctrl
-			if craftingType == CRAFTING_TYPE_JEWELRYCRAFTING then
-				filterType = mappingData.filterTypeJewelry
-			else
-				filterType = mappingData.filterType
-			end
-		end
-
-df("LibFilters3 - smithing:SetMode: %s, filterType: %s, doShow: %s", tos(mode), tos(filterType), tos(doShow))
-		if doShow == false or (doShow == true and filterType ~= nil) then
-			onControlHiddenStateChange(doShow, { filterType }, smithingCtrl, false)
-		end
-	end)
-	]]
+	--Crafting table close / ESC key
+	--> The last shown panel needs to fire it's HIDE state now
+	local function eventCraftingStationInteractEnd(eventId, craftSkill)
+		EM:UnregisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT)
+		--Was the last shown filterType a crafting table filterType?
+		local lastShownFilterType = libFilters._currentFilterType
+		if not isCraftingFilterType[lastShownFilterType] then return end
+		--Fire the HIDE callback of the last used crafting filterType
+		libFilters.RaiseFilterTypeCallback(libFilters, lastShownFilterType, SCENE_HIDDEN, nil)
+	end
+	local function eventCraftingStationInteract(eventId, craftSkill)
+		EM:RegisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT, eventCraftingStationInteractEnd)
+	end
+	EM:RegisterForEvent(GlobalLibName, EVENT_CRAFTING_STATION_INTERACT, eventCraftingStationInteract)
 
 	--[Gamepad mode]
 
