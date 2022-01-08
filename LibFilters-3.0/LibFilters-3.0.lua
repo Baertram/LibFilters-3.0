@@ -5,13 +5,12 @@
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				8
+--Bugs total: 				9
 --Feature requests total: 	0
 
 --[Bugs]
 -- #1) 2022-01-03, Baertram: Gamepad mode - returning from craftbag to the normal inv does not trigger the custom inventory fragment's show state callback
 -- #2) 2022-01-03, Baertram: Gamepad mode - callback for filterType LF_INVENTORY does not fire as callback get's added to the fragment as the inventory lists get initialized the 1st time
-
 
 --[Feature requests]
 -- #f1)
@@ -133,9 +132,12 @@ local enchantingInvCtrl        = 	enchanting.inventoryControl
 local alchemy                  = 	kbc.alchemy
 local alchemyCtrl              =	kbc.alchemyCtrl
 local provisioner			   =    kbc.provisioner
+local provCtrl 				   =    provisioner.control
+local provisionerScene 		   =    kbc.provisionerScene
 local smithing				   =    kbc.smithing
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 local enchantingModeToFilterType = mapping.enchantingModeToFilterType
+local provisionerIngredientTypeToFilterType = mapping.provisionerIngredientTypeToFilterType
 
 
 --Gamepad
@@ -173,6 +175,8 @@ local LIBFILTERS_CON_TYPEOFREF_SCENE 	= typeOfRefConstants[2]
 local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = typeOfRefConstants[3]
 local LIBFILTERS_CON_TYPEOFREF_OTHER 	= typeOfRefConstants[99]
 local typeOfRefToName    = constants.typeOfRefToName
+
+local checkIfControlSceneFragmentOrOther = libFilters.checkIfControlSceneFragmentOrOther
 
 --functions
 --local getCustomLibFiltersFragmentName = libFilters.GetCustomLibFiltersFragmentName
@@ -241,28 +245,6 @@ local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesTo
 	libFilters._currentFilterType 				= lFilterTypeDetected
 	libFilters._currentFilterTypeReferences 	= lReferencesToFilterTyp
 end
-
-
-local function checkIfControlSceneFragmentOrOther(refVar)
-	local retVar
-	--Scene or fragment
-	if refVar.sceneManager and refVar.state then
-		if refVar.name ~= nil or refVar.fragments ~= nil then
-			retVar = LIBFILTERS_CON_TYPEOFREF_SCENE -- Scene
-		else
-			retVar = LIBFILTERS_CON_TYPEOFREF_FRAGMENT -- Fragment
-		end
-	--Control
-	elseif refVar.control then
-		retVar = LIBFILTERS_CON_TYPEOFREF_CONTROL -- Control
-	--Other
-	else
-		retVar = LIBFILTERS_CON_TYPEOFREF_OTHER -- Other, e.g. boolean
-	end
-	if libFilters.debug then dv("!checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
-	return retVar
-end
-libFilters.checkIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 local function getCtrl(retCtrl)
 	local checkType = "retCtrl"
@@ -2934,8 +2916,8 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 
 			--Check if the fragment or scene hiding/hidden is related to the lastKnown filterType:
 			--Some fragments like INVENTORY_FRAGMENT and BACKPACK_MAIL_LAYOUT_FRAGMENT are added to the same scenes (mail send e.g.).
-			--If this scene is hiding/hidden both fragment's raise callbacks for hiding and hidden state where only the "dedicated fragment
-			--(here: BACKPACK_MAIL_LAYOUT_FRAGMENT") to the lastShown filterPanel (LF_MAIL_SEND) should fire it!
+			--If this scene is hiding/hidden both fragment's raise callbacks for hiding and hidden state where only the "dedicated" fragment
+			--(here: BACKPACK_MAIL_LAYOUT_FRAGMENT) to the lastShown filterPanel (LF_MAIL_SEND) should fire it!
 			-->So we need to block the others!
 			if typeOfRef == LIBFILTERS_CON_TYPEOFREF_SCENE then
 				--Check if there is a scene registered as callack for the last shown filterType
@@ -3329,57 +3311,83 @@ local function createControlCallbacks()
 	end
 end
 
+local function provisionerSpecialCallback(selfProvisioner, filterTabData, overrideDoShow)
+	--df("provisionerSpecialCallback")
+	--Only fire if current scene is the provisioner scene (as PROVISIONER:OnTabFilterChanged also fires if enchanting scene is shown...)
+	if not provisionerScene:IsShowing() then return end
+	local currentProvFilterType = selfProvisioner.filterType
+	local filterType = provisionerIngredientTypeToFilterType[currentProvFilterType]
+	local doShow = (filterType ~= nil and true) or false
+
+	local currentFilterType = libFilters._currentFilterType
+	local hideOldProvFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
+
+	if overrideDoShow ~= nil then
+		doShow = overrideDoShow
+		hideOldProvFilterType = false
+	end
+
+	--df("LibFilters3 - Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType))
+	if hideOldProvFilterType == true then
+		onControlHiddenStateChange(false, { currentFilterType }, provCtrl, false)
+	end
+	if doShow == false or (doShow == true and filterType ~= nil) then
+		onControlHiddenStateChange(doShow, { filterType }, provCtrl, false)
+	end
+end
+
 local function createSpecialCallbacks()
 	--[Keyboard mode]
 	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
 	-->ZO_Provisioner:OnTabFilterChanged(filterData)
-	local provCtrl = provisioner.control
 	SecurePostHook(provisioner, "OnTabFilterChanged", function(selfProvisioner, filterTabData)
-		local doShow = true
-		local currentProvFilterType = selfProvisioner.filterType
-		local filterType
-		if currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES then
-			filterType = LF_PROVISIONING_COOK
-		elseif currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING then
-			filterType = LF_PROVISIONING_BREW
-		elseif currentProvFilterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then
-			doShow = false
-		end
---df("LibFilters3 - Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s", tos(currentProvFilterType), tos(filterType), tos(doShow))
-		if doShow == false or (doShow == true and filterType ~= nil) then
-			onControlHiddenStateChange(doShow, { filterType }, provCtrl, false)
-		end
+		provisionerSpecialCallback(selfProvisioner, filterTabData, nil)
 	end)
 
 
-	local enchantingScene = kbc.enchantingScene
+	local enchantingControl = enchanting.control
 	SecurePostHook(enchanting, "OnModeUpdated", function()
 		local enchantingMode = enchanting:GetEnchantingMode()
 		if not enchantingMode then return end
 		local filterType = enchantingModeToFilterType[enchantingMode]
-		local newState = (filterType ~= nil and SCENE_SHOWN) or SCENE_HIDDEN
-		local oldState = (newState == SCENE_HIDDEN and SCENE_SHOWN) or SCENE_HIDDEN
+		local doShow = (filterType ~= nil and true) or false
+
 		local currentFilterType = libFilters._currentFilterType
 		local hideOldEnchantingFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
-df("LibFilters3 - Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType))
+--df("LibFilters3 - Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType))
 		if hideOldEnchantingFilterType == true then
-			onSceneStateChange(SCENE_SHOWN, SCENE_HIDDEN, { currentFilterType }, enchantingScene, false)
+			onControlHiddenStateChange(false, { currentFilterType }, enchantingControl, false)
 		end
-		onSceneStateChange(oldState, newState, { filterType }, enchantingScene, false)
+		if doShow == false or (doShow == true and filterType ~= nil) then
+			onControlHiddenStateChange(doShow, { filterType }, enchantingControl, false)
+		end
 	end)
+
 
 	--Crafting table close / ESC key
 	--> The last shown panel needs to fire it's HIDE state now
+	local craftTypesOpenedAlready = {}
 	local function eventCraftingStationInteractEnd(eventId, craftSkill)
 		EM:UnregisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT)
 		--Was the last shown filterType a crafting table filterType?
 		local lastShownFilterType = libFilters._currentFilterType
+		if libFilters.debug then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, lastFilterType: %s", tos(craftSkill), tos(lastShownFilterType)) end
 		if not isCraftingFilterType[lastShownFilterType] then return end
 		--Fire the HIDE callback of the last used crafting filterType
-		libFilters.RaiseFilterTypeCallback(libFilters, lastShownFilterType, SCENE_HIDDEN, nil)
+		libFilters_RaiseFilterTypeCallback(libFilters, lastShownFilterType, SCENE_HIDDEN, nil)
 	end
 	local function eventCraftingStationInteract(eventId, craftSkill)
+		if libFilters.debug then dd(">[EVENT_CRAFTING_STATION_INTERACT] craftSkill: %s", tos(craftSkill)) end
 		EM:RegisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT, eventCraftingStationInteractEnd)
+		--Craftingtype was opened before already?
+		if craftTypesOpenedAlready[craftSkill] ~= nil then
+			--Provisioner?
+			if craftSkill == CRAFTING_TYPE_PROVISIONING then
+				--Raise the callback for SHOWN of the last opened provisioner panel
+				provisionerSpecialCallback(provisioner, nil, true) --last param says "show"
+			end
+		end
+		craftTypesOpenedAlready[craftSkill] = true
 	end
 	EM:RegisterForEvent(GlobalLibName, EVENT_CRAFTING_STATION_INTERACT, eventCraftingStationInteract)
 

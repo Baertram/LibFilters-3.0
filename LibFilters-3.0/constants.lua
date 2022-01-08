@@ -263,7 +263,6 @@ local LIBFILTERS_CON_TYPEOFREF_SCENE 	= typeOfRefConstants[2]
 local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = typeOfRefConstants[3]
 local LIBFILTERS_CON_TYPEOFREF_OTHER 	= typeOfRefConstants[99]
 
-
 --The names of the type of reference
 constants.typeOfRefToName = {
 	[1] = "Control",
@@ -271,6 +270,27 @@ constants.typeOfRefToName = {
 	[3] = "Fragment",
 	[99]= "Other",
 }
+
+local function checkIfControlSceneFragmentOrOther(refVar)
+	local retVar
+	--Scene or fragment
+	if refVar.sceneManager and refVar.state then
+		if refVar.name ~= nil or refVar.fragments ~= nil then
+			retVar = LIBFILTERS_CON_TYPEOFREF_SCENE -- Scene
+		else
+			retVar = LIBFILTERS_CON_TYPEOFREF_FRAGMENT -- Fragment
+		end
+	--Control
+	elseif refVar.control or refVar.IsHidden then
+		retVar = LIBFILTERS_CON_TYPEOFREF_CONTROL -- Controlor TopLevelControl
+	--Other
+	else
+		retVar = LIBFILTERS_CON_TYPEOFREF_OTHER -- Other, e.g. boolean
+	end
+	if libFilters.debug then dv("!checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
+	return retVar
+end
+libFilters.checkIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 
 --[Inventory types]
@@ -524,6 +544,7 @@ local provisioner 				  = kbc.provisioner
 kbc.provisionerFragment			  = PROVISIONER_FRAGMENT
 local provisionerFragment		  = kbc.provisionerFragment
 provisionerFragment._name = "PROVISIONER_FRAGMENT"
+kbc.provisionerScene			  = PROVISIONER_SCENE
 
 --Retrait
 --keyboardConstants.retraitClass  = ZO_RetraitStation_Retrait_Base
@@ -870,6 +891,14 @@ local enchantingModeToFilterType = {
 	[ENCHANTING_MODE_RECIPES]		= nil --not supported
 }
 mapping.enchantingModeToFilterType = enchantingModeToFilterType
+
+local provisionerIngredientTypeToFilterType = {
+	[PROVISIONER_SPECIAL_INGREDIENT_TYPE_NONE] 			= nil,
+	[PROVISIONER_SPECIAL_INGREDIENT_TYPE_SPICES]		= LF_PROVISIONING_COOK,
+	[PROVISIONER_SPECIAL_INGREDIENT_TYPE_FLAVORING]		= LF_PROVISIONING_BREW,
+	[PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING]	= nil --not supported
+}
+mapping.provisionerIngredientTypeToFilterType = provisionerIngredientTypeToFilterType
 
 --Mapping for the smithing panels, and their filterTypes
 mapping.smithingMapping = {
@@ -2044,7 +2073,7 @@ local callbacksUsingFragments = {
 		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL },
 		--LF_PROVISIONING_COOK
 		--LF_PROVISIONING_BREW
-		[provisionerFragment]			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
+		--[provisionerFragment]			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
 
 		--Dedicated fragments
 		[invQuestFragment] 				= { LF_INVENTORY_QUEST },
@@ -2196,9 +2225,26 @@ callbacks.usingControls = callbacksUsingControls
 
 
 --Callbacks using special functions etc.
+--Important: No callbacks are registered diretly to the table contents below!
+-->The table below "is just kept to fill the reference control/scene/fragment" to table callbacks.filterTypeToCallbackRef
+-->so that e.g. the EVENT_END_CRAFTING_STATION_INTERACT will find a referenced control to raise a SCENE_HIDDEN callback on
+-->via function libFilters_RaiseFilterTypeCallback(libFilters, lastShownFilterType, SCENE_HIDDEN, nil)
+local callbacksUsingSpecials = {
 	--Keyboard
-	--LF_ENCHANTING_CREATION
-	--LF_ENCHANTING_EXTRACTION
+	[false] = {
+		[enchanting.control] 				= { LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION }, 	--via ENCHANTING:OnModeUpdated
+		[provisioner.control] 				= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via PROVISIONER:OnTabFilterChanged
+		--All crafting tables open/close via EVENT_CRAFTING_STATION_INTERACT and EVENT_END_CRAFTING_STATION_INTERACT
+	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+	--Gamepad
+	[true] = {
+	},
+
+}
+callbacks.usingSpecials = callbacksUsingSpecials
 
 
 --The mapping tables to determine the callback's reference variables by the filterType and inputType
@@ -2235,6 +2281,15 @@ for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
 	for controlVar, filterTypes in pairs(controlsCallbackData) do
 		for _, filterType in ipairs(filterTypes) do
 			filterTypeToCallbackRef[inputType][filterType] = { ref = controlVar, refType = LIBFILTERS_CON_TYPEOFREF_CONTROL }
+		end
+	end
+end
+--Specials
+for inputType, specialsCallbackData in pairs(callbacksUsingSpecials) do
+	for specialVar, filterTypes in pairs(specialsCallbackData) do
+		for _, filterType in ipairs(filterTypes) do
+			local refType = checkIfControlSceneFragmentOrOther(specialVar)
+			filterTypeToCallbackRef[inputType][filterType] = { ref = specialVar, refType = refType }
 		end
 	end
 end
