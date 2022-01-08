@@ -135,6 +135,7 @@ local alchemyCtrl              =	kbc.alchemyCtrl
 local provisioner			   =    kbc.provisioner
 local smithing				   =    kbc.smithing
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
+local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 
 
 --Gamepad
@@ -3348,6 +3349,23 @@ local function createSpecialCallbacks()
 		if doShow == false or (doShow == true and filterType ~= nil) then
 			onControlHiddenStateChange(doShow, { filterType }, provCtrl, false)
 		end
+	end)
+
+
+	local enchantingScene = kbc.enchantingScene
+	SecurePostHook(enchanting, "OnModeUpdated", function()
+		local enchantingMode = enchanting:GetEnchantingMode()
+		if not enchantingMode then return end
+		local filterType = enchantingModeToFilterType[enchantingMode]
+		local newState = (filterType ~= nil and SCENE_SHOWN) or SCENE_HIDDEN
+		local oldState = (newState == SCENE_HIDDEN and SCENE_SHOWN) or SCENE_HIDDEN
+		local currentFilterType = libFilters._currentFilterType
+		local hideOldEnchantingFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
+df("LibFilters3 - Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType))
+		if hideOldEnchantingFilterType == true then
+			onSceneStateChange(SCENE_SHOWN, SCENE_HIDDEN, { currentFilterType }, enchantingScene, false)
+		end
+		onSceneStateChange(oldState, newState, { filterType }, enchantingScene, false)
 	end)
 
 	--Crafting table close / ESC key

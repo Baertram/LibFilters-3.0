@@ -862,15 +862,14 @@ mapping.LF_FilterTypeToDialogOwnerControl = filterTypeToDialogOwnerControl
 --Enchaning (used to determine the correct LF_* filterType constant at enchanting tables, as they share the same inventory
 --ENCHANTING.inventory. Gamepad mode uses different scenes for enchating creation and extraction so there are used
 --callbacks to these scenes' state to se the appropriate LF_ENCHANTING_* constant
--->Used in function LibFilters:HookAdditionalFilterSpecial(specialType, inventory)
---[[
+-->Used in function LibFilters:HookAdditionalFilterSpecial(specialType, inventory) and special callbacks
 local enchantingModeToFilterType = {
-	 [ENCHANTING_MODE_CREATION]		= LF_ENCHANTING_CREATION,
-	 [ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
-	 [ENCHANTING_MODE_RECIPES]		= nil --not supported yet
+	[ENCHANTING_MODE_NONE] 			= nil,
+	[ENCHANTING_MODE_CREATION]		= LF_ENCHANTING_CREATION,
+	[ENCHANTING_MODE_EXTRACTION]	= LF_ENCHANTING_EXTRACTION,
+	[ENCHANTING_MODE_RECIPES]		= nil --not supported
 }
 mapping.enchantingModeToFilterType = enchantingModeToFilterType
-]]
 
 --Mapping for the smithing panels, and their filterTypes
 mapping.smithingMapping = {
@@ -2121,9 +2120,6 @@ callbacks.usingFragments = callbacksUsingFragments
 local callbacksUsingScenes = {
 	--Keyboard
 	[false] = {
-		--LF_ENCHANTING_CREATION
-		--LF_ENCHANTING_EXTRACTION
-		[enchantingScene] 					= { LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION },
 
 		--Dedicated scenes
 	},
@@ -2197,6 +2193,12 @@ local callbacksUsingControls = {
 	},
 }
 callbacks.usingControls = callbacksUsingControls
+
+
+--Callbacks using special functions etc.
+	--Keyboard
+	--LF_ENCHANTING_CREATION
+	--LF_ENCHANTING_EXTRACTION
 
 
 --The mapping tables to determine the callback's reference variables by the filterType and inputType
