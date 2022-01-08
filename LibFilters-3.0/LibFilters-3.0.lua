@@ -138,6 +138,7 @@ local smithing				   =    kbc.smithing
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 local provisionerIngredientTypeToFilterType = mapping.provisionerIngredientTypeToFilterType
+local alchemyModeToFilterType = mapping.alchemyModeToFilterType
 
 
 --Gamepad
@@ -3314,12 +3315,15 @@ end
 local function provisionerSpecialCallback(selfProvisioner, filterTabData, overrideDoShow)
 	--df("provisionerSpecialCallback")
 	--Only fire if current scene is the provisioner scene (as PROVISIONER:OnTabFilterChanged also fires if enchanting scene is shown...)
-	if not provisionerScene:IsShowing() then return end
+	local currentFilterType = libFilters._currentFilterType
+	if not provisionerScene:IsShowing() then
+		return
+	end
 	local currentProvFilterType = selfProvisioner.filterType
 	local filterType = provisionerIngredientTypeToFilterType[currentProvFilterType]
 	local doShow = (filterType ~= nil and true) or false
 
-	local currentFilterType = libFilters._currentFilterType
+
 	local hideOldProvFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
 
 	if overrideDoShow ~= nil then
@@ -3360,6 +3364,24 @@ local function createSpecialCallbacks()
 		end
 		if doShow == false or (doShow == true and filterType ~= nil) then
 			onControlHiddenStateChange(doShow, { filterType }, enchantingControl, false)
+		end
+	end)
+
+
+	SecurePostHook(alchemy, "SetMode", function(alchemySelf, mode)
+		local alchemyMode = mode
+		if not alchemyMode then return end
+		local filterType = alchemyModeToFilterType[alchemyMode]
+		local doShow = (filterType ~= nil and true) or false
+
+		local currentFilterType = libFilters._currentFilterType
+		local hideOldAlchemyFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
+df("LibFilters3 - Alchemy:SetMode: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(alchemyMode), tos(filterType), tos(hideOldAlchemyFilterType))
+		if hideOldAlchemyFilterType == true then
+			onControlHiddenStateChange(false, { currentFilterType }, alchemyCtrl, false)
+		end
+		if doShow == false or (doShow == true and filterType ~= nil) then
+			onControlHiddenStateChange(doShow, { filterType }, alchemyCtrl, false)
 		end
 	end)
 

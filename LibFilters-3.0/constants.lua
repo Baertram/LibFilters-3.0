@@ -900,6 +900,13 @@ local provisionerIngredientTypeToFilterType = {
 }
 mapping.provisionerIngredientTypeToFilterType = provisionerIngredientTypeToFilterType
 
+local alchemyModeToFilterType = {
+	[ZO_ALCHEMY_MODE_NONE] 			= nil,
+	[ZO_ALCHEMY_MODE_CREATION]		= LF_ALCHEMY_CREATION,
+	[ZO_ALCHEMY_MODE_RECIPES]		= nil, -- not supported
+}
+mapping.alchemyModeToFilterType = alchemyModeToFilterType
+
 --Mapping for the smithing panels, and their filterTypes
 mapping.smithingMapping = {
 		[SMITHING_MODE_REFINEMENT] = {
@@ -2091,7 +2098,6 @@ local callbacksUsingFragments = {
 		[guildStoreSellLayoutFragment] 	= { LF_GUILDSTORE_SELL },
 		[mailSendFragment]             	= { LF_MAIL_SEND },
 		[player2playerTradeFragment]   	= { LF_TRADE },
-		[alchemyFragment]              	= { LF_ALCHEMY_CREATION },
 		[retraitFragment]              	= { LF_RETRAIT },
 		[companionEquipmentFragment]   	= { LF_INVENTORY_COMPANION },
 	},
@@ -2234,6 +2240,7 @@ local callbacksUsingSpecials = {
 	[false] = {
 		[enchanting.control] 				= { LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION }, 	--via ENCHANTING:OnModeUpdated
 		[provisioner.control] 				= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via PROVISIONER:OnTabFilterChanged
+		[alchemy.control]              		= { LF_ALCHEMY_CREATION },									--via ALCHEMY:SetMode
 		--All crafting tables open/close via EVENT_CRAFTING_STATION_INTERACT and EVENT_END_CRAFTING_STATION_INTERACT
 	},
 
