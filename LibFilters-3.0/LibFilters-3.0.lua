@@ -5,12 +5,15 @@
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				9
+--Bugs total: 				10
 --Feature requests total: 	0
 
 --[Bugs]
 -- #1) 2022-01-03, Baertram: Gamepad mode - returning from craftbag to the normal inv does not trigger the custom inventory fragment's show state callback
 -- #2) 2022-01-03, Baertram: Gamepad mode - callback for filterType LF_INVENTORY does not fire as callback get's added to the fragment as the inventory lists get initialized the 1st time
+--#10) 2022-01-09, Baertram: Keyboard mode - re-opening the alchemy table with activated "provisioner" tab will raise the callback SCENE_HIDDEN for libFilters_lastFilterType, even if this would be LF_INVENTORY
+--		or if it was raised directly before the re-open of the alchemy panel (as the panel got closed).
+--		One needs to build a "throttled check" in the raise of the callbacks, if SCENE_HIDDEN is used, so that libFilters._lastFilterType will not be used in all circumstances!
 
 --[Feature requests]
 -- #f1)
