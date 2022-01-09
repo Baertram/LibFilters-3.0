@@ -170,6 +170,10 @@ local companionCharacterCtrl_GP = 	gpc.companionCharacterCtrl_GP
 local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
 local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
+local provisioner_GP			=   gpc.provisioner_GP
+local provisionerScene_GP 	    =   gpc.provisionerScene_GP
+local provCtrl_GP				=   gpc.provisioner_GP.control
+
 
 
 --Other addons
@@ -3349,13 +3353,14 @@ local function createControlCallbacks()
 	end
 end
 
-local function provisionerSpecialCallback(selfProvisioner, filterTabData, overrideDoShow)
+local function provisionerSpecialCallback(selfProvisioner, provFilterType, overrideDoShow)
 	--Only fire if current scene is the provisioner scene (as PROVISIONER:OnTabFilterChanged also fires if enchanting scene is shown...)
 	local currentFilterType = libFilters._currentFilterType
-	if not provisionerScene:IsShowing() then
+	local isInGamepadMode = IsGamepad()
+	if (isInGamepadMode and not provisionerScene_GP:IsShowing()) or (not isInGamepadMode and not provisionerScene:IsShowing()) then
 		return
 	end
-	local currentProvFilterType = selfProvisioner.filterType
+	local currentProvFilterType = provFilterType or selfProvisioner.filterType
 	local filterType = provisionerIngredientTypeToFilterType[currentProvFilterType]
 	local doShow = (filterType ~= nil and true) or false
 
@@ -3367,12 +3372,14 @@ local function provisionerSpecialCallback(selfProvisioner, filterTabData, overri
 		hideOldProvFilterType = false
 	end
 
+	local provisionerControl = selfProvisioner.control
+
 	if libFilters.debug then dd("~Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
 	if hideOldProvFilterType == true then
-		onControlHiddenStateChange(false, { currentFilterType }, provCtrl, false)
+		onControlHiddenStateChange(false, { currentFilterType }, provisionerControl, isInGamepadMode)
 	end
 	if doShow == false or (doShow == true and filterType ~= nil) then
-		onControlHiddenStateChange(doShow, { filterType }, provCtrl, false)
+		onControlHiddenStateChange(doShow, { filterType }, provisionerControl, isInGamepadMode)
 	end
 end
 
@@ -3398,7 +3405,7 @@ local function createSpecialCallbacks()
 			else
 				local lastKnownFilterType = libFilters._lastFilterType
 				if lastKnownFilterType ~= nil then
-					if libFilters.debug then df("~Enchanting:OnModeUpdated - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+					if libFilters.debug then dd("~Enchanting:OnModeUpdated - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
 					if libFilters._lastFilterTypeNoCallback == true then
 						libFilters._lastFilterTypeNoCallback = false
 						return
@@ -3433,7 +3440,7 @@ local function createSpecialCallbacks()
 			else
 				local lastKnownFilterType = libFilters._lastFilterType
 				if lastKnownFilterType ~= nil then
-					if libFilters.debug then df("~Alchemy:SetMode - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+					if libFilters.debug then dd("~Alchemy:SetMode - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
 					if libFilters._lastFilterTypeNoCallback == true then
 						libFilters._lastFilterTypeNoCallback = false
 						return
@@ -3492,7 +3499,17 @@ local function createSpecialCallbacks()
 	end
 	EM:RegisterForEvent(GlobalLibName, EVENT_CRAFTING_STATION_INTERACT, eventCraftingStationInteract)
 
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 	--[Gamepad mode]
+	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
+	-->ZO_Provisioner:OnTabFilterChanged(filterData)
+	SecurePostHook(provisioner_GP, "OnTabFilterChanged", function(selfProvisioner, filterType)
+d("Gamepad OnTabFilterChanged - filterType: " ..tos(filterType))
+		provisionerSpecialCallback(selfProvisioner, filterType, nil)
+	end)
+
 
 end
 

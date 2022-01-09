@@ -2172,9 +2172,6 @@ local callbacksUsingFragments = {
 		--LF_HOUSE_BANK_DEPOSIT
 		--LF_VENDOR_SELL
 		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL },
-		--LF_PROVISIONING_COOK
-		--LF_PROVISIONING_BREW
-		--[provisionerFragment]			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
 
 		--Dedicated fragments
 		[invQuestFragment] 				= { LF_INVENTORY_QUEST },
@@ -2205,9 +2202,6 @@ local callbacksUsingFragments = {
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
 		[researchChooseItemDialog_GP]		= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG },
-		--LF_PROVISIONING_COOK
-		--LF_PROVISIONING_BREW
-		[provisionerFragment_GP] 			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },
 
 		--Dedicated fragments
 		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= { LF_VENDOR_BUY },
@@ -2342,6 +2336,7 @@ local callbacksUsingSpecials = {
 
 	--Gamepad
 	[true] = {
+		[provisioner_GP.control] 			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via GAMEPAD_PROVISIONER:OnTabFilterChanged
 	},
 
 }
