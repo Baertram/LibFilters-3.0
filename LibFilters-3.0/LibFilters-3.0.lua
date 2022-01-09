@@ -66,6 +66,7 @@ libFilters._currentFilterTypeReferences = nil
 --Cashed "last" data, before current (placeholders, currently nil)
 libFilters._lastFilterType 				= nil
 libFilters._lastFilterTypeReferences 	= nil
+libFilters._lastFilterTypeNoCallback	= false
 
 
 --LibFilters local speedup and reference variables
@@ -79,6 +80,8 @@ local callbacksUsingFragments = 	callbacks.usingFragments
 local callbacksUsingControls = 		callbacks.usingControls
 local specialCallbacks = 			callbacks.special
 local filterTypeToCallbackRef = 	callbacks.filterTypeToCallbackRef
+local validFilterTypesOfPanel = 	mapping.validFilterTypesOfPanel
+local craftingTypeToPanelId = 		mapping.craftingTypeToPanelId
 
 local libFiltersFilterConstants = 	constants.filterTypes
 local isCraftingFilterType = 		mapping.isCraftingFilterType
@@ -126,7 +129,7 @@ local storeWindows             = 	kbc.storeWindows
 local guildStoreSellFragment   = 	kbc.guildStoreSellFragment
 --local fence                    = 	kbc.fence
 local researchChooseItemDialog = 	kbc.researchChooseItemDialog
-local playerInvCtrl            =    kbc.playerInvCtrl
+--local playerInvCtrl            =    kbc.playerInvCtrl
 local companionEquipmentCtrl   = 	kbc.companionEquipment.control
 local characterCtrl            =	kbc.characterCtrl
 local companionCharacterCtrl   = 	kbc.companionCharacterCtrl
@@ -137,7 +140,7 @@ local alchemyCtrl              =	kbc.alchemyCtrl
 local provisioner			   =    kbc.provisioner
 local provCtrl 				   =    provisioner.control
 local provisionerScene 		   =    kbc.provisionerScene
-local smithing				   =    kbc.smithing
+--local smithing				   =    kbc.smithing
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 local provisionerIngredientTypeToFilterType = mapping.provisionerIngredientTypeToFilterType
@@ -840,6 +843,38 @@ local function craftBagExtendedCheckForCurrentModule(filterType)
 	return nil, nil
 end
 
+
+--Check the valid "last shown" filterTypes at a given panelIdentifier.
+--This will prevent e.g. the raise of callback "inventory hidden" if you open the alchemy station and the last opened
+--alchemy station panel was the recipes panel -> The callback SCENE_HIDDEN with libFilters._lastFilterType will be raised then
+-->but this must only happen if the last known filterType was any valid at the current panel
+local function checkForValidLastFilterTypesAtSamePanel(panelIdentifier, craftingType)
+	if panelIdentifier == nil then
+		craftingType = craftingType or gcit()
+		panelIdentifier = craftingTypeToPanelId[craftingType]
+		if panelIdentifier == nil then
+			return false
+		end
+	end
+	local lastKnownFilterType = libFilters._lastFilterType
+	if libFilters.debug then dv("checkForValidLastFilterTypesAtSamePanel - id: %s, lastFilterType: %s", tos(panelIdentifier), tos(lastKnownFilterType)) end
+	--No last filterType given? Then act normal and allow the SCENE_HIDDEN callback of the panel
+	if lastKnownFilterType == nil then return true end
+
+	--Map the identifier of the panel from normal smithing crafting to jewelry crafting if the current craftingType is jewelry crafting
+	if panelIdentifier == "smithing" then
+		craftingType = craftingType or gcit()
+		if craftingType == CRAFTING_TYPE_JEWELRYCRAFTING then
+			panelIdentifier = "jewelryCrafting"
+		end
+	end
+	local validFilterTypes = validFilterTypesOfPanel[panelIdentifier]
+	local isValidFilterTypeAtPanel = validFilterTypes[lastKnownFilterType] or false
+	if libFilters.debug then dv("<isValidFilterTypeAtPanel: %s", tos(isValidFilterTypeAtPanel)) end
+	return isValidFilterTypeAtPanel
+end
+
+
 --Check if a control/fragment/scene is shown/hidden (depending on parameter "checkIfHidden") or if any special check function
 --needs to be called to do additional checks, or an overall special forced check function needs to be always called at the end
 --of all checks (e.g. for crafting -> check if jewelry crafting or other)
@@ -961,7 +996,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	checkIfHidden = checkIfHidden or false
 	skipSpecialChecks = skipSpecialChecks or false
-	local lFilterTypeDetected = nil
+	local lFilterTypeDetected
 	local lReferencesToFilterType = {}
 	local isDebugEnabled = libFilters.debug
 	if isDebugEnabled then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
@@ -3316,7 +3351,6 @@ local function createControlCallbacks()
 end
 
 local function provisionerSpecialCallback(selfProvisioner, filterTabData, overrideDoShow)
-	--df("provisionerSpecialCallback")
 	--Only fire if current scene is the provisioner scene (as PROVISIONER:OnTabFilterChanged also fires if enchanting scene is shown...)
 	local currentFilterType = libFilters._currentFilterType
 	if not provisionerScene:IsShowing() then
@@ -3334,7 +3368,7 @@ local function provisionerSpecialCallback(selfProvisioner, filterTabData, overri
 		hideOldProvFilterType = false
 	end
 
-	--df("LibFilters3 - Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType))
+	if libFilters.debug then dd("~Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
 	if hideOldProvFilterType == true then
 		onControlHiddenStateChange(false, { currentFilterType }, provCtrl, false)
 	end
@@ -3358,10 +3392,24 @@ local function createSpecialCallbacks()
 		if not enchantingMode then return end
 		local filterType = enchantingModeToFilterType[enchantingMode]
 		local doShow = (filterType ~= nil and true) or false
+		if doShow == false then
+			if not checkForValidLastFilterTypesAtSamePanel("enchanting") then
+				return
+			else
+				local lastKnownFilterType = libFilters._lastFilterType
+				if lastKnownFilterType ~= nil then
+					if libFilters.debug then df("~Enchanting:OnModeUpdated - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+					if libFilters._lastFilterTypeNoCallback == true then
+						libFilters._lastFilterTypeNoCallback = false
+						return
+					end
+				end
+			end
+		end
 
 		local currentFilterType = libFilters._currentFilterType
 		local hideOldEnchantingFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
---df("LibFilters3 - Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType))
+		if libFilters.debug then dd("~Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType)) end
 		if hideOldEnchantingFilterType == true then
 			onControlHiddenStateChange(false, { currentFilterType }, enchantingControl, false)
 		end
@@ -3372,14 +3420,27 @@ local function createSpecialCallbacks()
 
 
 	SecurePostHook(alchemy, "SetMode", function(alchemySelf, mode)
-		local alchemyMode = mode
-		if not alchemyMode then return end
-		local filterType = alchemyModeToFilterType[alchemyMode]
+		if not mode then return end
+		local filterType = alchemyModeToFilterType[mode]
 		local doShow = (filterType ~= nil and true) or false
+		if doShow == false then
+			if not checkForValidLastFilterTypesAtSamePanel("alchemy") then
+				return
+			else
+				local lastKnownFilterType = libFilters._lastFilterType
+				if lastKnownFilterType ~= nil then
+					if libFilters.debug then df("~Alchemy:SetMode - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+					if libFilters._lastFilterTypeNoCallback == true then
+						libFilters._lastFilterTypeNoCallback = false
+						return
+					end
+				end
+			end
+		end
 
 		local currentFilterType = libFilters._currentFilterType
 		local hideOldAlchemyFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
-df("LibFilters3 - Alchemy:SetMode: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(alchemyMode), tos(filterType), tos(hideOldAlchemyFilterType))
+		if libFilters.debug then dd("~Alchemy:SetMode: %s, filterType: %s, hideOldAlchemyFilterType: %s", tos(mode), tos(filterType), tos(hideOldAlchemyFilterType)) end
 		if hideOldAlchemyFilterType == true then
 			onControlHiddenStateChange(false, { currentFilterType }, alchemyCtrl, false)
 		end
@@ -3395,15 +3456,26 @@ df("LibFilters3 - Alchemy:SetMode: %s, filterType: %s, hideCurrentEnchantingFilt
 	local function eventCraftingStationInteractEnd(eventId, craftSkill)
 		EM:UnregisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT)
 		--Was the last shown filterType a crafting table filterType?
-		local lastShownFilterType = libFilters._currentFilterType
-		if libFilters.debug then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, lastFilterType: %s", tos(craftSkill), tos(lastShownFilterType)) end
-		if not isCraftingFilterType[lastShownFilterType] then return end
+		local currentFilterType = libFilters._currentFilterType
+		local lastFilterType = libFilters._lastFilterType
+		libFilters._lastFilterTypeNoCallback = false
+		if libFilters.debug then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s", tos(craftSkill), tos(currentFilterType), tos(lastFilterType)) end
+		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
+		-->This would lead to a SCENE_HIDDEN callback firing for the lastFilterType the next time the crafting table opens, eben though the "recipes" tab at the crafting table would be
+		-->re-opened and thus no callback would be needed (SCENE_HIDDEN for lastFilterType already fired as the recipestab was activated!)
+		if currentFilterType == nil and lastFilterType ~= nil and checkForValidLastFilterTypesAtSamePanel(nil, craftSkill) then
+			if libFilters.debug then dv(">lastFilterType will not raise a HIDDEN callback at next crafting table open!") end
+			--Set the flag that the lastFilterType will not fire a HIDDEN callback as the crafting table get's opened next time!
+			libFilters._lastFilterTypeNoCallback = true
+		end
+		if not isCraftingFilterType[currentFilterType] then return end
 		--Fire the HIDE callback of the last used crafting filterType
-		libFilters_RaiseFilterTypeCallback(libFilters, lastShownFilterType, SCENE_HIDDEN, nil)
+		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil)
 	end
 	local function eventCraftingStationInteract(eventId, craftSkill)
 		if libFilters.debug then dd(">[EVENT_CRAFTING_STATION_INTERACT] craftSkill: %s", tos(craftSkill)) end
 		EM:RegisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT, eventCraftingStationInteractEnd)
+		libFilters._lastFilterTypeNoCallback = false
 		--Craftingtype was opened before already?
 		if craftTypesOpenedAlready[craftSkill] ~= nil then
 			--Provisioner?
@@ -3462,9 +3534,11 @@ local function applyFixesLate()
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
+--[[
 local function applyFixesLatest()
 
 end
+]]
 
 
 --**********************************************************************************************************************
@@ -3502,12 +3576,13 @@ end
 --**********************************************************************************************************************
 -- EVENTs
 --**********************************************************************************************************************
+--[[
 --Called from EVENT_PLAYER_ACTIVATED -> Only once
 local function eventPlayerActivatedCallback(eventId, firstCall)
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED)
 	applyFixesLatest()
 end
-
+]]
 
 --Called from EVENT_ADD_ON_LOADED
 local function eventAddonLoadedCallback(eventId, addonNameLoaded)

@@ -859,6 +859,100 @@ for filterTypeValue, _  in pairs(libFiltersFilterConstants) do
 	end
 end
 
+--[Mapping for panelIdentifier to filterTypes]
+--e.g. the allowed filterTypes at the "bank" panel = withdraw and deposit
+-- The allowed filterTypes are determiend via the menu buttons given to switch between the filterTypes, e.g.
+-- smithing = refine, create, deconstruct, improve, research and researchDialog
+-->Unsupported menu buttons like "recipes at the crafting tables, except directly at provisioner" will not be listed!
+local validFilterTypesOfPanel = {
+	["alchemy"] = {
+		[LF_ALCHEMY_CREATION] = true,
+	},
+	["bank"]	= {
+		[LF_BANK_WITHDRAW] = true,
+		[LF_BANK_DEPOSIT] = true,
+	},
+	["companionInventory"]	= {
+		[LF_INVENTORY_COMPANION] = true
+	},
+	["enchanting"] = {
+		[LF_ENCHANTING_CREATION] = true,
+		[LF_ENCHANTING_EXTRACTION] = true,
+	},
+	["fence"] = {
+		[LF_FENCE_SELL] = true,
+		[LF_FENCE_LAUNDER] = true,
+	},
+	["guildBank"]	= {
+		[LF_GUILDBANK_WITHDRAW] = true,
+		[LF_GUILDBANK_DEPOSIT] = true,
+	},
+	["guildStore"] = {
+		[LF_GUILDSTORE_BROWSE] = true,
+		[LF_GUILDSTORE_SELL] = true,
+	},
+	["houseBank"] = {
+		[LF_HOUSE_BANK_WITHDRAW] = true,
+		[LF_HOUSE_BANK_DEPOSIT] = true,
+	},
+	["inventory"]	= {
+		[LF_INVENTORY] = true,
+		[LF_CRAFTBAG] = true,
+		[LF_INVENTORY_QUEST] = true,
+		[LF_QUICKSLOT] = true,
+	},
+	["jewelryCrafting"]	= {
+		[LF_JEWELRY_REFINE] = true,
+		[LF_JEWELRY_CREATION] = true,
+		[LF_JEWELRY_DECONSTRUCT] = true,
+		[LF_JEWELRY_IMPROVEMENT] = true,
+		[LF_SMITHING_RESEARCH] = true,
+		[LF_JEWELRY_RESEARCH_DIALOG] = true,
+	},
+	["mail"] = {
+		[LF_MAIL_SEND] = true,
+	},
+	["trade"] = {
+		[LF_TRADE] = true,
+	},
+	["provisioning"] = {
+		[LF_PROVISIONING_COOK] = true,
+		[LF_PROVISIONING_BREW] = true,
+	},
+	["retrait"] = {
+		[LF_RETRAIT] = true,
+	},
+	["smithing"] = {
+		[LF_SMITHING_REFINE] = true,
+		[LF_SMITHING_CREATION] = true,
+		[LF_SMITHING_DECONSTRUCT] = true,
+		[LF_SMITHING_IMPROVEMENT] = true,
+		[LF_SMITHING_RESEARCH] = true,
+		[LF_SMITHING_RESEARCH_DIALOG] = true,
+	},
+	["vendor"] = {
+		[LF_VENDOR_BUY] = true,
+		[LF_VENDOR_SELL] = true,
+		[LF_VENDOR_BUYBACK] = true,
+		[LF_VENDOR_REPAIR] = true,
+		[LF_SMITHING_RESEARCH] = true,
+		[LF_SMITHING_RESEARCH_DIALOG] = true,
+	},
+}
+mapping.validFilterTypesOfPanel = validFilterTypesOfPanel
+
+--The mapping between craftingType and the shown crafting panelIdentifier
+local craftingTypeToPanelId = {
+	[CRAFTING_TYPE_ALCHEMY] 		= "alchemy",
+	[CRAFTING_TYPE_CLOTHIER] 		= "smithing",
+	[CRAFTING_TYPE_ENCHANTING] 		= "enchanting",
+	[CRAFTING_TYPE_JEWELRYCRAFTING] = "jewelryCrafting",
+	[CRAFTING_TYPE_PROVISIONING] 	= "provisioning",
+	[CRAFTING_TYPE_BLACKSMITHING] 	= "smithing",
+	[CRAFTING_TYPE_WOODWORKING] 	= "smithing",
+}
+mapping.craftingTypeToPanelId = craftingTypeToPanelId
+
 --[Mapping for dialogs]
 --The dialogs which are given at a filterType, e.g. smithing research keyboard mode
 local researchPanelControl = researchPanel.control
