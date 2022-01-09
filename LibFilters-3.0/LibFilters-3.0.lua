@@ -848,7 +848,7 @@ end
 --This will prevent e.g. the raise of callback "inventory hidden" if you open the alchemy station and the last opened
 --alchemy station panel was the recipes panel -> The callback SCENE_HIDDEN with libFilters._lastFilterType will be raised then
 -->but this must only happen if the last known filterType was any valid at the current panel
-local function checkForValidLastFilterTypesAtSamePanel(panelIdentifier, craftingType)
+local function checkForValidFilterTypeAtSamePanel(filterType, panelIdentifier, craftingType)
 	if panelIdentifier == nil then
 		craftingType = craftingType or gcit()
 		panelIdentifier = craftingTypeToPanelId[craftingType]
@@ -856,10 +856,9 @@ local function checkForValidLastFilterTypesAtSamePanel(panelIdentifier, crafting
 			return false
 		end
 	end
-	local lastKnownFilterType = libFilters._lastFilterType
-	if libFilters.debug then dv("checkForValidLastFilterTypesAtSamePanel - id: %s, lastFilterType: %s", tos(panelIdentifier), tos(lastKnownFilterType)) end
-	--No last filterType given? Then act normal and allow the SCENE_HIDDEN callback of the panel
-	if lastKnownFilterType == nil then return true end
+	if libFilters.debug then dv("checkForValidLastFilterTypesAtSamePanel - id: %s, filterType: %s", tos(panelIdentifier), tos(filterType)) end
+	--No filterType given? Then act normal and allow the SCENE_HIDDEN callback of the panel
+	if filterType == nil then return true end
 
 	--Map the identifier of the panel from normal smithing crafting to jewelry crafting if the current craftingType is jewelry crafting
 	if panelIdentifier == "smithing" then
@@ -869,7 +868,7 @@ local function checkForValidLastFilterTypesAtSamePanel(panelIdentifier, crafting
 		end
 	end
 	local validFilterTypes = validFilterTypesOfPanel[panelIdentifier]
-	local isValidFilterTypeAtPanel = validFilterTypes[lastKnownFilterType] or false
+	local isValidFilterTypeAtPanel = validFilterTypes[filterType] or false
 	if libFilters.debug then dv("<isValidFilterTypeAtPanel: %s", tos(isValidFilterTypeAtPanel)) end
 	return isValidFilterTypeAtPanel
 end
@@ -3393,7 +3392,8 @@ local function createSpecialCallbacks()
 		local filterType = enchantingModeToFilterType[enchantingMode]
 		local doShow = (filterType ~= nil and true) or false
 		if doShow == false then
-			if not checkForValidLastFilterTypesAtSamePanel("enchanting") then
+			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "enchanting") then
+				libFilters._lastFilterTypeNoCallback = false
 				return
 			else
 				local lastKnownFilterType = libFilters._lastFilterType
@@ -3424,7 +3424,11 @@ local function createSpecialCallbacks()
 		local filterType = alchemyModeToFilterType[mode]
 		local doShow = (filterType ~= nil and true) or false
 		if doShow == false then
-			if not checkForValidLastFilterTypesAtSamePanel("alchemy") then
+			--Will only be checked if the current filterType is not given, as else it would prevent a SCENE_HIDDEN callback for e.g. switching from alchemy creation to
+			--alchemy recipes, if one has had opened the inventory in between and the libFilters._lastFilterType = LF_INVENTORY in that case -> LF_INVENTORY does not belong to
+			--the current panel "alchemy" and LF_ALCHEMY_CREATION would not be firing it's HIDDEN callback then as one switches to the recipes tab (which is not supported and got no LF* constant)
+			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "alchemy") then
+				libFilters._lastFilterTypeNoCallback = false
 				return
 			else
 				local lastKnownFilterType = libFilters._lastFilterType
@@ -3463,7 +3467,7 @@ local function createSpecialCallbacks()
 		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
 		-->This would lead to a SCENE_HIDDEN callback firing for the lastFilterType the next time the crafting table opens, eben though the "recipes" tab at the crafting table would be
 		-->re-opened and thus no callback would be needed (SCENE_HIDDEN for lastFilterType already fired as the recipestab was activated!)
-		if currentFilterType == nil and lastFilterType ~= nil and checkForValidLastFilterTypesAtSamePanel(nil, craftSkill) then
+		if currentFilterType == nil and lastFilterType ~= nil and checkForValidFilterTypeAtSamePanel(lastFilterType, nil, craftSkill) then
 			if libFilters.debug then dv(">lastFilterType will not raise a HIDDEN callback at next crafting table open!") end
 			--Set the flag that the lastFilterType will not fire a HIDDEN callback as the crafting table get's opened next time!
 			libFilters._lastFilterTypeNoCallback = true
