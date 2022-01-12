@@ -3231,29 +3231,26 @@ local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGa
 end
 
 local function isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr, inputType, fragmentName)
-	if not fragment then return false end
 	local currentFilterType = libFilters._currentFilterType
+	if not fragment then return false end
 	if not currentFilterType then return false end
 	--Is the fragment a registered callback fragment?
-	if not callbacksUsingFragments[fragment] then return end
+	if callbacksUsingFragments[inputType][fragment] == nil then return end
 	--Got this fragment any filterTypes to block it's callback raise?
 	local callbackFragmentBlockedFilterTypesBase = callbackFragmentsBlockedMapping[inputType][stateStr]
-	local callbackFragmentBlockedFilterTypes = callbackFragmentBlockedFilterTypesBase ~= nil and callbackFragmentBlockedFilterTypesBase[fragment]
+	local callbackFragmentBlockedFilterTypes = (callbackFragmentBlockedFilterTypesBase ~= nil and callbackFragmentBlockedFilterTypesBase[fragment]) or nil
 	if callbackFragmentBlockedFilterTypes ~= nil and #callbackFragmentBlockedFilterTypes > 0 then
 		if libFilters.debug then
 			dd(">isFragmentBlockedByAlreadyDeterminedFilterType: %q - stateStr: %s - currentFilterType: %s",
 					tos(fragmentName), tos(stateStr), tos(currentFilterType))
 		end
 
-		--Is a fragment SHOWN callback tried to be issued?
-		if stateStr == SCENE_SHOWN then
-			for _, filterTypeBlocked in ipairs(callbackFragmentBlockedFilterTypes) do
-				if filterTypeBlocked == currentFilterType then
-					if libFilters.debug then
-						dd(">>>>> YES, filterType %s is blocked!", tos(filterTypeBlocked))
-					end
-					return true
+		for _, filterTypeBlocked in ipairs(callbackFragmentBlockedFilterTypes) do
+			if filterTypeBlocked == currentFilterType then
+				if libFilters.debug then
+					dd(">>>>> YES, filterType %s is blocked!", tos(filterTypeBlocked))
 				end
+				return true
 			end
 		end
 	end
