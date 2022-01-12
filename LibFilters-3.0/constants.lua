@@ -2234,6 +2234,34 @@ local callbacksUsingFragments = {
 callbacks.usingFragments = callbacksUsingFragments
 
 
+--A table with the mapping of a fragment to a table of filterTypes that libFilters._currentFilterType is not allowed to
+--currently equal to. Else the fragment's callback will not fire. e.g. the inventory fragment will fire after the mail send layout fragment.
+--The mail send layout fragment will set libFilters._currentFilterType to LF_MAIL_SEND and the inventory fragment would afterwards try to detect
+--other panels again, which is not needed!
+local callbackFragmentsBlockedMapping = {
+	--Keyboard
+	[false] = {
+		[SCENE_SHOWN] = {
+			[inventoryFragment] = { LF_MAIL_SEND }, --Will not raise a callback for inventoryFragment if current filterType is LF_MAIL_SEND
+
+		},
+		[SCENE_HIDDEN] = {
+
+		}
+	},
+
+--000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+	--Gamepad
+	[true] = {
+		[SCENE_SHOWN] = {
+		},
+		[SCENE_HIDDEN] = {
+		}
+	}
+}
+callbacks.callbackFragmentsBlockedMapping = callbackFragmentsBlockedMapping
+
 --[scene_Or_sceneName] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ... }
 --0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
 --detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
@@ -2410,4 +2438,5 @@ callbacks.special = {
 }
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end
+
 

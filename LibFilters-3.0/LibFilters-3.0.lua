@@ -80,6 +80,7 @@ local callbacksUsingFragments = 	callbacks.usingFragments
 local callbacksUsingControls = 		callbacks.usingControls
 local specialCallbacks = 			callbacks.special
 local filterTypeToCallbackRef = 	callbacks.filterTypeToCallbackRef
+local callbackFragmentsBlockedMapping = callbacks.callbackFragmentsBlockedMapping
 local validFilterTypesOfPanel = 	mapping.validFilterTypesOfPanel
 local craftingTypeToPanelId = 		mapping.craftingTypeToPanelId
 
@@ -242,6 +243,9 @@ if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
 --Copy the current filterType to lastFilterType (same for the referenceVariables table) if the filterType / refVariables
 --table needs an update
 local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterTyp, doNotUpdateLast)
+	if libFilters.debug then dd("!°!updateLastAndCurrentFilterType - filterType: %s, doNotUpdateLast: %s, current: %s, last: %s",
+		tos(lFilterTypeDetected), tos(doNotUpdateLast), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType))
+	end
 	doNotUpdateLast = doNotUpdateLast or false
 	if not doNotUpdateLast then
 		local currentFilterTypeBefore 			= libFilters._currentFilterType
@@ -2921,11 +2925,18 @@ callbacksAdded[2] = {}
 callbacksAdded[3] = {}
 callbacks.added = callbacksAdded
 
-function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef)
+function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 	local isShown = (stateStr == SCENE_SHOWN and true) or false
+	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
+
+	--Backup the lastFilterTyp and references if given
+	local lastFilterTypeBefore 		= libFilters._lastFilterType
+	local lastFilterTypeRefBefore 	= libFilters._lastFilterTypeReferences
 
 	--Update lastFilterType and ref and reset the currentFilterType and ref to nil
-	updateLastAndCurrentFilterType(nil, nil, false)
+	if not doNotUpdateCurrentAndLastFilterTypes then
+		updateLastAndCurrentFilterType(nil, nil, false)
+	end
 
 	if filterTypes == nil or fragmentOrSceneOrControl == nil or stateStr == nil or stateStr == "" then return end
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
@@ -2948,9 +2959,16 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 
 	--Are we hiding or is a control/scene/fragment already hidden?
 	--The shown checks might not work properly then, so we need to "cache" the last used filterType and reference variables!
-	local lastKnownFilterType, lastKnownRefVars
+	local currentFilterType, lastKnownFilterType, lastKnownRefVars
+	currentFilterType 	= libFilters._currentFilterType
 	lastKnownFilterType = libFilters._lastFilterType
 	lastKnownRefVars 	= libFilters._lastFilterTypeReferences
+
+	if doNotUpdateCurrentAndLastFilterTypes == true
+			and lastKnownFilterType ~= nil and currentFilterType ~= nil and lastKnownFilterType ~= currentFilterType then
+		checkIfHidden = true
+	end
+
 	if stateStr == SCENE_HIDDEN then --or stateStr == SCENE_HIDING   then
 
 		if lastKnownFilterType ~= nil then
@@ -3067,15 +3085,39 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		end
 	end
 	--end
+
 	--Was a filterType found or provided (SCENE_HIDING/SCENE_HIDDEN: libFilters._currentFilterType as the callback was raised;
 	--SCENE_SHOWING: passed in filterType if only 1 was passed in)
 	if filterType == nil then
 		--Are we at hiding/hidden state?
-		if stateStr == SCENE_HIDDEN and lastKnownFilterType ~= nil and lastKnownRefVars ~= nil then
+		if stateStr == SCENE_HIDDEN and lastKnownFilterType ~= nil and lastKnownRefVars ~= nil and not doNotUpdateCurrentAndLastFilterTypes then
 			--The last used filterType used before hiding is given? -> Use it for the hiding now
 			filterType 				= lastKnownFilterType
 			lReferencesToFilterType = lastKnownRefVars
 		else
+			if stateStr == SCENE_SHOWN and lastKnownFilterType ~= nil and currentFilterType == nil and lastKnownFilterType ~= currentFilterType then
+				--Reset the current and last filterTypes again as no new filterType currently shown could be found
+				-->This will prevent a nil of the current filterType if another fragment/control tries to fire a callback
+				-->later than the last successfully fired callback (e.g. with enabled addon PerfectPixel the LF_MAIL_SEND
+				-->BACKPACK_MAIL_LAYOUT_FRAGMENT fragment in keyboard mode will fire it's statechange before inventory_fragment
+				-->fires. The inventory fragment will then overwrite the current filterType and set it to nil, and the lastFilterType
+				-->will be set to LF_MAIL_SEND, which is incorrect and leads to errors in the further processing
+				local currentFilterTypeBefore 			= libFilters._lastFilterType
+				if currentFilterTypeBefore ~= nil then
+					libFilters._currentFilterType 			= currentFilterTypeBefore
+					local currentFilterTypeReferencesBefore = libFilters._lastFilterTypeReferences
+					libFilters._currentFilterTypeReferences = currentFilterTypeReferencesBefore
+				end
+				if lastFilterTypeBefore ~= nil then
+					libFilters._lastFilterType = lastFilterTypeBefore
+				end
+				if lastFilterTypeRefBefore ~= nil then
+					libFilters._lastFilterTypeReferences = lastFilterTypeRefBefore
+				end
+				if libFilters.debug then dd(">SHOWN - No filterType found. Resetting the current %s and last filterType %s",
+						tos(currentFilterTypeBefore), tos(lastFilterTypeBefore))
+				end
+			end
 			return false
 		end
 	end
@@ -3093,7 +3135,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	end
 
 	--Update currentFilterTyp and ref if the ref is shown. Do not update if it got hidden!
-	if isShown then
+	if isShown and not doNotUpdateCurrentAndLastFilterTypes then
 		updateLastAndCurrentFilterType(filterType, lReferencesToFilterType, true)
 	end
 
@@ -3124,8 +3166,9 @@ local libFilters_GetCallbackReference = libFilters.GetCallbackReference
 --For the special callbacks: Detect the currently shown filterType and panel reference variables, and then raise the
 --callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
 --returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured
-function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType)
+function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType, doNotUpdateCurrentAndLastFilterTypes)
 	if inputType == nil then inputType = IsGamepad() end
+	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
 	local lReferencesOfShownFilterType, shownFilterType = detectShownReferenceNow(nil, inputType, false, false)
 	if shownFilterType == nil or lReferencesOfShownFilterType == nil then return end
 	--Raise the callback of the filterType with SCENE_SHOWN
@@ -3133,21 +3176,22 @@ function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType)
 	--local refVar = lReferencesOfShownFilterType[1]
 	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, shownFilterType, inputType)
 	if not refVar then return end
-	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef)
+	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 end
 
 --Raise the callback of a dedicated filterType
 --callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
 --returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured
-function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType)
+function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doNotUpdateCurrentAndLastFilterTypes)
 	if filterType == nil or stateStr == nil then return end
 	if inputType == nil then inputType = IsGamepad() end
+	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
 	--Raise the callback of the filterType with SCENE_SHOWN
 	local filterTypes = { filterType }
 	--local refVar = lReferencesOfShownFilterType[1]
 	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, filterType, inputType)
 	if not refVar then return end
-	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef)
+	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 end
 local libFilters_RaiseFilterTypeCallback = libFilters.RaiseFilterTypeCallback
 
@@ -3186,6 +3230,36 @@ local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGa
 	end
 end
 
+local function isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr, inputType, fragmentName)
+	if not fragment then return false end
+	local currentFilterType = libFilters._currentFilterType
+	if not currentFilterType then return false end
+	--Is the fragment a registered callback fragment?
+	if not callbacksUsingFragments[fragment] then return end
+	--Got this fragment any filterTypes to block it's callback raise?
+	local callbackFragmentBlockedFilterTypesBase = callbackFragmentsBlockedMapping[inputType][stateStr]
+	local callbackFragmentBlockedFilterTypes = callbackFragmentBlockedFilterTypesBase ~= nil and callbackFragmentBlockedFilterTypesBase[fragment]
+	if callbackFragmentBlockedFilterTypes ~= nil and #callbackFragmentBlockedFilterTypes > 0 then
+		if libFilters.debug then
+			dd(">isFragmentBlockedByAlreadyDeterminedFilterType: %q - stateStr: %s - currentFilterType: %s",
+					tos(fragmentName), tos(stateStr), tos(currentFilterType))
+		end
+
+		--Is a fragment SHOWN callback tried to be issued?
+		if stateStr == SCENE_SHOWN then
+			for _, filterTypeBlocked in ipairs(callbackFragmentBlockedFilterTypes) do
+				if filterTypeBlocked == currentFilterType then
+					if libFilters.debug then
+						dd(">>>>> YES, filterType %s is blocked!", tos(filterTypeBlocked))
+					end
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 local function onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 	local fragmentName
 	if libFilters.debug then
@@ -3193,7 +3267,14 @@ local function onFragmentStateChange(oldState, newState, filterTypes, fragment, 
 		dd("~~~ FRAGMENT STATE CHANGE ~~~")
 		dd("onFragmentStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(fragmentName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
 	end
-	callbackRaiseCheck(filterTypes, fragment, fragmentStateToSceneState[newState], inputType, 3, fragmentName)
+	local stateStr = fragmentStateToSceneState[newState]
+
+	--Check if the fragment should not raise a callback if any other fragment has fired it's callback before
+	--and changed the libFilters._currentFilterType to a special value
+	--e.g. INVENTORY_FRAGMENT will fire at LF_MAIL_SEND but it does not not need to do any further checks then
+	if not isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr, inputType, fragmentName) then
+		callbackRaiseCheck(filterTypes, fragment, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_FRAGMENT, fragmentName)
+	end
 end
 
 local function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
@@ -3203,7 +3284,7 @@ local function onSceneStateChange(oldState, newState, filterTypes, scene, inputT
 		dd("~~~ SCENE STATE CHANGE ~~~")
 		dd("onSceneStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(sceneName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
 	end
-	callbackRaiseCheck(filterTypes, scene, newState, inputType, 2, sceneName)
+	callbackRaiseCheck(filterTypes, scene, newState, inputType, LIBFILTERS_CON_TYPEOFREF_SCENE, sceneName)
 end
 
 local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType)
@@ -3218,11 +3299,11 @@ local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputTy
 		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the controls' shown state (used within detectShownReferenceNow())
 		--will be updated properly. Else it will fire too early and the control is still in another state, on it's way to state "Shown"!
 		zo_callLater(function()
-			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, 1)
+			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL)
 			checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 		end, 0)
 	else
-		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, 1)
+		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL)
 		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 	end
 end
@@ -3353,6 +3434,7 @@ local function createControlCallbacks()
 	end
 end
 
+
 local function provisionerSpecialCallback(selfProvisioner, provFilterType, overrideDoShow)
 	--Only fire if current scene is the provisioner scene (as PROVISIONER:OnTabFilterChanged also fires if enchanting scene is shown...)
 	local currentFilterType = libFilters._currentFilterType
@@ -3360,7 +3442,7 @@ local function provisionerSpecialCallback(selfProvisioner, provFilterType, overr
 	if (isInGamepadMode and not provisionerScene_GP:IsShowing()) or (not isInGamepadMode and not provisionerScene:IsShowing()) then
 		return
 	end
-	local currentProvFilterType = provFilterType or selfProvisioner.filterType
+	local currentProvFilterType = (isInGamepadMode == true and provFilterType) or selfProvisioner.filterType
 	local filterType = provisionerIngredientTypeToFilterType[currentProvFilterType]
 	local doShow = (filterType ~= nil and true) or false
 
@@ -3466,6 +3548,7 @@ local function createSpecialCallbacks()
 	local craftTypesOpenedAlready = {}
 	local function eventCraftingStationInteractEnd(eventId, craftSkill)
 		EM:UnregisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT)
+		local callCraftingTableHiddenCallback = true
 		--Was the last shown filterType a crafting table filterType?
 		local currentFilterType = libFilters._currentFilterType
 		local lastFilterType = libFilters._lastFilterType
@@ -3474,15 +3557,31 @@ local function createSpecialCallbacks()
 		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
 		-->This would lead to a SCENE_HIDDEN callback firing for the lastFilterType the next time the crafting table opens, eben though the "recipes" tab at the crafting table would be
 		-->re-opened and thus no callback would be needed (SCENE_HIDDEN for lastFilterType already fired as the recipestab was activated!)
-		if currentFilterType == nil and lastFilterType ~= nil and checkForValidFilterTypeAtSamePanel(lastFilterType, nil, craftSkill) then
+		local lastFilterTypeIsValidAtClosedCraftingTable = (lastFilterType ~= nil and checkForValidFilterTypeAtSamePanel(lastFilterType, nil, craftSkill)) or false
+		if currentFilterType == nil and lastFilterTypeIsValidAtClosedCraftingTable == true then
 			if libFilters.debug then dv(">lastFilterType will not raise a HIDDEN callback at next crafting table open!") end
 			--Set the flag that the lastFilterType will not fire a HIDDEN callback as the crafting table get's opened next time!
 			libFilters._lastFilterTypeNoCallback = true
+
+		--[[
+		--The current filterType could be LF_INVENTORY due to opening the inventory via keybind directly from the crafting table.
+		--The inventory_fragment callback will fire before the event_end_crafting_station_interact fires ... So the currentFilterType is LF_INVENTORY,
+		--and the lastFilterType will be the crafting table's filterType  then
+		-->Though this only seems to happen if PerfectPixel addon is active?
+		elseif currentFilterType ~= nil and lastFilterTypeIsValidAtClosedCraftingTable == true and currentFilterType ~= lastFilterType then
+			--Is the current filterType not valid at the closed craftingTable
+			if not checkForValidFilterTypeAtSamePanel(currentFilterType, nil, craftSkill) then
+				if libFilters.debug then dv(">currentFilterType is no crafting filterType at the closed crafting table! lastFilterType will raise a HIDDEN callback now!") end
+				libFilters_RaiseFilterTypeCallback(libFilters, lastFilterType, SCENE_HIDDEN, nil, true) --do not update current and last filterType in this case as they alredy are up2date
+				return
+			end
+		]]
 		end
 		if not isCraftingFilterType[currentFilterType] then return end
 		--Fire the HIDE callback of the last used crafting filterType
-		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil)
+		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil, false)
 	end
+
 	local function eventCraftingStationInteract(eventId, craftSkill)
 		if libFilters.debug then dd(">[EVENT_CRAFTING_STATION_INTERACT] craftSkill: %s", tos(craftSkill)) end
 		EM:RegisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT, eventCraftingStationInteractEnd)
