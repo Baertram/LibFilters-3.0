@@ -58,7 +58,8 @@ local invGuildStoreSellScene_GP   	= 			gpc.invGuildStoreSellScene_GP
 local invMailSendScene_GP         	= 			gpc.invMailSendScene_GP
 local invMailSend_GP  				= 			gpc.invMailSend_GP
 local invMailSendFragment_GP		=			gpc.invMailSendFragment_GP
-local invPlayerTradeScene_GP      	= 			gpc.invPlayerTradeScene_GP
+local invPlayerTradeScene_GP		= 			gpc.invPlayerTradeScene_GP
+local quickslotFragment_GP   		=			gpc.quickslotFragment_GP
 
 local customFragments_GP          	= 			gpc.customFragments
 local fragmentPrefix              	= 			gpc.customFragmentPrefix
@@ -71,6 +72,7 @@ local gamepadLibFiltersHouseBankDepositFragment
 local gamepadLibFiltersGuildStoreSellFragment
 local gamepadLibFiltersMailSendFragment
 local gamepadLibFiltersPlayerTradeFragment
+local gamepadLibFiltersInventoryQuestFragment
 
 
 --Debugging
@@ -465,6 +467,16 @@ gamepadLibFiltersPlayerTradeFragment._name 		= getCustomLibFiltersFragmentName(L
 _G[gamepadLibFiltersPlayerTradeFragment._name] 	= gamepadLibFiltersPlayerTradeFragment
 
 
+--Player inventory quest
+gamepadLibFiltersInventoryQuestFragment			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+gamepadLibFiltersInventoryQuestFragment._name 	= getCustomLibFiltersFragmentName(LF_INVENTORY_QUEST)
+_G[gamepadLibFiltersInventoryQuestFragment._name]= gamepadLibFiltersInventoryQuestFragment
+
+gamepadLibFiltersInventoryQuestFragment:RegisterCallback("StateChange", function(oldState, newState)
+	if libFilters.debug then dd("GAMEPAD CUSTOM Inventory Quest FRAGMENT - State: " ..tos(newState)) end
+end)
+
+
 --Player inventory
 gamepadLibFiltersInventoryFragment              = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 gamepadLibFiltersInventoryFragment._name 		= getCustomLibFiltersFragmentName(LF_INVENTORY)
@@ -473,6 +485,35 @@ _G[gamepadLibFiltersInventoryFragment._name]	= gamepadLibFiltersInventoryFragmen
 gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldState, newState)
 	if libFilters.debug then dd("GAMEPAD CUSTOM Inventory FRAGMENT - State: " ..tos(newState)) end
 end)
+
+
+local function gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
+	--Get the currently selected gamepad inventory category
+	if selectedGPInvFilter ~= nil then
+		--Raise the inventory hidden callback
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+		if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+
+		if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
+			if libFilters.debug then dd(">Gamepad Inventory quest is shown, fire SHOWN callback for quest") end
+			updateSceneManagerAndHideFragment(quickslotFragment_GP)
+
+			--Raise callback for gamepad inventory quest
+			invRootScene:AddFragment(gamepadLibFiltersInventoryQuestFragment)
+			gamepadLibFiltersInventoryQuestFragment:Show()
+
+		elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
+			if libFilters.debug then dd(">Gamepad Inventory quickslots is shown, fire HIDDEN callback for quickslots") end
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+
+			--Raise callback for gamepad inventory quickslot
+			quickslotFragment_GP:Show()
+		end
+	end
+end
+
 
 local craftBagList_GP, craftBagFragment_GP
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
@@ -484,25 +525,15 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 
 		if libFilters:IsInventoryShown() then
 			if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment") end
-			libFilters:RaiseFilterTypeCallback(LF_INVENTORY, SCENE_SHOWN, true, false)
+			updateSceneManagerAndHideFragment(quickslotFragment_GP)
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+
+			invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
+			gamepadLibFiltersInventoryFragment:Show()
 
 		else
-			--Get the currently selected gamepad inventory category
-			if selectedGPInvFilter ~= nil then
-				--Raise the inventory hidden callback
-				libFilters:RaiseFilterTypeCallback(LF_INVENTORY, SCENE_HIDDEN, true, false)
-
-				if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
-					if libFilters.debug then dd(">Gamepad Inventory quest is shown, fire SHOWN callback for quest") end
-					--Raise callback for gamepad inventory quest
-					libFilters:RaiseFilterTypeCallback(LF_INVENTORY_QUEST, SCENE_SHOWN, true, false)
-
-				elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
-					if libFilters.debug then dd(">Gamepad Inventory quickslots is shown, fire HIDDEN callback for quickslots") end
-					--Raise callback for gamepad inventory quickslot
-					libFilters:RaiseFilterTypeCallback(LF_QUICKSLOT, SCENE_SHOWN, true, false)
-				end
-			end
+			gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
 		end
 	end
 	invBackpack_GP.categoryList:SetOnSelectedDataChangedCallback(OnSelectedCategoryChangedLibFilters)
@@ -553,8 +584,11 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 	if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList") end
 	if list == invBackpack_GP.craftBagList then
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+		updateSceneManagerAndHideFragment(quickslotFragment_GP)
 		if libFilters.debug then dd("-> CraftBag - Removed CUSTOM inventory fragment") end
 		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
 
 	else
 		--Coming from CraftBag?
@@ -566,18 +600,15 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 		--Check for non-inventory selected entries in the categoryliest, like "quests" or "quickslots" and remove the custom inv. fragment then
 		if libFilters:IsInventoryShown() then
 			if libFilters.debug then dd("-> Inventory - Added CUSTOM inventory fragment") end
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+			updateSceneManagerAndHideFragment(quickslotFragment_GP)
+
 			invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
 			gamepadLibFiltersInventoryFragment:Show()
 		else
-			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
-			if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
-			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
-
-			--Detect if inventory quest is shown
-			if invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST then
-				--Raise the callback of the gamepad inventory quest
-				libFilters:RaiseFilterTypeCallback(LF_INVENTORY_QUEST, SCENE_SHOWN, true, false)
-			end
+			local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
+			gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
 		end
 	end
 end)
@@ -634,9 +665,18 @@ gamepadLibFiltersGuildStoreSellFragment:SetConditional(function()
 end)
 ]]
 
-gamepadLibFiltersInventoryFragment:SetConditional(function()
+local function gpInvNoCraftBagShowing()
 	return invRootScene:IsShowing() and (invBackpack_GP.craftBagList == nil
 										or (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive() == false))
+end
+
+gamepadLibFiltersInventoryQuestFragment:SetConditional(function()
+	return gpInvNoCraftBagShowing() and invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST
+
+end)
+
+gamepadLibFiltersInventoryFragment:SetConditional(function()
+	return gpInvNoCraftBagShowing()
 end)
 
 
@@ -654,6 +694,7 @@ customFragmentsUpdateRef[LF_HOUSE_BANK_DEPOSIT].fragment 						= 	gamepadLibFilt
 customFragmentsUpdateRef[LF_GUILDSTORE_SELL].fragment               			= 	gamepadLibFiltersGuildStoreSellFragment
 customFragmentsUpdateRef[LF_MAIL_SEND].fragment                     			= 	gamepadLibFiltersMailSendFragment
 customFragmentsUpdateRef[LF_TRADE].fragment                         			= 	gamepadLibFiltersPlayerTradeFragment
+customFragmentsUpdateRef[LF_INVENTORY_QUEST].fragment 							=   gamepadLibFiltersInventoryQuestFragment
 
 --Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 -->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
@@ -664,6 +705,7 @@ LF_FilterTypeToReference[true][LF_HOUSE_BANK_DEPOSIT] 							= 	{ gamepadLibFilt
 LF_FilterTypeToReference[true][LF_GUILDSTORE_SELL]                            	= 	{ gamepadLibFiltersGuildStoreSellFragment }
 LF_FilterTypeToReference[true][LF_MAIL_SEND]                                  	= 	{ gamepadLibFiltersMailSendFragment }
 LF_FilterTypeToReference[true][LF_TRADE]                                      	= 	{ gamepadLibFiltersPlayerTradeFragment }
+LF_FilterTypeToReference[true][LF_INVENTORY_QUEST] 								=   { gamepadLibFiltersInventoryQuestFragment }
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
 --LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		= 	gamepadLibFiltersInventoryFragment --uses GAMEPAD_INVENTORY_FRAGMENT now for detection as this' shown state get's updated properly after quickslot wheel was closed again
@@ -674,6 +716,7 @@ LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"]
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_SELL]["fragment"] 	= 	gamepadLibFiltersGuildStoreSellFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       	= 	gamepadLibFiltersMailSendFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	= 	gamepadLibFiltersPlayerTradeFragment
+LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_QUEST]["fragment"]	=   gamepadLibFiltersInventoryQuestFragment
 
 -->Update the new created custom fragments to the callback-by-fragment-StateChange lookup table
 callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 				= { LF_INVENTORY }
@@ -683,6 +726,7 @@ callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 		= { L
 callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 			= { LF_GUILDSTORE_SELL }
 callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 				= { LF_MAIL_SEND }
 callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 			= { LF_TRADE }
+callbacksUsingFragments[true][gamepadLibFiltersInventoryQuestFragment] 			= { LF_INVENTORY_QUEST }
 --Update the callback invoker fragments
 filterTypeToCallbackRef[true][LF_INVENTORY] = 			{ ref = gamepadLibFiltersInventoryFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 filterTypeToCallbackRef[true][LF_BANK_DEPOSIT] = 		{ ref = gamepadLibFiltersBankDepositFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
@@ -691,6 +735,7 @@ filterTypeToCallbackRef[true][LF_HOUSE_BANK_DEPOSIT] = 	{ ref = gamepadLibFilter
 filterTypeToCallbackRef[true][LF_GUILDSTORE_SELL] = 	{ ref = gamepadLibFiltersGuildStoreSellFragment, 	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 filterTypeToCallbackRef[true][LF_MAIL_SEND] = 			{ ref = gamepadLibFiltersMailSendFragment, 			refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 filterTypeToCallbackRef[true][LF_TRADE] = 				{ ref = gamepadLibFiltersPlayerTradeFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_INVENTORY_QUEST] = 	{ ref = gamepadLibFiltersInventoryQuestFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly

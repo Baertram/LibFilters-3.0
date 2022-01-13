@@ -583,7 +583,7 @@ local invFragment_GP = gpc.invFragment_GP
 --gamepadConstants.invCraftbag_GP =	inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to filterTypeToReference[true] again
 
 --Quest items
-gpc.invQuests_GP                = invRootScene_GP --todo: use gamepad inventory root scene for quest hook? Better use something else like a gamepad quest fragment (if exists)
+--custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 
 --Quickslots
 gpc.quickslots_GP 				= GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
@@ -1174,7 +1174,7 @@ local filterTypeToReference = {
 
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY_QUEST]          = { gpc.invQuests_GP },
+		[LF_INVENTORY_QUEST]          = {  }, --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 		[LF_INVENTORY_COMPANION]      = { companionEquipment_GP },
 
 		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
@@ -1535,7 +1535,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 	--Gamepad mode
 	[true]  = {
 		--Works, 2021-12-20
-		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,		["fragment"] = invFragment_GP,
+		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,		["fragment"] = nil, --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = invBackpack_GP,
@@ -2197,8 +2197,6 @@ local callbacksUsingFragments = {
 
 	--Gamepad
 	[true] = {
-		--LF_INVENTORY_QUEST
-		--[invFragment_GP]											= { LF_INVENTORY_QUEST }, --does not work properly! Inventory fragment is also used elsewhere! -> Needs to be moved to special check
 
 		--Dedicated fragments
 		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= { LF_VENDOR_BUY },
@@ -2222,6 +2220,7 @@ local callbacksUsingFragments = {
 		--callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 	= { LF_GUILDSTORE_SELL }
 		--callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 			= { LF_MAIL_SEND }
 		--callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 		= { LF_TRADE }
+		--callbacksUsingFragments[true][gamepadLibFiltersInventoryQuestFragment] 	= { LF_INVENTORY_QUEST }
 		--[1] = { LF_BANK_WITHDRAW },
 		--[1] = { LF_GUILDBANK_WITHDRAW },
 		--[1] = { LF_HOUSE_BANK_WITHDRAW },
