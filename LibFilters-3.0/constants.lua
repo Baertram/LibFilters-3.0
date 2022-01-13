@@ -1175,7 +1175,6 @@ local filterTypeToReference = {
 
 	--Gamepad mode
 	[true]  = {
-		[LF_INVENTORY_QUEST]          = {  }, --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 		[LF_INVENTORY_COMPANION]      = { companionEquipment_GP },
 
 		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
@@ -1194,15 +1193,16 @@ local filterTypeToReference = {
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		[LF_INVENTORY]                = {}, --uses fragment
-		[LF_BANK_DEPOSIT]             = {}, --uses fragment
-		[LF_GUILDBANK_DEPOSIT]        = {}, --uses fragment
-		[LF_HOUSE_BANK_DEPOSIT]       = {}, --uses fragment
-		[LF_GUILDSTORE_SELL]          = {}, --uses fragment
-		[LF_MAIL_SEND]                = {}, --uses fragment
-		[LF_TRADE]                    = {}, --uses fragment
+		[LF_INVENTORY]                = {}, --custom created gamepad fragment gamepadLibFiltersInventoryFragment
+		[LF_BANK_DEPOSIT]             = {}, --custom created gamepad fragment gamepadLibFiltersBankDepositFragment
+		[LF_GUILDBANK_DEPOSIT]        = {}, --custom created gamepad fragment gamepadLibFiltersGuildBankDepositFragment
+		[LF_HOUSE_BANK_DEPOSIT]       = {}, --custom created gamepad fragment gamepadLibFiltersHouseBankDepositFragment
+		[LF_GUILDSTORE_SELL]          = {}, --custom created gamepad fragment gamepadLibFiltersGuildStoreSellFragment
+		[LF_MAIL_SEND]                = {}, --custom created gamepad fragment gamepadLibFiltersMailSendFragment
+		[LF_TRADE]                    = {}, --custom created gamepad fragment gamepadLibFiltersPlayerTradeFragment
+		[LF_INVENTORY_QUEST]          = {}, --custom created gamepad fragment gamepadLibFiltersInventoryQuestFragment
 
-
+		
 		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
 		-->Will ONLY be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter() later on checks for the current gamepad
