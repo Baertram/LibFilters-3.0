@@ -3492,6 +3492,7 @@ local function createSpecialCallbacks()
 		local doShow = (filterType ~= nil and true) or false
 		if doShow == false then
 			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "enchanting") then
+				if libFilters.debug then dd("~ABORT Enchanting:OnModeUpdated - currentFilterType is nil and lastFilterType not matching crafting type") end
 				libFilters._lastFilterTypeNoCallback = false
 				return
 			else
@@ -3526,7 +3527,9 @@ local function createSpecialCallbacks()
 			--Will only be checked if the current filterType is not given, as else it would prevent a SCENE_HIDDEN callback for e.g. switching from alchemy creation to
 			--alchemy recipes, if one has had opened the inventory in between and the libFilters._lastFilterType = LF_INVENTORY in that case -> LF_INVENTORY does not belong to
 			--the current panel "alchemy" and LF_ALCHEMY_CREATION would not be firing it's HIDDEN callback then as one switches to the recipes tab (which is not supported and got no LF* constant)
+			-->TODO: How to prevent if any panel was last opened that does not belong to the current crafting table (e.g. LF_VENDOR_REPAIR) and currentFilterType is nil because the last panel was hidden already?
 			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "alchemy") then
+				if libFilters.debug then dd("~ABORT Alchemy:SetMode - currentFilterType is nil and lastFilterType not matching crafting type") end
 				libFilters._lastFilterTypeNoCallback = false
 				return
 			else
@@ -3614,18 +3617,12 @@ local function createSpecialCallbacks()
 	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
 	-->ZO_Provisioner:OnTabFilterChanged(filterData)
 	SecurePostHook(provisioner_GP, "OnTabFilterChanged", function(selfProvisioner, filterType)
-		if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "provisioning") then
-			if libFilters.debug then dd("<Gamepad Provisioner:OnTabFilterChanged - Abort due to not valid filterType at crafting table") end
-			libFilters._lastFilterTypeNoCallback = false
-			return
-		else
-			local lastKnownFilterType = libFilters._lastFilterType
-			if lastKnownFilterType ~= nil then
-				if libFilters.debug then dd("~Gamepad Provisioner:OnTabFilterChanged - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
-				if libFilters._lastFilterTypeNoCallback == true then
-					libFilters._lastFilterTypeNoCallback = false
-					return
-				end
+		local lastKnownFilterType = libFilters._lastFilterType
+		if lastKnownFilterType ~= nil then
+			if libFilters.debug then dd("~Gamepad Provisioner:OnTabFilterChanged - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+			if libFilters._lastFilterTypeNoCallback == true then
+				libFilters._lastFilterTypeNoCallback = false
+				return
 			end
 		end
 
