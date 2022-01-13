@@ -3189,9 +3189,11 @@ function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doN
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
 	--Raise the callback of the filterType with SCENE_SHOWN
 	local filterTypes = { filterType }
-	--local refVar = lReferencesOfShownFilterType[1]
 	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, filterType, inputType)
-	if not refVar then return end
+	if not refVar then
+		if libFilters.debug then dfe("No callback reference found for filterType: %s, inputType: %s", tos(filterType), tos(inputType)) end
+		return
+	end
 	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 end
 local libFilters_RaiseFilterTypeCallback = libFilters.RaiseFilterTypeCallback

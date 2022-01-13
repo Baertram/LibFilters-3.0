@@ -34,6 +34,7 @@ local playerInventoryType = 					inventoryTypes["player"] -- INVENTORY_BACKPACK
 local mapping = 								libFilters.mapping
 local callbacks = 								mapping.callbacks
 local callbacksUsingFragments = 				callbacks.usingFragments
+local filterTypeToCallbackRef = 				callbacks.filterTypeToCallbackRef
 
 local LF_FilterTypeToReference =				mapping.LF_FilterTypeToReference
 local LF_FilterTypeToCheckIfReferenceIsHidden = mapping.LF_FilterTypeToCheckIfReferenceIsHidden
@@ -679,6 +680,14 @@ callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 		= { L
 callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 			= { LF_GUILDSTORE_SELL }
 callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 				= { LF_MAIL_SEND }
 callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 			= { LF_TRADE }
+--Update the callback invoker fragments
+filterTypeToCallbackRef[true][LF_INVENTORY] = 			{ ref = gamepadLibFiltersInventoryFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_BANK_DEPOSIT] = 		{ ref = gamepadLibFiltersBankDepositFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_GUILDBANK_DEPOSIT] = 	{ ref = gamepadLibFiltersGuildBankDepositFragment, 	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_HOUSE_BANK_DEPOSIT] = 	{ ref = gamepadLibFiltersHouseBankDepositFragment, 	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_GUILDSTORE_SELL] = 	{ ref = gamepadLibFiltersGuildStoreSellFragment, 	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_MAIL_SEND] = 			{ ref = gamepadLibFiltersMailSendFragment, 			refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+filterTypeToCallbackRef[true][LF_TRADE] = 				{ ref = gamepadLibFiltersPlayerTradeFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
