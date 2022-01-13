@@ -2930,12 +2930,16 @@ callbacks.added = callbacksAdded
 function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 	local isShown = (stateStr == SCENE_SHOWN and true) or false
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
-
 	--Backup the lastFilterTyp and references if given
 	local lastFilterTypeBefore 			= libFilters._lastFilterType
 	local lastFilterTypeRefBefore 		= libFilters._lastFilterTypeReferences
 	local currentFilterType 			= libFilters._currentFilterType
+	local currentFilterTypeRef			= libFilters._currentFilterTypeReferences
 	local currentFilterTypeBeforeReset	= currentFilterType
+	local currentFilterTypeRefBeforeReset = currentFilterTypeRef
+	if libFilters.debug then
+		dv("[CallbackRaise]state: %s, currentBefore: %s, lastBefore: %s, doNotUpdate: %s", tos(stateStr), tos(currentFilterTypeBeforeReset), tos(lastFilterTypeBefore), tos(doNotUpdateCurrentAndLastFilterTypes))
+	end
 
 	--Update lastFilterType and ref and reset the currentFilterType and ref to nil
 	if not doNotUpdateCurrentAndLastFilterTypes then
@@ -3130,8 +3134,13 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	--Was the callback that should fire now the last activated one already?
 	local lastCallbackState = libFilters._lastCallbackState
 	if lastCallbackState ~= nil and lastCallbackState == stateStr and currentFilterTypeBeforeReset ~= nil and filterType == currentFilterTypeBeforeReset then
+		--Reset the current and last variables now
+		libFilters._currentFilterType 			= currentFilterTypeBeforeReset
+		libFilters._currentFilterTypeReferences	= currentFilterTypeRefBeforeReset
+		libFilters._lastFilterType				= lastKnownFilterType
+		libFilters._lastFilterTypeReferences	= lastKnownRefVars
 		if libFilters.debug then
-			df("<CALLBACK ABORTED - filterType: %s and state %s currently already active!", tos(filterType), tos(stateStr))
+			df("<CALLBACK ABORTED - filterType: %s and state %s currently already active! currentNow: %s, lastNow: %s", tos(filterType), tos(stateStr), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType))
 		end
 		return
 	end
