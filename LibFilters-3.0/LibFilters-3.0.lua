@@ -3179,6 +3179,7 @@ function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType, doNotUpdat
 	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 end
 
+
 --Raise the callback of a dedicated filterType
 --callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
 --returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured
@@ -3212,6 +3213,7 @@ local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef,
 	end
 end
 
+
 --Check which fragment is shown and raise a callback, if needed
 local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 	--Only fire callbacks for the scene states supported
@@ -3229,6 +3231,7 @@ local function callbackRaiseCheck(filterTypes, fragmentOrScene, stateStr, isInGa
 		checkIfSpecialCallbackNeedsToBeAdded(fragmentOrScene, stateStr, isInGamepadMode, typeOfRef, refName)
 	end
 end
+
 
 local function isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr, inputType, fragmentName)
 	local currentFilterType = libFilters._currentFilterType
@@ -3257,6 +3260,7 @@ local function isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr
 	return false
 end
 
+
 local function onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 	local fragmentName
 	if libFilters.debug then
@@ -3274,6 +3278,7 @@ local function onFragmentStateChange(oldState, newState, filterTypes, fragment, 
 	end
 end
 
+
 local function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 	local sceneName
 	if libFilters.debug then
@@ -3283,6 +3288,7 @@ local function onSceneStateChange(oldState, newState, filterTypes, scene, inputT
 	end
 	callbackRaiseCheck(filterTypes, scene, newState, inputType, LIBFILTERS_CON_TYPEOFREF_SCENE, sceneName)
 end
+
 
 local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType)
 	local ctrlName
@@ -3304,6 +3310,7 @@ local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputTy
 		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
 	end
 end
+
 
 local function createFragmentCallback(fragment, filterTypes, inputType)
 	if libFilters.debug then
@@ -3329,6 +3336,7 @@ local function createFragmentCallback(fragment, filterTypes, inputType)
 end
 libFilters.CreateFragmentCallback = createFragmentCallback
 
+
 local function createFragmentCallbacks()
 	if libFilters.debug then
 		dd("createFragmentCallbacks")
@@ -3341,6 +3349,7 @@ local function createFragmentCallbacks()
 		end
 	end
 end
+
 
 local function createSceneCallbacks()
 	if libFilters.debug then
@@ -3371,6 +3380,7 @@ local function createSceneCallbacks()
 		end
 	end
 end
+
 
 local function createControlCallback(controlRef, filterTypes, inputType)
 	local ctrlName = "n/a"
@@ -3418,6 +3428,7 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 end
 libFilters.CreateControlCallback = createControlCallback
 
+
 local function createControlCallbacks()
 	if libFilters.debug then
 		dd("createControlCallbacks")
@@ -3452,8 +3463,9 @@ local function provisionerSpecialCallback(selfProvisioner, provFilterType, overr
 	end
 
 	local provisionerControl = selfProvisioner.control
+	local provCallbackName = (isInGamepadMode and "Gamepad Provisioner") or "Provisioner"
 
-	if libFilters.debug then dd("~Provisioner:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
+	if libFilters.debug then dd("~%s:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(provCallbackName), tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
 	if hideOldProvFilterType == true then
 		onControlHiddenStateChange(false, { currentFilterType }, provisionerControl, isInGamepadMode)
 	end
@@ -3461,6 +3473,7 @@ local function provisionerSpecialCallback(selfProvisioner, provFilterType, overr
 		onControlHiddenStateChange(doShow, { filterType }, provisionerControl, isInGamepadMode)
 	end
 end
+
 
 local function createSpecialCallbacks()
 	--[Keyboard mode]
@@ -3559,7 +3572,6 @@ local function createSpecialCallbacks()
 			if libFilters.debug then dv(">lastFilterType will not raise a HIDDEN callback at next crafting table open!") end
 			--Set the flag that the lastFilterType will not fire a HIDDEN callback as the crafting table get's opened next time!
 			libFilters._lastFilterTypeNoCallback = true
-
 		--[[
 		--The current filterType could be LF_INVENTORY due to opening the inventory via keybind directly from the crafting table.
 		--The inventory_fragment callback will fire before the event_end_crafting_station_interact fires ... So the currentFilterType is LF_INVENTORY,
@@ -3602,7 +3614,21 @@ local function createSpecialCallbacks()
 	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
 	-->ZO_Provisioner:OnTabFilterChanged(filterData)
 	SecurePostHook(provisioner_GP, "OnTabFilterChanged", function(selfProvisioner, filterType)
-d("Gamepad OnTabFilterChanged - filterType: " ..tos(filterType))
+		if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "provisioning") then
+			if libFilters.debug then dd("<Gamepad Provisioner:OnTabFilterChanged - Abort due to not valid filterType at crafting table") end
+			libFilters._lastFilterTypeNoCallback = false
+			return
+		else
+			local lastKnownFilterType = libFilters._lastFilterType
+			if lastKnownFilterType ~= nil then
+				if libFilters.debug then dd("~Gamepad Provisioner:OnTabFilterChanged - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+				if libFilters._lastFilterTypeNoCallback == true then
+					libFilters._lastFilterTypeNoCallback = false
+					return
+				end
+			end
+		end
+
 		provisionerSpecialCallback(selfProvisioner, filterType, nil)
 	end)
 
