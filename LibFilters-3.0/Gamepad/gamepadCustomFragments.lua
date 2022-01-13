@@ -479,7 +479,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	--Add a callback to GAMEPAD_INVENTORY.categoryList SelectedDataChanged to update the current LibFilters filterType and fire the callbacks
 	--Match the tooltip to the selected data because it looks nicer
 	local function OnSelectedCategoryChangedLibFilters(list, selectedData)
-		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
+		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType or selectedData.itemFilterType
 		if libFilters.debug then dd("GAMEPAD Inventory OnSelectedDataChanged: %s [%s]", tos(selectedData.text), tos(selectedGPInvFilter)) end
 
 		if libFilters:IsInventoryShown() then
@@ -489,6 +489,9 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 		else
 			--Get the currently selected gamepad inventory category
 			if selectedGPInvFilter ~= nil then
+				--Raise the inventory hidden callback
+				libFilters:RaiseFilterTypeCallback(LF_INVENTORY, SCENE_HIDDEN, true, false)
+
 				if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
 					if libFilters.debug then dd(">Gamepad Inventory quest is shown, fire SHOWN callback for quest") end
 					--Raise callback for gamepad inventory quest
@@ -497,7 +500,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 				elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
 					if libFilters.debug then dd(">Gamepad Inventory quickslots is shown, fire HIDDEN callback for quickslots") end
 					--Raise callback for gamepad inventory quickslot
-					libFilters:RaiseFilterTypeCallback(LF_QUICKSLOTS, SCENE_SHOWN, true, false)
+					libFilters:RaiseFilterTypeCallback(LF_QUICKSLOT, SCENE_SHOWN, true, false)
 				end
 			end
 		end

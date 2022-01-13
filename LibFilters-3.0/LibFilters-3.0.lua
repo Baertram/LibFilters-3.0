@@ -66,6 +66,8 @@ libFilters._currentFilterTypeReferences = nil
 --Cashed "last" data, before current (placeholders, currently nil)
 libFilters._lastFilterType 				= nil
 libFilters._lastFilterTypeReferences 	= nil
+--Cashes "last" callback state and "do not fire callback" variables
+libFilters._lastCallbackState			= nil
 libFilters._lastFilterTypeNoCallback	= false
 
 
@@ -2930,8 +2932,10 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
 
 	--Backup the lastFilterTyp and references if given
-	local lastFilterTypeBefore 		= libFilters._lastFilterType
-	local lastFilterTypeRefBefore 	= libFilters._lastFilterTypeReferences
+	local lastFilterTypeBefore 			= libFilters._lastFilterType
+	local lastFilterTypeRefBefore 		= libFilters._lastFilterTypeReferences
+	local currentFilterType 			= libFilters._currentFilterType
+	local currentFilterTypeBeforeReset	= currentFilterType
 
 	--Update lastFilterType and ref and reset the currentFilterType and ref to nil
 	if not doNotUpdateCurrentAndLastFilterTypes then
@@ -2959,11 +2963,12 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 
 	--Are we hiding or is a control/scene/fragment already hidden?
 	--The shown checks might not work properly then, so we need to "cache" the last used filterType and reference variables!
-	local currentFilterType, lastKnownFilterType, lastKnownRefVars
+	local lastKnownFilterType, lastKnownRefVars
 	currentFilterType 	= libFilters._currentFilterType
 	lastKnownFilterType = libFilters._lastFilterType
 	lastKnownRefVars 	= libFilters._lastFilterTypeReferences
 
+	--todo: 2022-01-14: Currently parameter doNotUpdateCurrentAndLastFilterTypes is not used anywhere. Was used for crafting tables > inventory -> crafting table switch I think I remember?!
 	if doNotUpdateCurrentAndLastFilterTypes == true
 			and lastKnownFilterType ~= nil and currentFilterType ~= nil and lastKnownFilterType ~= currentFilterType then
 		checkIfHidden = true
@@ -3121,6 +3126,16 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			return false
 		end
 	end
+
+	--Was the callback that should fire now the last activated one already?
+	local lastCallbackState = libFilters._lastCallbackState
+	if lastCallbackState ~= nil and lastCallbackState == stateStr and currentFilterTypeBeforeReset ~= nil and filterType == currentFilterTypeBeforeReset then
+		if libFilters.debug then
+			df("<CALLBACK ABORTED - filterType: %s and state %s currently already active!", tos(filterType), tos(stateStr))
+		end
+		return
+	end
+
 	if lReferencesToFilterType == nil then lReferencesToFilterType = {} end
 
 	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
@@ -3140,6 +3155,8 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	end
 
 	--Fire the callback now
+	libFilters._lastCallbackState = stateStr
+
 	CM:FireCallbacks(callbackName,
 			filterType,
 			stateStr,

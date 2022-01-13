@@ -2429,7 +2429,7 @@ callbacks.special = {
 			if libFilters.debug then dv(">>>Special callback: ZO_ListDialog1:OnHide") end
 			--Detect the shown panel again
 			if not libFilters:IsCraftingStationShown() then return end
-			libFilters:RaiseShownFilterTypeCallback(SCENE_SHOWN, inputType)
+			libFilters:RaiseShownFilterTypeCallback(SCENE_SHOWN, inputType, false)
 		end,
 	},
 }
