@@ -3324,14 +3324,15 @@ local function createFragmentCallback(fragment, filterTypes, inputType)
 	--For controls which get created OnDeferredInitialize
 	if fragment == nil then return end
 	--Only add the callback once per input type
-	if callbacksAdded[3][fragment] == nil or (callbacksAdded[3][fragment] ~= nil and not callbacksAdded[3][fragment][inputType]) then
+	if callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment] == nil or (callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment] ~= nil
+			and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment][inputType]) then
 		fragment:RegisterCallback("StateChange",
 				function(oldState, newState)
 					onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 				end
 		)
-		callbacksAdded[3][fragment] = callbacksAdded[3][fragment] or {}
-		callbacksAdded[3][fragment][inputType] = filterTypes
+		callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment] = callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment] or {}
+		callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment][inputType] = filterTypes
 	end
 end
 libFilters.CreateFragmentCallback = createFragmentCallback
@@ -3370,11 +3371,12 @@ local function createSceneCallbacks()
 				end
 				if scene == nil then return end
 				--Only add the callback once per input type
-				if callbacksAdded[2][scene] == nil or (callbacksAdded[2][scene] ~= nil and not callbacksAdded[2][scene][inputType]) then
+				if callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] == nil or (callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] ~= nil
+						and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene][inputType]) then
 					scene:RegisterCallback("StateChange",
 							function(oldState, newState) onSceneStateChange(oldState, newState, filterTypes, scene, inputType) end)
-					callbacksAdded[2][scene] = callbacksAdded[2][scene] or {}
-					callbacksAdded[2][scene][inputType] = filterTypes
+					callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] = callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] or {}
+					callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene][inputType] = filterTypes
 				end
 			end
 		end
@@ -3397,7 +3399,8 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 		end
 	end
 	--Only add the callback once per input type
-	if callbacksAdded[1][controlRef] == nil or (callbacksAdded[1][controlRef] ~= nil and not callbacksAdded[1][controlRef][inputType]) then
+	if callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] == nil or (callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] ~= nil
+			and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef][inputType]) then
 
 		--OnShow
 		local onShowHandler = controlRef.GetHandler and controlRef:GetHandler("OnEffectivelyShown")
@@ -3422,8 +3425,8 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
 			end)
 		end
-		callbacksAdded[1][controlRef] = callbacksAdded[1][controlRef] or {}
-		callbacksAdded[1][controlRef][inputType] = filterTypes
+		callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] = callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] or {}
+		callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef][inputType] = filterTypes
 	end
 end
 libFilters.CreateControlCallback = createControlCallback

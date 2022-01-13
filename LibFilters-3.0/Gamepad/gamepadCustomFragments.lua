@@ -473,10 +473,39 @@ gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldS
 	if libFilters.debug then dd("GAMEPAD CUSTOM Inventory FRAGMENT - State: " ..tos(newState)) end
 end)
 
+local craftBagList_GP, craftBagFragment_GP
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
+	--Add a callback to GAMEPAD_INVENTORY.categoryList SelectedDataChanged to update the current LibFilters filterType and fire the callbacks
+	--Match the tooltip to the selected data because it looks nicer
+	local function OnSelectedCategoryChangedLibFilters(list, selectedData)
+		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
+		if libFilters.debug then dd("GAMEPAD Inventory OnSelectedDataChanged: %s [%s]", tos(selectedData.text), tos(selectedGPInvFilter)) end
+
+		if libFilters:IsInventoryShown() then
+			if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment") end
+			libFilters:RaiseFilterTypeCallback(LF_INVENTORY, SCENE_SHOWN, true, false)
+
+		else
+			--Get the currently selected gamepad inventory category
+			if selectedGPInvFilter ~= nil then
+				if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
+					if libFilters.debug then dd(">Gamepad Inventory quest is shown, fire SHOWN callback for quest") end
+					--Raise callback for gamepad inventory quest
+					libFilters:RaiseFilterTypeCallback(LF_INVENTORY_QUEST, SCENE_SHOWN, true, false)
+
+				elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
+					if libFilters.debug then dd(">Gamepad Inventory quickslots is shown, fire HIDDEN callback for quickslots") end
+					--Raise callback for gamepad inventory quickslot
+					libFilters:RaiseFilterTypeCallback(LF_QUICKSLOTS, SCENE_SHOWN, true, false)
+				end
+			end
+		end
+	end
+	invBackpack_GP.categoryList:SetOnSelectedDataChangedCallback(OnSelectedCategoryChangedLibFilters)
+
 	--Update the control and special checks controls with the now existing CraftBag list controls
-	local craftBagList_GP = invBackpack_GP.craftBagList
-	local craftBagFragment_GP = craftBagList_GP._fragment
+	craftBagList_GP = invBackpack_GP.craftBagList
+	craftBagFragment_GP = craftBagList_GP._fragment
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = craftBagFragment_GP.control  --ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList_GP
@@ -515,22 +544,36 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	end)
 end)
 
+
 SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
+	if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList") end
 	if list == invBackpack_GP.craftBagList then
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
-		if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - CraftBag - Removed CUSTOM inventory fragment") end
+		if libFilters.debug then dd("-> CraftBag - Removed CUSTOM inventory fragment") end
 		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 
 	else
+		--Coming from CraftBag?
+		if craftBagFragment_GP ~= nil and self.previousListType == "craftBagList" then
+			if libFilters.debug then dd("-> Coming from CraftBag - Hiding the fragment") end
+			--updateSceneManagerAndHideFragment(craftBagFragment_GP)
+		end
+
 		--Check for non-inventory selected entries in the categoryliest, like "quests" or "quickslots" and remove the custom inv. fragment then
 		if libFilters:IsInventoryShown() then
-			if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - Inventory - Added CUSTOM inventory fragment") end
+			if libFilters.debug then dd("-> Inventory - Added CUSTOM inventory fragment") end
 			invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
 			gamepadLibFiltersInventoryFragment:Show()
 		else
 			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
-			if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList - Non-inventory - Removed CUSTOM inventory fragment") end
+			if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
 			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+
+			--Detect if inventory quest is shown
+			if invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST then
+				--Raise the callback of the gamepad inventory quest
+				libFilters:RaiseFilterTypeCallback(LF_INVENTORY_QUEST, SCENE_SHOWN, true, false)
+			end
 		end
 	end
 end)
