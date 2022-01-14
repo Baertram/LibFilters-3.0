@@ -487,7 +487,7 @@ gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldS
 end)
 
 
-local function gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
+local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 	--Get the currently selected gamepad inventory category
 	if selectedGPInvFilter ~= nil then
 		--Raise the inventory hidden callback
@@ -511,6 +511,22 @@ local function gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
 			--Raise callback for gamepad inventory quickslot
 			quickslotFragment_GP:Show()
 		end
+	else
+		--No selected filterType, do checks via other parameters (e.g. currencies)
+		if invBackpack_GP.categoryList then
+			local selectedIndex = invBackpack_GP.categoryList.selectedIndex
+			if selectedIndex ~= nil then
+				if selectedIndex == 1 then --Currencies
+					updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+					if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
+					invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+
+					updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+					invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+					updateSceneManagerAndHideFragment(quickslotFragment_GP)
+				end
+			end
+		end
 	end
 end
 
@@ -520,7 +536,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	--Add a callback to GAMEPAD_INVENTORY.categoryList SelectedDataChanged to update the current LibFilters filterType and fire the callbacks
 	--Match the tooltip to the selected data because it looks nicer
 	local function OnSelectedCategoryChangedLibFilters(list, selectedData)
-		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType or selectedData.itemFilterType
+		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
 		if libFilters.debug then dd("GAMEPAD Inventory OnSelectedDataChanged: %s [%s]", tos(selectedData.text), tos(selectedGPInvFilter)) end
 
 		if libFilters:IsInventoryShown() then
@@ -533,7 +549,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 			gamepadLibFiltersInventoryFragment:Show()
 
 		else
-			gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
+			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 		end
 	end
 	invBackpack_GP.categoryList:SetOnSelectedDataChangedCallback(OnSelectedCategoryChangedLibFilters)
@@ -594,7 +610,12 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 		--Coming from CraftBag?
 		if craftBagFragment_GP ~= nil and self.previousListType == "craftBagList" then
 			if libFilters.debug then dd("-> Coming from CraftBag - Hiding the fragment") end
-			--updateSceneManagerAndHideFragment(craftBagFragment_GP)
+			--TODO:
+			--If the normal custom inventory fragment is given at the gamepad inventory root scene the craftbag fragment SCENE_HIDDEN state will not raise
+			--the callback? So we will check as a workaround for the fragment at the scene and manually raise the craftbag callback in this case
+			if invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) then
+				updateSceneManagerAndHideFragment(craftBagFragment_GP)
+			end
 		end
 
 		--Check for non-inventory selected entries in the categoryliest, like "quests" or "quickslots" and remove the custom inv. fragment then
@@ -608,7 +629,7 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 			gamepadLibFiltersInventoryFragment:Show()
 		else
 			local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
-			gamepadInventoryQuestOrQuickslot(selectedGPInvFilter)
+			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 		end
 	end
 end)

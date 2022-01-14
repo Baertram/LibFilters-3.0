@@ -1202,7 +1202,7 @@ local filterTypeToReference = {
 		[LF_TRADE]                    = {}, --custom created gamepad fragment gamepadLibFiltersPlayerTradeFragment
 		[LF_INVENTORY_QUEST]          = {}, --custom created gamepad fragment gamepadLibFiltersInventoryQuestFragment
 
-		
+
 		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
 		-->Will ONLY be hooked in keyboard mode call (HookAdditioalFilter will be called with keyboard AND gamepad mode
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter() later on checks for the current gamepad
