@@ -14,7 +14,7 @@ local strup = string.upper
 local tins = table.insert
 
 --local ZOs speed-up variables
-local IsGamepad = IsInGamepadPreferredMode
+--local IsGamepad = IsInGamepadPreferredMode
 local SM = SCENE_MANAGER
 local getScene = SM.GetScene
 
@@ -1669,7 +1669,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--Works, 2021-12-19
-		[LF_INVENTORY]                = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = invFragment_GP,
+		[LF_INVENTORY]                = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = invFragment_GP, --uses GAMEPAD_INVENTORY_FRAGMENT instead of custom gamepadLibFiltersInventoryFragment now for detection as this' shown state get's updated properly after quickslot wheel was closed again
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -1712,12 +1712,20 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
 
 		--Works, 2021-12-19
-		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP,
+		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP, --control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
 										  ["special"] = {
+											--[[
 											  [1] = {
-												  ["control"]         = invBackpack_GP.craftBagList,
-												  ["funcOrAttribute"] = "IsActive",
-												  ["params"]          = { invBackpack_GP.craftBagList },
+												  ["control"]         = invBackpack_GP.craftBagList,		--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
+												  ["funcOrAttribute"] = "IsActive",							--On first open of the gamepad CraftBag list this function will return false...
+												  ["params"]          = { invBackpack_GP.craftBagList },	--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
+												  ["expectedResults"] = { true },
+											  }
+											  ]]
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],		--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
+												  ["funcOrAttribute"] = "IsVanillaCraftBagShown", --On first open of the gamepad CraftBag list this function will return false...
+												  ["params"]          = { _G[GlobalLibName] },	--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
 												  ["expectedResults"] = { true },
 											  }
 										  }

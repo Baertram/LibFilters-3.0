@@ -1,19 +1,19 @@
 --======================================================================================================================
--- 													LibFilters 3.0
+-- 												LibFilters 3.0
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2021-12-06, Baertram
+--Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-14, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				10
+--Bugs total: 				12
 --Feature requests total: 	0
 
 --[Bugs]
--- #1) 2022-01-03, Baertram: Gamepad mode - returning from craftbag to the normal inv does not trigger the custom inventory fragment's show state callback
--- #2) 2022-01-03, Baertram: Gamepad mode - callback for filterType LF_INVENTORY does not fire as callback get's added to the fragment as the inventory lists get initialized the 1st time
---#10) 2022-01-09, Baertram: Keyboard mode - re-opening the alchemy table with activated "provisioner" tab will raise the callback SCENE_HIDDEN for libFilters_lastFilterType, even if this would be LF_INVENTORY
---		or if it was raised directly before the re-open of the alchemy panel (as the panel got closed).
---		One needs to build a "throttled check" in the raise of the callbacks, if SCENE_HIDDEN is used, so that libFilters._lastFilterType will not be used in all circumstances!
+-- #12) 2022-01-14, Baertram: Gamepad mode - Opening inv, choose anything that makes filterType set to LF_INVENTORY (e.g. material)
+--	    switch to craftbag. Close inv, re-open inv -> craftbag will be shown automatically. Switch to inventory again, callback for
+--		LF_CRAFTBAG HIDDEN is raised. It will show the material category entry at inventory again but no callback for LF_INVENTORY
+--		SHOWN was raised? libFilters:IsInventoryShown() thinks craftbag is still shown and thus directs from "OnSelectedCategoryChangedLibFilters:572" to
+--		"gamepadInventorySelectedCategoryChecks:517" -> if selectedGPInvFilter ~= nil then -> else
 
 --[Feature requests]
 -- #f1)
@@ -48,7 +48,7 @@ local ncc = NonContiguousCount
 
 --local getCurrentScene = SM.GetCurrentScene
 local getScene = SM.GetScene
-
+--Mapping between fragment's and scene's stateChange states
 local fragmentStateToSceneState = {
 	[SCENE_FRAGMENT_SHOWING]	= SCENE_SHOWING,
 	[SCENE_FRAGMENT_SHOWN] 		= SCENE_SHOWN,
@@ -217,6 +217,7 @@ local libFilters_GetCurrentFilterTypeForInventory
 local libFilters_GetCurrentFilterTypeReference
 local libFilters_GetFilterTypeReferences
 local libFilters_GetFilterTypeName
+local libFilters_IsCraftBagShown
 
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
@@ -2173,11 +2174,18 @@ local function isInventoryBaseShown(isInGamepadMode)
 			and isSceneFragmentShown(LF_INVENTORY, true, false, false)
 			and not ZO_GamepadInventoryTopLevel:IsHidden()
 	]]
+	local resultVar = false
 	local lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_INVENTORY, isInGamepadMode, false, true)
 	if lReferencesToFilterType ~= nil and lFilterTypeDetected == LF_INVENTORY then
-		return true
+		--Check if the CraftBag is shown, and exclude it, as it will use the same fragment GAMEPAD_INVENTORY_FRAGMENT as the normal inventory
+		if libFilters_IsCraftBagShown(libFilters) then
+			resultVar = false
+		else
+			resultVar = true
+		end
 	end
-	return false
+	if libFilters.debug then dv(">isInventoryBaseShown: %s", tos(resultVar)) end
+	return resultVar
 end
 
 
@@ -2189,6 +2197,7 @@ function libFilters:IsInventoryShown()
 	local listShownGP
 	local isCategoryListShown = false
 	local isItemListShown = false
+	local abortNow = false
 	if IsGamepad() then
 		if isInventoryBaseShown(true) == true then
 			--Check if the item list is shown and active, and not the category list (containing the main filter buttons)
@@ -2215,23 +2224,28 @@ function libFilters:IsInventoryShown()
 			if isCategoryListShown then
 				if  (selectedGPInvFilter ~= nil and gamepadInventoryNonSupportedFilters[selectedGPInvFilter])
 					or (selectedGPInvFilter == nil and categoryListSelectedIndex ~= 2) then --or selectedGPInvEquipmentSlot ~= nil
-					return false, listShownGP
+					isInvShown = false
+					abortNow = true
 				end
 
 			--Items list is shown (2nd level with single items, e.g. 2hd weapons, light armor, ...)
 			elseif isItemListShown then
 				if (selectedGPInvFilter ~= nil and gamepadInventoryNonSupportedFilters[selectedGPInvFilter])
 					or (selectedGPInvFilter == nil and selectedItemUniqueId == nil) then --or selectedGPInvEquipmentSlot ~= nil
-					return false, listShownGP
+					isInvShown = false
+					abortNow = true
 				end
 
 			end
-			isInvShown = true
+			if not abortNow then
+				isInvShown = true
+			end
 		end
 	else
 		--isInvShown = not playerInvCtrl:IsHidden()
-		return isInventoryBaseShown(false), nil
+		isInvShown, listShownGP = isInventoryBaseShown(false), nil
 	end
+	if libFilters.debug then dd("IsInventoryShown: %s", tos(isInvShown)) end
 	return isInvShown, listShownGP
 end
 
@@ -2846,21 +2860,47 @@ function libFilters:IsCraftBagExtendedParentFilterType(filterTypesToCheck)
 			end
 		end
 	end
-	if libFilters.debug then dv(">CBE: %s, filterTypeParent: %q",
-			tos(CraftBagExtended ~= nil), tos(filterTypeParent)) end
+	if libFilters.debug then dv(">IsCraftBagExtendedParentFilterType: %s, CBE enabled: %s",
+			tos(filterTypeParent), tos(CraftBagExtended ~= nil)) end
 	return false
 end
 local libFilters_IsCraftBagExtendedParentFilterType = libFilters.IsCraftBagExtendedParentFilterType
 
---Is any CarftBag shown, vanilla UI or CraftBagExtended
+
+--Is the vanillaUI CraftBag shown
+function libFilters:IsVanillaCraftBagShown()
+	local lReferencesToFilterType, lFilterTypeDetected
+	local inputType = IsGamepad()
+	if inputType == true then
+		if invBackpack_GP.craftBagList ~= nil then
+			--If craftbag was not opened before the craftBagList:IsActive might return false, so we need to check for other parameters then
+			if libFilters.debug then df("IsVanillaCraftBagShown> active: %s, actionMode: %s, currentListType: %s",
+					tos(invBackpack_GP.craftBagList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
+			if invBackpack_GP.craftBagList:IsActive() or invBackpack_GP.actionMode == 3 or invBackpack_GP.currentListType == "craftBagList" then
+				lFilterTypeDetected = 		LF_CRAFTBAG
+				lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_CRAFTBAG]
+			end
+		end
+	else
+		lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_CRAFTBAG, nil, false, true)
+	end
+	local vanillaUICraftBagShown = ((lFilterTypeDetected ~= nil and lFilterTypeDetected == LF_CRAFTBAG and lReferencesToFilterType ~= nil) and true) or false
+	if libFilters.debug then dd("IsVanillaCraftBagShown - vanillaUIShown: %s", tos(vanillaUICraftBagShown)) end
+	return vanillaUICraftBagShown
+end
+local libFilters_IsVanillaCraftBagShown = libFilters.IsVanillaCraftBagShown
+
+
+--Is any CraftBag shown, vanilla UI or CraftBagExtended
 function libFilters:IsCraftBagShown()
-	local lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_CRAFTBAG, nil, false, true)
-	local vanillaUICraftBagShown = ((lFilterTypeDetected == LF_CRAFTBAG and lReferencesToFilterType ~= nil) and true) or false0
+	local vanillaUICraftBagShown = libFilters_IsVanillaCraftBagShown(libFilters)
 	local cbeCraftBagShown = libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels)
-	df(">vanillaUICraftBagShown: %s, cbeCraftBagShown: %s", tos(vanillaUICraftBagShown), tos(cbeCraftBagShown))
+	if libFilters.debug then dd("IsCraftBagShown - vanillaUIShown: %s, cbeShown: %s", tos(vanillaUICraftBagShown), tos(cbeCraftBagShown)) end
 	if vanillaUICraftBagShown == true or cbeCraftBagShown == true then return true end
 	return false
 end
+libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
+
 
 --**********************************************************************************************************************
 -- Callback API

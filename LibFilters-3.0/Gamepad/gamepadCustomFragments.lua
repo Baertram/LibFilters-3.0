@@ -98,7 +98,7 @@ libFilters.GetCustomLibFiltersFragmentName = getCustomLibFiltersFragmentName
 
 
 local function fragmentChange(oldState, newState, fragmentSource, fragmentTarget, showingFunc, shownFunc, hidingFunc, hiddenFunc)
-	if libFilters.debug then dd("GAMEPAD Fragment state change "..tos(fragmentTarget).." - State: " ..tos(newState)) end
+	if libFilters.debug then dd("GAMEPAD Fragment state change "..tos(fragmentTarget._name or fragmentTarget.name).." - State: " ..tos(newState)) end
 	if (newState == SCENE_FRAGMENT_SHOWING ) then
 		if showingFunc ~= nil then showingFunc(fragmentSource, fragmentTarget) end
 	elseif (newState == SCENE_FRAGMENT_SHOWN ) then
@@ -490,6 +490,8 @@ end)
 local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 	--Get the currently selected gamepad inventory category
 	if selectedGPInvFilter ~= nil then
+d(">>>3")
+
 		--Raise the inventory hidden callback
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
 		if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
@@ -512,6 +514,8 @@ local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 			quickslotFragment_GP:Show()
 		end
 	else
+d(">>>4")
+
 		--No selected filterType, do checks via other parameters (e.g. currencies)
 		if invBackpack_GP.categoryList then
 			local selectedIndex = invBackpack_GP.categoryList.selectedIndex
@@ -544,18 +548,20 @@ end
 local comingFromCraftBagList = false
 local craftBagList_GP, craftBagFragment_GP
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
+	if libFilters.debug then dd("!-!-! GAMEPAD Inventory OnDeferredInitialize") end
+
 	--Add a callback to GAMEPAD_INVENTORY.categoryList SelectedDataChanged to update the current LibFilters filterType and fire the callbacks
 	--Match the tooltip to the selected data because it looks nicer
 	local function OnSelectedCategoryChangedLibFilters(list, selectedData)
 		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
-		if libFilters.debug then dd("GAMEPAD Inventory OnSelectedDataChanged: %s [%s]", tos(selectedData.text), tos(selectedGPInvFilter)) end
+		if libFilters.debug then dd("?? GAMEPAD inventory:OnSelectedDataChanged: %s [%s], comingFromCB: %s", tos(selectedData.text), tos(selectedGPInvFilter), tos(comingFromCraftBagList)) end
 
 		if libFilters:IsInventoryShown() then
 			if comingFromCraftBagList == false then
 				if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
 				onGamepadInventoryShownFragmentsUpdate()
 			else
-				--Call next frame to let the LF_CRAFTBAG fragment HIDDEN state fire properly before!
+				--Call delayed with 50ms to let the LF_CRAFTBAG fragment HIDDEN state fire properly before LF_INVENTORY will be shown again!
 				zo_callLater(function()
 					if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
 					onGamepadInventoryShownFragmentsUpdate()
@@ -573,8 +579,9 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	craftBagFragment_GP = craftBagList_GP._fragment
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = craftBagFragment_GP.control  --ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
-	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList_GP
-	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList_GP
+	--Not needed anymore as specialFunction changed to libFilters internally LibFilters3:IsVanillaCraftBagShown()
+	--libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList_GP
+	--libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList_GP
 
 	libFilters.mapping.callbacks.usingFragments[true][craftBagFragment_GP] = { LF_CRAFTBAG }
 	libFilters.CreateFragmentCallback(craftBagFragment_GP, { LF_CRAFTBAG }, true)
@@ -609,9 +616,8 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	end)
 end)
 
-
 SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
-	if libFilters.debug then dd("GAMEPAD inventory:SetCurrentList") end
+	if libFilters.debug then dd("?? GAMEPAD inventory:SetCurrentList") end
 	comingFromCraftBagList = false
 	if list == invBackpack_GP.craftBagList then
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
@@ -625,19 +631,22 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 		--Coming from CraftBag?
 		if craftBagFragment_GP ~= nil and self.previousListType == "craftBagList" then
 			if libFilters.debug then dd("-> Coming from CraftBag - Hiding the fragment") end
-			--TODO:
 			--If the normal custom inventory fragment is given at the gamepad inventory root scene the craftbag fragment SCENE_HIDDEN state will not raise
-			--before the inventory fragment SHOWN raises. So we need to delay the SHOWn fragment statechange a bit here, else the error message
-			--"<<fragmentOfLastFilterType not valid" in libFilters:RaiseCallback will prevent the SCENE_HIDDEN of tLF_CRAFTBAG
+			--before the inventory fragment SHOWN raises. So we need to delay the SHOWN fragment stateChange of the normal LF_INVENTORY a bit here, else the error message
+			--"<<fragmentOfLastFilterType not valid" in libFilters:RaiseCallback will prevent the SCENE_HIDDEN of LF_CRAFTBAG
+			--Variable comingFromCraftBagList will be checked and used in GAMEPAD_INVENTORY.categoryList:SetOnSelectedDataChangedCallback() hook, which is called after
+			--the categoryList was showsn (as we come back from the craftbag)
 			comingFromCraftBagList = true
 		end
 
-		--Check for non-inventory selected entries in the categoryliest, like "quests" or "quickslots" and remove the custom inv. fragment then
+		--Check for non-inventory selected entries in the categorylist, like "quests" or "quickslots" and remove the custom inv. fragment then
 		if libFilters:IsInventoryShown() then
+d(">>>1 comingFromCraftBagList: " ..tos(comingFromCraftBagList))
 			if comingFromCraftBagList == false then
 				onGamepadInventoryShownFragmentsUpdate()
 			end
 		else
+d(">>>2")
 			local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
 			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 		end
@@ -740,7 +749,6 @@ LF_FilterTypeToReference[true][LF_INVENTORY_QUEST] 								=   { gamepadLibFilte
 
 -->Update the references to the fragments so one is able to use them within the "isShown" routines
 --LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		= 	gamepadLibFiltersInventoryFragment --uses GAMEPAD_INVENTORY_FRAGMENT now for detection as this' shown state get's updated properly after quickslot wheel was closed again
---LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_QUEST]["fragment"] 	= 	gamepadLibFiltersInventoryFragment --uses GAMEPAD_INVENTORY_FRAGMENT now for detection as this' shown state get's updated properly after quickslot wheel was closed again
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 		=	gamepadLibFiltersBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDBANK_DEPOSIT]["fragment"] = 	gamepadLibFiltersGuildBankDepositFragment
 LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"]= 	gamepadLibFiltersHouseBankDepositFragment
