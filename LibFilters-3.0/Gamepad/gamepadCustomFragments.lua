@@ -559,7 +559,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 				zo_callLater(function()
 					if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
 					onGamepadInventoryShownFragmentsUpdate()
-				end, 0)
+				end, 50)
 			end
 
 		else
