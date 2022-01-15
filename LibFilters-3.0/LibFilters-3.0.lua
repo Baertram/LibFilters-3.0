@@ -2870,7 +2870,7 @@ function libFilters:IsVanillaCraftBagShown()
 	if inputType == true then
 		if invBackpack_GP.craftBagList ~= nil then
 			--If craftbag was not opened before the craftBagList:IsActive might return false, so we need to check for other parameters then
-			if libFilters.debug then df("IsVanillaCraftBagShown> active: %s, actionMode: %s, currentListType: %s",
+			if libFilters.debug then dd("IsVanillaCraftBagShown> active: %s, actionMode: %s, currentListType: %s",
 					tos(invBackpack_GP.craftBagList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
 			if invBackpack_GP.craftBagList:IsActive() or invBackpack_GP.actionMode == 3 or invBackpack_GP.currentListType == "craftBagList" then
 				lFilterTypeDetected = 		LF_CRAFTBAG
@@ -3140,7 +3140,9 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			filterType 				= lastKnownFilterType
 			lReferencesToFilterType = lastKnownRefVars
 		else
-			if stateStr == SCENE_SHOWN and lastKnownFilterType ~= nil and currentFilterType == nil and lastKnownFilterType ~= currentFilterType then
+			--Only if PerfectPixel addon is enabled! Else this would e.g. make the gamepad mode switch from craftbag back to inventory (where in the inventory
+			--"Currencies" category is selected and thus libFilters._currentFilterType would be nil) stop the callback and reset the current filterType to CraftBag -> Wrong!
+			if PP ~= nil and stateStr == SCENE_SHOWN and lastKnownFilterType ~= nil and currentFilterType == nil and lastKnownFilterType ~= currentFilterType then
 				--Reset the current and last filterTypes again as no new filterType currently shown could be found
 				-->This will prevent a nil of the current filterType if another fragment/control tries to fire a callback
 				-->later than the last successfully fired callback (e.g. with enabled addon PerfectPixel the LF_MAIL_SEND
@@ -3176,7 +3178,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		libFilters._lastFilterType				= lastKnownFilterType
 		libFilters._lastFilterTypeReferences	= lastKnownRefVars
 		if libFilters.debug then
-			df("<CALLBACK ABORTED - filterType: %s and state %s currently already active! currentNow: %s, lastNow: %s", tos(filterType), tos(stateStr), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType))
+			dd("<CALLBACK ABORTED - filterType: %s and state %s currently already active! currentNow: %s, lastNow: %s", tos(filterType), tos(stateStr), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType))
 		end
 		return
 	end

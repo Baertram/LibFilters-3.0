@@ -75,6 +75,10 @@ local gamepadLibFiltersPlayerTradeFragment
 local gamepadLibFiltersInventoryQuestFragment
 
 
+local fragmentsHooked = {}
+local comingFromCraftBagList = false
+
+
 --Debugging
 local debugFunctions = libFilters.debugFunctions
 local dd = debugFunctions.dd
@@ -85,8 +89,6 @@ if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 -- Local helper functions
 ------------------------------------------------------------------------------------------------------------------------
-local fragmentsHooked = {}
---local hookedControlsHiddenState = {}
 
 
 --Add the fragment prefix and return the fragment
@@ -487,7 +489,19 @@ gamepadLibFiltersInventoryFragment:RegisterCallback("StateChange", function(oldS
 end)
 
 
-local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
+local function isInvCategory(categoryIndex)
+	if categoryIndex ~= nil and invBackpack_GP.categoryList then
+		local selectedIndex = invBackpack_GP.categoryList.selectedIndex
+		if selectedIndex ~= nil then
+			if selectedIndex == categoryIndex then --Currencies
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, p_comingFromCraftBagList)
 	--Get the currently selected gamepad inventory category
 	if selectedGPInvFilter ~= nil then
 		--Raise the inventory hidden callback
@@ -498,10 +512,20 @@ local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 		if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
 			if libFilters.debug then dd(">Gamepad Inventory quest is shown, fire SHOWN callback for quest") end
 			updateSceneManagerAndHideFragment(quickslotFragment_GP)
-
-			--Raise callback for gamepad inventory quest
-			invRootScene:AddFragment(gamepadLibFiltersInventoryQuestFragment)
-			gamepadLibFiltersInventoryQuestFragment:Show()
+			if p_comingFromCraftBagList == true then
+				--Raise callback for gamepad inventory quest
+				--If coming from craftbag delay the inv quest shown callback raise as else the LF_CRAFTBAG HIDDEN raise
+				--will properly fire before
+				zo_callLater(function()
+					if libFilters.debug then dd(">>Gamepad Inventory quest DELAYED SHOW") end
+					invRootScene:AddFragment(gamepadLibFiltersInventoryQuestFragment)
+					gamepadLibFiltersInventoryQuestFragment:Show()
+				end, 5)
+			else
+				--Raise callback for gamepad inventory quest
+				invRootScene:AddFragment(gamepadLibFiltersInventoryQuestFragment)
+				gamepadLibFiltersInventoryQuestFragment:Show()
+			end
 
 		elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
 			if libFilters.debug then dd(">Gamepad Inventory quickslots is shown, fire HIDDEN callback for quickslots") end
@@ -513,44 +537,61 @@ local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
 		end
 	else
 		--No selected filterType, do checks via other parameters (e.g. currencies)
-		if invBackpack_GP.categoryList then
-			local selectedIndex = invBackpack_GP.categoryList.selectedIndex
-			if selectedIndex ~= nil then
-				if selectedIndex == 1 then --Currencies
-					updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
-					if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
-					invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+		if isInvCategory(1) then --Currencies
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+			if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 
-					updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
-					invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
-					updateSceneManagerAndHideFragment(quickslotFragment_GP)
-				end
-			end
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+			updateSceneManagerAndHideFragment(quickslotFragment_GP)
 		end
 	end
 end
 
-local function onGamepadInventoryShownFragmentsUpdate()
-	updateSceneManagerAndHideFragment(quickslotFragment_GP)
-	updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
-	invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
+	local debugEnabled = libFilters.debug
+	local isInvQuest = false
+	local isInvQuickslots = false
+	local isCurrencies = isInvCategory(1) --Currencies
+	if selectedGPInvFilter ~= nil then
+		if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
+			isInvQuest = true
 
-	if libFilters.debug then dd("-> Inventory - Added CUSTOM inventory fragment") end
-	invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
-	gamepadLibFiltersInventoryFragment:Show()
+		elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
+			isInvQuickslots = true
+		end
+	end
+
+	if debugEnabled then dd(">>onGamepadInventoryShownFragmentsUpdate - isInvQuest: %s, isInvQuickslots: %s", tos(isInvQuest), tos(isInvQuickslots)) end
+	if not isInvQuickslots then
+		updateSceneManagerAndHideFragment(quickslotFragment_GP)
+	end
+	if not isInvQuest then
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+	end
+	if not isCurrencies and not isInvQuickslots and not isInvQuest then
+		if not invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) and not gamepadLibFiltersInventoryFragment:IsShowing() then
+			if debugEnabled then dd("-> Inventory - Added CUSTOM inventory fragment, and SHOW") end
+			invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
+			gamepadLibFiltersInventoryFragment:Show()
+		else
+			if debugEnabled then dd("<- Inventory - CUSTOM inventory fragment already added and/or SHOWN") end
+		end
+	end
 end
 
-local function raiseGamepadInventoryFragmentSHOWNDelayed(delay)
+local function raiseGamepadInventoryFragmentSHOWNDelayed(delay, selectedGPInvFilter)
 	--Call delayed with 50ms to let the LF_CRAFTBAG fragment HIDDEN state fire properly before LF_INVENTORY will be shown again!
 	delay = delay or 50
 	if libFilters.debug then dd(">raiseGamepadInventoryFragmentSHOWNDelayed - delay: %s", tos(delay)) end
 	zo_callLater(function()
 		if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
-		onGamepadInventoryShownFragmentsUpdate()
+		onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
 	end, delay)
 end
 
-local comingFromCraftBagList = false
 local craftBagList_GP, craftBagFragment_GP
 SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	if libFilters.debug then dd("!-!-! GAMEPAD Inventory OnDeferredInitialize") end
@@ -564,21 +605,22 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 		if libFilters:IsInventoryShown()  then
 			if comingFromCraftBagList == false then
 				if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
-				onGamepadInventoryShownFragmentsUpdate()
+				onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
 			else
-				raiseGamepadInventoryFragmentSHOWNDelayed(50)
+				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter)
 			end
 
 		--Still at CraftBag list
 		elseif libFilters:IsVanillaCraftBagShown() then
 			--Switching back to inventory categoryList?
 			if comingFromCraftBagList == true then
-				raiseGamepadInventoryFragmentSHOWNDelayed(50)
+				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter)
 			end
 
 		else
-			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
+			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
 		end
+		comingFromCraftBagList = false
 	end
 	invBackpack_GP.categoryList:SetOnSelectedDataChangedCallback(OnSelectedCategoryChangedLibFilters)
 
@@ -654,7 +696,7 @@ SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 			end
 		else
 			local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
-			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter)
+			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
 		end
 	end
 end)
