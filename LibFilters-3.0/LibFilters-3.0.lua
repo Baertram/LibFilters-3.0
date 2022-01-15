@@ -3,17 +3,13 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-14, Baertram
+--Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-15, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				12
 --Feature requests total: 	0
 
 --[Bugs]
--- #12) 2022-01-14, Baertram: Gamepad mode - Opening inv, choose anything that makes filterType set to LF_INVENTORY (e.g. material)
---	    switch to craftbag. Close inv, re-open inv -> craftbag will be shown automatically. Switch to inventory again, callback for
---		LF_CRAFTBAG HIDDEN is raised. It will show the material category entry at inventory again but no callback for LF_INVENTORY
---		SHOWN was raised? libFilters:IsInventoryShown() thinks craftbag is still shown and thus directs from "OnSelectedCategoryChangedLibFilters:572" to
---		"gamepadInventorySelectedCategoryChecks:517" -> if selectedGPInvFilter ~= nil then -> else
+-- #13) 2022-01-1x, Baertram: Gamepad mode - ...
 
 --[Feature requests]
 -- #f1)
