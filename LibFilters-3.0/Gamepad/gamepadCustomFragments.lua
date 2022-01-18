@@ -53,6 +53,7 @@ local invBankScene_GP      			=			gpc.invBankScene_GP
 local invGuildBankScene_GP 			= 			gpc.invGuildBankScene_GP
 local invGuildBank_GP      			=			gpc.invGuildBank_GP
 local invGuildStore_GP				= 			gpc.invGuildStore_GP
+local gamepadTradingHouseBrowseFragment
 local invGuildStoreSellScene_GP   	= 			gpc.invGuildStoreSellScene_GP
 --local invGuildStoreSell_GP 			= 			gpc.invGuildStoreSell_GP
 local invMailSendScene_GP         	= 			gpc.invMailSendScene_GP
@@ -73,7 +74,6 @@ local gamepadLibFiltersGuildStoreSellFragment
 local gamepadLibFiltersMailSendFragment
 local gamepadLibFiltersPlayerTradeFragment
 local gamepadLibFiltersInventoryQuestFragment
-
 
 local fragmentsHooked = {}
 local comingFromCraftBagList = false
@@ -405,7 +405,8 @@ ZO_PreHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
 	if libFilters.debug then dd("GAMEPAD_TRADING_HOUSE - SetCurrentMode: " ..tos(tradingMode)) end
 	if tradingMode == ZO_TRADING_HOUSE_MODE_SELL then
 		invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
-		gamepadLibFiltersGuildStoreSellFragment:Show()
+		--todo: Delay the show to the next frame to make the gamepadTradingHouseBrowseFragment hide properly before!
+		--gamepadLibFiltersGuildStoreSellFragment:Show()
 	else
 		updateSceneManagerAndHideFragment(gamepadLibFiltersGuildStoreSellFragment)
 		invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
@@ -413,16 +414,16 @@ ZO_PreHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
 end)
 SecurePostHook("ZO_TradingHouse_Browse_Gamepad_OnInitialize", function()
 	--Update trading house browse
-	if not fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] and GAMEPAD_TRADING_HOUSE_BROWSE ~= nil then
+	local tradingHouseBrowse_GP = GAMEPAD_TRADING_HOUSE_BROWSE
+	if not fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] and tradingHouseBrowse_GP ~= nil then
 		--Update the fragment exists checks with the now existing guild store sell fragment
-		local tradingHouseBrowse_GP = GAMEPAD_TRADING_HOUSE_BROWSE
-		local tradingHouseFragment = tradingHouseBrowse_GP.fragment
+		gamepadTradingHouseBrowseFragment = tradingHouseBrowse_GP.fragment
 		libFilters.constants.gamepad.tradingHouseBrowse_GP = tradingHouseBrowse_GP
 		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_GUILDSTORE_BROWSE] = {
-			["control"] = tradingHouseBrowse_GP, ["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] =  tradingHouseFragment,
+			["control"] = tradingHouseBrowse_GP, ["scene"] = gpc.invGuildStoreSellScene_GP,	["fragment"] = gamepadTradingHouseBrowseFragment,
 		}
-		libFilters.mapping.callbacks.usingFragments[true][tradingHouseFragment] = { LF_GUILDSTORE_BROWSE }
-		libFilters.CreateFragmentCallback(tradingHouseFragment, { LF_GUILDSTORE_BROWSE }, true)
+		libFilters.mapping.callbacks.usingFragments[true][gamepadTradingHouseBrowseFragment]   = { LF_GUILDSTORE_BROWSE }
+		libFilters.CreateFragmentCallback(gamepadTradingHouseBrowseFragment, { LF_GUILDSTORE_BROWSE }, true)
 
 		fragmentsHooked["GAMEPAD_TRADING_HOUSE_BROWSE"] = true
 	end
@@ -828,11 +829,11 @@ filterTypeToCallbackRef[true][LF_INVENTORY_QUEST] = 	{ ref = gamepadLibFiltersIn
 -- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
 ------------------------------------------------------------------------------------------------------------------------
 --Gamepd player inventory
---invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
+--invRootScene:AddFragment(gamepadLibFiltersInventoryFragment) --will be added/removed dynamically via functions invBackpack_GP.categoryList:SetOnSelectedDataChangedCallback and invBackpack_GP:SetCurrentList, and others
 
---invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment)
+--invGuildBankScene_GP:AddFragment(gamepadLibFiltersGuildBankDepositFragment) --will be added/removed dynamically via function hookFragmentStateByPostHookListInitFunction
 
-invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment) --will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
+--invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment) --will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
 
 --invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment) --will be added/removed dynamically via function mailManagerGamepadScene:SwitchToFragment() above
 

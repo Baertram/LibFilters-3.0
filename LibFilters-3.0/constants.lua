@@ -1320,7 +1320,7 @@ local filterTypeToCheckIfReferenceIsHidden = {
 		--Works: 2021-12-13
 		[LF_FENCE_LAUNDER]            = { ["control"] = fence, 							["scene"] = "fence_keyboard", 		["fragment"] = invFenceLaunderFragment, },
 		--Works: 2021-12-13
-		[LF_GUILDSTORE_SELL]          = { ["control"] = guildStoreObj, 					["scene"] = "tradinghouse", 		["fragment"] = guildStoreSellFragment, },
+		[LF_GUILDSTORE_SELL]          = { ["control"] = guildStoreObj, 					["scene"] = "tradinghouse", 		["fragment"] = guildStoreSellFragment, }, -- = inventoryFragment
 		--Works: 2021-12-13
 		[LF_MAIL_SEND]                = { ["control"] = kbc.mailSendObj, 				["scene"] = "mailSend", 			["fragment"] = mailSendFragment, },
 		--Works: 2021-12-13
@@ -2180,7 +2180,7 @@ local callbacksUsingFragments = {
 		--LF_GUILDBANK_DEPOSIT
 		--LF_HOUSE_BANK_DEPOSIT
 		--LF_VENDOR_SELL
-		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL },
+		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL, LF_GUILDSTORE_SELL },
 
 		--Dedicated fragments
 		[invQuestFragment] 				= { LF_INVENTORY_QUEST },
@@ -2195,7 +2195,6 @@ local callbacksUsingFragments = {
 		[invFenceSellFragment]         	= { LF_FENCE_SELL },
 		[invFenceLaunderFragment]      	= { LF_FENCE_LAUNDER },
 		[guildStoreBrowseFragment]     	= { LF_GUILDSTORE_BROWSE },
-		[guildStoreSellLayoutFragment] 	= { LF_GUILDSTORE_SELL },
 		[mailSendFragment]             	= { LF_MAIL_SEND },
 		[player2playerTradeFragment]   	= { LF_TRADE },
 		[retraitFragment]              	= { LF_RETRAIT },

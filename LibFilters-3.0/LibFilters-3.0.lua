@@ -3,7 +3,7 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-15, Baertram
+--Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-18, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				12
 --Feature requests total: 	0
@@ -94,7 +94,7 @@ local invTypeCraftBag =				inventoryTypes["craftbag"]
 
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
-local defaultLibFiltersAttributeToStoreTheFilterType = libFilters.constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
+local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
 
 local updaterNamePrefix = libFilters.constants.updaterNamePrefix
 
@@ -838,7 +838,7 @@ local function craftBagExtendedCheckForCurrentModule(filterType)
 	if isDebugEnabled then dv(">currentClickedButton: %s = %q", tos(currentlyClickedButtonDescriptor), tos(GetString(currentlyClickedButtonDescriptor))) end
 	if currentlyClickedButtonDescriptor == nil or currentlyClickedButtonDescriptor ~= cbeDescriptorOfCraftBag then return  nil, nil end
 	local cbeFragmentLayoutData = cbeCurrentModule.layoutFragment and cbeCurrentModule.layoutFragment.layoutData
-	--Get the constants.defaultAttributeToStoreTheFilterType (.LibFilters3_filterType) from the layoutdata
+	--Get the constants.defaultAttributeToStoreTheFilterType (.LibFilters3_filterType) from the layoutData
 	local filterTypeAtFragment = libFilters_GetCurrentFilterTypeForInventory(libFilters, cbeFragmentLayoutData, false)
 	if isDebugEnabled then dv(">filterTypeAtFragment: %s", tos(filterTypeAtFragment)) end
 	if filterTypeAtFragment == nil then return  nil, nil end
@@ -1609,11 +1609,13 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 			end
 		end
 	end
+	--[[
 	--Was the filterType referenceVariableTable updated at calling function already?
-	if not noRefUpdate then
+	if not noRefUpdate and filterTypeDetected ~= nil then
 		currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterTypeDetected)
 		--updateLastAndCurrentFilterType(filterTypeDetected, currentFilterTypeReferences, false)
 	end
+	]]
 
 	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%q: %s, error: %s", tos(inventoryType), tos(filterTypeDetected), tos(errorAppeared)) end
 	return filterTypeDetected
@@ -3796,8 +3798,8 @@ end
 --Called from EVENT_ADD_ON_LOADED
 local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 	if addonNameLoaded ~= MAJOR then return end
-
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED)
+
 	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
 	applyFixesLate()
 	--Create the callbacks for the filterType's panel show/hide
