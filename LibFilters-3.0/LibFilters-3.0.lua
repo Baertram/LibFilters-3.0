@@ -3,13 +3,13 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-18, Baertram
+--Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-19, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				12
+--Bugs total: 				0
 --Feature requests total: 	0
 
 --[Bugs]
--- #13) 2022-01-1x, Baertram: Gamepad mode - ...
+-- #xx) 2022-xx-xx, Baertram: Gamepad/Keyboad mode - ...
 
 --[Feature requests]
 -- #f1)
@@ -114,6 +114,7 @@ local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAddit
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes =	mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup = mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
 local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOwnerControl
+
 
 --Keyboard
 local kbc                      = 	constants.keyboard
@@ -1268,7 +1269,7 @@ local inventoryUpdaters           = {
 				--somehow
 			]]
 			if libFilters.debug then dv("[U]updateFunction_GP_QUICKSLOT - Not supported yet!") end
-	--		SafeUpdateList(quickslots_GP) --TODO
+	--		SafeUpdateList(quickslots_GP) --TODO quickslots GP are not supported yet
 		else
 			SafeUpdateList(kbc.quickslots)
 		end
@@ -1975,9 +1976,9 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 		local filterTypesTable = updaterNameToFilterType[updaterName]
 		local countFilterTypesWithUpdaterName = (filterTypesTable and #filterTypesTable) or 0
 		if countFilterTypesWithUpdaterName > 1 then
+			--TODO:
 			--Which filterType is the correct one for the updater name?
 			--One cannot know! use the first one?
-			--TODO:
 			filterType = filterTypesTable[1]
 		elseif countFilterTypesWithUpdaterName == 1 then
 			filterType = filterTypesTable[1]
@@ -2151,15 +2152,6 @@ function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 			return filterTypeReference, filterTypeShown
 		end
 	end
-	------------------------------------------------------------------------------------------------------------------------
-
-	--CraftBagExtended addon is active? We got a currently shown fragment of CBE then e.g. but the "parent" filterType will be something like
-	--LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL etc., and needs to be used for the reference then
-	--[[
-	if CraftBagExtended ~= nil then
-		--TODO really needed to check here? Or just loop over the LF_FilterTypeToReference[isInGamepadMode] and check if they are shown
-	end
-	]]
 	return detectShownReferenceNow(filterType, isInGamepadMode, false, false)
 end
 libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeReference
@@ -2401,16 +2393,14 @@ end
 
 
 --Is any crafting  station curently shown
---OPTIONAL parameter number craftType: If provided the shown state of the crafting table connected to the craftType will
---be checked and returned
+--OPTIONAL parameter number craftType: If provided the craftType must be active
 --returns boolean isCraftingStationShown
 function libFilters:IsCraftingStationShown(craftType)
-	local retVar = ZO_CraftingUtils_IsCraftingWindowOpen()
+	local craftTypeMatches = true
 	if craftType ~= nil then
-		if retVar == false then return false end
-		--TODO Connect craftType to the craftingTable controls and check if controlis shown
+		craftTypeMatches = (gcit() == craftType) or false
 	end
-	return retVar
+	return ZO_CraftingUtils_IsCraftingWindowOpen() and craftTypeMatches
 end
 
 
@@ -3603,7 +3593,7 @@ local function createSpecialCallbacks()
 			--Will only be checked if the current filterType is not given, as else it would prevent a SCENE_HIDDEN callback for e.g. switching from alchemy creation to
 			--alchemy recipes, if one has had opened the inventory in between and the libFilters._lastFilterType = LF_INVENTORY in that case -> LF_INVENTORY does not belong to
 			--the current panel "alchemy" and LF_ALCHEMY_CREATION would not be firing it's HIDDEN callback then as one switches to the recipes tab (which is not supported and got no LF* constant)
-			-->TODO: How to prevent if any panel was last opened that does not belong to the current crafting table (e.g. LF_VENDOR_REPAIR) and currentFilterType is nil because the last panel was hidden already?
+			-->todo: Prevent if any panel was last opened that does not belong to the current crafting table (e.g. LF_VENDOR_REPAIR) and currentFilterType is nil because the last panel was hidden already - Also working?
 			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "alchemy") then
 				if libFilters.debug then dd("~ABORT Alchemy:SetMode - currentFilterType is nil and lastFilterType not matching crafting type") end
 				libFilters._lastFilterTypeNoCallback = false

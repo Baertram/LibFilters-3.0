@@ -434,10 +434,10 @@ vendorRepairFragment._name = "REPAIR_FRAGMENT"
 kbc.storeWindows                  = {
 	[ZO_MODE_STORE_BUY] = 			vendorBuy,
 	[ZO_MODE_STORE_BUY_BACK] = 		vendorBuyBack,
-	[ZO_MODE_STORE_SELL] = 			vendorSell, --TODO: Working?
+	[ZO_MODE_STORE_SELL] = 			vendorSell,
 	[ZO_MODE_STORE_REPAIR] = 		vendorRepair,
-	[ZO_MODE_STORE_SELL_STOLEN] = 	vendorSell, --TODO: Working?
-	[ZO_MODE_STORE_LAUNDER] = 		vendorSell, --TODO: Working?
+	[ZO_MODE_STORE_SELL_STOLEN] = 	vendorSell,
+	[ZO_MODE_STORE_LAUNDER] = 		vendorSell,
 	[ZO_MODE_STORE_STABLE] = 		vendorBuy,
 }
 
@@ -954,6 +954,7 @@ local craftingTypeToPanelId = {
 }
 mapping.craftingTypeToPanelId = craftingTypeToPanelId
 
+
 --[Mapping for dialogs]
 --The dialogs which are given at a filterType, e.g. smithing research keyboard mode
 local researchPanelControl = researchPanel.control
@@ -1241,6 +1242,7 @@ local filterTypeToReference = {
 	},
 }
 mapping.LF_FilterTypeToReference = filterTypeToReference
+
 
 --The mapping table containing the "lookup" data of control or scene/fragment to us for "is hidden" checks
 --The control must be a control with IsHidden() function or a .control subtable with that function
@@ -1938,6 +1940,8 @@ local filterTypeToCheckIfReferenceIsHidden = {
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHidden = filterTypeToCheckIfReferenceIsHidden
+
+
 --Define the order in which the controls/scenes/fragments should be checked if no filterType is given.
 --This is important o e.g. check LF_INVENTORY at last as the control of it could be used in multiple other filterTypes.
 --Non-gap number index = { filterType = LF_*filterType constant, checkTypes = {"control", "fragment", "special", "specialForced" } }
