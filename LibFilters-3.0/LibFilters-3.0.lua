@@ -3431,10 +3431,10 @@ end
 
 local function createControlCallback(controlRef, filterTypes, inputType)
 	local ctrlName = "n/a"
+	local controlRefNew, _ = getCtrl(controlRef)
+	if controlRefNew ~= controlRef then controlRef = controlRefNew end
 	if isDebugEnabled then
 		if controlRef ~= nil then
-			local controlRefNew, _ = getCtrl(controlRef)
-			controlRef = controlRefNew
 			ctrlName = getCtrlName(controlRef)
 			dv(">register control %q OnShow/OnHide - #filterType: %s", tos(ctrlName), #filterTypes)
 		else
@@ -3443,6 +3443,14 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 			return
 		end
 	end
+	if not controlRef or not controlRef.SetHandler then
+		if controlRef ~= nil then
+			ctrlName = (isDebugEnabled == true and ctrlName) or getCtrlName(controlRef)
+		end
+		dfe("Callback control: Cannot set OnEffectivelyShown/OnHide handler for: %q, inputType: %s", tos(ctrlName), tos(inputType))
+		return
+	end
+
 	--Only add the callback once per input type
 	if callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] == nil or (callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] ~= nil
 			and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef][inputType]) then
