@@ -3719,6 +3719,7 @@ local function createCallbacks()
 	createSpecialCallbacks()
 
 	callbacksCreated = true
+	if libFilters.debug then dd(">Callbacks were created") end
 end
 
 
@@ -3755,6 +3756,7 @@ local function applyFixesLate()
 	end
 
 	fixesLateApplied = true
+	if libFilters.debug then dd(">Late fixes were applied") end
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
