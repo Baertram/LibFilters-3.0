@@ -23,6 +23,9 @@ local MAJOR      	= libFilters.name
 local GlobalLibName = libFilters.globalLibName
 local filters    	= libFilters.filters
 
+local isInitialized = libFilters.isInitialized
+local callbacksCreated = false
+local fixesLateApplied = false
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL SPEED UP VARIABLES & REFERENCES
@@ -186,7 +189,8 @@ local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = typeOfRefConstants[3]
 local LIBFILTERS_CON_TYPEOFREF_OTHER 	= typeOfRefConstants[99]
 local typeOfRefToName    = constants.typeOfRefToName
 
-local checkIfControlSceneFragmentOrOther = libFilters.checkIfControlSceneFragmentOrOther
+local checkIfControlSceneFragmentOrOther = libFilters.CheckIfControlSceneFragmentOrOther
+local createCustomGamepadFragmentsAndNeededHooks = libFilters.CreateCustomGamepadFragmentsAndNeededHooks
 
 --functions
 --local getCustomLibFiltersFragmentName = libFilters.GetCustomLibFiltersFragmentName
@@ -3396,6 +3400,7 @@ local function createFragmentCallback(fragment, filterTypes, inputType)
 			and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment][inputType]) then
 		fragment:RegisterCallback("StateChange",
 				function(oldState, newState)
+					if not isInitialized then return end
 					onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 				end
 		)
@@ -3407,9 +3412,7 @@ libFilters.CreateFragmentCallback = createFragmentCallback
 
 
 local function createFragmentCallbacks()
-	if libFilters.debug then
-		dd("createFragmentCallbacks")
-	end
+	if libFilters.debug then dd("createFragmentCallbacks") end
 	--Fragments
 	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingFragments) do
@@ -3421,9 +3424,7 @@ end
 
 
 local function createSceneCallbacks()
-	if libFilters.debug then
-		dd("createSceneCallbacks")
-	end
+	if libFilters.debug then dd("createSceneCallbacks") end
 	--Scenes
 	--[scene] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingScenes) do
@@ -3442,7 +3443,10 @@ local function createSceneCallbacks()
 				if callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] == nil or (callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] ~= nil
 						and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene][inputType]) then
 					scene:RegisterCallback("StateChange",
-							function(oldState, newState) onSceneStateChange(oldState, newState, filterTypes, scene, inputType) end)
+							function(oldState, newState)
+								if not isInitialized then return end
+								onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
+							end)
 					callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] = callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] or {}
 					callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene][inputType] = filterTypes
 				end
@@ -3474,10 +3478,12 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 		local onShowHandler = controlRef.GetHandler and controlRef:GetHandler("OnEffectivelyShown")
 		if onShowHandler ~= nil then
 			ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
+				if not isInitialized then return end
 				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType)
 			end)
 		else
 			controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
+				if not isInitialized then return end
 				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType)
 			end)
 		end
@@ -3486,10 +3492,12 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 		local onHideHandler = controlRef.GetHandler and controlRef:GetHandler("OnHide")
 		if onHideHandler ~= nil then
 			ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
+				if not isInitialized then return end
 				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
 			end)
 		else
 			controlRef:SetHandler("OnHide", function(ctrlRef)
+				if not isInitialized then return end
 				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
 			end)
 		end
@@ -3501,9 +3509,7 @@ libFilters.CreateControlCallback = createControlCallback
 
 
 local function createControlCallbacks()
-	if libFilters.debug then
-		dd("createControlCallbacks")
-	end
+	if libFilters.debug then dd("createControlCallbacks") end
 	--Controls
 	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingControls) do
@@ -3704,13 +3710,15 @@ local function createSpecialCallbacks()
 end
 
 local function createCallbacks()
-	if libFilters.debug then
-		dd("createCallbacks")
-	end
+	if libFilters.debug then dd("createCallbacks") end
+	if not isInitialized and not callbacksCreated then return end
+
 	createSceneCallbacks()
 	createFragmentCallbacks()
 	createControlCallbacks()
 	createSpecialCallbacks()
+
+	callbacksCreated = true
 end
 
 
@@ -3724,6 +3732,9 @@ end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
 local function applyFixesLate()
+	if libFilters.debug then dd("ApplyFixesLate") end
+	if not isInitialized and not fixesLateApplied then return end
+
 	--2021-12-19
 	--Fix applied now is only needed for CraftBagExtended addon!
 	--The fragments used at mail send/bank deposit/guild bank deposit and guild store sell will apply their additionalFilters
@@ -3742,6 +3753,8 @@ local function applyFixesLate()
 			inventories[invTypeCraftBag].additionalFilter = additionalCraftBagFilter
 		end)
 	end
+
+	fixesLateApplied = true
 end
 
 --Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
@@ -3769,6 +3782,8 @@ local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
 local function installHelpers()
+	if not isInitialized then return end
+
 	if libFilters.debug then dd("InstallHelpers") end
 	for _, package in pairs(helpers) do
 		local helper = package.helper
@@ -3812,16 +3827,26 @@ end
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
-	if libFilters.debug then dd("InitializeLibFilters - %q", tos(libFilters.isInitialized)) end
-	if libFilters.isInitialized then return end
-	libFilters.isInitialized = true
+	if libFilters.debug then dd("InitializeLibFilters - %q", tos(isInitialized)) end
+	if isInitialized == true then return end
+	isInitialized = true
 
 	--Install the helpers, which override ZOs vanilla code -> See file helpers.lua
 	installHelpers()
+
 	--Hook into the scenes/fragments/controls to apply the filter function "runFilters" to the existing .additionalFilter
 	--and other existing filters, and to add the libFilters filterType to the .LibFilters3_filterType tag (to identify the
 	--inventory/control/fragment again)
 	applyAdditionalFilterHooks()
+
+	--Apply the late fixes if not already done
+	applyFixesLate()
+
+	--Create the custom gamepad fragments and their needed hooks
+	createCustomGamepadFragmentsAndNeededHooks()
+
+	--Create the callbacks if not already done
+	createCallbacks()
 end
 
 --______________________________________________________________________________________________________________________

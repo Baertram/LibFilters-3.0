@@ -290,7 +290,7 @@ local function checkIfControlSceneFragmentOrOther(refVar)
 	if libFilters.debug then dv("!checkIfControlSceneFragmentOrOther - refVar %q: %s", tos(refVar), tos(retVar)) end
 	return retVar
 end
-libFilters.checkIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
+libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 
 --[Inventory types]
