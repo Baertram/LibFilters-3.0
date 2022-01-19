@@ -26,8 +26,6 @@ local SM = SCENE_MANAGER
 ------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
 
-local isInitialized = libFilters.isInitialized
-
 
 --LibFilters local speedup and reference variables
 --Overall constants
@@ -104,7 +102,7 @@ libFilters.GetCustomLibFiltersFragmentName = getCustomLibFiltersFragmentName
 
 
 local function fragmentChange(oldState, newState, fragmentSource, fragmentTarget, showingFunc, shownFunc, hidingFunc, hiddenFunc)
-	if not isInitialized then return end
+	if not libFilters.isInitialized then return end
 
 	if libFilters.debug then dd("GAMEPAD Fragment state change "..tos(fragmentTarget._name or fragmentTarget.name).." - State: " ..tos(newState)) end
 	if (newState == SCENE_FRAGMENT_SHOWING ) then
@@ -183,7 +181,7 @@ local function updateSceneManagerAndHideFragment(targetFragment)
 end
 
 local function hookListFragmentsState(hookName, sceneId, objectId, listName, targetFragment, checkFunc, addAndRemoveFragment)
-	if not isInitialized then return end
+	if not libFilters.isInitialized then return end
 
 	addAndRemoveFragment = addAndRemoveFragment or false
 	if not fragmentsHooked[hookName] then
@@ -476,10 +474,11 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	--Add a callback to GAMEPAD_INVENTORY.categoryList SelectedDataChanged to update the current LibFilters filterType and fire the callbacks
 	--Match the tooltip to the selected data because it looks nicer
 	local function OnSelectedCategoryChangedLibFilters(list, selectedData)
-		if not isInitialized then return end
-
 		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
 		if libFilters.debug then dd("?? GAMEPAD inventory:OnSelectedDataChanged: %s [%s], comingFromCB: %s", tos(selectedData.text), tos(selectedGPInvFilter), tos(comingFromCraftBagList)) end
+
+		if not libFilters.isInitialized then return end
+
 		--At normal inventory categoryList?
 		if libFilters:IsInventoryShown()  then
 			if comingFromCraftBagList == false then
@@ -557,7 +556,7 @@ local gamepadLibFiltersDefaultFragment = LibFilters_InventoryLayoutFragment:New(
 
 local function createCustomGamepadFragmentsAndNeededHooks()
 	if libFilters.debug then dd("Create custom gamepad fragments") end
-	if not isInitialized then return end
+	if not libFilters.isInitialized then return end
 
 	--Player bank deposit
 	gamepadLibFiltersBankDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
@@ -612,14 +611,14 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 
 	--The GAMEPAD_TRADING_HOUSE_SELL variable is not given until gamepad mode is enabled and the trading house sell panel is opened...
 	--So we will use TRADING_HOUSE_GAMEPAD instead, function SetCurrentListObject(GAMEPAD_TRADING_HOUSE_SELL)
-	ZO_PreHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
-		if not isInitialized then return end
-
+	SecurePostHook(invGuildStore_GP, "SetCurrentMode", function(self, tradingMode)
+		if not libFilters.isInitialized then return end
 		if libFilters.debug then dd("GAMEPAD_TRADING_HOUSE - SetCurrentMode: " ..tos(tradingMode)) end
 		if tradingMode == ZO_TRADING_HOUSE_MODE_SELL then
-			invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
-			--todo: Delay the show to the next frame to make the gamepadTradingHouseBrowseFragment hide properly before!
-			--gamepadLibFiltersGuildStoreSellFragment:Show()
+			--Delay the fragment addition so the HIDE of GuildStore browse will finish properly before
+			zo_callLater(function()
+				invGuildStoreSellScene_GP:AddFragment(gamepadLibFiltersGuildStoreSellFragment)
+			end, 200)
 		else
 			updateSceneManagerAndHideFragment(gamepadLibFiltersGuildStoreSellFragment)
 			invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
@@ -650,7 +649,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	end)
 	]]
 	ZO_PreHook(invMailSend_GP, 'SwitchToFragment', function(self, fragment)
-		if not isInitialized then return end
+		if not libFilters.isInitialized then return end
 
 		if fragment == invMailSendFragment_GP then
 			if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Adding custom mail send fragment") end
@@ -691,7 +690,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 
 	SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 		if libFilters.debug then dd("?? GAMEPAD inventory:SetCurrentList") end
-		if not isInitialized then return end
+		if not libFilters.isInitialized then return end
 
 		comingFromCraftBagList = false
 		if list == invBackpack_GP.craftBagList then

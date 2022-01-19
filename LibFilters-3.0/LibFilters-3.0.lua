@@ -23,7 +23,6 @@ local MAJOR      	= libFilters.name
 local GlobalLibName = libFilters.globalLibName
 local filters    	= libFilters.filters
 
-local isInitialized = libFilters.isInitialized
 local callbacksCreated = false
 local fixesLateApplied = false
 
@@ -3400,7 +3399,7 @@ local function createFragmentCallback(fragment, filterTypes, inputType)
 			and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_FRAGMENT][fragment][inputType]) then
 		fragment:RegisterCallback("StateChange",
 				function(oldState, newState)
-					if not isInitialized then return end
+					if not libFilters.isInitialized then return end
 					onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 				end
 		)
@@ -3444,7 +3443,7 @@ local function createSceneCallbacks()
 						and not callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene][inputType]) then
 					scene:RegisterCallback("StateChange",
 							function(oldState, newState)
-								if not isInitialized then return end
+								if not libFilters.isInitialized then return end
 								onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 							end)
 					callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] = callbacksAdded[LIBFILTERS_CON_TYPEOFREF_SCENE][scene] or {}
@@ -3478,12 +3477,12 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 		local onShowHandler = controlRef.GetHandler and controlRef:GetHandler("OnEffectivelyShown")
 		if onShowHandler ~= nil then
 			ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
-				if not isInitialized then return end
+				if not libFilters.isInitialized then return end
 				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType)
 			end)
 		else
 			controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
-				if not isInitialized then return end
+				if not libFilters.isInitialized then return end
 				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType)
 			end)
 		end
@@ -3492,12 +3491,12 @@ local function createControlCallback(controlRef, filterTypes, inputType)
 		local onHideHandler = controlRef.GetHandler and controlRef:GetHandler("OnHide")
 		if onHideHandler ~= nil then
 			ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
-				if not isInitialized then return end
+				if not libFilters.isInitialized then return end
 				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
 			end)
 		else
 			controlRef:SetHandler("OnHide", function(ctrlRef)
-				if not isInitialized then return end
+				if not libFilters.isInitialized then return end
 				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
 			end)
 		end
@@ -3711,7 +3710,7 @@ end
 
 local function createCallbacks()
 	if libFilters.debug then dd("createCallbacks") end
-	if not isInitialized and not callbacksCreated then return end
+	if not libFilters.isInitialized and not callbacksCreated then return end
 
 	createSceneCallbacks()
 	createFragmentCallbacks()
@@ -3734,7 +3733,7 @@ end
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
 local function applyFixesLate()
 	if libFilters.debug then dd("ApplyFixesLate") end
-	if not isInitialized and not fixesLateApplied then return end
+	if not libFilters.isInitialized and not fixesLateApplied then return end
 
 	--2021-12-19
 	--Fix applied now is only needed for CraftBagExtended addon!
@@ -3784,7 +3783,7 @@ local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
 local function installHelpers()
-	if not isInitialized then return end
+	if not libFilters.isInitialized then return end
 
 	if libFilters.debug then dd("InstallHelpers") end
 	for _, package in pairs(helpers) do
@@ -3829,9 +3828,9 @@ end
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
-	if libFilters.debug then dd("InitializeLibFilters - %q", tos(isInitialized)) end
-	if isInitialized == true then return end
-	isInitialized = true
+	if libFilters.debug then dd("InitializeLibFilters - %q", tos(libFilters.isInitialized)) end
+	if libFilters.isInitialized == true then return end
+	libFilters.isInitialized = true
 
 	--Install the helpers, which override ZOs vanilla code -> See file helpers.lua
 	installHelpers()
