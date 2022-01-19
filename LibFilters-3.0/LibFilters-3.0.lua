@@ -74,6 +74,7 @@ libFilters._lastFilterTypeNoCallback	= false
 local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
 local callbacks = 					mapping.callbacks
+
 local callbackPattern = 			libFilters.callbackPattern
 local callbacksUsingScenes = 		callbacks.usingScenes
 local callbacksUsingFragments = 	callbacks.usingFragments
@@ -81,11 +82,22 @@ local callbacksUsingControls = 		callbacks.usingControls
 local specialCallbacks = 			callbacks.special
 local filterTypeToCallbackRef = 	callbacks.filterTypeToCallbackRef
 local callbackFragmentsBlockedMapping = callbacks.callbackFragmentsBlockedMapping
-local validFilterTypesOfPanel = 	mapping.validFilterTypesOfPanel
-local craftingTypeToPanelId = 		mapping.craftingTypeToPanelId
+local sceneStatesSupportedForCallbacks = callbacks.sceneStatesSupportedForCallbacks
+local callbacksAdded = {}
+--controls
+callbacksAdded[1] = {}
+--scenes
+callbacksAdded[2] = {}
+--fragments
+callbacksAdded[3] = {}
+callbacks.added = callbacksAdded
+
 
 local libFiltersFilterConstants = 	constants.filterTypes
 local isCraftingFilterType = 		mapping.isCraftingFilterType
+local validFilterTypesOfPanel = 	mapping.validFilterTypesOfPanel
+local craftingTypeToPanelId = 		mapping.craftingTypeToPanelId
+
 local inventoryTypes = 				constants.inventoryTypes
 local invTypeBackpack = 			inventoryTypes["player"]
 local invTypeQuest =				inventoryTypes["quest"]
@@ -93,6 +105,8 @@ local invTypeBank =					inventoryTypes["bank"]
 local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
+
+local subControlsToLoop = 			constants.subControlsToLoop
 
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
@@ -140,7 +154,7 @@ local enchantingInvCtrl        = 	enchanting.inventoryControl
 local alchemy                  = 	kbc.alchemy
 local alchemyCtrl              =	kbc.alchemyCtrl
 local provisioner			   =    kbc.provisioner
-local provCtrl 				   =    provisioner.control
+--local provCtrl 				   =    provisioner.control
 local provisionerScene 		   =    kbc.provisionerScene
 --local smithing				   =    kbc.smithing
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
@@ -174,7 +188,7 @@ local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 local provisioner_GP			=   gpc.provisioner_GP
 local provisionerScene_GP 	    =   gpc.provisionerScene_GP
-local provCtrl_GP				=   gpc.provisioner_GP.control
+--local provCtrl_GP				=   gpc.provisioner_GP.control
 
 
 
@@ -236,8 +250,14 @@ local debugSlashToggle = debugFunctions.debugSlashToggle
 SLASH_COMMANDS["/libfiltersdebug"] = 	debugSlashToggle
 SLASH_COMMANDS["/lfdebug"] = 			debugSlashToggle
 
+local isDebugEnabled = libFilters.debug
+local function updateIsDebugEnabled()
+	isDebugEnabled = libFilters.debug
+end
+libFilters.UpdateIsDebugEnabled = updateIsDebugEnabled
 
-if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
+
+if isDebugEnabled then dd("LIBRARY MAIN FILE - START") end
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -246,7 +266,7 @@ if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
 --Copy the current filterType to lastFilterType (same for the referenceVariables table) if the filterType / refVariables
 --table needs an update
 local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterTyp, doNotUpdateLast)
-	if libFilters.debug then dd("!°!updateLastAndCurrentFilterType - filterType: %s, doNotUpdateLast: %s, current: %s, last: %s",
+	if isDebugEnabled then dd("!°!updateLastAndCurrentFilterType - filterType: %s, doNotUpdateLast: %s, current: %s, last: %s",
 		tos(lFilterTypeDetected), tos(doNotUpdateLast), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType))
 	end
 	doNotUpdateLast = doNotUpdateLast or false
@@ -267,14 +287,6 @@ end
 local function getCtrl(retCtrl)
 	local checkType = "retCtrl"
 	local ctrlToCheck = retCtrl
-
-	local subControlsToLoop = {
-		[1] = "control",
-		[2] = "container",
-		[3] = "list",
-		[4] = "listView",
-		[5] = "panelControl",
-	}
 
 	if ctrlToCheck ~= nil then
 		if ctrlToCheck.IsHidden == nil then
@@ -305,11 +317,11 @@ local function checkIfRefVarIsShown(refVar)
 		end
 	--Scene
 	elseif refType == LIBFILTERS_CON_TYPEOFREF_SCENE then
-		if libFilters.debug then dv("!checkIfRefVarIsShown - scene state: %q", tos(refVar.state)) end
+		if isDebugEnabled then dv("!checkIfRefVarIsShown - scene state: %q", tos(refVar.state)) end
 		isShown = ((refVar.state == SCENE_SHOWN and true) or (refVar.IsShowing ~= nil and refVar:IsShowing())) or false
 	--Fragment
 	elseif refType == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
-		if libFilters.debug then dv("!checkIfRefVarIsShown - fragment state: %q", tos(refVar.state)) end
+		if isDebugEnabled then dv("!checkIfRefVarIsShown - fragment state: %q", tos(refVar.state)) end
 		isShown = ((refVar.state == SCENE_FRAGMENT_SHOWN and true) or (refVar.IsShowing ~= nil and refVar:IsShowing())) or false
 	--Other
 	elseif refType == LIBFILTERS_CON_TYPEOFREF_OTHER then
@@ -319,7 +331,7 @@ local function checkIfRefVarIsShown(refVar)
 			isShown = false
 		end
 	end
-	if libFilters.debug then dv("!checkIfRefVarIsShown - refVar %q: %s, refType: %s", tos(refVar), tos(isShown), tos(refType)) end
+	if isDebugEnabled then dv("!checkIfRefVarIsShown - refVar %q: %s, refType: %s", tos(refVar), tos(isShown), tos(refType)) end
 	return isShown, refVar, refType
 end
 
@@ -330,7 +342,7 @@ local function getCurrentSceneInfo()
 	if not SM then return nil, "" end
 	local currentScene = getCurrentScene(SM)
 	local currentSceneName = (currentScene ~= nil and currentScene.name) or ""
-	if libFilters.debug then dd("getCurrentSceneInfo - currentScene: %q, name: %q", tos(currentScene), tos(currentSceneName)) end
+	if isDebugEnabled then dd("getCurrentSceneInfo - currentScene: %q, name: %q", tos(currentScene), tos(currentSceneName)) end
 	return currentScene, currentSceneName
 end
 
@@ -381,7 +393,7 @@ local function getSceneNameByFilterType(filterType, isInGamepadMode)
 			if retScene.name then retSceneName = retScene.name end
 		end
 	end
-	if libFilters.debug then dv("getSceneName - filterType %s: %q, retScene: %s", tos(filterType), tos(retSceneName), tos(retScene)) end
+	if isDebugEnabled then dv("getSceneName - filterType %s: %q, retScene: %s", tos(filterType), tos(retSceneName), tos(retScene)) end
 	return retSceneName, retScene
 end
 ]]
@@ -398,7 +410,6 @@ local function isSceneFragmentShown(filterType, isInGamepadMode, isSceneOrFragme
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	checkIfHidden = checkIfHidden or false
 
-	local isDebugEnabled = libFilters.debug
 	local resultIsShown, resultSceneOrFragment
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	if filterTypeData == nil then return false, nil end
@@ -464,7 +475,7 @@ local function isListDialogShownWrapper(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	if filterTypeData == nil then
-		if libFilters.debug then dv("!isListDialogShownWrapper - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
+		if isDebugEnabled then dv("!isListDialogShownWrapper - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
 		return false, nil
 	end
 	local dialogOwnerCtrl = filterTypeData["controlDialog"]
@@ -542,18 +553,18 @@ local function isControlShown(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	if filterTypeData == nil then
-		if libFilters.debug then dv("!isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
+		if isDebugEnabled then dv("!isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
 		return false, nil
 	end
 	local retCtrl = filterTypeData["control"]
 
 	local ctrlToCheck, checkType = getCtrl(retCtrl)
 	if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
-		if libFilters.debug then dv("!isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
+		if isDebugEnabled then dv("!isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
 		return false, nil
 	end
 	local isShown = not ctrlToCheck:IsHidden()
-	if libFilters.debug then dv("!isControlShown - filterType %s, isShown: %s, gamepadMode: %s, retCtrl: %s, checkType: %s", tos(filterType), tos(isShown), tos(isInGamepadMode), tos(ctrlToCheck), tos(checkType)) end
+	if isDebugEnabled then dv("!isControlShown - filterType %s, isShown: %s, gamepadMode: %s, retCtrl: %s, checkType: %s", tos(filterType), tos(isShown), tos(isInGamepadMode), tos(ctrlToCheck), tos(checkType)) end
 	return isShown, ctrlToCheck
 end
 
@@ -600,7 +611,6 @@ end
 --returns boolean areAllExpectedResultsTrue
 local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	local isDebugEnabled = libFilters.debug
 	isSpecialForced = isSpecialForced or false
 	if isDebugEnabled then
 		dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
@@ -806,7 +816,7 @@ local function getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, cr
 		end
 	end
 	filterTypeTarget = filterTypeTarget or filterTypeSource
-	if libFilters.debug then
+	if isDebugEnabled then
 		dv("!getFilterTypeByFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s",
 			tos(filterTypeSource), tos(filterTypeTarget), tos(craftType))
 	end
@@ -816,7 +826,7 @@ end
 --is the filterType passed in a valid supported CraftBagExtended filterType?
 local function isCraftBagExtendedSupportedPanel(filterTypePassedIn)
 	local isSupportedFilterPanel = ZO_IsElementInNumericallyIndexedTable(cbeSupportedFilterPanels, filterTypePassedIn)
-	if libFilters.debug then
+	if isDebugEnabled then
 		dv(">isCraftBagExtendedSupportedPanel - filterType: %s = %s", tos(filterTypePassedIn), tos(isSupportedFilterPanel))
 	end
 	return isSupportedFilterPanel
@@ -827,7 +837,6 @@ end
 --and if the extra menu buttons of CBE are clicked to currently show the craftbag, and if the fragment's layoutData of
 --the CBE fragments hooked use the same number filterType as passed in
 local function craftBagExtendedCheckForCurrentModule(filterType)
-	local isDebugEnabled = libFilters.debug
 	if isDebugEnabled then dv("!craftBagExtendedCheckForCurrentModule - filterTypePassedIn: " .. tos(filterType)) end
 	local cbe = CraftBagExtended
 	local cbeCurrentModule = cbe.currentModule
@@ -867,7 +876,7 @@ local function checkForValidFilterTypeAtSamePanel(filterType, panelIdentifier, c
 			return false
 		end
 	end
-	if libFilters.debug then dv("checkForValidLastFilterTypesAtSamePanel - id: %s, filterType: %s", tos(panelIdentifier), tos(filterType)) end
+	if isDebugEnabled then dv("checkForValidLastFilterTypesAtSamePanel - id: %s, filterType: %s", tos(panelIdentifier), tos(filterType)) end
 	--No filterType given? Then act normal and allow the SCENE_HIDDEN callback of the panel
 	if filterType == nil then return true end
 
@@ -880,7 +889,7 @@ local function checkForValidFilterTypeAtSamePanel(filterType, panelIdentifier, c
 	end
 	local validFilterTypes = validFilterTypesOfPanel[panelIdentifier]
 	local isValidFilterTypeAtPanel = validFilterTypes[filterType] or false
-	if libFilters.debug then dv("<isValidFilterTypeAtPanel: %s", tos(isValidFilterTypeAtPanel)) end
+	if isDebugEnabled then dv("<isValidFilterTypeAtPanel: %s", tos(isValidFilterTypeAtPanel)) end
 	return isValidFilterTypeAtPanel
 end
 
@@ -891,7 +900,6 @@ end
 local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
 	checkIfHidden = checkIfHidden or false
 	skipSpecialChecks = skipSpecialChecks or false
-	local isDebugEnabled = libFilters.debug
 	local lReferencesToFilterType, lFilterTypeDetected
 	if filterTypeControlAndOtherChecks ~= nil then
 		local filterTypeChecked = filterTypeControlAndOtherChecks.filterType
@@ -921,7 +929,6 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode,
 							resultLoop, currentReferenceFound = isSceneFragmentShown(filterTypeChecked, isInGamepadMode, true, checkIfHidden)
 						elseif not skipSpecialChecks and checkTypeToExecute == "special" then
 							doHiddenTwistCheck = false
-							--local paramsForFilterTypeSpecialCheck = {} --todo create  function to get needed parameters for the special check per filterType?
 							resultLoop = isSpecialTrue(filterTypeChecked, isInGamepadMode, false, nil) --instead , nil ->  use , unpack(paramsForFilterTypeSpecialCheck))
 						elseif not skipSpecialChecks and checkTypeToExecute == "specialForced" then
 							doHiddenTwistCheck = false
@@ -1008,7 +1015,6 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 	skipSpecialChecks = skipSpecialChecks or false
 	local lFilterTypeDetected
 	local lReferencesToFilterType = {}
-	local isDebugEnabled = libFilters.debug
 	if isDebugEnabled then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
 	if isDebugEnabled then dd("!detectShownReferenceNow - filterTypePassedIn: %s, isInGamepadMode: %s",
 			tos(p_filterType), tos(isInGamepadMode) ) end
@@ -1054,16 +1060,15 @@ end
 --Is the filterType cached at libFilters._currentFilterType (set during call to updater functions and other functions)
 --still the valid one, and it's reference is still shown?
 local function checkIfCachedFilterTypeIsStillShown(isInGamepadMode)
-	local isDebugEnabled = libFilters.debug
 	if libFilters._currentFilterType ~= nil then
 		local filterTypeReference, filterTypeShown = detectShownReferenceNow(libFilters._currentFilterType, isInGamepadMode, false, false)
 		if filterTypeReference ~= nil and filterTypeShown ~= nil and filterTypeShown == libFilters._currentFilterType then
-			if isDebugEnabled then dd("!checkIfCachedFilterTypeIsStillShown %q: %s", tos(filterTypeShown), "YES") end
+			if isDebugEnabled then dd("!>checkIfCachedFilterTypeIsStillShown %q: %s", tos(filterTypeShown), "YES") end
 			--updateLastAndCurrentFilterType(filterTypeShown, filterTypeReference, true)
 			return filterTypeReference, filterTypeShown
 		end
 	end
-	if isDebugEnabled then dd("!checkIfCachedFilterTypeIsStillShown - currentFilterType %q: No", tos(libFilters._currentFilterType)) end
+	if isDebugEnabled then dd("<!checkIfCachedFilterTypeIsStillShown - currentFilterType %q: No", tos(libFilters._currentFilterType)) end
 	return nil, nil
 end
 
@@ -1079,7 +1084,7 @@ end
 --Update the inventory lists
 --if the mouse is enabled, cycle its state to refresh the integrity of the control beneath it
 local function SafeUpdateList(object, ...)
-	if libFilters.debug then
+	if isDebugEnabled then
 		local updatedName = (object and (object.name or (object.GetName and object:GetName()))
 				or (object.list and object.list.GetName and object.list:GetName())
 				or (object.container and object.container.GetName and object.container:GetName())
@@ -1103,7 +1108,7 @@ end
 
 --Function to update a ZO_ListDialog1 dialog's list contents
 local function dialogUpdaterFunc(listDialogControl)
-	if libFilters.debug then dv("[U]dialogUpdaterFunc, listDialogControl: %s", (listDialogControl ~= nil and listDialogControl.GetName ~= nil and tos(listDialogControl:GetName()) or "listDialogName: n/a")) end
+	if isDebugEnabled then dv("[U]dialogUpdaterFunc, listDialogControl: %s", (listDialogControl ~= nil and listDialogControl.GetName ~= nil and tos(listDialogControl:GetName()) or "listDialogName: n/a")) end
 	 if listDialogControl == nil then return nil end
 	 --Get & Refresh the list dialog
 	 local listDialog = ZO_InventorySlot_GetItemListDialog()
@@ -1122,7 +1127,7 @@ end
 
 --Updater function for a normal inventory in keyboard mode
 local function updateKeyboardPlayerInventoryType(invType)
-	if libFilters.debug then dv("[U]updateKeyboardPlayerInventoryType - invType: %s", tos(invType)) end
+	if isDebugEnabled then dv("[U]updateKeyboardPlayerInventoryType - invType: %s", tos(invType)) end
 	SafeUpdateList(playerInv, invType)
 end
 
@@ -1132,13 +1137,13 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --Updater function for a crafting inventory in keyboard and gamepad mode
 local function updateCraftingInventoryDirty(craftingInventory)
-	if libFilters.debug then dv("[U]updateCraftingInventoryDirty - craftingInventory: %s", tos(craftingInventory)) end
+	if isDebugEnabled then dv("[U]updateCraftingInventoryDirty - craftingInventory: %s", tos(craftingInventory)) end
 	craftingInventory.inventory:HandleDirtyEvent()
 end
 
 -- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
-	if libFilters.debug then dv("[U]updateFunction_GP_ZO_GamepadInventoryList - gpInvVar: %s, list: %s, callbackFunc: %s", tos(gpInvVar), tos(list), tos(callbackFunc)) end
+	if isDebugEnabled then dv("[U]updateFunction_GP_ZO_GamepadInventoryList - gpInvVar: %s, list: %s, callbackFunc: %s", tos(gpInvVar), tos(list), tos(callbackFunc)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar or not gpInvVar[list] then return end
 	local TRIGGER_CALLBACK = true
@@ -1148,7 +1153,7 @@ end
 
 -- update for LF_GUILDSTORE_SELL/LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
 local function updateFunction_GP_UpdateList(gpInvVar)
-	if libFilters.debug then dv("[U]updateFunction_GP_UpdateList - gpInvVar: %s", tos(gpInvVar)) end
+	if isDebugEnabled then dv("[U]updateFunction_GP_UpdateList - gpInvVar: %s", tos(gpInvVar)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar then return end
 	gpInvVar:UpdateList()
@@ -1156,14 +1161,14 @@ end
 
 -- update function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
 local function updateFunction_GP_Vendor(storeMode)
-	if libFilters.debug then dv("[U]updateFunction_GP_Vendor - storeMode: %s", tos(storeMode)) end
+	if isDebugEnabled then dv("[U]updateFunction_GP_Vendor - storeMode: %s", tos(storeMode)) end
 	if not store_componentsGP then return end
 	updateFunction_GP_UpdateList(store_componentsGP[storeMode].list)
 end
 
 -- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST gamepad
 local function updateFunction_GP_ItemList(gpInvVar)
-	if libFilters.debug then dv("[U]updateFunction_GP_ItemList - gpInvVar: %s", tos(gpInvVar)) end
+	if isDebugEnabled then dv("[U]updateFunction_GP_ItemList - gpInvVar: %s", tos(gpInvVar)) end
 	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
 	gpInvVar:RefreshItemList()
 	if gpInvVar.itemList:IsEmpty() then
@@ -1176,7 +1181,7 @@ end
 
 -- update for LF_CRAFTBAG gamepad
 local function updateFunction_GP_CraftBagList(gpInvVar)
-	if libFilters.debug then dv("[U]updateFunction_GP_CraftBagList - gpInvVar: %s", tos(gpInvVar)) end
+	if isDebugEnabled then dv("[U]updateFunction_GP_CraftBagList - gpInvVar: %s", tos(gpInvVar)) end
 	if not gpInvVar.craftBagList then return end
 	gpInvVar:RefreshCraftBagList()
 	gpInvVar:RefreshItemActions()
@@ -1184,7 +1189,7 @@ end
 
 -- update for LF_ENCHANTING_CREATION/LF_ENCHANTING_EXTRACTION gamepad
 local function updateFunction_GP_CraftingInventory(craftingInventory)
-	if libFilters.debug then dv("[U]updateFunction_GP_CraftingInventory - craftingInventory: %s", tos(craftingInventory)) end
+	if isDebugEnabled then dv("[U]updateFunction_GP_CraftingInventory - craftingInventory: %s", tos(craftingInventory)) end
 	if not craftingInventory then return end
 	craftingInventory:PerformFullRefresh()
 end
@@ -1210,7 +1215,7 @@ gpc.InventoryUpdateFunctions      = {
 		updateFunction_GP_ZO_GamepadInventoryList(gpc.invPlayerTrade_GP, "inventoryList")
 	end,
 	[LF_GUILDSTORE_SELL] = function()
-		if libFilters.debug and gpc.invGuildStoreSell_GP == nil then dv("[U]updateFunction LF_GUILDSTORE_SELL: Added reference to GAMEPAD_TRADING_HOUSE_SELL") end
+		if isDebugEnabled and gpc.invGuildStoreSell_GP == nil then dv("[U]updateFunction LF_GUILDSTORE_SELL: Added reference to GAMEPAD_TRADING_HOUSE_SELL") end
         gpc.invGuildStoreSell_GP = gpc.invGuildStoreSell_GP or GAMEPAD_TRADING_HOUSE_SELL
 		updateFunction_GP_UpdateList(gpc.invGuildStoreSell_GP)
 	end,
@@ -1268,7 +1273,7 @@ local inventoryUpdaters           = {
 				--have to add filter possibilities not only in inventory consumables but also directly in the collections
 				--somehow
 			]]
-			if libFilters.debug then dv("[U]updateFunction_GP_QUICKSLOT - Not supported yet!") end
+			if isDebugEnabled then dv("[U]updateFunction_GP_QUICKSLOT - Not supported yet!") end
 	--		SafeUpdateList(quickslots_GP) --TODO quickslots GP are not supported yet
 		else
 			SafeUpdateList(kbc.quickslots)
@@ -1326,7 +1331,7 @@ local inventoryUpdaters           = {
 		else
 		end
 	]]
-		if libFilters.debug then dv("[U]updateFunction GUILDSTORE_BROWSE: Not supported yet") end
+		if isDebugEnabled then dv("[U]updateFunction GUILDSTORE_BROWSE: Not supported yet") end
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
@@ -1342,7 +1347,7 @@ local inventoryUpdaters           = {
 		else
 		end
 	]]
-		if libFilters.debug then dv("[U]updateFunction SMITHING_CREATION: Not supported yet") end
+		if isDebugEnabled then dv("[U]updateFunction SMITHING_CREATION: Not supported yet") end
 	end,
 	SMITHING_DECONSTRUCT = function()
 		if IsGamepad() then
@@ -1361,10 +1366,10 @@ local inventoryUpdaters           = {
 	SMITHING_RESEARCH = function()
 		if IsGamepad() then
 			if not researchPanel_GP.researchLineList then return end
-			if libFilters.debug then dv("[U]updateFunction_GP_SMITHING_RESEARCH - SMITHING_GAMEPAD.researchPanel:Refresh() called") end
+			if isDebugEnabled then dv("[U]updateFunction_GP_SMITHING_RESEARCH - SMITHING_GAMEPAD.researchPanel:Refresh() called") end
 			researchPanel_GP:Refresh()
 		else
-			if libFilters.debug then dv("[U]updateFunction_Keyboard_SMITHING_RESEARCH - SMITHING.researchPanel:Refresh() called") end
+			if isDebugEnabled then dv("[U]updateFunction_Keyboard_SMITHING_RESEARCH - SMITHING.researchPanel:Refresh() called") end
 			kbc.researchPanel:Refresh()
 		end
 	end,
@@ -1376,7 +1381,7 @@ local inventoryUpdaters           = {
 			-->GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 			--sceneStateChangeCallbackUpdater(gamepadConstants.researchChooseItemDialog_GP, SCENE_HIDDEN, SCENE_SHOWING, 1, nil)
 			if not researchPanel_GP.confirmList then return end
-			if libFilters.debug then dv("[U]updateFunction_GP_SMITHING_RESEARCH_DIALOG - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks(StateChange, nil, SCENE_SHOWING) called") end
+			if isDebugEnabled then dv("[U]updateFunction_GP_SMITHING_RESEARCH_DIALOG - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks(StateChange, nil, SCENE_SHOWING) called") end
 			gpc.researchChooseItemDialog_GP:FireCallbacks("StateChange", nil, SCENE_SHOWING)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
@@ -1403,7 +1408,7 @@ local inventoryUpdaters           = {
 		else
 		end
 	]]
-		if libFilters.debug then dv("[U]updateFunction PROVISIONING_COOK: Not supported yet") end
+		if isDebugEnabled then dv("[U]updateFunction PROVISIONING_COOK: Not supported yet") end
 	end,
 	PROVISIONING_BREW = function()
 	--[[
@@ -1412,11 +1417,11 @@ local inventoryUpdaters           = {
 		else
 		end
 	]]
-		if libFilters.debug then dv("[U]updateFunction PROVISIONING_BREW: Not supported yet") end
+		if isDebugEnabled then dv("[U]updateFunction PROVISIONING_BREW: Not supported yet") end
 	end,
 	RETRAIT = function()
 		if IsGamepad() then
-			if libFilters.debug then dv("[U]updateFunction_GP_RETRAIT: ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh() called") end
+			if isDebugEnabled then dv("[U]updateFunction_GP_RETRAIT: ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh() called") end
 			gpc.retrait_GP:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
 			updateCraftingInventoryDirty(kbc.retrait)
@@ -1424,7 +1429,7 @@ local inventoryUpdaters           = {
 	end,
 	RECONSTRUCTION = function()
 		if IsGamepad() then
-			if libFilters.debug then dv("[U]updateFunction_GP_RECONSTRUCTION: ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems() called") end
+			if isDebugEnabled then dv("[U]updateFunction_GP_RECONSTRUCTION: ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems() called") end
 			-- not sure how reconstruct works, how it would be filtered.
 			gpc.reconstruct_GP:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
@@ -1477,7 +1482,7 @@ libFilters.RunFilters = runFilters
 --Hook the different inventory panels (LibFilters filterTypes) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
 local function applyAdditionalFilterHooks()
-	if libFilters.debug then dd("ApplyAdditionalFilterHooks") end
+	if isDebugEnabled then dd("---ApplyAdditionalFilterHooks---") end
 	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
 	for value, _ in ipairs(libFiltersFilterConstants) do
@@ -1519,12 +1524,12 @@ libFilters.GetMaxFilter = libFilters.GetMaxFilterType
 --If the filterType passed to runfilters function got no registered filterTags with filterFunctions, the LF_FILTER_ALL "fallback" will be checked (if existing and enabled via this API function) and be run!
 --If boolean newState is disabled: function runFilters will NOT use LF_FILTER_ALL fallback functions
 function libFilters:SetFilterAllState(newState)
-	if libFilters.debug then dd("SetFilterAllState-%s", tos(newState)) end
 	if newState == nil or type(newState) ~= "boolean" then
 		dfe("Invalid call to SetFilterAllState(%q).\n>Needed format is: boolean newState",
 			tos(newState))
 		return
 	end
+	if isDebugEnabled then dd("SetFilterAllState-%s", tos(newState)) end
 	libFilters.useFilterAllFallback = newState
 end
 
@@ -1538,12 +1543,12 @@ end
 
 --Returns String LibFilters LF* filterType constant's name for the number filterType
 function libFilters:GetFilterTypeName(filterType)
-	if libFilters.debug then dv("GetFilterTypeName - filterType: %q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid argument to GetFilterTypeName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
 		return
 	end
+	if isDebugEnabled then dv("GetFilterTypeName - filterType: %q", tos(filterType)) end
 	return libFiltersFilterConstants[filterType] or ""
 end
 libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
@@ -1554,12 +1559,12 @@ libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 --or nil if error occured or no filter function type was determined
 -- returns number filterFunctionType
 function libFilters:GetFilterTypeFunctionType(filterType)
-	if libFilters.debug then dd("GetFilterTypeFunctionType-%q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid argument to GetFilterTypeFunctionType(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterTypeFunctionType-%q", tos(filterType)) end
 	if filterTypesUsingBagIdAndSlotIndexFilterFunction[filterType] ~= nil then
 		return LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
 	elseif filterTypesUsingInventorySlotFilterFunction[filterType] ~= nil then
@@ -1573,13 +1578,12 @@ end
 --INVENTORY_BACKPACK, INVENTORY_BANK, ..., or a SCENE or a control given within table libFilters.mapping.
 --LF_FilterTypeToReference[gamepadMode = true / or keyboardMode = false]
 function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
-	noRefUpdate = noRefUpdate or false
-	local currentFilterTypeReferences
 	if not inventoryType then
 		dfe("Invalid arguments to GetCurrentFilterTypeForInventory(%q).\n>Needed format is: inventoryTypeNumber(e.g. INVENTORY_BACKPACK)/userdata/table/scene/control inventoryType",
 				tos(inventoryType))
 		return
 	end
+	noRefUpdate = noRefUpdate or false
 	local errorAppeared = false
 	local filterTypeDetected
 	--Get the layoutData from the fragment. If no fragment: Abort
@@ -1616,12 +1620,12 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 	--[[
 	--Was the filterType referenceVariableTable updated at calling function already?
 	if not noRefUpdate and filterTypeDetected ~= nil then
-		currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterTypeDetected)
+		local currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterTypeDetected)
 		--updateLastAndCurrentFilterType(filterTypeDetected, currentFilterTypeReferences, false)
 	end
 	]]
 
-	if libFilters.debug then dd("GetCurrentFilterTypeForInventory-%q: %s, error: %s", tos(inventoryType), tos(filterTypeDetected), tos(errorAppeared)) end
+	if isDebugEnabled then dd("GetCurrentFilterTypeForInventory-%q: %s, error: %s", tos(inventoryType), tos(filterTypeDetected), tos(errorAppeared)) end
 	return filterTypeDetected
 end
 libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeForInventory
@@ -1630,9 +1634,8 @@ libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeFor
 -- Get the actually used filterType via the shown control/scene/userdata information
 -- returns number LF*_filterType
 function libFilters:GetCurrentFilterType()
-	local isDebugEnabled = libFilters.debug
 	local filterTypeReference, filterType = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
-	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s", tos(filterTypeReference)) end
+	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s, filterTypeDetected: %s", tos(filterTypeReference), tos(filterType)) end
 	if filterTypeReference == nil then return end
 
 	--updateLastAndCurrentFilterType(nil, filterTypeReference, false)
@@ -1645,15 +1648,11 @@ function libFilters:GetCurrentFilterType()
 			--Do not update the references to libFilters._currentFilterTypeReferences as it was done above already
 			currentFilterType = libFilters_GetCurrentFilterTypeForInventory(libFilters, shownVariable, true)
 			if currentFilterType ~= nil then
-				if isDebugEnabled then dd(">currentFilterType: %s", tos(currentFilterType)) end
+				if isDebugEnabled then dd(">filterTypeDetected updated to: %s", tos(currentFilterType)) end
 				return currentFilterType
 			end
 		end
 	end
-
-	--updateLastAndCurrentFilterType(currentFilterType, nil, true)
-
-	if isDebugEnabled then dd("currentFilterType: %s", tos(currentFilterType)) end
 	return currentFilterType
 end
 
@@ -1667,7 +1666,7 @@ end
 function libFilters:GetFilterTypeRespectingCraftType(filterTypeSource, craftType)
 	if filterTypeSource == nil then return nil end
 	local filterTypeMappedByCraftingType, _ = getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
-	if libFilters.debug then dd("GetFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s", tos(filterTypeSource), tos(filterTypeMappedByCraftingType), tos(craftType)) end
+	if isDebugEnabled then dd("GetFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s", tos(filterTypeSource), tos(filterTypeMappedByCraftingType), tos(craftType)) end
 	return filterTypeMappedByCraftingType
 end
 
@@ -1678,12 +1677,12 @@ end
 --Check if a filterFunction at the String filterTag and OPTIONAL number filterType is already registered
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterRegistered(filterTag, filterType)
-	if libFilters.debug then dd("IsFilterRegistered-%q,%s", tos(filterTag), tos(filterType)) end
 	if not filterTag then
 		dfe("Invalid arguments to IsFilterRegistered(%q, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType",
 			tos(filterTag), tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("IsFilterRegistered-%q,%s", tos(filterTag), tos(filterType)) end
 	if filterType == nil then
 		--check whether there's any filter with this tag
 		for _, filterCallbacks in pairs(filters) do
@@ -1704,12 +1703,12 @@ local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 --Check if the LF_FILTER_ALL filterFunction at the String filterTag is already registered
 --Returns boolean true if registered already, false if not
 function libFilters:IsAllFilterRegistered(filterTag)
-	if libFilters.debug then dd("IsAllFilterRegistered-%q", tos(filterTag)) end
 	if not filterTag then
 		dfe("Invalid arguments to IsAllFilterRegistered(%q).\n>Needed format is: String uniqueFilterTag",
 			tos(filterTag))
 		return
 	end
+	if isDebugEnabled then dd("IsAllFilterRegistered-%q", tos(filterTag)) end
 	local filterCallbacks = filters[LF_FILTER_ALL]
 	return filterCallbacks[filterTag] ~= nil
 end
@@ -1721,13 +1720,13 @@ local filterTagPatternErrorStr = "Invalid arguments to %s(%q, %s, %s).\n>Needed 
 --OPTIONAL parameter boolean compareToLowerCase: If true the string comparison will be done with a lowerCase filterTag. The pattern will not be changed! Default: false
 --Returns boolean true if registered already, false if not
 function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, compareToLowerCase)
-	if libFilters.debug then dd("IsFilterTagPatternRegistered-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
 	if not filterTagPattern then
 		dfe(filterTagPatternErrorStr,
 			"IsFilterTagPatternRegistered", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
 		return
 	end
 	compareToLowerCase = compareToLowerCase or false
+	if isDebugEnabled then dd("IsFilterTagPatternRegistered-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
 	if filterType == nil then
 		--check whether there's any filter with this tag's pattern
 		for _, filterCallbacks in pairs(filters) do
@@ -1761,13 +1760,13 @@ local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s)
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
-	if libFilters.debug then dd("RegisterFilter-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
 	local filterCallbacks = filters[filterType]
 	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
 		dfe(registerFilteParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
 	noInUseError = noInUseError or false
+	if isDebugEnabled then dd("RegisterFilter-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
 	if filterCallbacks[filterTag] ~= nil then
 		if not noInUseError then
 			dfe("FilterTag \'%q\' filterType \'%q\' filterCallback function is already in use.\nPlease check via \'LibFilters:IsFilterRegistered(filterTag, filterType)\' before registering filters!",
@@ -1787,13 +1786,13 @@ local libFilters_RegisterFilter = libFilters.RegisterFilter
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
-	if libFilters.debug then dd("RegisterFilterIfUnregistered-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
 	local filterCallbacks = filters[filterType]
 	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
 		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered",
 				tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
+	if isDebugEnabled then dd("RegisterFilterIfUnregistered-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
 	noInUseError = noInUseError or false
 	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
 		return false
@@ -1809,12 +1808,12 @@ end
 --You manually need to handle the update via libFilters:RequestUpdate(filterType) where needed
 --Returns true if any filter function was unregistered
 function libFilters:UnregisterFilter(filterTag, filterType)
-	if libFilters.debug then dd("UnregisterFilter-%q,%s", tos(filterTag), tos(filterType)) end
 	if not filterTag or filterTag == "" then
 		dfe("Invalid arguments to UnregisterFilter(%q, %s).\n>Needed format is: String filterTag, OPTIONAL number LibFiltersLF_*FilterType",
 			tos(filterTag), tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("UnregisterFilter-%q,%s", tos(filterTag), tos(filterType)) end
 	if filterType == nil then
 		--unregister all filters with this tag
 		local unregisteredFilterFunctions = 0
@@ -1846,12 +1845,12 @@ end
 --Get the callback function of the String filterTag and number filterType
 --Returns function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables)
 function libFilters:GetFilterCallback(filterTag, filterType)
-	if libFilters.debug then dd("GetFilterCallback-%q,%q", tos(filterTag), tos(filterType)) end
 	if not filterTag or not filterType then
 		dfe("Invalid arguments to GetFilterCallback(%q, %q).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType",
 			tos(filterTag), tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterCallback-%q,%q", tos(filterTag), tos(filterType)) end
 	if not libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then return end
 	return filters[filterType][filterTag]
 end
@@ -1861,12 +1860,12 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTypeCallbacks(filterType)
-	if libFilters.debug then dd("GetFilterTypeCallbacks-%q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid arguments to GetFilterTypeCallbacks(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterTypeCallbacks-%q", tos(filterType)) end
 	return filters[filterType]
 end
 
@@ -1876,12 +1875,12 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerCase)
-	if libFilters.debug then dd("GetFilterTagCallbacks-%q,%s,%s", tos(filterTag), tos(filterType), tos(compareToLowerCase)) end
 	if not filterTag then
 		dfe("Invalid arguments to GetFilterTagCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
 			tos(filterTag), tos(filterType), tos(compareToLowerCase))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterTagCallbacks-%q,%s,%s", tos(filterTag), tos(filterType), tos(compareToLowerCase)) end
 	compareToLowerCase = compareToLowerCase or false
 	local retTab
 	local filterTagToCompare = (compareToLowerCase == true and filterTag:lower()) or filterTag
@@ -1918,12 +1917,12 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, compareToLowerCase)
-	if libFilters.debug then dd("GetFilterTagPatternCallbacks-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
 	if not filterTagPattern then
 		dfe(filterTagPatternErrorStr,
 			"GetFilterTagPatternCallbacks", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterTagPatternCallbacks-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
 	compareToLowerCase = compareToLowerCase or false
 	local retTab
 	if filterType == nil then
@@ -1964,12 +1963,12 @@ end
 --OPTIONAL parameter number delay will add a delay to the call of the updater function
 --OPTIONAL parameter number filterType maybe needed for the updater function call. If it's missing it's tried to be determined
 function libFilters:RequestUpdateByName(updaterName, delay, filterType)
-	if libFilters.debug then dv("[U-API]RequestUpdateByName-%q,%s,%s", tos(updaterName), tos(delay), tos(filterType)) end
 	if not updaterName or updaterName == "" then
 		dfe("Invalid arguments to RequestUpdateByName(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
 		return
 	end
+	if isDebugEnabled then dv("[U-API]RequestUpdateByName-%q,%s,%s", tos(updaterName), tos(delay), tos(filterType)) end
 
 	--Try to get the filterType, if not provided yet
 	if filterType == nil then
@@ -1998,11 +1997,11 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 	else
 		delay = 10 --default value: 10ms
 	end
-	if libFilters.debug then dv(">callbackName: %s, delay: %s", tos(callbackName), tos(delay)) end
+	if isDebugEnabled then dv(">callbackName: %s, delay: %s", tos(callbackName), tos(delay)) end
 
 	local function updateFiltersNow()
 		EM:UnregisterForUpdate(callbackName)
-		if libFilters.debug then dv("!!!RequestUpdateByName->Update called now, updaterName: %s, filterType: %s, delay: %s", tos(updaterName), tos(filterType), tos(delay)) end
+		if isDebugEnabled then dv("!!!RequestUpdateByName->Update called now, updaterName: %s, filterType: %s, delay: %s", tos(updaterName), tos(filterType), tos(delay)) end
 
 		--Update the cashed filterType and it's references
 		--local currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterType, nil)
@@ -2026,12 +2025,12 @@ local libFilters_RequestUpdateByName = libFilters.RequestUpdateByName
 --OPTIONAL parameter number delay will add a delay to the call of the updater function
 function libFilters:RequestUpdate(filterType, delay)
 	local updaterName = filterTypeToUpdaterName[filterType]
-	if libFilters.debug then dd("[U-API]RequestUpdate filterType: %q, updaterName: %s, delay: %s", tos(filterType), tos(updaterName), tos(delay)) end
 	if not filterType or not updaterName or updaterName == "" then
 		dfe("Invalid arguments to RequestUpdate(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("[U-API]RequestUpdate filterType: %q, updaterName: %s, delay: %s", tos(filterType), tos(updaterName), tos(delay)) end
 	libFilters_RequestUpdateByName(libFilters, updaterName, delay, filterType)
 end
 
@@ -2039,12 +2038,12 @@ end
 -- Get the updater name of a number filterType
 -- returns String updateName
 function libFilters:GetFilterTypeUpdaterName(filterType)
-	if libFilters.debug then dd("GetFilterTypeUpdaterName filterType: %q", tos(filterType)) end
 	if not filterType then
 		dfe("Invalid arguments to GetFilterTypeUpdaterName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 			tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterTypeUpdaterName filterType: %q", tos(filterType)) end
 	return filterTypeToUpdaterName[filterType] or ""
 end
 
@@ -2052,12 +2051,12 @@ end
 -- Get the updater filterTypes of a String updaterName
 -- returns nilable:table filterTypesOfUpdaterName { [1] = LF_INVENTORY, [2] = LF_..., [3] = ... }
 function libFilters:GetUpdaterNameFilterType(updaterName)
-	if libFilters.debug then dd("GetUpdaterNameFilterType updaterName: %q", tos(updaterName)) end
 	if updaterName == nil or updaterName == "" then
 		dfe("Invalid call to GetUpdaterNameFilterType(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
 		return
 	end
+	if isDebugEnabled then dd("GetUpdaterNameFilterType updaterName: %q", tos(updaterName)) end
 	return updaterNameToFilterType[updaterName]
 end
 
@@ -2072,12 +2071,12 @@ end
 -- Get the updater function used for updating/refresh of the inventories etc., by help of a String updaterName
 -- returns nilable:function updaterFunction(OPTIONAL filterType)
 function libFilters:GetUpdaterCallback(updaterName)
-	if libFilters.debug then dd("GetUpdaterCallback updaterName: %q", tos(updaterName)) end
 	if updaterName == nil or updaterName == "" then
 		dfe("Invalid call to GetUpdaterCallback(%q).\n>Needed format is: String updaterName",
 			tos(updaterName))
 		return
 	end
+	if isDebugEnabled then dd("GetUpdaterCallback updaterName: %q", tos(updaterName)) end
 	return inventoryUpdaters[updaterName]
 end
 
@@ -2085,12 +2084,12 @@ end
 -- Get the updater function used for updating/refresh of the inventories etc., by help of a number filterType
 -- returns nilable:function updaterFunction(OPTIONAL filterType)
 function libFilters:GetFilterTypeUpdaterCallback(filterType)
-	if libFilters.debug then dd("GetFilterTypeUpdaterCallback filterType: %q", tos(filterType)) end
 	if filterType == nil then
 		dfe("Invalid call to GetFilterTypeUpdaterCallback(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
 				tos(filterType))
 		return
 	end
+	if isDebugEnabled then dd("GetFilterTypeUpdaterCallback filterType: %q", tos(filterType)) end
 	local updaterName = filterTypeToUpdaterName[filterType]
 	if not updaterName then return end
 	return inventoryUpdaters[updaterName]
@@ -2129,7 +2128,7 @@ function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 				tos(filterType), tos(isInGamepadMode))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTypeReferences filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
+	if isDebugEnabled then dd("GetFilterTypeReferences filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
 	local filterReferences = LF_FilterTypeToReference[isInGamepadMode][filterType]
 	return filterReferences
 end
@@ -2143,7 +2142,7 @@ libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 --		   number filterType
 function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	if libFilters.debug then dd("GetCurrentFilterTypeReference filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
+	if isDebugEnabled then dd("GetCurrentFilterTypeReference filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
 
 	--Check if the cached "current filterType" is given and still shown -> Only if no filterType was explicitly passed in
 	if filterType == nil then
@@ -2177,7 +2176,7 @@ local function isInventoryBaseShown(isInGamepadMode)
 			resultVar = true
 		end
 	end
-	if libFilters.debug then dv(">isInventoryBaseShown: %s", tos(resultVar)) end
+	if isDebugEnabled then dv(">isInventoryBaseShown: %s", tos(resultVar)) end
 	return resultVar
 end
 
@@ -2238,7 +2237,7 @@ function libFilters:IsInventoryShown()
 		--isInvShown = not playerInvCtrl:IsHidden()
 		isInvShown, listShownGP = isInventoryBaseShown(false), nil
 	end
-	if libFilters.debug then dd("IsInventoryShown: %s", tos(isInvShown)) end
+	if isDebugEnabled then dd("IsInventoryShown: %s", tos(isInvShown)) end
 	return isInvShown, listShownGP
 end
 
@@ -2376,7 +2375,7 @@ function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if dialogOwnerControlToCheck == nil then
 		dialogOwnerControlToCheck = getDialogOwner(filterType, craftType)
 	end
-	if libFilters.debug then
+	if isDebugEnabled then
 		dd("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
 				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)) --tos(filterTypeMappedByCraftingType)
 	end
@@ -2494,7 +2493,7 @@ end
 function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 	local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 	local filterTypeNameAndTypeText = (tos(filterTypeName) .. " [" .. tos(filterType) .. "]")
-	if libFilters.debug then dd("HookAdditionalFilter - %q, %s", tos(filterTypeNameAndTypeText), tos(hookKeyboardAndGamepadMode)) end
+	if isDebugEnabled then dd("HookAdditionalFilter - %q, %s", tos(filterTypeNameAndTypeText), tos(hookKeyboardAndGamepadMode)) end
 	local function hookNowSpecial(inventoriesToHookForLFConstant_Table, isInGamepadMode)
 		if not inventoriesToHookForLFConstant_Table then
 			filterTypeName = filterTypeName or libFilters_GetFilterTypeName(libFilters, filterType)
@@ -2506,7 +2505,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		local funcName = inventoriesToHookForLFConstant_Table.funcName
 		if funcName ~= nil and funcName ~= "" and libFilters[funcName] ~= nil then
 			local params = inventoriesToHookForLFConstant_Table.params
-			if libFilters.debug then dd("HookAdditionalFilter > hookNowSpecial-%q,%s;%s", tos(filterType), tos(funcName), tos(params)) end
+			if isDebugEnabled then dd("HookAdditionalFilter > hookNowSpecial-%q,%s;%s", tos(filterType), tos(funcName), tos(params)) end
 			libFilters[funcName](libFilters, unpack(params))
 		end
 	end
@@ -2519,7 +2518,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode))
 			return
 		end
-		if libFilters.debug then
+		if isDebugEnabled then
 			dv(">____________________>")
 			dv("[HookNow]filterType %q, isInGamepadMode: %s, keyboardAndGamepadMode: %s",
 				filterTypeNameAndTypeText, tos(isInGamepadMode), tos(hookKeyboardAndGamepadMode)) end
@@ -2530,7 +2529,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 			if filterTypeRefToHook ~= nil then
 				local typeOfRef = checkIfControlSceneFragmentOrOther(filterTypeRefToHook)
 				local typeOfRefStr = typeOfRefToName[typeOfRef]
-				if libFilters.debug then
+				if isDebugEnabled then
 					local typeOfRefName = getTypeOfRefName(typeOfRef, filterTypeRefToHook)
 					dv(">Hooking into %q, type: %s", tos(typeOfRefName), tos(typeOfRefStr))
 				end
@@ -2556,7 +2555,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 				--Special filterFunction needed, not located at .additionalFilter but e.g. .additionalCraftBag filter?
 				if otherOriginalFilterAttributesAtLayoutData ~= nil then
 					local readFromAttribute = otherOriginalFilterAttributesAtLayoutData.attributeRead
-					if libFilters.debug then dv(">>filterType: %s, otherOriginalFilterAttributesAtLayoutData: %s", filterTypeNameAndTypeText, tos(readFromAttribute)) end
+					if isDebugEnabled then dv(">>filterType: %s, otherOriginalFilterAttributesAtLayoutData: %s", filterTypeNameAndTypeText, tos(readFromAttribute)) end
 					local readFromObject = otherOriginalFilterAttributesAtLayoutData.objectRead
 					if readFromObject == nil then
 						--Fallback: Read from the same layoutData
@@ -2579,7 +2578,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						local originalFilterType = type(otherOriginalFilter)
 						if originalFilterType == "function" then
 							createFilterFunctionForLibFilters = false
-							if libFilters.debug then dv(">>>Updated existing filter function %q", tos(readFromAttribute)) end
+							if isDebugEnabled then dv(">>>Updated existing filter function %q", tos(readFromAttribute)) end
 							readFromObject[readFromAttribute] = function(...) --e.g. update BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.additionalCraftBagFilter so it will be copied to PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] at PLAYER_INVENTORY:ApplyBackpackLayout()
 								return otherOriginalFilter(...) and runFilters(filterType, ...)
 							end
@@ -2592,22 +2591,22 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 						createFilterFunctionForLibFilters = true
 					end
 					if createFilterFunctionForLibFilters == true then
-						if libFilters.debug then dv(">>>Created new filter function %q", tos(readFromAttribute)) end
+						if isDebugEnabled then dv(">>>Created new filter function %q", tos(readFromAttribute)) end
 						readFromObject[readFromAttribute] = function(...) --e.g. update BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.additionalCraftBagFilter so it will be copied to PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG] at PLAYER_INVENTORY:ApplyBackpackLayout()
 							return runFilters(filterType, ...)
 						end
 					end
 				else
-					if libFilters.debug then dv(">>filterType: %s, normal hook: %s", filterTypeNameAndTypeText, tos(defaultOriginalFilterAttributeAtLayoutData)) end
+					if isDebugEnabled then dv(">>filterType: %s, normal hook: %s", filterTypeNameAndTypeText, tos(defaultOriginalFilterAttributeAtLayoutData)) end
 					local originalFilterType = type(originalFilter)
 					if originalFilterType == "function" then
-						if libFilters.debug then dv(">>>Updated existing filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
+						if isDebugEnabled then dv(">>>Updated existing filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
 						--Set the .additionalFilter again with the filter function of the original and LibFilters
 						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 							return originalFilter(...) and runFilters(filterType, ...)
 						end
 					else
-						if libFilters.debug then dv(">>>Created new filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
+						if isDebugEnabled then dv(">>>Created new filter function %q", tos(defaultOriginalFilterAttributeAtLayoutData)) end
 						--Set the .additionalFilter again with the filter function of LibFilters only
 						layoutData[defaultOriginalFilterAttributeAtLayoutData] = function(...) --.additionalFilter
 							return runFilters(filterType, ...)
@@ -2677,7 +2676,7 @@ libFilters_hookAdditionalFilter = libFilters.HookAdditionalFilter
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSpecial(specialType)
-	if libFilters.debug then dd("HookAdditionalFilterSpecial-%q", tos(specialType)) end
+	if isDebugEnabled then dd("HookAdditionalFilterSpecial-%q", tos(specialType)) end
 	if specialHooksDone[specialType] then return end
 
 	--[ [
@@ -2728,7 +2727,7 @@ end
 --> Is only kept as example here! Currently LF_ENCHANTING_CREATION and _EXTRACTION use the gamepad scenes in helpers.lua
 --> ZO_Enchanting_DoesEnchantingItemPassFilter for both, keyboard and gamepad mode!
 function libFilters:HookAdditionalFilterSceneSpecial(specialType)
-	if libFilters.debug then dd("HookAdditionalFilterSceneSpecial-%q", tos(specialType)) end
+	if isDebugEnabled then dd("HookAdditionalFilterSceneSpecial-%q", tos(specialType)) end
 	if specialHooksDone[specialType] then return end
 
 --[ [
@@ -2812,7 +2811,7 @@ end
 --keyboard mode
 function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
 	 local craftingType = GetCraftingInteractionType()
-	if libFilters.debug then dd("SetResearchLineLoopValues craftingType: %q, fromResearchLineIndex: %q, toResearchLineIndex: %q, skipTable: %s", tos(craftingType), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(skipTable)) end
+	if isDebugEnabled then dd("SetResearchLineLoopValues craftingType: %q, fromResearchLineIndex: %q, toResearchLineIndex: %q, skipTable: %s", tos(craftingType), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(skipTable)) end
 	 if craftingType == CRAFTING_TYPE_INVALID then return false end
 	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
 	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
@@ -2836,7 +2835,7 @@ end
 --Will return boolean true if CBE is enabled and a supported parent filterType panelis shown. Else returns false
 function libFilters:IsCraftBagExtendedParentFilterType(filterTypesToCheck)
 	local referencesToFilterType, filterTypeParent
-	if libFilters.debug then dd("GetCraftBagExtendedParentFilterType - numFilterTypesToCheck: %s",
+	if isDebugEnabled then dd("GetCraftBagExtendedParentFilterType - numFilterTypesToCheck: %s",
 			tos(#filterTypesToCheck)) end
 	if filterTypesToCheck ~= nil and CraftBagExtended ~= nil then
 		--local cbeSpecialAddonChecks = "CraftBagExtended"
@@ -2845,13 +2844,13 @@ function libFilters:IsCraftBagExtendedParentFilterType(filterTypesToCheck)
 			referencesToFilterType, filterTypeParent = nil, nil
 			referencesToFilterType, filterTypeParent = craftBagExtendedCheckForCurrentModule(filterTypeToCheck)
 			if referencesToFilterType ~= nil and filterTypeParent ~= nil then
-				if libFilters.debug then dv(">filterTypeChecked: %s, filterTypeParent: %q",
+				if isDebugEnabled then dv(">filterTypeChecked: %s, filterTypeParent: %q",
 						tos(filterTypeToCheck), tos(filterTypeParent)) end
 				return true
 			end
 		end
 	end
-	if libFilters.debug then dv(">IsCraftBagExtendedParentFilterType: %s, CBE enabled: %s",
+	if isDebugEnabled then dv(">IsCraftBagExtendedParentFilterType: %s, CBE enabled: %s",
 			tos(filterTypeParent), tos(CraftBagExtended ~= nil)) end
 	return false
 end
@@ -2865,7 +2864,7 @@ function libFilters:IsVanillaCraftBagShown()
 	if inputType == true then
 		if invBackpack_GP.craftBagList ~= nil then
 			--If craftbag was not opened before the craftBagList:IsActive might return false, so we need to check for other parameters then
-			if libFilters.debug then dd("IsVanillaCraftBagShown> active: %s, actionMode: %s, currentListType: %s",
+			if isDebugEnabled then dd("IsVanillaCraftBagShown> active: %s, actionMode: %s, currentListType: %s",
 					tos(invBackpack_GP.craftBagList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
 			if invBackpack_GP.craftBagList:IsActive() or invBackpack_GP.actionMode == 3 or invBackpack_GP.currentListType == "craftBagList" then
 				lFilterTypeDetected = 		LF_CRAFTBAG
@@ -2876,7 +2875,7 @@ function libFilters:IsVanillaCraftBagShown()
 		lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_CRAFTBAG, nil, false, true)
 	end
 	local vanillaUICraftBagShown = ((lFilterTypeDetected ~= nil and lFilterTypeDetected == LF_CRAFTBAG and lReferencesToFilterType ~= nil) and true) or false
-	if libFilters.debug then dd("IsVanillaCraftBagShown - vanillaUIShown: %s", tos(vanillaUICraftBagShown)) end
+	if isDebugEnabled then dd("IsVanillaCraftBagShown - vanillaUIShown: %s", tos(vanillaUICraftBagShown)) end
 	return vanillaUICraftBagShown
 end
 local libFilters_IsVanillaCraftBagShown = libFilters.IsVanillaCraftBagShown
@@ -2886,7 +2885,7 @@ local libFilters_IsVanillaCraftBagShown = libFilters.IsVanillaCraftBagShown
 function libFilters:IsCraftBagShown()
 	local vanillaUICraftBagShown = libFilters_IsVanillaCraftBagShown(libFilters)
 	local cbeCraftBagShown = libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels)
-	if libFilters.debug then dd("IsCraftBagShown - vanillaUIShown: %s, cbeShown: %s", tos(vanillaUICraftBagShown), tos(cbeCraftBagShown)) end
+	if isDebugEnabled then dd("IsCraftBagShown - vanillaUIShown: %s, cbeShown: %s", tos(vanillaUICraftBagShown), tos(cbeCraftBagShown)) end
 	if vanillaUICraftBagShown == true or cbeCraftBagShown == true then return true end
 	return false
 end
@@ -2944,20 +2943,6 @@ end
 		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
 ]]
-local sceneStatesSupportedForCallbacks = {
-	[SCENE_SHOWN] 	= true,
-	[SCENE_HIDDEN] 	= true,
-}
-
-local callbacksAdded = {}
---controls
-callbacksAdded[1] = {}
---scenes
-callbacksAdded[2] = {}
---fragments
-callbacksAdded[3] = {}
-callbacks.added = callbacksAdded
-
 function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
 	local isShown = (stateStr == SCENE_SHOWN and true) or false
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
@@ -2968,7 +2953,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	local currentFilterTypeRef			= libFilters._currentFilterTypeReferences
 	local currentFilterTypeBeforeReset	= currentFilterType
 	local currentFilterTypeRefBeforeReset = currentFilterTypeRef
-	if libFilters.debug then
+	if isDebugEnabled then
 		dv("[CallbackRaise]state: %s, currentBefore: %s, lastBefore: %s, doNotUpdate: %s", tos(stateStr), tos(currentFilterTypeBeforeReset), tos(lastFilterTypeBefore), tos(doNotUpdateCurrentAndLastFilterTypes))
 	end
 
@@ -2984,7 +2969,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	--local checkIfHidden = (stateStr == SCENE_HIDDEN and true) or false
 	local checkIfHidden = false
 
-	if libFilters.debug then
+	if isDebugEnabled then
 		dv("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s", tos(stateStr), tos(#filterTypes), tos(typeOfRef))
 		if #filterTypes > 0 then
 			for filterTypeIdx, filterTypePassedIn in ipairs(filterTypes) do
@@ -3012,7 +2997,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	if stateStr == SCENE_HIDDEN then --or stateStr == SCENE_HIDING   then
 
 		if lastKnownFilterType ~= nil then
-			if libFilters.debug then dv(">lastKnownFilterType: %s", tos(lastKnownFilterType)) end
+			if isDebugEnabled then dv(">lastKnownFilterType: %s", tos(lastKnownFilterType)) end
 
 			--Check if the fragment or scene hiding/hidden is related to the lastKnown filterType:
 			--Some fragments like INVENTORY_FRAGMENT and BACKPACK_MAIL_LAYOUT_FRAGMENT are added to the same scenes (mail send e.g.).
@@ -3024,11 +3009,11 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				local sceneOfLastFilterType = callbacksUsingScenes[isInGamepadMode][fragmentOrSceneOrControl]
 				if sceneOfLastFilterType ~= nil then
 					if ZO_IsElementInNumericallyIndexedTable(sceneOfLastFilterType, lastKnownFilterType) == false then
-						if libFilters.debug then dv("<<sceneOfLastFilterType not valid") end
+						if isDebugEnabled then dv("<<sceneOfLastFilterType not valid") end
 						return false
 					end
 				else
-					if libFilters.debug then dv("<<sceneOfLastFilterType not found", tos(lastKnownFilterType)) end
+					if isDebugEnabled then dv("<<sceneOfLastFilterType not found", tos(lastKnownFilterType)) end
 					return false
 				end
 
@@ -3037,11 +3022,11 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				local fragmentOfLastFilterType = callbacksUsingFragments[isInGamepadMode][fragmentOrSceneOrControl]
 				if fragmentOfLastFilterType ~= nil then
 					if ZO_IsElementInNumericallyIndexedTable(fragmentOfLastFilterType, lastKnownFilterType) == false then
-						if libFilters.debug then dv("<<fragmentOfLastFilterType not valid") end
+						if isDebugEnabled then dv("<<fragmentOfLastFilterType not valid") end
 						return false
 					end
 				else
-					if libFilters.debug then dv("<<fragmentOfLastFilterType not found") end
+					if isDebugEnabled then dv("<<fragmentOfLastFilterType not found") end
 					return false
 				end
 			end
@@ -3064,23 +3049,23 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		-->In order to leave only the craftbag fragment active we need to check the later called "non-craftbag" (layout) fragments and do not fire
 		--> their state change
 		if isInGamepadMode == false and CraftBagExtended ~= nil and lastKnownFilterType == LF_CRAFTBAG then
-			if libFilters.debug then dv(">>CraftBagExtended active") end
+			if isDebugEnabled then dv(">>CraftBagExtended active") end
 			if not craftbagRefsFragment[fragmentOrSceneOrControl] then
-				if libFilters.debug then dv(">>>Current fragment is not the craftbag fragment") end
+				if isDebugEnabled then dv(">>>Current fragment is not the craftbag fragment") end
 				local isCBESupportedPanel = (#filterTypes == 0) or false
 				if isCBESupportedPanel == false then
 					for _, filterTypePassedIn in ipairs(filterTypes) do
 						isCBESupportedPanel = isCraftBagExtendedSupportedPanel(filterTypePassedIn)
 						if isCBESupportedPanel == true then
-							if libFilters.debug then dv(">>>CraftBagExtended supported panel was found: %s", tos(filterTypePassedIn)) end
+							if isDebugEnabled then dv(">>>CraftBagExtended supported panel was found: %s", tos(filterTypePassedIn)) end
 							break
 						end
 					end
 				else
-					if libFilters.debug then dv(">>>No filterTypes passed in -> Checking for CBE filterPanels") end
+					if isDebugEnabled then dv(">>>No filterTypes passed in -> Checking for CBE filterPanels") end
 				end
 				if isCBESupportedPanel == true and libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels) then
-					if libFilters.debug then dv("<<CraftBagExtended craftbagFragment was shown already") end
+					if isDebugEnabled then dv("<<CraftBagExtended craftbagFragment was shown already") end
 					return false
 				end
 			end
@@ -3112,7 +3097,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				if not skipCheck then
 					lReferencesToFilterType, filterType = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
 					if filterType ~= nil and lReferencesToFilterType ~= nil then
-						if libFilters.debug then dv("<<filterType was found in loop: %s", tos(filterType)) end
+						if isDebugEnabled then dv("<<filterType was found in loop: %s", tos(filterType)) end
 						break -- leave the loop if filterType and reference were found
 					end
 				end
@@ -3156,7 +3141,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				if lastFilterTypeRefBefore ~= nil then
 					libFilters._lastFilterTypeReferences = lastFilterTypeRefBefore
 				end
-				if libFilters.debug then dd(">SHOWN - No filterType found. Resetting the current %s and last filterType %s",
+				if isDebugEnabled then dd(">SHOWN - No filterType found. Resetting the current %s and last filterType %s",
 						tos(currentFilterTypeBefore), tos(lastFilterTypeBefore))
 				end
 			end
@@ -3172,7 +3157,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		libFilters._currentFilterTypeReferences	= currentFilterTypeRefBeforeReset
 		libFilters._lastFilterType				= lastKnownFilterType
 		libFilters._lastFilterTypeReferences	= lastKnownRefVars
-		if libFilters.debug then
+		if isDebugEnabled then
 			dd("<CALLBACK ABORTED - filterType: %s and state %s currently already active! currentNow: %s, lastNow: %s", tos(filterType), tos(stateStr), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType))
 		end
 		return
@@ -3182,13 +3167,12 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 
 	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
 
-	if libFilters.debug then
+	if isDebugEnabled then
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		local callbackRefType = typeOfRefToName[typeOfRef]
-		df(">!!! CALLBACK - filterType: %q [%s] - %s !!!>", tos(filterTypeName), tos(filterType), tos(stateStr))
+		df(">!!! CALLBACK -> filterType: %q [%s] - %s !!!>", tos(filterTypeName), tos(filterType), tos(stateStr))
 		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s",
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode))
-		df("<!!! end CALLBACK - filterType: %q [%s] - %s !!!>", tos(filterTypeName), tos(filterType), tos(stateStr))
 	end
 
 	--Update currentFilterTyp and ref if the ref is shown. Do not update if it got hidden!
@@ -3250,7 +3234,7 @@ function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doN
 	local filterTypes = { filterType }
 	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, filterType, inputType)
 	if not refVar then
-		if libFilters.debug then dfe("No callback reference found for filterType: %s, inputType: %s", tos(filterType), tos(inputType)) end
+		if isDebugEnabled then dfe("No callback reference found for filterType: %s, inputType: %s", tos(filterType), tos(inputType)) end
 		return
 	end
 	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
@@ -3259,14 +3243,14 @@ local libFilters_RaiseFilterTypeCallback = libFilters.RaiseFilterTypeCallback
 
 
 local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef, stateStr, inputType, refType, refName)
-	if libFilters.debug then
+	if isDebugEnabled then
 		dv(">checkIfSpecialCallbackNeedsToBeAdded - %q, stateStr: %s, refType: %s", tos(refName), tos(stateStr), tos(refType))
 	end
 	local specialCallbackForCtrl = specialCallbacks[controlOrSceneOrFragmentRef]
 	if specialCallbackForCtrl ~= nil then
 		local funcToCall = specialCallbackForCtrl[stateStr]
 		if funcToCall ~= nil and type(funcToCall) == "function" then
-			if libFilters.debug then
+			if isDebugEnabled then
 				dv(">>special callback function will be called now...")
 			end
 			funcToCall(controlOrSceneOrFragmentRef, stateStr, inputType, refType)
@@ -3304,14 +3288,14 @@ local function isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr
 	local callbackFragmentBlockedFilterTypesBase = callbackFragmentsBlockedMapping[inputType][stateStr]
 	local callbackFragmentBlockedFilterTypes = (callbackFragmentBlockedFilterTypesBase ~= nil and callbackFragmentBlockedFilterTypesBase[fragment]) or nil
 	if callbackFragmentBlockedFilterTypes ~= nil and #callbackFragmentBlockedFilterTypes > 0 then
-		if libFilters.debug then
+		if isDebugEnabled then
 			dd(">isFragmentBlockedByAlreadyDeterminedFilterType: %q - stateStr: %s - currentFilterType: %s",
 					tos(fragmentName), tos(stateStr), tos(currentFilterType))
 		end
 
 		for _, filterTypeBlocked in ipairs(callbackFragmentBlockedFilterTypes) do
 			if filterTypeBlocked == currentFilterType then
-				if libFilters.debug then
+				if isDebugEnabled then
 					dd(">>>>> YES, filterType %s is blocked!", tos(filterTypeBlocked))
 				end
 				return true
@@ -3324,7 +3308,7 @@ end
 
 local function onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 	local fragmentName
-	if libFilters.debug then
+	if isDebugEnabled then
 		fragmentName = getFragmentControlName(fragment)
 		dd("~~~ FRAGMENT STATE CHANGE ~~~")
 		dd("onFragmentStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(fragmentName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
@@ -3342,7 +3326,7 @@ end
 
 local function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 	local sceneName
-	if libFilters.debug then
+	if isDebugEnabled then
 		sceneName = getSceneName(scene)
 		dd("~~~ SCENE STATE CHANGE ~~~")
 		dd("onSceneStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(sceneName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
@@ -3353,7 +3337,7 @@ end
 
 local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType)
 	local ctrlName
-	if libFilters.debug then
+	if isDebugEnabled then
 		ctrlName = getCtrlName(ctrlRef)
 		dd("~~~ CONTROL HIDDEN STATE CHANGE ~~~")
 		dd("ControlHiddenStateChange: %q  - hidden: %s - #filterTypes: %s, isGamePad: %s", tos(ctrlName), tos(not isShown), #filterTypes, tos(inputType))
@@ -3374,7 +3358,7 @@ end
 
 
 local function createFragmentCallback(fragment, filterTypes, inputType)
-	if libFilters.debug then
+	if isDebugEnabled then
 		if fragment ~= nil then
 			local fragmentName = getFragmentControlName(fragment)
 			dv(">register fragment StateChange to: %s - #filterTypes: %s", tos(fragmentName), #filterTypes)
@@ -3401,7 +3385,7 @@ libFilters.CreateFragmentCallback = createFragmentCallback
 
 
 local function createFragmentCallbacks()
-	if libFilters.debug then dd("createFragmentCallbacks") end
+	if isDebugEnabled then dd("-->CreateFragmentCallbacks---") end
 	--Fragments
 	--[fragment] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingFragments) do
@@ -3413,13 +3397,13 @@ end
 
 
 local function createSceneCallbacks()
-	if libFilters.debug then dd("createSceneCallbacks") end
+	if isDebugEnabled then dd("-->CreateSceneCallbacks---") end
 	--Scenes
 	--[scene] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingScenes) do
 		for scene, filterTypes in pairs(callbackDataPerFilterType) do
 			if filterTypes ~= nil and #filterTypes > 0 then
-				if libFilters.debug then
+				if isDebugEnabled then
 					if scene ~= nil then
 						local sceneName = getSceneName(scene)
 						dv(">register scene StateChange to: %s - #filterTypes: %s", tos(sceneName), #filterTypes)
@@ -3447,7 +3431,7 @@ end
 
 local function createControlCallback(controlRef, filterTypes, inputType)
 	local ctrlName = "n/a"
-	if libFilters.debug then
+	if isDebugEnabled then
 		if controlRef ~= nil then
 			local controlRefNew, _ = getCtrl(controlRef)
 			controlRef = controlRefNew
@@ -3498,7 +3482,7 @@ libFilters.CreateControlCallback = createControlCallback
 
 
 local function createControlCallbacks()
-	if libFilters.debug then dd("createControlCallbacks") end
+	if isDebugEnabled then dd("-->CreateControlCallbacks---") end
 	--Controls
 	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingControls) do
@@ -3531,7 +3515,7 @@ local function provisionerSpecialCallback(selfProvisioner, provFilterType, overr
 	local provisionerControl = selfProvisioner.control
 	local provCallbackName = (isInGamepadMode and "Gamepad Provisioner") or "Provisioner"
 
-	if libFilters.debug then dd("~%s:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(provCallbackName), tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
+	if isDebugEnabled then dd("~%s:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(provCallbackName), tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
 	if hideOldProvFilterType == true then
 		onControlHiddenStateChange(false, { currentFilterType }, provisionerControl, isInGamepadMode)
 	end
@@ -3542,6 +3526,8 @@ end
 
 
 local function createSpecialCallbacks()
+	if isDebugEnabled then dd("-->CreateSpecialCallbacks---") end
+
 	--[Keyboard mode]
 	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
 	-->ZO_Provisioner:OnTabFilterChanged(filterData)
@@ -3549,7 +3535,7 @@ local function createSpecialCallbacks()
 		provisionerSpecialCallback(selfProvisioner, filterTabData, nil)
 	end)
 
-
+	--LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION
 	local enchantingControl = enchanting.control
 	SecurePostHook(enchanting, "OnModeUpdated", function()
 		local enchantingMode = enchanting:GetEnchantingMode()
@@ -3558,13 +3544,13 @@ local function createSpecialCallbacks()
 		local doShow = (filterType ~= nil and true) or false
 		if doShow == false then
 			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "enchanting") then
-				if libFilters.debug then dd("~ABORT Enchanting:OnModeUpdated - currentFilterType is nil and lastFilterType not matching crafting type") end
+				if isDebugEnabled then dd("~ABORT Enchanting:OnModeUpdated - currentFilterType is nil and lastFilterType not matching crafting type") end
 				libFilters._lastFilterTypeNoCallback = false
 				return
 			else
 				local lastKnownFilterType = libFilters._lastFilterType
 				if lastKnownFilterType ~= nil then
-					if libFilters.debug then dd("~Enchanting:OnModeUpdated - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+					if isDebugEnabled then dd("~Enchanting:OnModeUpdated - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
 					if libFilters._lastFilterTypeNoCallback == true then
 						libFilters._lastFilterTypeNoCallback = false
 						return
@@ -3575,7 +3561,7 @@ local function createSpecialCallbacks()
 
 		local currentFilterType = libFilters._currentFilterType
 		local hideOldEnchantingFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
-		if libFilters.debug then dd("~Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType)) end
+		if isDebugEnabled then dd("~Enchanting:OnModeUpdated: %s, filterType: %s, hideCurrentEnchantingFilterType: %s", tos(enchantingMode), tos(filterType), tos(hideOldEnchantingFilterType)) end
 		if hideOldEnchantingFilterType == true then
 			onControlHiddenStateChange(false, { currentFilterType }, enchantingControl, false)
 		end
@@ -3584,7 +3570,7 @@ local function createSpecialCallbacks()
 		end
 	end)
 
-
+	--LF_ALCHEMY_CREATION
 	SecurePostHook(alchemy, "SetMode", function(alchemySelf, mode)
 		if not mode then return end
 		local filterType = alchemyModeToFilterType[mode]
@@ -3595,13 +3581,13 @@ local function createSpecialCallbacks()
 			--the current panel "alchemy" and LF_ALCHEMY_CREATION would not be firing it's HIDDEN callback then as one switches to the recipes tab (which is not supported and got no LF* constant)
 			-->todo: Prevent if any panel was last opened that does not belong to the current crafting table (e.g. LF_VENDOR_REPAIR) and currentFilterType is nil because the last panel was hidden already - Also working?
 			if libFilters._currentFilterType == nil and not checkForValidFilterTypeAtSamePanel(libFilters._lastFilterType, "alchemy") then
-				if libFilters.debug then dd("~ABORT Alchemy:SetMode - currentFilterType is nil and lastFilterType not matching crafting type") end
+				if isDebugEnabled then dd("~ABORT Alchemy:SetMode - currentFilterType is nil and lastFilterType not matching crafting type") end
 				libFilters._lastFilterTypeNoCallback = false
 				return
 			else
 				local lastKnownFilterType = libFilters._lastFilterType
 				if lastKnownFilterType ~= nil then
-					if libFilters.debug then dd("~Alchemy:SetMode - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+					if isDebugEnabled then dd("~Alchemy:SetMode - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
 					if libFilters._lastFilterTypeNoCallback == true then
 						libFilters._lastFilterTypeNoCallback = false
 						return
@@ -3612,7 +3598,7 @@ local function createSpecialCallbacks()
 
 		local currentFilterType = libFilters._currentFilterType
 		local hideOldAlchemyFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
-		if libFilters.debug then dd("~Alchemy:SetMode: %s, filterType: %s, hideOldAlchemyFilterType: %s", tos(mode), tos(filterType), tos(hideOldAlchemyFilterType)) end
+		if isDebugEnabled then dd("~Alchemy:SetMode: %s, filterType: %s, hideOldAlchemyFilterType: %s", tos(mode), tos(filterType), tos(hideOldAlchemyFilterType)) end
 		if hideOldAlchemyFilterType == true then
 			onControlHiddenStateChange(false, { currentFilterType }, alchemyCtrl, false)
 		end
@@ -3624,21 +3610,21 @@ local function createSpecialCallbacks()
 
 	--Crafting table close / ESC key
 	--> The last shown panel needs to fire it's HIDE state now
+	--LF_SMITHING*, LF_ALCHEMY*, LF_ENCHANTING*, LF_JEWELRY*, LF_PROVISIONER*
 	local craftTypesOpenedAlready = {}
 	local function eventCraftingStationInteractEnd(eventId, craftSkill)
 		EM:UnregisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT)
-		local callCraftingTableHiddenCallback = true
 		--Was the last shown filterType a crafting table filterType?
 		local currentFilterType = libFilters._currentFilterType
 		local lastFilterType = libFilters._lastFilterType
 		libFilters._lastFilterTypeNoCallback = false
-		if libFilters.debug then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s", tos(craftSkill), tos(currentFilterType), tos(lastFilterType)) end
+		if isDebugEnabled then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s", tos(craftSkill), tos(currentFilterType), tos(lastFilterType)) end
 		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
 		-->This would lead to a SCENE_HIDDEN callback firing for the lastFilterType the next time the crafting table opens, eben though the "recipes" tab at the crafting table would be
 		-->re-opened and thus no callback would be needed (SCENE_HIDDEN for lastFilterType already fired as the recipestab was activated!)
 		local lastFilterTypeIsValidAtClosedCraftingTable = (lastFilterType ~= nil and checkForValidFilterTypeAtSamePanel(lastFilterType, nil, craftSkill)) or false
 		if currentFilterType == nil and lastFilterTypeIsValidAtClosedCraftingTable == true then
-			if libFilters.debug then dv(">lastFilterType will not raise a HIDDEN callback at next crafting table open!") end
+			if isDebugEnabled then dv(">lastFilterType will \'not\' raise a HIDDEN callback at next crafting table open!") end
 			--Set the flag that the lastFilterType will not fire a HIDDEN callback as the crafting table get's opened next time!
 			libFilters._lastFilterTypeNoCallback = true
 		--[[
@@ -3649,7 +3635,7 @@ local function createSpecialCallbacks()
 		elseif currentFilterType ~= nil and lastFilterTypeIsValidAtClosedCraftingTable == true and currentFilterType ~= lastFilterType then
 			--Is the current filterType not valid at the closed craftingTable
 			if not checkForValidFilterTypeAtSamePanel(currentFilterType, nil, craftSkill) then
-				if libFilters.debug then dv(">currentFilterType is no crafting filterType at the closed crafting table! lastFilterType will raise a HIDDEN callback now!") end
+				if isDebugEnabled then dv(">currentFilterType is no crafting filterType at the closed crafting table! lastFilterType will raise a HIDDEN callback now!") end
 				libFilters_RaiseFilterTypeCallback(libFilters, lastFilterType, SCENE_HIDDEN, nil, true) --do not update current and last filterType in this case as they alredy are up2date
 				return
 			end
@@ -3661,7 +3647,7 @@ local function createSpecialCallbacks()
 	end
 
 	local function eventCraftingStationInteract(eventId, craftSkill)
-		if libFilters.debug then dd(">[EVENT_CRAFTING_STATION_INTERACT] craftSkill: %s", tos(craftSkill)) end
+		if isDebugEnabled then dd(">[EVENT_CRAFTING_STATION_INTERACT] craftSkill: %s", tos(craftSkill)) end
 		EM:RegisterForEvent(GlobalLibName, EVENT_END_CRAFTING_STATION_INTERACT, eventCraftingStationInteractEnd)
 		libFilters._lastFilterTypeNoCallback = false
 		--Craftingtype was opened before already?
@@ -3685,7 +3671,7 @@ local function createSpecialCallbacks()
 	SecurePostHook(provisioner_GP, "OnTabFilterChanged", function(selfProvisioner, filterType)
 		local lastKnownFilterType = libFilters._lastFilterType
 		if lastKnownFilterType ~= nil then
-			if libFilters.debug then dd("~Gamepad Provisioner:OnTabFilterChanged - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
+			if isDebugEnabled then dd("~Gamepad Provisioner:OnTabFilterChanged - lastFilterType: %s[%s], noCallbackForLastFilterType: %s", tos(libFilters_GetFilterTypeName(libFilters, lastKnownFilterType)), tos(lastKnownFilterType), tos(libFilters._lastFilterTypeNoCallback)) end
 			if libFilters._lastFilterTypeNoCallback == true then
 				libFilters._lastFilterTypeNoCallback = false
 				return
@@ -3699,7 +3685,7 @@ local function createSpecialCallbacks()
 end
 
 local function createCallbacks()
-	if libFilters.debug then dd("createCallbacks") end
+	if isDebugEnabled then dd("---CreateCallbacks---") end
 	if not libFilters.isInitialized and not callbacksCreated then return end
 
 	createSceneCallbacks()
@@ -3708,52 +3694,8 @@ local function createCallbacks()
 	createSpecialCallbacks()
 
 	callbacksCreated = true
-	if libFilters.debug then dd(">Callbacks were created") end
+	if isDebugEnabled then dd(">Callbacks were created") end
 end
-
-
---**********************************************************************************************************************
--- FIXES
---**********************************************************************************************************************
---Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
-local function applyFixesEarly()
-	if libFilters.debug then dd("ApplyFixesEarly") end
-end
-
---Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
-local function applyFixesLate()
-	if libFilters.debug then dd("ApplyFixesLate") end
-	if not libFilters.isInitialized and not fixesLateApplied then return end
-
-	--2021-12-19
-	--Fix applied now is only needed for CraftBagExtended addon!
-	--The fragments used at mail send/bank deposit/guild bank deposit and guild store sell will apply their additionalFilters
-	--to the normal player inventory PLAYER_INVETORY.appliedLayout.
-	--But the CBE craftbag panel will not filter with these additional filters, but the PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilters
-	--And these are empty at these special CBE filters! So we need to copy them over from BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.additionalCraftBagFilter
-	if CraftBagExtended ~= nil then
-		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
-			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-			if libFilters.debug then
-				dd("ApplyBackpackLayout-CraftBag hidden: %s", tos(crafBagIsHidden))
-			end
-			if crafBagIsHidden == true or inventories[invTypeCraftBag].additionalFilter ~= nil then return end
-			local additionalCraftBagFilter = kbc.invBackpackFragment.layoutData.additionalCraftBagFilter
-			if additionalCraftBagFilter == nil then return end
-			inventories[invTypeCraftBag].additionalFilter = additionalCraftBagFilter
-		end)
-	end
-
-	fixesLateApplied = true
-	if libFilters.debug then dd(">Late fixes were applied") end
-end
-
---Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
---[[
-local function applyFixesLatest()
-
-end
-]]
 
 
 --**********************************************************************************************************************
@@ -3775,7 +3717,7 @@ local helpers      = libFilters.helpers
 local function installHelpers()
 	if not libFilters.isInitialized then return end
 
-	if libFilters.debug then dd("InstallHelpers") end
+	if isDebugEnabled then dd("---InstallHelpers---") end
 	for _, package in pairs(helpers) do
 		local helper = package.helper
 		local funcName = helper.funcName
@@ -3788,6 +3730,51 @@ local function installHelpers()
 		end
 	end
 end
+
+
+--**********************************************************************************************************************
+-- FIXES
+--**********************************************************************************************************************
+--Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
+local function applyFixesEarly()
+	if isDebugEnabled then dd("---ApplyFixesEarly---") end
+end
+
+--Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
+local function applyFixesLate()
+	if isDebugEnabled then dd("---ApplyFixesLate---") end
+	if not libFilters.isInitialized and not fixesLateApplied then return end
+
+	--2021-12-19
+	--Fix applied now is only needed for CraftBagExtended addon!
+	--The fragments used at mail send/bank deposit/guild bank deposit and guild store sell will apply their additionalFilters
+	--to the normal player inventory PLAYER_INVETORY.appliedLayout.
+	--But the CBE craftbag panel will not filter with these additional filters, but the PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilters
+	--And these are empty at these special CBE filters! So we need to copy them over from BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.additionalCraftBagFilter
+	if CraftBagExtended ~= nil then
+		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
+			if isDebugEnabled then
+				dd("ApplyBackpackLayout-CraftBag hidden: %s", tos(crafBagIsHidden))
+			end
+			if crafBagIsHidden == true or inventories[invTypeCraftBag].additionalFilter ~= nil then return end
+			local additionalCraftBagFilter = kbc.invBackpackFragment.layoutData.additionalCraftBagFilter
+			if additionalCraftBagFilter == nil then return end
+			inventories[invTypeCraftBag].additionalFilter = additionalCraftBagFilter
+		end)
+	end
+
+	fixesLateApplied = true
+	if isDebugEnabled then dd(">Late fixes were applied") end
+end
+
+--Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
+--[[
+local function applyFixesLatest()
+	if isDebugEnabled then dd("---ApplyFixesLatest---") end
+	if isDebugEnabled then dd(">Latest fixes were applied") end
+end
+]]
 
 
 --**********************************************************************************************************************
@@ -3806,10 +3793,11 @@ local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 	if addonNameLoaded ~= MAJOR then return end
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED)
 
-	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
 	applyFixesLate()
 	--Create the callbacks for the filterType's panel show/hide
 	createCallbacks()
+
+	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
 end
 
 
@@ -3818,7 +3806,7 @@ end
 --**********************************************************************************************************************
 --Function needed to be called from your addon to start the LibFilters instance and enable the filtering!
 function libFilters:InitializeLibFilters()
-	if libFilters.debug then dd("InitializeLibFilters - %q", tos(libFilters.isInitialized)) end
+	if isDebugEnabled then dd("!-!-!-!-! InitializeLibFilters - %q !-!-!-!-!", tos(libFilters.isInitialized)) end
 	if libFilters.isInitialized == true then return end
 	libFilters.isInitialized = true
 
@@ -3844,12 +3832,12 @@ end
 --______________________________________________________________________________________________________________________
 --______________________________________________________________________________________________________________________
 --TODO: Only for debugging
-if GetDisplayName() == "@Baertram" then debugSlashToggle() end
+--if GetDisplayName() == "@Baertram" then debugSlashToggle() end
 
 
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
 applyFixesEarly()
 EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
 
-if libFilters.debug then dd("LIBRARY MAIN FILE - END") end
+if isDebugEnabled then dd("LIBRARY MAIN FILE - END") end
 

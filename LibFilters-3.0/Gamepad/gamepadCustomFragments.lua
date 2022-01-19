@@ -555,7 +555,7 @@ local gamepadLibFiltersDefaultFragment = LibFilters_InventoryLayoutFragment:New(
 
 
 local function createCustomGamepadFragmentsAndNeededHooks()
-	if libFilters.debug then dd("Create custom gamepad fragments") end
+	if libFilters.debug then dd("---Create custom gamepad fragments---") end
 	if not libFilters.isInitialized then return end
 
 	--Player bank deposit

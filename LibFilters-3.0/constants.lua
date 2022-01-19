@@ -76,7 +76,7 @@ local function debugMessage(text, textType)
 	 else
 		  local textTypeToPrefix = {
 				["D"] = "Debug",
-				["E"] = "Error",
+				["E"] = "|cFF0000ERROR|r",
 				["I"] = "Info",
 				["V"] = "Verbose",
 				["W"] = "Warning",
@@ -122,6 +122,7 @@ debugFunctions.dfe = dfe
 local function debugSlashToggle(args)
 	libFilters.debug = not libFilters.debug
 	df("Debugging %s", (not libFilters.debug and "disabled") or "enabled")
+	libFilters.UpdateIsDebugEnabled()
 end
 debugFunctions.debugSlashToggle = debugSlashToggle
 
@@ -231,6 +232,7 @@ constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeA
 local updaterNamePrefix = GlobalLibName .. "_update_"
 constants.updaterNamePrefix = updaterNamePrefix
 
+
 ------------------------------------------------------------------------------------------------------------------------
 --ZOs / ESOUI CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
@@ -271,6 +273,17 @@ constants.typeOfRefToName = {
 	[99]= "Other",
 }
 
+--Constants of control names that should be searched "below" (childs) of a given control, as the control checks are done
+--in function getCtrl()
+local subControlsToLoop = {
+		[1] = "control",
+		[2] = "container",
+		[3] = "list",
+		[4] = "listView",
+		[5] = "panelControl",
+	}
+constants.subControlsToLoop = subControlsToLoop
+
 local function checkIfControlSceneFragmentOrOther(refVar)
 	local retVar
 	--Scene or fragment
@@ -294,12 +307,12 @@ libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOth
 
 
 --[Inventory types]
-local invTypeBackpack           =	INVENTORY_BACKPACK
-local invTypeQuest              = 	INVENTORY_QUEST_ITEM
-local invTypeBank               =	INVENTORY_BANK
-local invTypeGuildBank          =	INVENTORY_GUILD_BANK
-local invTypeHouseBank 			=	INVENTORY_HOUSE_BANK
-local invTypeCraftBag 			= 	INVENTORY_CRAFT_BAG
+local invTypeBackpack           		=	INVENTORY_BACKPACK
+local invTypeQuest              		= 	INVENTORY_QUEST_ITEM
+local invTypeBank               		=	INVENTORY_BANK
+local invTypeGuildBank          		=	INVENTORY_GUILD_BANK
+local invTypeHouseBank 					=	INVENTORY_HOUSE_BANK
+local invTypeCraftBag 					= 	INVENTORY_CRAFT_BAG
 constants.inventoryTypes = {}
 constants.inventoryTypes["player"]		=	invTypeBackpack
 constants.inventoryTypes["quest"] 		= 	invTypeQuest
@@ -314,9 +327,11 @@ constants.inventoryTypes["craftbag"] 	=	invTypeCraftBag
 ------------------------------------------------------------------------------------------------------------------------
 --CraftBagExtended
 local cbeSupportedFilterPanels = {
-	LF_MAIL_SEND, LF_TRADE,
-	LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
-	LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT
+	LF_MAIL_SEND,
+	LF_TRADE,
+	LF_VENDOR_SELL,
+	LF_GUILDSTORE_SELL,
+	LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT,
 }
 constants.cbeSupportedFilterPanels = cbeSupportedFilterPanels
 
@@ -682,7 +697,7 @@ local refinementScene_GP 		= gpc.refinementScene_GP
 
 --Create
 gpc.creationPanel_GP            = smithing_GP.creationPanel
-local creationPanel_GP 			= gpc.creationPanel_GP
+--local creationPanel_GP 			= gpc.creationPanel_GP
 gpc.creationScene_GP			= getScene(SM, "gamepad_smithing_creation")
 local creationScene_GP 			= gpc.creationScene_GP
 
@@ -2168,6 +2183,14 @@ libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
 --The pattern for the filterPanel shown/hidden callbacks, e.g. "LibFilters3-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY
 libFilters.callbackPattern = GlobalLibName .. "-%s-%s"
+
+--The supported SCENE states for the callbacks
+--Currently: shown and hidden
+local sceneStatesSupportedForCallbacks = {
+	[SCENE_SHOWN] 	= true,
+	[SCENE_HIDDEN] 	= true,
+}
+callbacks.sceneStatesSupportedForCallbacks = sceneStatesSupportedForCallbacks
 
 
 --[fragment] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ... } -> Will be checked in this order

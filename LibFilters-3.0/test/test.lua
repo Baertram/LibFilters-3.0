@@ -21,6 +21,11 @@ local svTest
 
 local CM = CALLBACK_MANAGER
 
+local gilst = 	GetItemLinkStacks
+local gil = 	GetItemLink
+local gqil = 	GetQuestItemLink
+local zigbai = 	ZO_Inventory_GetBagAndIndex
+
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 local libFilters_RegisterFilter = libFilters.RegisterFilter
@@ -72,13 +77,13 @@ local btnFilter
 
 --filter function for inventories
 local function filterFuncForInventories(inventorySlot)
-	local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
-	d(">"..prefix.."Item: " .. GetItemLink(bagId, slotIndex))
+	local bagId, slotIndex = zigbai(inventorySlot)
+	d(">"..prefix.."Item: " .. gil(bagId, slotIndex))
 	return false --simulate "not allowed" -> filtered
 end
 --filter function for crafting e.g.
 local function filterFuncForCrafting(bagId, slotIndex)
-	d(">"..prefix.."Item: " .. GetItemLink(bagId, slotIndex))
+	d(">"..prefix.."Item: " .. gil(bagId, slotIndex))
 	return false --simulate "not allowed" -> filtered
 end
 
@@ -341,8 +346,9 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	return stackCount > 1
 end
 
-local filterChatOutputPerItemDefaultStr = "--test filters->not met! %s, stackCount: (%s), bagId/slotIndex: (%s/%s), filterType: (%s)"
-local filterChatOutputPerItemCustomStr = "--test filters->not met! %s, bagId/slotIndex: (%s/%s), filterType: (%s)"
+local bagIdSlotIndexFilterTypeStr = "bagId/slotIndex: (%s/%s), filterType: (%s)"
+local filterChatOutputPerItemDefaultStr = "--test: filtered %s stackCount: (%s), " .. bagIdSlotIndexFilterTypeStr
+local filterChatOutputPerItemCustomStr = "--test: filtered %s " .. bagIdSlotIndexFilterTypeStr
 local function resultCheckFunc(p_result, p_filterTypeName, p_useDefaultFilterFunction, p_bagId, p_slotIndex, p_itemLink, p_stackCount)
 	if p_result == true then return end
 	if p_useDefaultFilterFunction then
@@ -375,8 +381,8 @@ local function registerFilter(filterType, filterTypeName)
 
 	local function filterBagIdAndSlotIndexCallback(bagId, slotIndex)
 		if not useFilter then return true end
-		local itemLink = GetItemLink(bagId, slotIndex)
-		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
+		local itemLink = gil(bagId, slotIndex)
+		local stackCountBackpack, stackCountBank, stackCountCraftBag = gilst(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
 		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount) --custom filterFunction will only use bagId and slotIndex, no 3rd param stackCount
@@ -387,8 +393,8 @@ local function registerFilter(filterType, filterTypeName)
 	local function filterSlotDataCallback(slotData)
 		if not useFilter then return true end
 		local bagId, slotIndex = slotData.bagId, slotData.slotIndex
-		local itemLink = bagId == nil and GetQuestItemLink(slotIndex) or GetItemLink(bagId, slotIndex)
-		local stackCountBackpack, stackCountBank, stackCountCraftBag = GetItemLinkStacks(itemLink)
+		local itemLink = bagId == nil and gqil(slotIndex) or gil(bagId, slotIndex)
+		local stackCountBackpack, stackCountBank, stackCountCraftBag = gilst(itemLink)
 		local stackCount = stackCountBackpack + stackCountBank + stackCountCraftBag
 
 		local result = testAdditionalFilterFunctionToUse(bagId, slotIndex, stackCount) --custom filterFunction will only use bagId and slotIndex, no 3rd param stackCount
