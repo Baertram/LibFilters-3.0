@@ -819,12 +819,11 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
         ["weapons"] =       LF_SMITHING_DECONSTRUCT,
     }
 
-    local function detectActiveUniversalDeconstructionTab(filterType)
+    local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
         --Detect the active tab via the filterData
         local libFiltersFilterType
-        if filterType then
-            libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[filterType.key]
-        end
+        currentTabKey = currentTabKey or filterType.key
+        libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
         if libFiltersFilterType == nil then libFiltersFilterType = LF_SMITHING_DECONSTRUCT end
         return libFiltersFilterType
     end
@@ -843,16 +842,26 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
         helper = {
             funcName = "DoesItemPassFilter",
             func = function(bagId, slotIndex, filterType)
-                local base = (iigpm() == true and UNIVERSAL_DECONSTRUCTION_GAMEPAD) or UNIVERSAL_DECONSTRUCTION
-
-                --Performance wise better detect this only once in LibFilters as the tabs switch
-                --todo: ZOs needs to provide a function/callback for that to happen
-                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType)
-                --Set the .LibFilters3_filterType attribute at the base variable
-                base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
-
                 local result = doesUniversalDeconstructionItemPassFilter(bagId, slotIndex, filterType)
-                return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+
+                local base, universalDeconBase, currentTab
+                --Performance wise better detect this only once in LibFilters as the tabs switch
+                --todo: ZOs needs to provide a function/callback for that to happen, e.g. UNIVERSAL_DECONSTUCTION:GetCurrentTabKey()
+                universalDeconBase = (iigpm() == true and UNIVERSAL_DECONSTUCTION_GAMEPAD) or UNIVERSAL_DECONSTUCTION
+                if universalDeconBase and universalDeconBase.GetCurrentTabKey then
+                    currentTab = universalDeconBase:GetCurrentTabKey()
+                end
+                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentTab)
+
+                --Get the variable where the .additionalFilter function is stored via the filterType
+                base = ((libFiltersFilterType == LF_SMITHING_DECONSTRUCT or libFiltersFilterType == LF_JEWELRY_DECONSTRUCT) and SMITHING.deconstructionPanel)
+                        or (libFiltersFilterType == LF_ENCHANTING_EXTRACTION and GAMEPAD_ENCHANTING_EXTRACTION_SCENE)
+                if base then
+                    --Set the .LibFilters3_filterType attribute at the base variable
+                    base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+                    return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+                end
+                return result
             end,
         }
     }
