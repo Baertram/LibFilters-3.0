@@ -31,6 +31,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 --Local variables for the helpers
 ------------------------------------------------------------------------------------------------------------------------
 local helpers = {}
+local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --.LibFilters3_filterType
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --.additionalFilter
 
 
@@ -196,6 +197,10 @@ end
 local doesRetraitItemItemPassFilterOriginal =   ZO_RetraitStation_DoesItemPassFilter
 local doesSmithingItemPassFilterOriginal =      ZO_SharedSmithingExtraction_DoesItemPassFilter
 local doesImprovementItemPassFilterOriginal =   ZO_SharedSmithingImprovement_DoesItemPassFilter
+local doesUniversalDeconstructionItemPassFilter
+if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
+    doesUniversalDeconstructionItemPassFilter = ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter
+end
 
 
 --Original function at:
@@ -783,7 +788,6 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
     }
 }
 
-
 --enable LF_SMITHING_IMPROVEMENT/LF_JEWELRY_IMPROVEMENT smithing/jewelry
 helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
     version = 1,
@@ -805,6 +809,54 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
         end,
     }
 }
+
+--enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
+if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
+    local universalDeconTabKeyToLibFiltersFilterType = {
+        ["enchantments"] =  LF_ENCHANTING_EXTRACTION,
+        ["jewelry"] =       LF_JEWELRY_DECONSTRUCT,
+        ["armor"] =         LF_SMITHING_DECONSTRUCT,
+        ["weapons"] =       LF_SMITHING_DECONSTRUCT,
+    }
+
+    local function detectActiveUniversalDeconstructionTab(filterType)
+        --Detect the active tab via the filterData
+        local libFiltersFilterType
+        if filterType then
+            libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[filterType.key]
+        end
+        if libFiltersFilterType == nil then libFiltersFilterType = LF_SMITHING_DECONSTRUCT end
+        return libFiltersFilterType
+    end
+
+    helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
+        version = 1,
+        filterTypes = {
+            [true] = {
+                LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION
+            },
+            [false]={LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION}
+        },
+        locations = {
+            [1] = ZO_UniversalDeconstructionPanel_Shared,
+        },
+        helper = {
+            funcName = "DoesItemPassFilter",
+            func = function(bagId, slotIndex, filterType)
+                local base = (iigpm() == true and UNIVERSAL_DECONSTRUCTION_GAMEPAD) or UNIVERSAL_DECONSTRUCTION
+
+                --Performance wise better detect this only once in LibFilters as the tabs switch
+                --todo: ZOs needs to provide a function/callback for that to happen
+                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType)
+                --Set the .LibFilters3_filterType attribute at the base variable
+                base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+
+                local result = doesUniversalDeconstructionItemPassFilter(bagId, slotIndex, filterType)
+                return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+            end,
+        }
+    }
+end
 
 ------------------------------------------------------------------------------------------------------------------------
  -- -^- KEYBOARD and GAMEPAD - shared helpers
