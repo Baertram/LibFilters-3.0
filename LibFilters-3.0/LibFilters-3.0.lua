@@ -1368,7 +1368,7 @@ local inventoryUpdaters           = {
 		if isDebugEnabled then dv("[U]updateFunction SMITHING_CREATION: Not supported yet") end
 	end,
 	SMITHING_DECONSTRUCT = function()
-		updateCraftingInventoryDirty(getDeconstructOrExtractCraftingVarToUpdate(LF_SMITHING_DECONSTRUCTION, nil))
+		updateCraftingInventoryDirty(getDeconstructOrExtractCraftingVarToUpdate(LF_SMITHING_DECONSTRUCT, nil))
 	end,
 	SMITHING_IMPROVEMENT = function()
 		if IsGamepad() then
@@ -1410,10 +1410,11 @@ local inventoryUpdaters           = {
 	end,
 	ENCHANTING = function()
 		local isInGamepadMode = IsGamepad()
+		local enchantingCraftVarTpUpdate = getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode)
 		if isInGamepadMode then
-			updateFunction_GP_CraftingInventory(getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode))
+			updateFunction_GP_CraftingInventory(enchantingCraftVarTpUpdate)
 		else
-			updateCraftingInventoryDirty(getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode))
+			updateCraftingInventoryDirty(enchantingCraftVarTpUpdate)
 		end
 	end,
 	PROVISIONING_COOK = function()

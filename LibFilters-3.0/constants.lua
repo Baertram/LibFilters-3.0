@@ -1101,7 +1101,7 @@ local filterTypeToUniversalOrNormalDeconAndExtractVars = {}
 filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	--KEYBOARD mode---------------------------------------
 	[false] = {
-		[LF_SMITHING_DECONSTRUCTION] = {
+		[LF_SMITHING_DECONSTRUCT] = {
 			[true] = 	universalDeconstructPanel or deconstructionPanel,
 			[false] = 	deconstructionPanel,
 		},
@@ -1112,7 +1112,7 @@ filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	},
 	--GAMEPAD mode---------------------------------------
 	[true] = {
-		[LF_SMITHING_DECONSTRUCTION] = {
+		[LF_SMITHING_DECONSTRUCT] = {
 			[true] = 	universalDeconstructPanel_GP or deconstructionPanel_GP,
 			[false] = 	deconstructionPanel_GP,
 		},

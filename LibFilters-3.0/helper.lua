@@ -813,16 +813,21 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 --enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
 if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
     local universalDeconTabKeyToLibFiltersFilterType = {
+        ["all"] =           LF_SMITHING_DECONSTRUCT,
+        ["armor"] =         LF_SMITHING_DECONSTRUCT,
         ["enchantments"] =  LF_ENCHANTING_EXTRACTION,
         ["jewelry"] =       LF_JEWELRY_DECONSTRUCT,
-        ["armor"] =         LF_SMITHING_DECONSTRUCT,
         ["weapons"] =       LF_SMITHING_DECONSTRUCT,
     }
 
     local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
         --Detect the active tab via the filterData
         local libFiltersFilterType
-        currentTabKey = currentTabKey or filterType.key
+        if filterType ~= nil then
+            currentTabKey = currentTabKey or filterType.key
+        else
+            currentTabKey = "all"
+        end
         libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
         if libFiltersFilterType == nil then libFiltersFilterType = LF_SMITHING_DECONSTRUCT end
         return libFiltersFilterType
@@ -844,14 +849,14 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
             func = function(bagId, slotIndex, filterType)
                 local result = doesUniversalDeconstructionItemPassFilter(bagId, slotIndex, filterType)
 
-                local base, universalDeconBase, currentTab
+                local base, universalDeconBase, currentTabKey
                 --Performance wise better detect this only once in LibFilters as the tabs switch
                 --todo: ZOs needs to provide a function/callback for that to happen, e.g. UNIVERSAL_DECONSTUCTION:GetCurrentTabKey()
                 universalDeconBase = (iigpm() == true and UNIVERSAL_DECONSTRUCTION_GAMEPAD) or UNIVERSAL_DECONSTRUCTION
                 if universalDeconBase and universalDeconBase.GetCurrentTabKey then
-                    currentTab = universalDeconBase:GetCurrentTabKey()
+                    currentTabKey = universalDeconBase:GetCurrentTabKey()
                 end
-                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentTab)
+                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
 
                 --Get the variable where the .additionalFilter function is stored via the filterType
                 -->!!!Re-uses existing deconstruction or enchanting references as there does not exist any LF_UNIVERSAL_DECONSTRUCTION constant!!!
