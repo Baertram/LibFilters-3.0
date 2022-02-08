@@ -129,6 +129,9 @@ local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes =	mapping.LF_Fil
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup = mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
 local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOwnerControl
 
+local isUniversalDeconGiven = libFilters.IsUniversalDeconGiven
+local libFilters_IsUniversalDeconstructionPanelShown
+local filterTypeToUniversalOrNormalDeconAndExtractVars = 			mapping.filterTypeToUniversalOrNormalDeconAndExtractVars
 
 --Keyboard
 local kbc                      = 	constants.keyboard
@@ -149,6 +152,7 @@ local researchChooseItemDialog = 	kbc.researchChooseItemDialog
 local companionEquipmentCtrl   = 	kbc.companionEquipment.control
 local characterCtrl            =	kbc.characterCtrl
 local companionCharacterCtrl   = 	kbc.companionCharacterCtrl
+local deconstructionPanel	   =    kbc.deconstructionPanel
 local enchanting               = 	kbc.enchanting
 local enchantingInvCtrl        = 	enchanting.inventoryControl
 local alchemy                  = 	kbc.alchemy
@@ -157,6 +161,10 @@ local provisioner			   =    kbc.provisioner
 --local provCtrl 				   =    provisioner.control
 local provisionerScene 		   =    kbc.provisionerScene
 --local smithing				   =    kbc.smithing
+local universalDeconstruct      = 	kbc.universalDeconstruct
+local universalDeconstructPanel = 	kbc.universalDeconstructPanel
+local universalDeconstructScene = kbc.universalDeconstructScene
+
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 local provisionerIngredientTypeToFilterType = mapping.provisionerIngredientTypeToFilterType
@@ -182,15 +190,17 @@ local researchPanel_GP          = 	gpc.researchPanel_GP
 local companionEquipmentCtrl_GP = 	gpc.companionEquipment_GP.control
 --local characterCtrl_GP          =	gpc.characterCtrl_GP
 local companionCharacterCtrl_GP = 	gpc.companionCharacterCtrl_GP
---local enchanting_GP             = 	gpc.enchanting_GP
+local deconstructionPanel_GP   =    gpc.deconstructionPanel_GP
+local enchanting_GP             = 	gpc.enchanting_GP
 local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
 local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 local provisioner_GP			=   gpc.provisioner_GP
 local provisionerScene_GP 	    =   gpc.provisionerScene_GP
 --local provCtrl_GP				=   gpc.provisioner_GP.control
-
-
+local universalDeconstruct_GP   =   gpc.universalDeconstruct_GP
+local universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
+local universalDeconstructScene_GP = gpc.universalDeconstructScene_GP
 
 --Other addons
 local cbeSupportedFilterPanels  = constants.cbeSupportedFilterPanels
@@ -1141,6 +1151,15 @@ local function updateCraftingInventoryDirty(craftingInventory)
 	craftingInventory.inventory:HandleDirtyEvent()
 end
 
+local function getDeconstructOrExtractCraftingVarToUpdate(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
+	local isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown(libFilters, isInGamepadMode) or false
+	local craftingVarToUpdate = filterTypeToUniversalOrNormalDeconAndExtractVars[isInGamepadMode][filterType][isUniversalDecon]
+	return craftingVarToUpdate
+end
+
+
 -- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
 	if isDebugEnabled then dv("[U]updateFunction_GP_ZO_GamepadInventoryList - gpInvVar: %s, list: %s, callbackFunc: %s", tos(gpInvVar), tos(list), tos(callbackFunc)) end
@@ -1230,7 +1249,6 @@ gpc.InventoryUpdateFunctions      = {
 	end
 }
 local InventoryUpdateFunctions_GP = gpc.InventoryUpdateFunctions
-
 
 ------------------------------------------------------------------------------------------------------------------------
 --KEYBOARD & GAMEPAD updater string to updater function
@@ -1350,11 +1368,7 @@ local inventoryUpdaters           = {
 		if isDebugEnabled then dv("[U]updateFunction SMITHING_CREATION: Not supported yet") end
 	end,
 	SMITHING_DECONSTRUCT = function()
-		if IsGamepad() then
-			updateCraftingInventoryDirty(gpc.deconstructionPanel_GP)
-		else
-			updateCraftingInventoryDirty(kbc.deconstructionPanel)
-		end
+		updateCraftingInventoryDirty(getDeconstructOrExtractCraftingVarToUpdate(LF_SMITHING_DECONSTRUCTION, nil))
 	end,
 	SMITHING_IMPROVEMENT = function()
 		if IsGamepad() then
@@ -1395,10 +1409,11 @@ local inventoryUpdaters           = {
 		end
 	end,
 	ENCHANTING = function()
-		if IsGamepad() then
-			updateFunction_GP_CraftingInventory(gpc.enchanting_GP)
+		local isInGamepadMode = IsGamepad()
+		if isInGamepadMode then
+			updateFunction_GP_CraftingInventory(getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode))
 		else
-			updateCraftingInventoryDirty(kbc.enchanting)
+			updateCraftingInventoryDirty(getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode))
 		end
 	end,
 	PROVISIONING_COOK = function()
@@ -2480,6 +2495,20 @@ function libFilters:IsAlchemyShown(alchemyMode)
 	end
 	return false, alchemyMode, nil
 end
+
+--Check if the Universal Deconstruction panel is shown
+function libFilters:IsUniversalDeconstructionPanelShown(isGamepadMode)
+	if not isUniversalDeconGiven() then return false end
+	if isGamepadMode == nil then isGamepadMode = IsGamepad() end
+	--Check if the gamepad or keyboard scene :IsShowing()
+	local universalDeconScene = isGamepadMode and universalDeconstructScene_GP or universalDeconstructScene
+	if not universalDeconScene then return false end
+	local isShowing = universalDeconScene:IsShowing()
+	if isDebugEnabled then dd("IsUniversalDeconstructionPanelShown - %q, %s", tos(isShowing), tos(isGamepadMode)) end
+	return isShowing
+end
+libFilters_IsUniversalDeconstructionPanelShown = libFilters.IsUniversalDeconstructionPanelShown
+
 
 --**********************************************************************************************************************
 -- HOOKS

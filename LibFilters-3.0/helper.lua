@@ -847,13 +847,14 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
                 local base, universalDeconBase, currentTab
                 --Performance wise better detect this only once in LibFilters as the tabs switch
                 --todo: ZOs needs to provide a function/callback for that to happen, e.g. UNIVERSAL_DECONSTUCTION:GetCurrentTabKey()
-                universalDeconBase = (iigpm() == true and UNIVERSAL_DECONSTUCTION_GAMEPAD) or UNIVERSAL_DECONSTUCTION
+                universalDeconBase = (iigpm() == true and UNIVERSAL_DECONSTRUCTION_GAMEPAD) or UNIVERSAL_DECONSTRUCTION
                 if universalDeconBase and universalDeconBase.GetCurrentTabKey then
                     currentTab = universalDeconBase:GetCurrentTabKey()
                 end
                 local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentTab)
 
                 --Get the variable where the .additionalFilter function is stored via the filterType
+                -->!!!Re-uses existing deconstruction or enchanting references as there does not exist any LF_UNIVERSAL_DECONSTRUCTION constant!!!
                 base = ((libFiltersFilterType == LF_SMITHING_DECONSTRUCT or libFiltersFilterType == LF_JEWELRY_DECONSTRUCT) and SMITHING.deconstructionPanel)
                         or (libFiltersFilterType == LF_ENCHANTING_EXTRACTION and GAMEPAD_ENCHANTING_EXTRACTION_SCENE)
                 if base then

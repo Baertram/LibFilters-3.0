@@ -306,6 +306,13 @@ end
 libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 
+--Check if Universal Deconstruction is enabled
+local function isUniversalDeconGiven()
+	return ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil
+end
+libFilters.IsUniversalDeconGiven = isUniversalDeconGiven
+
+
 --[Inventory types]
 local invTypeBackpack           		=	INVENTORY_BACKPACK
 local invTypeQuest              		= 	INVENTORY_QUEST_ITEM
@@ -572,6 +579,15 @@ retraitFragment._name = "RETRAIT_STATION_RETRAIT_FRAGMENT"
 --Reconstruction
 kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
 
+--Universal Deconstruction
+local universalDeconstructPanel
+if isUniversalDeconGiven() then
+	kbc.universalDeconstruct 	  = UNIVERSAL_DECONSTRUCTION
+	kbc.universalDeconstructPanel = kbc.universalDeconstruct.deconstructionPanel
+	universalDeconstructPanel = kbc.universalDeconstructPanel
+	kbc.universalDeconstructScene = UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE
+end
+
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -759,6 +775,15 @@ gpc.provisionerScene_GP			 = getScene(SM, "gamepad_provisioner_root")
 local provisionerScene_GP 		 = gpc.provisionerScene_GP
 gpc.provisionerFragment_GP		 = GAMEPAD_PROVISIONER_FRAGMENT
 local provisionerFragment_GP 	 = gpc.provisionerFragment_GP
+
+--Universal Deconstruction
+local universalDeconstructPanel_GP
+if isUniversalDeconGiven() then
+	gpc.universalDeconstruct_GP  = UNIVERSAL_DECONSTRUCTION_GAMEPAD
+	gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPanel
+	universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
+	gpc.universalDeconstructScene_GP = UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
@@ -1048,7 +1073,6 @@ mapping.smithingMapping = {
 	}
 
 --Mapping for the crafting related filterTypes
-
 local isCraftingFilterType = {
 	[LF_SMITHING_REFINE] = true,
 	[LF_JEWELRY_REFINE] = true,
@@ -1072,7 +1096,33 @@ local isCraftingFilterType = {
 }
 mapping.isCraftingFilterType = isCraftingFilterType
 
-
+--Mapping for the filterType to the normal deconstruction/extraction, or universal deconstruction panels
+local filterTypeToUniversalOrNormalDeconAndExtractVars = {}
+filterTypeToUniversalOrNormalDeconAndExtractVars = {
+	--KEYBOARD mode---------------------------------------
+	[false] = {
+		[LF_SMITHING_DECONSTRUCTION] = {
+			[true] = 	universalDeconstructPanel or deconstructionPanel,
+			[false] = 	deconstructionPanel,
+		},
+		[LF_ENCHANTING_EXTRACTION] = {
+			[true] = 	universalDeconstructPanel or enchanting,
+			[false] = 	enchanting,
+		}
+	},
+	--GAMEPAD mode---------------------------------------
+	[true] = {
+		[LF_SMITHING_DECONSTRUCTION] = {
+			[true] = 	universalDeconstructPanel_GP or deconstructionPanel_GP,
+			[false] = 	deconstructionPanel_GP,
+		},
+		[LF_ENCHANTING_EXTRACTION] = {
+			[true] = 	universalDeconstructPanel_GP or enchanting_GP,
+			[false] = 	enchanting_GP,
+		}
+	},
+}
+mapping.filterTypeToUniversalOrNormalDeconAndExtractVars = filterTypeToUniversalOrNormalDeconAndExtractVars
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
