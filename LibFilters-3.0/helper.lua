@@ -812,6 +812,28 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 
 --enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
 if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
+    local itemTypesUniversalDecon = {}
+    local itemFilterTypesUniversalDecon = {}
+
+    local function getDataFromUniversalDeconstructionMenuBar()
+        local barToSearch = ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES
+        if barToSearch then
+            for _, v in ipairs(barToSearch) do
+                local filter = v.filter
+                local key = v.key
+                if filter ~= nil then
+                    if filter.itemTypes ~= nil then
+                        itemTypesUniversalDecon[filter.itemTypes] = key
+                    elseif filter.itemFilterTypes ~= nil then
+                        itemFilterTypesUniversalDecon[filter.itemFilterTypes] = key
+                    end
+                end
+            end
+        end
+        return
+    end
+    getDataFromUniversalDeconstructionMenuBar()
+
     local universalDeconTabKeyToLibFiltersFilterType = {
         ["all"] =           LF_SMITHING_DECONSTRUCT,
         ["armor"] =         LF_SMITHING_DECONSTRUCT,
@@ -819,17 +841,30 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
         ["jewelry"] =       LF_JEWELRY_DECONSTRUCT,
         ["weapons"] =       LF_SMITHING_DECONSTRUCT,
     }
+    local deconPanel = SMITHING.deconstructionPanel
+    local filterTypeToFilterBase = {
+        [LF_SMITHING_DECONSTRUCT] =     deconPanel,
+        [LF_JEWELRY_DECONSTRUCT] =      deconPanel,
+        [LF_ENCHANTING_EXTRACTION] =    GAMEPAD_ENCHANTING_EXTRACTION_SCENE
+    }
 
     local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
         --Detect the active tab via the filterData
         local libFiltersFilterType
         if filterType ~= nil then
-            currentTabKey = currentTabKey or filterType.key
+            local itemTypes = filterType.itemTypes
+            if itemTypes then
+                currentTabKey = itemTypesUniversalDecon[itemTypes]
+            else
+                local itemFilterTypes = filterType.itemFilterTypes
+                if itemFilterTypes then
+                    currentTabKey = itemFilterTypesUniversalDecon[itemFilterTypes]
+                end
+            end
         else
             currentTabKey = "all"
         end
         libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
-        if libFiltersFilterType == nil then libFiltersFilterType = LF_SMITHING_DECONSTRUCT end
         return libFiltersFilterType
     end
 
@@ -848,6 +883,7 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
             funcName = "DoesItemPassFilter",
             func = function(bagId, slotIndex, filterType)
                 local result = doesUniversalDeconstructionItemPassFilter(bagId, slotIndex, filterType)
+                if not result then return result end
 
                 local base, universalDeconBase, currentTabKey
                 --Performance wise better detect this only once in LibFilters as the tabs switch
@@ -857,11 +893,11 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
                     currentTabKey = universalDeconBase:GetCurrentTabKey()
                 end
                 local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
+                if libFiltersFilterType == nil then return result end
 
                 --Get the variable where the .additionalFilter function is stored via the filterType
                 -->!!!Re-uses existing deconstruction or enchanting references as there does not exist any LF_UNIVERSAL_DECONSTRUCTION constant!!!
-                base = ((libFiltersFilterType == LF_SMITHING_DECONSTRUCT or libFiltersFilterType == LF_JEWELRY_DECONSTRUCT) and SMITHING.deconstructionPanel)
-                        or (libFiltersFilterType == LF_ENCHANTING_EXTRACTION and GAMEPAD_ENCHANTING_EXTRACTION_SCENE)
+                base = filterTypeToFilterBase[libFiltersFilterType]
                 if base then
                     --Set the .LibFilters3_filterType attribute at the base variable
                     base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
