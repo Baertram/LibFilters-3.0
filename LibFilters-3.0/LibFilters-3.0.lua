@@ -3839,7 +3839,7 @@ local function applyFixesEarly()
 		end
 		libFilters.detectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab
 
-		--Callback function
+		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
 			--Get the filterType by help of the current tab
 			local filterType = detectActiveUniversalDeconstructionTab(nil, tab.key)
