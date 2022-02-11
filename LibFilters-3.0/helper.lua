@@ -3,14 +3,24 @@
 ------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
 
---Helper variables of the library
-local constants   = libFilters.constants
-local kbc         = constants.keyboard
---local gpc         = constants.gamepad
-
-local inventories = kbc.inventories
-
+--Helper variables of ESO
 local iigpm = IsInGamepadPreferredMode
+
+--Helper variables of the library
+local constants   =                         libFilters.constants
+local mapping     =                         libFilters.mapping
+
+local kbc         =                         constants.keyboard
+local gpc         =                         constants.gamepad
+
+--Keyboard
+local inventories = kbc.inventories
+local universalDeconstructPanel =           kbc.universalDeconstructPanel
+
+--Gamepad
+local universalDeconstructPanel_GP =        gpc.universalDeconstructPanel_GP
+
+local isUniversalDeconGiven =               libFilters.isUniversalDeconstructionProvided
 
 --Debugging
 local debugFunctions = libFilters.debugFunctions
@@ -811,70 +821,15 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 }
 
 --enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
-if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
-    local itemTypesUniversalDecon = {}
-    local itemFilterTypesUniversalDecon = {}
-
-    local function getDataFromUniversalDeconstructionMenuBar()
-        local barToSearch = ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES
-        if barToSearch then
-            for _, v in ipairs(barToSearch) do
-                local filter = v.filter
-                local key = v.key
-                if filter ~= nil then
-                    if filter.itemTypes ~= nil then
-                        itemTypesUniversalDecon[filter.itemTypes] = key
-                    elseif filter.itemFilterTypes ~= nil then
-                        itemFilterTypesUniversalDecon[filter.itemFilterTypes] = key
-                    end
-                end
-            end
-        end
-        return
-    end
-    getDataFromUniversalDeconstructionMenuBar()
-
-    local universalDeconTabKeyToLibFiltersFilterType = {
-        ["all"] =           LF_SMITHING_DECONSTRUCT,
-        ["armor"] =         LF_SMITHING_DECONSTRUCT,
-        ["enchantments"] =  LF_ENCHANTING_EXTRACTION,
-        ["jewelry"] =       LF_JEWELRY_DECONSTRUCT,
-        ["weapons"] =       LF_SMITHING_DECONSTRUCT,
-    }
-    local deconPanel = SMITHING.deconstructionPanel
-    local filterTypeToFilterBase = {
-        [LF_SMITHING_DECONSTRUCT] =     deconPanel,
-        [LF_JEWELRY_DECONSTRUCT] =      deconPanel,
-        [LF_ENCHANTING_EXTRACTION] =    GAMEPAD_ENCHANTING_EXTRACTION_SCENE
-    }
-
-    local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
-        --Detect the active tab via the filterData
-        local libFiltersFilterType
-        if filterType ~= nil then
-            local itemTypes = filterType.itemTypes
-            if itemTypes then
-                currentTabKey = itemTypesUniversalDecon[itemTypes]
-            else
-                local itemFilterTypes = filterType.itemFilterTypes
-                if itemFilterTypes then
-                    currentTabKey = itemFilterTypesUniversalDecon[itemFilterTypes]
-                end
-            end
-        else
-            currentTabKey = "all"
-        end
-        libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
-        return libFiltersFilterType
-    end
+if isUniversalDeconGiven then
+    local detectActiveUniversalDeconstructionTab = libFilters.DetectActiveUniversalDeconstructionTab
+    local filterTypeToFilterBase = mapping.universalDeconFilterTypeToFilterBase
 
     helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
         version = 1,
         filterTypes = {
-            [true] = {
-                LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION
-            },
-            [false]={LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION}
+            [true] = {LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION},
+            [false]= {LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION}
         },
         locations = {
             [1] = ZO_UniversalDeconstructionPanel_Shared,
@@ -884,13 +839,22 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
             func = function(bagId, slotIndex, filterType)
                 local result = doesUniversalDeconstructionItemPassFilter(bagId, slotIndex, filterType)
                 if not result then return result end
+                --Update local ref variables
+                universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
+                universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 
-                local base, universalDeconBase, currentTabKey
-                --Performance wise better detect this only once in LibFilters as the tabs switch
+                local base, universalDeconPanel, currentTabKey, universalDeconPanelgetCurrentKeyProvided
                 --todo: ZOs needs to provide a function/callback for that to happen, e.g. UNIVERSAL_DECONSTUCTION:GetCurrentTabKey()
-                universalDeconBase = (iigpm() == true and UNIVERSAL_DECONSTRUCTION_GAMEPAD) or UNIVERSAL_DECONSTRUCTION
-                if universalDeconBase and universalDeconBase.GetCurrentTabKey then
-                    currentTabKey = universalDeconBase:GetCurrentTabKey()
+                --> Will be added with maybe next PTS patch (updated 2022-02-11)
+                --> Callbacks as the universal decon filters (dropdown, tab, other) change
+                --> UNIVERSAL_DECONSTRUCTION.deconstructionPanel:RegisterCallback("OnFilterChanged", TestOnFilterChanged)
+                --> UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel:RegisterCallback("OnFilterChanged", TestOnFilterChanged)
+                --> At the callback check for the active tab via UNIVERSAL_DECONSTRUCTION.deconstructionPanel:GetCurrentFilter() which returns
+                --> the filter table, where table.key will be e.g. "alL"/"enchantments" etc.
+                universalDeconPanel = (iigpm() == true and universalDeconstructPanel_GP) or universalDeconstructPanel
+                universalDeconPanelgetCurrentKeyProvided = universalDeconPanel.GetCurrentFilter ~= nil or false
+                if universalDeconPanel and universalDeconPanelgetCurrentKeyProvided then
+                    currentTabKey = universalDeconPanel:GetCurrentFilter().key
                 end
                 local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
                 if libFiltersFilterType == nil then return result end
@@ -900,7 +864,10 @@ if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
                 base = filterTypeToFilterBase[libFiltersFilterType]
                 if base then
                     --Set the .LibFilters3_filterType attribute at the base variable
-                    base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+                    -->This will also initially be set at the OnFilterChanged callback fire once it got added, see file LibFilters-3.0.lua
+                    if not universalDeconPanelgetCurrentKeyProvided then
+                        base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+                    end
                     return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
                 end
                 return result

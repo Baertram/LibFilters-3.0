@@ -40,6 +40,7 @@ libFilters.isInitialized = false
 --function runFilters, and API function libFilters:SetFilterAllState(boolean newState)
 libFilters.useFilterAllFallback = false
 
+
 ------------------------------------------------------------------------------------------------------------------------
 --Debugging output enabled/disabled: Changed via SLASH_COMMANDS /libfiltersdebug or /lfdebug
 libFilters.debug = false
@@ -307,10 +308,16 @@ libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOth
 
 
 --Check if Universal Deconstruction is enabled
+local isUniversalDeconstructionProvided = false
 local function isUniversalDeconGiven()
-	return ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil
+	local isProvided = isUniversalDeconstructionProvided
+	if isProvided == nil then isProvided = ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil or false end
+	libFilters.isUniversalDeconstructionProvided = isProvided
+	return isProvided
 end
 libFilters.IsUniversalDeconGiven = isUniversalDeconGiven
+isUniversalDeconstructionProvided = isUniversalDeconGiven()
+
 
 
 --[Inventory types]
@@ -581,7 +588,7 @@ kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
 
 --Universal Deconstruction
 local universalDeconstructPanel
-if isUniversalDeconGiven() then
+if isUniversalDeconstructionProvided then
 	kbc.universalDeconstruct 	  = UNIVERSAL_DECONSTRUCTION
 	kbc.universalDeconstructPanel = kbc.universalDeconstruct.deconstructionPanel
 	universalDeconstructPanel = kbc.universalDeconstructPanel
@@ -778,7 +785,7 @@ local provisionerFragment_GP 	 = gpc.provisionerFragment_GP
 
 --Universal Deconstruction
 local universalDeconstructPanel_GP
-if isUniversalDeconGiven() then
+if isUniversalDeconstructionProvided then
 	gpc.universalDeconstruct_GP  = UNIVERSAL_DECONSTRUCTION_GAMEPAD
 	gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPanel
 	universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
@@ -1123,6 +1130,23 @@ filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	},
 }
 mapping.filterTypeToUniversalOrNormalDeconAndExtractVars = filterTypeToUniversalOrNormalDeconAndExtractVars
+
+local universalDeconTabKeyToLibFiltersFilterType = {
+	["all"] =           LF_SMITHING_DECONSTRUCT,
+	["armor"] =         LF_SMITHING_DECONSTRUCT,
+	["weapons"] =       LF_SMITHING_DECONSTRUCT,
+	["jewelry"] =       LF_JEWELRY_DECONSTRUCT,
+	["enchantments"] =  LF_ENCHANTING_EXTRACTION,
+}
+mapping.universalDeconTabKeyToLibFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType
+
+local universalDeconFilterTypeToFilterBase = {
+	[LF_SMITHING_DECONSTRUCT] =     deconstructionPanel,
+	[LF_JEWELRY_DECONSTRUCT] =      deconstructionPanel,
+	[LF_ENCHANTING_EXTRACTION] =    enchantingExtractScene_GP
+}
+mapping.universalDeconFilterTypeToFilterBase = universalDeconFilterTypeToFilterBase
+
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
