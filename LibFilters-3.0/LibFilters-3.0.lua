@@ -3791,6 +3791,8 @@ local function applyFixesEarly()
 		universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
 		universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 
+		--This workaround code below should only be needed before the function GetCurrentFilter() was added!
+		--[[
 		local itemTypesUniversalDecon = {}
 		local itemFilterTypesUniversalDecon = {}
 		local function getDataFromUniversalDeconstructionMenuBar()
@@ -3813,12 +3815,15 @@ local function applyFixesEarly()
 		--Prepare the comparison string variables for the currentKey comparison
 		-->Only needed as long as universalDeconstructPanel:GetCurrentFilter() is not existing
 		getDataFromUniversalDeconstructionMenuBar()
+		]]
 
 		--For the .additionalFilter function: Universal deconstruction also RE-uses SMITHING for the keyboard panel, and the
 		--gamepad enchanting extraction sceneas it got no own filterType LF_UNIVERSAL_DECONSTRUCTION or similar!
 		local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
 			--Detect the active tab via the filterData
 			local libFiltersFilterType
+			--CurrentTabKey == nil should only happen before the function GetCurrentFilter() was added!
+			--[[
 			if currentTabKey == nil then
 				if filterType ~= nil then
 					local itemTypes = filterType.itemTypes
@@ -3834,6 +3839,7 @@ local function applyFixesEarly()
 					currentTabKey = "all"
 				end
 			end
+			]]
 			libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
 			return libFiltersFilterType
 		end
@@ -3846,9 +3852,7 @@ local function applyFixesEarly()
 			if filterType == nil then return end
 			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
 			local base = universalDeconFilterTypeToFilterBase[filterType]
-			if base ~= nil then
-				base[defaultLibFiltersAttributeToStoreTheFilterType] = filterType
-			end
+			base[defaultLibFiltersAttributeToStoreTheFilterType] = filterType
 		end
 
 		--Add the callbacks
