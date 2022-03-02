@@ -3,6 +3,8 @@
 ------------------------------------------------------------------------------------------------------------------------
 local libFilters = LibFilters3
 
+local tos = tostring
+
 --Helper variables of ESO
 local iigpm = IsInGamepadPreferredMode
 
@@ -830,8 +832,6 @@ if isUniversalDeconGiven then
     universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
     universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 
-
-
 --  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
     helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
         version = 1,
@@ -851,11 +851,14 @@ if isUniversalDeconGiven then
                 --> Regiser a callbacks to the keyboard and gamepad universal decon filters (dropdown, tab, other) change
                 --> UNIVERSAL_DECONSTRUCTION.deconstructionPanel:RegisterCallback("OnFilterChanged", TestOnFilterChanged)
                 --> UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel:RegisterCallback("OnFilterChanged", TestOnFilterChanged)
-                --> At the callback check for the active tab via UNIVERSAL_DECONSTRUCTION.deconstructionPanel:GetCurrentFilter() which returns
+                --> At the callback check for the active tab via UNIVERSAL_DECONSTRUCTION.deconstructionPanel.inventory:GetCurrentFilter() which returns
                 --> the filter table, where table.key will be e.g. "alL"/"enchantments" etc.
                 --> Map this filterType key to the LibFilters LF_* filterType constant then via table mapping.universalDeconTabKeyToLibFiltersFilterType
-                local universalDeconPanel = (iigpm() == true and universalDeconstructPanel_GP) or universalDeconstructPanel
-                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, universalDeconPanel:GetCurrentFilter().key)
+                local universalDeconPanel = (iigpm() and universalDeconstructPanel_GP) or universalDeconstructPanel
+                local universalDeconPanelInv = universalDeconPanel.inventory
+                local currentFilter = universalDeconPanelInv:GetCurrentFilter()
+                detectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab or libFilters.DetectActiveUniversalDeconstructionTab
+                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentFilter.key)
                 if libFiltersFilterType ~= nil then
                     --Get the variable where the .additionalFilter function is stored via the filterType
                     -->!!!Re-uses existing deconstruction or enchanting references as there does not exist any LF_UNIVERSAL_DECONSTRUCTION constant!!!

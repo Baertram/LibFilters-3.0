@@ -1497,10 +1497,104 @@ libFilters.RunFilters = runFilters
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
+local universalDeconHookApplied = false
+local function applyUniversalDeconstructionHook()
+	--2022-02-11 PTS API101033 Universal Deconstruction
+	-->Apply early so it is done before the helpers load!
+	if isUniversalDeconGiven and not universalDeconHookApplied then
+		--Add a filter changed callback to keyboard and gamepad variables in order to set the currently active LF filterType constant
+		-->Will be re-using LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT AND LF_ENCHANTING_EXTRACTION as there does not exist any
+		-->LF_UNIVERSAL_DECONSTRUCTION constant! .additionalFilter functions will also be taken from normal deconstruction/jewelry deconstruction
+		-->and enchanting extraction!
+
+		--Update the variables
+		universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
+		universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
+
+		--This workaround code below should only be needed before the function GetCurrentFilter() was added!
+		--[[
+		local itemTypesUniversalDecon = {}
+		local itemFilterTypesUniversalDecon = {}
+		local function getDataFromUniversalDeconstructionMenuBar()
+			local barToSearch = ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES
+			if barToSearch then
+				for _, v in ipairs(barToSearch) do
+					local filter = v.filter
+					local key = v.key
+					if filter ~= nil then
+						if filter.itemTypes ~= nil then
+							itemTypesUniversalDecon[filter.itemTypes] = key
+						elseif filter.itemFilterTypes ~= nil then
+							itemFilterTypesUniversalDecon[filter.itemFilterTypes] = key
+						end
+					end
+				end
+			end
+			return
+		end
+		--Prepare the comparison string variables for the currentKey comparison
+		-->Only needed as long as universalDeconstructPanel:GetCurrentFilter() is not existing
+		getDataFromUniversalDeconstructionMenuBar()
+		]]
+
+		--For the .additionalFilter function: Universal deconstruction also RE-uses SMITHING for the keyboard panel, and the
+		--gamepad enchanting extraction sceneas it got no own filterType LF_UNIVERSAL_DECONSTRUCTION or similar!
+		local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
+			--Detect the active tab via the filterData
+			local libFiltersFilterType
+			--CurrentTabKey == nil should only happen before the function GetCurrentFilter() was added!
+			--[[
+			if currentTabKey == nil then
+				if filterType ~= nil then
+					local itemTypes = filterType.itemTypes
+					if itemTypes then
+						currentTabKey = itemTypesUniversalDecon[itemTypes]
+					else
+						local itemFilterTypes = filterType.itemFilterTypes
+						if itemFilterTypes then
+							currentTabKey = itemFilterTypesUniversalDecon[itemFilterTypes]
+						end
+					end
+				else
+					currentTabKey = "all"
+				end
+			end
+			]]
+			libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
+			return libFiltersFilterType
+		end
+		libFilters.DetectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab
+
+		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
+		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
+			--Get the filterType by help of the current tab
+			local libFiltersFilterType = detectActiveUniversalDeconstructionTab(nil, tab.key)
+			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback: %q, %s", tos(tab.key), tos(libFiltersFilterType)) end
+			if libFiltersFilterType == nil then return end
+			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
+			universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
+			universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
+			local base = universalDeconFilterTypeToFilterBase[libFiltersFilterType]
+			base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+		end
+
+		--Add the callbacks
+		universalDeconstructPanel:RegisterCallback("OnFilterChanged", 		universalDeconOnFilterChangedCallback)
+		universalDeconstructPanel_GP:RegisterCallback("OnFilterChanged", 	universalDeconOnFilterChangedCallback)
+
+		universalDeconHookApplied = true
+	end
+end
+
+
 --Hook the different inventory panels (LibFilters filterTypes) now and add the .additionalFilter entry to each panel's
 --control/scene/fragment/...
 local function applyAdditionalFilterHooks()
 	if isDebugEnabled then dd("---ApplyAdditionalFilterHooks---") end
+
+	--Universal deconstruction -> Special, as it re-used LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACT
+	applyUniversalDeconstructionHook()
+
 	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
 	for value, _ in ipairs(libFiltersFilterConstants) do
@@ -3778,88 +3872,6 @@ end
 --Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
 local function applyFixesEarly()
 	if isDebugEnabled then dd("---ApplyFixesEarly---") end
-
-	--2022-02-11 PTS API101033 Universal Deconstruction
-	-->Apply early so it is done before the helpers load!
-	if isUniversalDeconGiven then
-		--Add a filter changed callback to keyboard and gamepad variables in order to set the currently active LF filterType constant
-		-->Will be re-using LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT AND LF_ENCHANTING_EXTRACTION as there does not exist any
-		-->LF_UNIVERSAL_DECONSTRUCTION constant! .additionalFilter functions will also be taken from normal deconstruction/jewelry deconstruction
-		-->and enchanting extraction!
-
-		--Update the variables
-		universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
-		universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
-
-		--This workaround code below should only be needed before the function GetCurrentFilter() was added!
-		--[[
-		local itemTypesUniversalDecon = {}
-		local itemFilterTypesUniversalDecon = {}
-		local function getDataFromUniversalDeconstructionMenuBar()
-			local barToSearch = ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES
-			if barToSearch then
-				for _, v in ipairs(barToSearch) do
-					local filter = v.filter
-					local key = v.key
-					if filter ~= nil then
-						if filter.itemTypes ~= nil then
-							itemTypesUniversalDecon[filter.itemTypes] = key
-						elseif filter.itemFilterTypes ~= nil then
-							itemFilterTypesUniversalDecon[filter.itemFilterTypes] = key
-						end
-					end
-				end
-			end
-			return
-		end
-		--Prepare the comparison string variables for the currentKey comparison
-		-->Only needed as long as universalDeconstructPanel:GetCurrentFilter() is not existing
-		getDataFromUniversalDeconstructionMenuBar()
-		]]
-
-		--For the .additionalFilter function: Universal deconstruction also RE-uses SMITHING for the keyboard panel, and the
-		--gamepad enchanting extraction sceneas it got no own filterType LF_UNIVERSAL_DECONSTRUCTION or similar!
-		local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
-			--Detect the active tab via the filterData
-			local libFiltersFilterType
-			--CurrentTabKey == nil should only happen before the function GetCurrentFilter() was added!
-			--[[
-			if currentTabKey == nil then
-				if filterType ~= nil then
-					local itemTypes = filterType.itemTypes
-					if itemTypes then
-						currentTabKey = itemTypesUniversalDecon[itemTypes]
-					else
-						local itemFilterTypes = filterType.itemFilterTypes
-						if itemFilterTypes then
-							currentTabKey = itemFilterTypesUniversalDecon[itemFilterTypes]
-						end
-					end
-				else
-					currentTabKey = "all"
-				end
-			end
-			]]
-			libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
-			return libFiltersFilterType
-		end
-		libFilters.detectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab
-
-		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
-		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
-			--Get the filterType by help of the current tab
-			local filterType = detectActiveUniversalDeconstructionTab(nil, tab.key)
-			if filterType == nil then return end
-			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
-			local base = universalDeconFilterTypeToFilterBase[filterType]
-			base[defaultLibFiltersAttributeToStoreTheFilterType] = filterType
-		end
-
-		--Add the callbacks
-		universalDeconstructPanel:RegisterCallback("OnFilterChanged", 		universalDeconOnFilterChangedCallback)
-		universalDeconstructPanel_GP:RegisterCallback("OnFilterChanged", 	universalDeconOnFilterChangedCallback)
-	end
-
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits

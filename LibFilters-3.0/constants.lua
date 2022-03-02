@@ -311,7 +311,9 @@ libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOth
 libFilters.isUniversalDeconstructionProvided = false
 local isUniversalDeconstructionProvided = libFilters.isUniversalDeconstructionProvided
 local function isUniversalDeconGiven()
-	if isUniversalDeconstructionProvided == nil then isUniversalDeconstructionProvided = ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil or false end
+	if not isUniversalDeconstructionProvided then
+		isUniversalDeconstructionProvided = (ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil and true) or false
+	end
 	libFilters.isUniversalDeconstructionProvided = isUniversalDeconstructionProvided
 	return isUniversalDeconstructionProvided
 end
