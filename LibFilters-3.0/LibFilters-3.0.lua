@@ -11,6 +11,10 @@
 --[Bugs]
 -- #xx) 2022-xx-xx, Baertram: Gamepad/Keyboad mode - ...
 
+-- #01) 2022-03-09, Baertram: Gamepad/Keyboad mode - Add new PTS Universal Deconstruction OnShow/OnHide callbacks
+--			But there exists no dedicated LF_UNIVERSAL_DECONSTRUCTION, so it needs to fire the callbacks of LF_SMITHING_DECONSTRUCT,
+--			LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACT with the additional info "we are currently at Universal Deconstruction!" somehow
+
 --[Feature requests]
 -- #f1)
 
@@ -134,6 +138,7 @@ local libFilters_IsUniversalDeconstructionPanelShown
 local filterTypeToUniversalOrNormalDeconAndExtractVars = 			mapping.filterTypeToUniversalOrNormalDeconAndExtractVars
 local universalDeconTabKeyToLibFiltersFilterType	   =			mapping.universalDeconTabKeyToLibFiltersFilterType
 local universalDeconFilterTypeToFilterBase = 					    mapping.universalDeconFilterTypeToFilterBase
+local universalDeconLibFiltersFilterTypeSupported = 				mapping.universalDeconLibFiltersFilterTypeSupported
 
 --Keyboard
 local kbc                      = 	constants.keyboard
@@ -1564,6 +1569,24 @@ local function applyUniversalDeconstructionHook()
 			return libFiltersFilterType
 		end
 		libFilters.DetectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab
+
+
+		local function isUniversalDeconPanelShown(filterPanelIdComingFrom)
+			local isGamepadMode = IsGamepad()
+			local universaldDeconScene = isGamepadMode and universalDeconstructScene_GP or universalDeconstructScene
+			if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil and universaldDeconScene:IsShowing() then
+				if filterPanelIdComingFrom == nil then
+					local universaldDeconPanel = isGamepadMode and universalDeconstructPanel_GP or universalDeconstructPanel
+					local universalDeconSelectedTab = universaldDeconPanel.inventory:GetCurrentFilter()
+					if not universalDeconSelectedTab then return false end
+					filterPanelIdComingFrom = detectActiveUniversalDeconstructionTab(nil, universalDeconSelectedTab.key)
+				end
+				return universalDeconLibFiltersFilterTypeSupported[filterPanelIdComingFrom] or false
+			end
+			return false
+		end
+		libFilters.IsUniversalDeconstructionPanelShown = isUniversalDeconPanelShown
+
 
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)

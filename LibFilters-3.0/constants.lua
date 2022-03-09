@@ -1148,6 +1148,11 @@ local universalDeconFilterTypeToFilterBase = {
 }
 mapping.universalDeconFilterTypeToFilterBase = universalDeconFilterTypeToFilterBase
 
+local universalDeconLibFiltersFilterTypeSupported = {}
+for filterType, _ in pairs(universalDeconFilterTypeToFilterBase) do
+	universalDeconLibFiltersFilterTypeSupported[filterType] = true
+end
+mapping.universalDeconLibFiltersFilterTypeSupported = universalDeconLibFiltersFilterTypeSupported
 
 --[Mapping LibFilters LF* constants not being hooked normal -> Special functions used]
 local standardSpecialHookFunc = 		"HookAdditionalFilterSpecial" 		--LibFilters:HookAdditionalFilterSpecial
@@ -2377,7 +2382,6 @@ callbacks.callbackFragmentsBlockedMapping = callbackFragmentsBlockedMapping
 local callbacksUsingScenes = {
 	--Keyboard
 	[false] = {
-
 		--Dedicated scenes
 	},
 
@@ -2464,6 +2468,8 @@ local callbacksUsingSpecials = {
 		[provisioner.control] 				= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via PROVISIONER:OnTabFilterChanged
 		[alchemy.control]              		= { LF_ALCHEMY_CREATION },									--via ALCHEMY:SetMode
 		--All crafting tables open/close via EVENT_CRAFTING_STATION_INTERACT and EVENT_END_CRAFTING_STATION_INTERACT
+
+		--todo [universalDeconstructPanel]			= {}
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2471,6 +2477,8 @@ local callbacksUsingSpecials = {
 	--Gamepad
 	[true] = {
 		[provisioner_GP.control] 			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via GAMEPAD_PROVISIONER:OnTabFilterChanged
+
+		--todo [universalDeconstructPanel_GP] = {}
 	},
 
 }
