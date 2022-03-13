@@ -3,7 +3,7 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.0 - Last updated: 2022-01-19, Baertram
+--Bugs/Todo List for version: 3.0 r3.1 - Last updated: 2022-03-13, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				0
 --Feature requests total: 	0
@@ -29,6 +29,7 @@ local filters    	= libFilters.filters
 
 local callbacksCreated = false
 local fixesLateApplied = false
+local fixesLatestApplied = false
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL SPEED UP VARIABLES & REFERENCES
@@ -856,6 +857,7 @@ end
 local function craftBagExtendedCheckForCurrentModule(filterType)
 	if isDebugEnabled then dv("!craftBagExtendedCheckForCurrentModule - filterTypePassedIn: " .. tos(filterType)) end
 	local cbe = CraftBagExtended
+	if cbe == nil then return nil, nil end
 	local cbeCurrentModule = cbe.currentModule
 	if cbeCurrentModule == nil then
 		if isDebugEnabled then dv("<no current CBE module found") end
@@ -3895,17 +3897,30 @@ end
 --Fixes which are needed BEFORE EVENT_ADD_ON_LOADED hits
 local function applyFixesEarly()
 	if isDebugEnabled then dd("---ApplyFixesEarly---") end
+	if isDebugEnabled then dd(">Early fixes were applied") end
 end
 
 --Fixes which are needed AFTER EVENT_ADD_ON_LOADED hits
 local function applyFixesLate()
 	if isDebugEnabled then dd("---ApplyFixesLate---") end
-	if not libFilters.isInitialized and not fixesLateApplied then return end
+	--[[
+	if not libFilters.isInitialized or fixesLateApplied then return end
+
+
+	fixesLateApplied = true
+	]]
+	if isDebugEnabled then dd(">Late fixes were applied") end
+end
+
+--Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
+local function applyFixesLatest()
+	if isDebugEnabled then dd("---ApplyFixesLatest---") end
+	if not libFilters.isInitialized or fixesLatestApplied then return end
 
 	--2021-12-19
 	--Fix applied now is only needed for CraftBagExtended addon!
 	--The fragments used at mail send/bank deposit/guild bank deposit and guild store sell will apply their additionalFilters
-	--to the normal player inventory PLAYER_INVETORY.appliedLayout.
+	--to the normal player inventory PLAYER_INVENTORY.appliedLayout.
 	--But the CBE craftbag panel will not filter with these additional filters, but the PLAYER_INVENTORY.inventories[INVENTORY_CRAFT_BAG].additionalFilters
 	--And these are empty at these special CBE filters! So we need to copy them over from BACKPACK_MENU_BAR_LAYOUT_FRAGMENT.layoutData.additionalCraftBagFilter
 	if CraftBagExtended ~= nil then
@@ -3921,29 +3936,19 @@ local function applyFixesLate()
 		end)
 	end
 
-	fixesLateApplied = true
-	if isDebugEnabled then dd(">Late fixes were applied") end
-end
-
---Fixes which are needed AFTER EVENT_PLAYER_ACTIVATED hits
---[[
-local function applyFixesLatest()
-	if isDebugEnabled then dd("---ApplyFixesLatest---") end
+	fixesLatestApplied = true
 	if isDebugEnabled then dd(">Latest fixes were applied") end
 end
-]]
 
 
 --**********************************************************************************************************************
 -- EVENTs
 --**********************************************************************************************************************
---[[
 --Called from EVENT_PLAYER_ACTIVATED -> Only once
 local function eventPlayerActivatedCallback(eventId, firstCall)
 	EM:UnregisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED)
 	applyFixesLatest()
 end
-]]
 
 --Called from EVENT_ADD_ON_LOADED
 local function eventAddonLoadedCallback(eventId, addonNameLoaded)
@@ -3954,7 +3959,7 @@ local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 	--Create the callbacks for the filterType's panel show/hide
 	createCallbacks()
 
-	--EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
+	EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
 end
 
 
