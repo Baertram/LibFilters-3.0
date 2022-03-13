@@ -1,0 +1,88 @@
+<GuiXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sir.insidi.at/or/schema/esoui.xsd">
+	<Controls>
+		<Button name="LibFilters_Test_DefaultButton" font="ZoFontGameBold" endCapWidth="9" verticalAlignment="CENTER" mouseOverBlendMode="ADD" inherits="ZO_ButtonBehaviorClickSound" virtual="true">
+            <Dimensions x="128" y="28" />
+            <PressedOffset x="1" y="1" />
+
+            <FontColors
+                normalColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_BATTLEGROUND_WINNER"
+                pressedColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_BATTLEGROUND_WINNER"
+                mouseOverColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_HIGHLIGHT"
+                disabledColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED"
+				disabledPressedColor="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED"
+            />
+
+            <Textures
+                normal="EsoUI/Art/Buttons/ESO_buttonLarge_normal.dds"
+                pressed="EsoUI/Art/Buttons/ESO_buttonlLarge_mouseDown.dds"
+                mouseOver="EsoUI/Art/Buttons/ESO_buttonLarge_mouseOver.dds"
+                disabled="EsoUI/Art/Buttons/ESO_buttonLarge_disabled.dds"
+            />
+        </Button>
+
+		<Button name="LibFilters_Test_CloseButton" override="true" virtual="true" mouseEnabled="true">
+			<Dimensions x="36" y="36" />
+			<Textures normal="/esoui/art/buttons/closebutton_up.dds"
+					  pressed="/esoui/art/buttons/closebutton_down.dds"
+					  mouseOver="/esoui/art/buttons/closebutton_mouseOver.dds"
+					  disabled="/esoui/art/buttons/closebutton_disabled.dds" />
+			<OnClicked>
+				self:OnClickedCallback()
+			</OnClicked>
+		</Button>
+
+		<Label name="LibFilters_Test_CurrentFilterPanelTemplate" font="ZoFontGameSmall" horizontalAlignment="LEFT" verticalAlignment="CENTER" tier="HIGH" override="true" mouseEnabled="false" virtual="true">
+			<Dimensions x="345" y="25"/>
+		</Label>
+
+		 <EditBox name="LibFilters_Test_FilterFunction_Edit_Template" inherits="ZO_DefaultEditForBackdrop ZO_EditDefaultText" font="ZoFontWinH5" tier="HIGH" mouseEnabled="true" override="true" virtual="true">
+			<Dimensions x="318" y="25"/>
+			<OnInitialized>
+				ZO_EditDefaultText_Initialize(self, "Enter global filter function, w/o (param, ...)")
+			</OnInitialized>
+			<Controls>
+				<Label name="$(parent)Text" font="ZoFontGame" override="true">
+					<Dimensions x="310" y="25"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-28" offsetY="0"/>
+				</Label>
+				<Button name="$(parent)SaveButton" override="true" tier="HIGH" inherits="ZO_DefaultButton" text="OK" mouseEnabled="true">
+					<Dimensions x="25" y="25"/>
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Text" relativePoint="TOPRIGHT" offsetX="1" offsetY="0"/>
+					<OnClicked>
+						self:OnClickedCallback()
+					</OnClicked>
+				</Button>
+			</Controls>
+		</EditBox>
+
+		<Control name="LibFilters_Test_Template" tier="MEDIUM" virtual="true">
+			<Dimensions x="345" y="40"/>
+			<OnInitialized> 
+				self.slotControlType = "listSlot" 
+			</OnInitialized>
+			<Controls>
+				<Button name="$(parent)Button" override="true" tier="HIGH" inherits="LibFilters_Test_DefaultButton">
+					<Dimensions x="340" y="40"/>
+					<Anchor point="TOP" relativePoint="TOP" offsetX="0" offsetY="0"/>
+				</Button>
+			</Controls>
+		</Control>
+		<Control name="LibFilters_Test_Template_WithHeader" tier="MEDIUM" virtual="true">
+			<Dimensions x="345" y="100"/>
+			<OnInitialized> 
+				self.slotControlType = "listSlot" 
+			</OnInitialized>
+			<Controls>
+				<Label name="$(parent)Header" font="ZoFontWinH1" horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH" override="true" mouseEnabled="false">
+					<Dimensions x="340" y="40"/>
+					<Anchor point="TOP" relativePoint="TOP" offsetX="0" offsetY="0"/>
+				</Label>
+				<Button name="$(parent)Button" override="true" inherits="LibFilters_Test_DefaultButton">
+					<Dimensions x="340" y="40"/>
+					<Anchor point="TOP" relativeTo="$(parent)Header" relativePoint="BOTTOM" offsetX="0" offsetY="0"/>
+				</Button>
+			</Controls>
+		</Control>
+	</Controls>
+</GuiXml>
