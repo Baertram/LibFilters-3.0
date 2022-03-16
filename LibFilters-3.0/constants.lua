@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.1
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.2
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -20,6 +20,7 @@ local getScene = SM.GetScene
 
 --Local library variable
 local libFilters = {}
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
@@ -559,6 +560,7 @@ kbc.enchantingScene			      = ENCHANTING_SCENE
 local enchantingScene 			  = kbc.enchantingScene
 
 --Alchemy
+kbc.alchemyClass                  =	ZO_Alchemy
 kbc.alchemy                       =	ALCHEMY
 local alchemy 					  = kbc.alchemy
 kbc.alchemyScene                  =	ALCHEMY_SCENE
@@ -569,6 +571,7 @@ local alchemyFragment 			  = kbc.alchemyFragment
 alchemyFragment._name = "ALCHEMY_FRAGMENT"
 
 --Provisioning
+kbc.provisionerClass              =	ZO_Provisioner
 kbc.provisioner			          = PROVISIONER
 local provisioner 				  = kbc.provisioner
 kbc.provisionerFragment			  = PROVISIONER_FRAGMENT

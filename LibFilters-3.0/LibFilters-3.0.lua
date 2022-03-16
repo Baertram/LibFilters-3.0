@@ -161,10 +161,13 @@ local companionEquipmentCtrl   = 	kbc.companionEquipment.control
 local characterCtrl            =	kbc.characterCtrl
 local companionCharacterCtrl   = 	kbc.companionCharacterCtrl
 local deconstructionPanel	   =    kbc.deconstructionPanel
+local enchantingClass		   =    kbc.enchantingClass
 local enchanting               = 	kbc.enchanting
 local enchantingInvCtrl        = 	enchanting.inventoryControl
+local alchemyClass		   	   =	kbc.alchemyClass
 local alchemy                  = 	kbc.alchemy
 local alchemyCtrl              =	kbc.alchemyCtrl
+local provisionerClass		   =	kbc.provisionerClass
 local provisioner			   =    kbc.provisioner
 --local provCtrl 				   =    provisioner.control
 local provisionerScene 		   =    kbc.provisionerScene
@@ -3690,13 +3693,15 @@ local function createSpecialCallbacks()
 	--[Keyboard mode]
 	--LF_PROVISIONER_COOK, LF_PROVISIONER_BREW
 	-->ZO_Provisioner:OnTabFilterChanged(filterData)
-	SecurePostHook(provisioner, "OnTabFilterChanged", function(selfProvisioner, filterTabData)
+	--SecurePostHook(provisioner, "OnTabFilterChanged", function(selfProvisioner, filterTabData) --202203016 change to provisionerClass ZO_Provisioner
+	SecurePostHook(provisionerClass, "OnTabFilterChanged", function(selfProvisioner, filterTabData)
 		provisionerSpecialCallback(selfProvisioner, filterTabData, nil)
 	end)
 
 	--LF_ENCHANTING_CREATION, LF_ENCHANTING_EXTRACTION
 	local enchantingControl = enchanting.control
-	SecurePostHook(enchanting, "OnModeUpdated", function()
+	--SecurePostHook(enchanting, "OnModeUpdated", function() --202203016 change to enchantingClass ZO_Enchanting AND update AdvancedFilters AND FCOIS properly!
+	SecurePostHook(enchantingClass, "OnModeUpdated", function()
 		local enchantingMode = enchanting:GetEnchantingMode()
 		if not enchantingMode then return end
 		local filterType = enchantingModeToFilterType[enchantingMode]
@@ -3730,7 +3735,8 @@ local function createSpecialCallbacks()
 	end)
 
 	--LF_ALCHEMY_CREATION
-	SecurePostHook(alchemy, "SetMode", function(alchemySelf, mode)
+	--SecurePostHook(alchemy, "SetMode", function(alchemySelf, mode) --202203016 change to alchemygClass ZO_Alchemy
+	SecurePostHook(alchemyClass, "SetMode", function(alchemySelf, mode)
 		if not mode then return end
 		local filterType = alchemyModeToFilterType[mode]
 		local doShow = (filterType ~= nil and true) or false
