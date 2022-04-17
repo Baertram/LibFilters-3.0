@@ -825,6 +825,14 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 
 --Universal deconstruction, added with API101033 Ascending Tide
 if isUniversalDeconGiven then
+    --Mapping variables
+    local detectActiveUniversalDeconstructionTab = libFilters.DetectActiveUniversalDeconstructionTab
+    local filterTypeToFilterBase = mapping.universalDeconFilterTypeToFilterBase
+    --Update local ref variables
+    universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
+    universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
+
+
     --Workaround for GamePad mode where ZOs did not create the function GetCurrentFilter "yet"
     if not universalDeconstructPanel_GP.inventory.GetCurrentFilter then
         function universalDeconstructPanel_GP.inventory.GetCurrentFilter()
@@ -834,13 +842,7 @@ if isUniversalDeconGiven then
         end
     end
 
-    --Mapping variables
-    local detectActiveUniversalDeconstructionTab = libFilters.DetectActiveUniversalDeconstructionTab
-    local filterTypeToFilterBase = mapping.universalDeconFilterTypeToFilterBase
-    --Update local ref variables
-    universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
-    universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
-
+    
     --  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
     helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
         version = 1,

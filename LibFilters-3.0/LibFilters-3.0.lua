@@ -1613,7 +1613,8 @@ local function applyUniversalDeconstructionHook()
 		end
 
 		--ZOs workaround needed?
-		if not universalDeconstructPanel_GP.inventory.GetCurrentFilter then
+		universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
+		if universalDeconstructPanel_GP.inventory.GetCurrentFilter == nil then
 			ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = true
 		end
 
