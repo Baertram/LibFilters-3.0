@@ -1508,6 +1508,7 @@ libFilters.RunFilters = runFilters
 --HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
 local universalDeconHookApplied = false
+local ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = false
 local function applyUniversalDeconstructionHook()
 	--2022-02-11 PTS API101033 Universal Deconstruction
 	-->Apply early so it is done before the helpers load!
@@ -1604,6 +1605,16 @@ local function applyUniversalDeconstructionHook()
 			universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 			local base = universalDeconFilterTypeToFilterBase[libFiltersFilterType]
 			base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+
+			--Workaround for GamePad mode where ZOs did not create this function ...
+			if ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded == true then
+				universalDeconstructPanel_GP.libFilters_currentTab = tab
+			end
+		end
+
+		--ZOs workaround needed?
+		if not universalDeconstructPanel_GP.inventory.GetCurrentFilter then
+			ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = true
 		end
 
 		--Add the callbacks

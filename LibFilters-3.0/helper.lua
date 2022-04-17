@@ -825,6 +825,15 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 
 --Universal deconstruction, added with API101033 Ascending Tide
 if isUniversalDeconGiven then
+    --Workaround for GamePad mode where ZOs did not create the function GetCurrentFilter "yet"
+    if not universalDeconstructPanel_GP.inventory.GetCurrentFilter then
+        function universalDeconstructPanel_GP.inventory.GetCurrentFilter()
+            --universalDeconstructPanel_GP.libFilters_currentTab will be filled at LibFilters-3.0.lua, function universalDeconOnFilterChangedCallback
+            --of the callback universalDeconstructPanel_GP:RegisterCallback("OnFilterChanged", 	universalDeconOnFilterChangedCallback)
+            return universalDeconstructPanel_GP.libFilters_currentTab or ZO_GetUniversalDeconstructionFilterType("all")
+        end
+    end
+
     --Mapping variables
     local detectActiveUniversalDeconstructionTab = libFilters.DetectActiveUniversalDeconstructionTab
     local filterTypeToFilterBase = mapping.universalDeconFilterTypeToFilterBase
@@ -832,7 +841,7 @@ if isUniversalDeconGiven then
     universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
     universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 
---  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
+    --  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
     helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
         version = 1,
         filterTypes = {
@@ -856,6 +865,7 @@ if isUniversalDeconGiven then
                 --> Map this filterType key to the LibFilters LF_* filterType constant then via table mapping.universalDeconTabKeyToLibFiltersFilterType
                 local universalDeconPanel = (iigpm() and universalDeconstructPanel_GP) or universalDeconstructPanel
                 local universalDeconPanelInv = universalDeconPanel.inventory
+
                 local currentFilter = universalDeconPanelInv:GetCurrentFilter()
                 detectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab or libFilters.DetectActiveUniversalDeconstructionTab
                 local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentFilter.key)
