@@ -836,13 +836,11 @@ if isUniversalDeconGiven then
     --Workaround for GamePad mode where ZOs did not create the function GetCurrentFilter "yet"
     if not universalDeconstructPanel_GP.inventory.GetCurrentFilter then
         function universalDeconstructPanel_GP.inventory.GetCurrentFilter()
-            --universalDeconstructPanel_GP.libFilters_currentTab will be filled at LibFilters-3.0.lua, function universalDeconOnFilterChangedCallback
-            --of the callback universalDeconstructPanel_GP:RegisterCallback("OnFilterChanged", 	universalDeconOnFilterChangedCallback)
-            return universalDeconstructPanel_GP.libFilters_currentTab or ZO_GetUniversalDeconstructionFilterType("all")
+            return universalDeconstructPanel_GP.currentFilterData or ZO_GetUniversalDeconstructionFilterType("all")
         end
     end
 
-    
+
     --  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
     helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
         version = 1,

@@ -1605,18 +1605,13 @@ local function applyUniversalDeconstructionHook()
 			universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 			local base = universalDeconFilterTypeToFilterBase[libFiltersFilterType]
 			base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
-
-			--Workaround for GamePad mode where ZOs did not create this function ...
-			if ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded == true then
-				universalDeconstructPanel_GP.libFilters_currentTab = tab
-			end
 		end
 
 		--ZOs workaround needed?
 		universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
-		if universalDeconstructPanel_GP.inventory.GetCurrentFilter == nil then
-			ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = true
-		end
+		--Workaround for GamePad mode where ZOs did not create the function GetCurrentFilter()
+		-->See helper.lua, helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"]
+
 
 		--Add the callbacks
 		universalDeconstructPanel:RegisterCallback("OnFilterChanged", 		universalDeconOnFilterChangedCallback)
