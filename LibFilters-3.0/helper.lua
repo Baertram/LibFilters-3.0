@@ -17,6 +17,7 @@ local gpc         =                         constants.gamepad
 
 --Keyboard
 local inventories = kbc.inventories
+local quickslots  =                         kbc.quickslots
 local universalDeconstructPanel =           kbc.universalDeconstructPanel
 
 --Gamepad
@@ -413,6 +414,7 @@ helpers["REPAIR_WINDOW:UpdateList"] = {
 
 --enable LF_QUICKSLOT
 -->Will only be executed for normal inventory items but NOT for the collectible items in the quickslot filters
+-->Since API101034: QUICKSLOT_WINDOW is gone and was replaced by QUICKSLOT_KEYBOARD
 helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     filterTypes = {
         [true] = {},
@@ -420,7 +422,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
     },
     version = 4,
     locations = {
-        [1] = QUICKSLOT_WINDOW,
+        [1] = quickslots,
     },
     helper = {
         funcName = "ShouldAddItemToList",
@@ -447,7 +449,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
         [false]={LF_QUICKSLOT}
     },
     locations = {
-        [1] = QUICKSLOT_WINDOW,
+        [1] = quickslots,
     },
     helper = {
         funcName = "ShouldAddQuestItemToList",
@@ -476,7 +478,7 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
         [false]={LF_QUICKSLOT}
     },
     locations = {
-        [1] = QUICKSLOT_WINDOW,
+        [1] = quickslots,
     },
     helper = {
         funcName = "AppendCollectiblesData",
