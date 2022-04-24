@@ -390,7 +390,7 @@ local invQuestFragment 			  = kbc.invQuestFragment
 invQuestFragment._name = "QUEST_ITEMS_FRAGMENT"
 
 --Quickslots
-kbc.quickslots                    = QUICKSLOT_WINDOW
+kbc.quickslots                    = (QUICKSLOT_KEYBOARD ~= nil and QUICKSLOT_KEYBOARD) or QUICKSLOT_WINDOW
 local quickslots 				  = kbc.quickslots
 kbc.quickslotsFragment            = QUICKSLOT_FRAGMENT
 if kbc.quickslotsFragment == nil then
