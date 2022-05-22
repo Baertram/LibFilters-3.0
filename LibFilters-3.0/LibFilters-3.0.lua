@@ -3,7 +3,7 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.1 - Last updated: 2022-03-13, Baertram
+--Bugs/Todo List for version: 3.0 r3.4 - Last updated: 2022-05-22, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				0
 --Feature requests total: 	0
@@ -161,6 +161,7 @@ local companionEquipmentCtrl   = 	kbc.companionEquipment.control
 local characterCtrl            =	kbc.characterCtrl
 local companionCharacterCtrl   = 	kbc.companionCharacterCtrl
 local deconstructionPanel	   =    kbc.deconstructionPanel
+local researchPanel			   =    kbc.researchPanel
 local enchantingClass		   =    kbc.enchantingClass
 local enchanting               = 	kbc.enchanting
 local enchantingInvCtrl        = 	enchanting.inventoryControl
@@ -817,6 +818,23 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	return totalResult
 end
 
+
+
+------------------------------------------------------------------------------------------------------------------------
+--LOCAL HELPER FUNCTIONS - fix function
+------------------------------------------------------------------------------------------------------------------------
+local function fixResearchDialogRowOnItemSelectedCallback()
+	if researchChooseItemDialog.listDialog ~= nil then
+		researchChooseItemDialog.listDialog:SetOnSelectedCallback(function(selectedData)
+			if selectedData == nil then
+				return
+			end --fix to prevent nil error
+			researchChooseItemDialog:OnItemSelected(selectedData.bag, selectedData.index)
+		end)
+	end
+end
+
+
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - filterType mapping
 ------------------------------------------------------------------------------------------------------------------------
@@ -1140,8 +1158,10 @@ local function dialogUpdaterFunc(listDialogControl)
 		  --Update the research dialog?
 		  if listDialogControl == researchChooseItemDialog then --SMITHING_RESEARCH_SELECT
 				if data.craftingType and data.researchLineIndex and data.traitIndex then
-					 --Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
-					 listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
+					--Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
+d("[dialogUpdaterFunc]listDialogControl.SetupDialog")
+					listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
+					fixResearchDialogRowOnItemSelectedCallback()
 				end
 		  end
 	 end
@@ -2529,6 +2549,7 @@ function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if dialogOwnerControlToCheck == nil then return false end
 	return isListDialogShown(dialogOwnerControlToCheck)
 end
+local libFilters_IsListDialogShown = libFilters.IsListDialogShown
 
 
 --Is the retrait station curently shown
@@ -3918,10 +3939,22 @@ local function applyFixesLate()
 	if isDebugEnabled then dd("---ApplyFixesLate---") end
 	--[[
 	if not libFilters.isInitialized or fixesLateApplied then return end
-
-
 	fixesLateApplied = true
 	]]
+
+	--Overwrite the rowSelected callback function of the keyboard research dialog as it got no nil check for the selectedData
+	--table and raises errors as ZO_ScrollList_SelectData is used with nil data, or dialog:ClearList() is called
+	local researchPopupDialogCustomControl = ESO_Dialogs["SMITHING_RESEARCH_SELECT"].customControl()
+	ZO_PreHookHandler(researchPopupDialogCustomControl, "OnShow", function()
+		if researchPopupDialogCustomControl ~= nil then
+			if libFilters_IsListDialogShown(libFilters, nil, researchPanel.control) then
+				zo_callLater(function()
+					fixResearchDialogRowOnItemSelectedCallback()
+				end, 100)
+			end
+		end
+	end)
+
 	if isDebugEnabled then dd(">Late fixes were applied") end
 end
 
