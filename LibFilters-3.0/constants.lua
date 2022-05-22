@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.2
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.4
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -390,9 +390,12 @@ local invQuestFragment 			  = kbc.invQuestFragment
 invQuestFragment._name = "QUEST_ITEMS_FRAGMENT"
 
 --Quickslots
-kbc.quickslots                    = QUICKSLOT_WINDOW
+kbc.quickslots                    = (QUICKSLOT_KEYBOARD ~= nil and QUICKSLOT_KEYBOARD) or QUICKSLOT_WINDOW
 local quickslots 				  = kbc.quickslots
 kbc.quickslotsFragment            = QUICKSLOT_FRAGMENT
+if kbc.quickslotsFragment == nil then
+	kbc.quickslotsFragment = KEYBOARD_QUICKSLOT_FRAGMENT
+end
 local quickslotsFragment 		  = kbc.quickslotsFragment
 quickslotsFragment._name = "QUICKSLOT_FRAGMENT"
 
