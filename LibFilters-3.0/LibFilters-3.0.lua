@@ -1159,7 +1159,6 @@ local function dialogUpdaterFunc(listDialogControl)
 		  if listDialogControl == researchChooseItemDialog then --SMITHING_RESEARCH_SELECT
 				if data.craftingType and data.researchLineIndex and data.traitIndex then
 					--Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
-d("[dialogUpdaterFunc]listDialogControl.SetupDialog")
 					listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
 					fixResearchDialogRowOnItemSelectedCallback()
 				end

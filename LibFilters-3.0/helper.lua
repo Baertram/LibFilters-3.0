@@ -420,18 +420,16 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
         [true] = {},
         [false]={LF_QUICKSLOT}
     },
-    version = 4,
+    version = 5,
     locations = {
         [1] = quickslots,
     },
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT) and
-                (
-                        (self.IsItemInTextSearch and self:IsItemInTextSearch(itemData))
-                          or (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex))
-                )
+            local isItemFilterTypeMatching = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
+            local isTextMatching = TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) or false
+            local result = isItemFilterTypeMatching and isTextMatching
 
             result = checkAndRundAdditionalFilters(self, itemData, result)
 
@@ -443,7 +441,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddItemToList"] = {
 
 -->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
 helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
-    version = 3,
+    version = 4,
     filterTypes = {
         [true] = {},
         [false]={LF_QUICKSLOT}
@@ -454,12 +452,8 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
     helper = {
         funcName = "ShouldAddQuestItemToList",
         func = function(self, questItemData)
-
             local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT) and
-                (
-                        (self.IsItemInTextSearch and self:IsItemInTextSearch(questItemData))
-                    or (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId))
-                )
+            (TEXT_SEARCH_MANAGER and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId))
 
             result = checkAndRundAdditionalFilters(self, questItemData, result)
 
@@ -472,7 +466,7 @@ helpers["QUICKSLOT_WINDOW:ShouldAddQuestItemToList"] = {
 -->Will only be executed for the collectible items in the quickslot filters, but no inventory items
 local DATA_TYPE_COLLECTIBLE_ITEM = 2
 helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
-    version = 3,
+    version = 4,
     filterTypes = {
         [true] = {},
         [false]={LF_QUICKSLOT}
@@ -503,17 +497,8 @@ helpers["QUICKSLOT_WINDOW:AppendCollectiblesData"] = {
 
                 local result = (not libFiltersQuickslotCollectiblesFilterFunc and true) or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData))
 
-                if TEXT_SEARCH_MANAGER then
-                    if TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
-                        if result == true then
-                            table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
-                        end
-                    end
-                else
-                    self.quickSlotSearch.Insert(collectibleData.searchData)
-                    if self:IsItemInTextSearch(collectibleData) and result == true then
-                        table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
-                    end
+                if result == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
+                    table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
                 end
             end
         end,
