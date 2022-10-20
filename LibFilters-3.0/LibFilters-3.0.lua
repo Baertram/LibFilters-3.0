@@ -1055,7 +1055,7 @@ local function getDeconstructOrExtractCraftingVarToUpdate(filterType, isInGamepa
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
 	if isUniversalDecon == nil then
-		isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown(libFilters, isInGamepadMode) or false
+		isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown(isInGamepadMode) or false
 	end
 	local craftingVarToUpdate = filterTypeToUniversalOrNormalDeconAndExtractVars[isInGamepadMode][filterType][isUniversalDecon]
 	return craftingVarToUpdate
@@ -1070,12 +1070,15 @@ local function getUniversalDeconstructionFilterTypeByActiveTab_AndReferenceVar(p
 	--Return the detected active tab's libFiltersFilterType LF_SMITHING* etc.
 	lFilterTypeDetected = libFilters_getUniversalDeconstructionPanelActiveTabFilterType(p_filterType)
 	if lFilterTypeDetected ~= nil then
+d(">filterType - 1: " ..tos(lFilterTypeDetected))
 		--Get the filter panel's control/scene/frament reference, but use Universal deconstruction here!
 		lReferencesToFilterType = getDeconstructOrExtractCraftingVarToUpdate(lFilterTypeDetected, isInGamepadMode, true)
-		if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
-			return lReferencesToFilterType, lFilterTypeDetected
+		if lReferencesToFilterType ~= nil then
+d(">filterType - 2: " ..tos(lFilterTypeDetected) .. ", lReferencesToFilterType: " ..tos(lReferencesToFilterType))
+			return lFilterTypeDetected, lReferencesToFilterType
 		end
 	end
+d(">filterType - 3: nil, nil")
 	return nil, nil
 end
 
@@ -1627,7 +1630,7 @@ local function applyUniversalDeconstructionHook()
 			libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
 			return libFiltersFilterType
 		end
-		--libFilters.DetectUniversalDeconstructionPanelActiveTab = detectUniversalDeconstructionPanelActiveTab
+		libFilters.DetectUniversalDeconstructionPanelActiveTab = detectUniversalDeconstructionPanelActiveTab
 
 
 		function libFilters_getUniversalDeconstructionPanelActiveTabFilterType(filterPanelIdComingFrom)
@@ -1646,6 +1649,7 @@ local function applyUniversalDeconstructionHook()
 				if isDebugEnabled then df(">filterPanelIdComingFrom now: %q, tab.key: %s", tos(filterPanelIdComingFrom), tos(universalDeconSelectedTab.key) ) end
 				--Check if filterPanelId detected is a valid filterType for the UniversalDeconstruction tab
 				if universalDeconLibFiltersFilterTypeSupported[filterPanelIdComingFrom] == true then
+d("<returned: " ..tos(filterPanelIdComingFrom))
 					return filterPanelIdComingFrom
 				end
 			end

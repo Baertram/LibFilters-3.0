@@ -210,10 +210,7 @@ end
 local doesRetraitItemItemPassFilterOriginal =   ZO_RetraitStation_DoesItemPassFilter
 local doesSmithingItemPassFilterOriginal =      ZO_SharedSmithingExtraction_DoesItemPassFilter
 local doesImprovementItemPassFilterOriginal =   ZO_SharedSmithingImprovement_DoesItemPassFilter
-local doesUniversalDeconstructionItemPassFilter
-if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil then
-    doesUniversalDeconstructionItemPassFilter = ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter
-end
+local doesUniversalDeconstructionItemPassFilter = ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter
 
 
 --Original function at:
@@ -813,8 +810,8 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 --Universal deconstruction, added with API101033 Ascending Tide
 if isUniversalDeconGiven then
     --Mapping variables
-    local detectActiveUniversalDeconstructionTab = libFilters.DetectActiveUniversalDeconstructionTab
-    local filterTypeToFilterBase = mapping.universalDeconFilterTypeToFilterBase
+    local detectUniversalDeconstructionPanelActiveTab = libFilters.DetectUniversalDeconstructionPanelActiveTab
+    local filterTypeToFilterBase                      = mapping.universalDeconFilterTypeToFilterBase
     --Update local ref variables
     universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
     universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
@@ -854,8 +851,8 @@ if isUniversalDeconGiven then
                 local universalDeconPanelInv = universalDeconPanel.inventory
 
                 local currentFilter = universalDeconPanelInv:GetCurrentFilter()
-                detectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab or libFilters.DetectActiveUniversalDeconstructionTab
-                local libFiltersFilterType = detectActiveUniversalDeconstructionTab(filterType, currentFilter.key)
+                detectUniversalDeconstructionPanelActiveTab = detectUniversalDeconstructionPanelActiveTab or libFilters.DetectUniversalDeconstructionPanelActiveTab
+                local libFiltersFilterType                  = detectUniversalDeconstructionPanelActiveTab(filterType, currentFilter.key)
                 if libFiltersFilterType ~= nil then
                     --Get the variable where the .additionalFilter function is stored via the filterType
                     -->!!!Re-uses existing deconstruction or enchanting references as there does not exist any LF_UNIVERSAL_DECONSTRUCTION constant!!!
