@@ -254,6 +254,7 @@ local libFilters_GetCurrentFilterTypeReference
 local libFilters_GetFilterTypeReferences
 local libFilters_GetFilterTypeName
 local libFilters_IsCraftBagShown
+local libFilters_getUniversalDeconstructionPanelActiveTabFilterType
 
 ------------------------------------------------------------------------------------------------------------------------
 --DEBUGGING & LOGGING
@@ -1049,46 +1050,88 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode,
 	return lReferencesToFilterType, lFilterTypeDetected
 end
 
+
+local function getDeconstructOrExtractCraftingVarToUpdate(filterType, isInGamepadMode, isUniversalDecon)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
+	if isUniversalDecon == nil then
+		isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown(libFilters, isInGamepadMode) or false
+	end
+	local craftingVarToUpdate = filterTypeToUniversalOrNormalDeconAndExtractVars[isInGamepadMode][filterType][isUniversalDecon]
+	return craftingVarToUpdate
+end
+
+local function getUniversalDeconstructionFilterTypeByActiveTab_AndReferenceVar(p_filterType, isInGamepadMode)
+	libFilters_getUniversalDeconstructionPanelActiveTabFilterType = libFilters_getUniversalDeconstructionPanelActiveTabFilterType or libFilters.GetUniversalDeconstructionPanelActiveTabFilterType
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local lFilterTypeDetected, lReferencesToFilterType
+
+	--Get the active tab at the universal deconstruction panel (all, armor, weapons, jewelry, glyphs)
+	--Return the detected active tab's libFiltersFilterType LF_SMITHING* etc.
+	lFilterTypeDetected = libFilters_getUniversalDeconstructionPanelActiveTabFilterType(p_filterType)
+	if lFilterTypeDetected ~= nil then
+		--Get the filter panel's control/scene/frament reference, but use Universal deconstruction here!
+		lReferencesToFilterType = getDeconstructOrExtractCraftingVarToUpdate(lFilterTypeDetected, isInGamepadMode, true)
+		if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
+			return lReferencesToFilterType, lFilterTypeDetected
+		end
+	end
+	return nil, nil
+end
+
 local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHidden, skipSpecialChecks)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	checkIfHidden = checkIfHidden or false
 	skipSpecialChecks = skipSpecialChecks or false
 	local lFilterTypeDetected
 	local lReferencesToFilterType = {}
+
+	--Special case "Universal Deconstruction" -> Own UI cotrols but re-use LF_SMITHING* etc. filterTypes!
+	local isUniversalDeconPanelShown = libFilters_IsUniversalDeconstructionPanelShown()
+
 	if isDebugEnabled then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
-	if isDebugEnabled then dd("!detectShownReferenceNow - filterTypePassedIn: %s, isInGamepadMode: %s",
-			tos(p_filterType), tos(isInGamepadMode) ) end
+	if isDebugEnabled then dd("!detectShownReferenceNow - filterTypePassedIn: %s, isInGamepadMode: %s, isUniversalDecon: %s",
+			tos(p_filterType), tos(isInGamepadMode), tos(isUniversalDeconPanelShown) ) end
 
-	--Check one specific filterType first (e.g. cached one)
-	if p_filterType ~= nil then
-		--Get data to check from lookup table
-		local filterTypeChecksIndex = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[isInGamepadMode][p_filterType]
-		if filterTypeChecksIndex ~= nil then
-			local filterTypeControlAndOtherChecks = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode][filterTypeChecksIndex]
-			--Check if still shown
-			lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
-			if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
-				if isDebugEnabled then
-					dd("<<< found PASSED IN FILTERTYPE %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))
+	--Universal Deconstruction?
+	if isUniversalDeconPanelShown == true then
+		lFilterTypeDetected, lReferencesToFilterType = getUniversalDeconstructionFilterTypeByActiveTab_AndReferenceVar(p_filterType, isInGamepadMode)
+	else
+
+		--All other panels
+		--Check one specific filterType first (e.g. cached one)
+		if p_filterType ~= nil then
+			--Get data to check from lookup table
+			local filterTypeChecksIndex = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[isInGamepadMode][p_filterType]
+			if filterTypeChecksIndex ~= nil then
+				local filterTypeControlAndOtherChecks = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode][filterTypeChecksIndex]
+				--Check if still shown
+				lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
+				if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
+					if isDebugEnabled then
+						dd("<<< found PASSED IN FILTERTYPE %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))
+					end
+					--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 				end
-				--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 			end
-		end
-		return lReferencesToFilterType, lFilterTypeDetected
-	end
-
-	--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
-	for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
-		lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
-		if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
-			if isDebugEnabled then
-				dd("<<< FOR .. in checkTypes LOOP, found filterType: %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))
-			end
-			--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
-			--Abort the for ... do loop now as data was found
 			return lReferencesToFilterType, lFilterTypeDetected
+
+		else
+			--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
+			for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
+				lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
+				if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
+					if isDebugEnabled then
+						dd("<<< FOR .. in checkTypes LOOP, found filterType: %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))
+					end
+					--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
+					--Abort the for ... do loop now as data was found
+					return lReferencesToFilterType, lFilterTypeDetected
+				end
+			end --for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 		end
-	end --for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
+
+	end
 
 	if isDebugEnabled then
 		dd("<found filterType: %s", tos(lFilterTypeDetected))
@@ -1159,7 +1202,6 @@ local function dialogUpdaterFunc(listDialogControl)
 		  if listDialogControl == researchChooseItemDialog then --SMITHING_RESEARCH_SELECT
 				if data.craftingType and data.researchLineIndex and data.traitIndex then
 					--Re-Call the dialog's setup function to clear the list, check available data and filter the items (see helper.lua, helpers["SMITHING_RESEARCH_SELECT"])
-d("[dialogUpdaterFunc]listDialogControl.SetupDialog")
 					listDialogControl.SetupDialog(listDialogControl, data.craftingType, data.researchLineIndex, data.traitIndex)
 					fixResearchDialogRowOnItemSelectedCallback()
 				end
@@ -1182,15 +1224,6 @@ local function updateCraftingInventoryDirty(craftingInventory)
 	if isDebugEnabled then dv("[U]updateCraftingInventoryDirty - craftingInventory: %s", tos(craftingInventory)) end
 	craftingInventory.inventory:HandleDirtyEvent()
 end
-
-local function getDeconstructOrExtractCraftingVarToUpdate(filterType, isInGamepadMode)
-	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
-	local isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown(libFilters, isInGamepadMode) or false
-	local craftingVarToUpdate = filterTypeToUniversalOrNormalDeconAndExtractVars[isInGamepadMode][filterType][isUniversalDecon]
-	return craftingVarToUpdate
-end
-
 
 -- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
@@ -1570,7 +1603,7 @@ local function applyUniversalDeconstructionHook()
 
 		--For the .additionalFilter function: Universal deconstruction also RE-uses SMITHING for the keyboard panel, and the
 		--gamepad enchanting extraction sceneas it got no own filterType LF_UNIVERSAL_DECONSTRUCTION or similar!
-		local function detectActiveUniversalDeconstructionTab(filterType, currentTabKey)
+		local function detectUniversalDeconstructionPanelActiveTab(filterType, currentTabKey)
 			--Detect the active tab via the filterData
 			local libFiltersFilterType
 			--CurrentTabKey == nil should only happen before the function GetCurrentFilter() was added!
@@ -1594,30 +1627,37 @@ local function applyUniversalDeconstructionHook()
 			libFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType[currentTabKey]
 			return libFiltersFilterType
 		end
-		libFilters.DetectActiveUniversalDeconstructionTab = detectActiveUniversalDeconstructionTab
+		--libFilters.DetectUniversalDeconstructionPanelActiveTab = detectUniversalDeconstructionPanelActiveTab
 
 
-		local function isUniversalDeconPanelShown(filterPanelIdComingFrom)
+		function libFilters_getUniversalDeconstructionPanelActiveTabFilterType(filterPanelIdComingFrom)
 			local isGamepadMode = IsGamepad()
-			local universaldDeconScene = isGamepadMode and universalDeconstructScene_GP or universalDeconstructScene
-			if ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil and universaldDeconScene:IsShowing() then
+			libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
+			local isShowingUniversalDeconScene, universaldDeconScene = libFilters_IsUniversalDeconstructionPanelShown()
+			if isDebugEnabled then df("getUniversalDeconstructionPanelActiveTab - filterPanelIdComingFrom: %s", tos(filterPanelIdComingFrom) ) end
+			if isShowingUniversalDeconScene and universaldDeconScene ~= nil then
+				local universalDeconSelectedTab
 				if filterPanelIdComingFrom == nil then
 					local universaldDeconPanel = isGamepadMode and universalDeconstructPanel_GP or universalDeconstructPanel
-					local universalDeconSelectedTab = universaldDeconPanel.inventory:GetCurrentFilter()
+					universalDeconSelectedTab = universaldDeconPanel.inventory:GetCurrentFilter()
 					if not universalDeconSelectedTab then return false end
-					filterPanelIdComingFrom = detectActiveUniversalDeconstructionTab(nil, universalDeconSelectedTab.key)
+					filterPanelIdComingFrom = detectUniversalDeconstructionPanelActiveTab(nil, universalDeconSelectedTab.key)
 				end
-				return universalDeconLibFiltersFilterTypeSupported[filterPanelIdComingFrom] or false
+				if isDebugEnabled then df(">filterPanelIdComingFrom now: %q, tab.key: %s", tos(filterPanelIdComingFrom), tos(universalDeconSelectedTab.key) ) end
+				--Check if filterPanelId detected is a valid filterType for the UniversalDeconstruction tab
+				if universalDeconLibFiltersFilterTypeSupported[filterPanelIdComingFrom] == true then
+					return filterPanelIdComingFrom
+				end
 			end
-			return false
+			return nil
 		end
-		libFilters.IsUniversalDeconstructionPanelShown = isUniversalDeconPanelShown
+		libFilters.GetUniversalDeconstructionPanelActiveTabFilterType = libFilters_getUniversalDeconstructionPanelActiveTabFilterType
 
 
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
 			--Get the filterType by help of the current tab
-			local libFiltersFilterType = detectActiveUniversalDeconstructionTab(nil, tab.key)
+			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, tab.key)
 			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback: %q, %s", tos(tab.key), tos(libFiltersFilterType)) end
 			if libFiltersFilterType == nil then return end
 			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
@@ -2309,11 +2349,11 @@ libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 --		   number filterType
 function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	if isDebugEnabled then dd("GetCurrentFilterTypeReference filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
+	if isDebugEnabled then dd("[---] GetCurrentFilterTypeReference filterType: %q, %s [---]", tos(filterType), tos(isInGamepadMode)) end
 
 	--Check if the cached "current filterType" is given and still shown -> Only if no filterType was explicitly passed in
 	if filterType == nil then
-		local filterTypeReference, filterTypeShown = checkIfCachedFilterTypeIsStillShown(filterType, isInGamepadMode)
+		local filterTypeReference, filterTypeShown = checkIfCachedFilterTypeIsStillShown(isInGamepadMode)
 		if filterTypeReference ~= nil and filterTypeShown ~= nil then
 			return filterTypeReference, filterTypeShown
 		end
@@ -2657,8 +2697,8 @@ function libFilters:IsUniversalDeconstructionPanelShown(isGamepadMode)
 	local universalDeconScene = isGamepadMode and universalDeconstructScene_GP or universalDeconstructScene
 	if not universalDeconScene then return false end
 	local isShowing = universalDeconScene:IsShowing()
-	if isDebugEnabled then dd("IsUniversalDeconstructionPanelShown - %q, %s", tos(isShowing), tos(isGamepadMode)) end
-	return isShowing
+	if isDebugEnabled then dd("IsUniversalDeconstructionPanelShown - %q, gamepadMode: %s", tos(isShowing), tos(isGamepadMode)) end
+	return isShowing, universalDeconScene
 end
 libFilters_IsUniversalDeconstructionPanelShown = libFilters.IsUniversalDeconstructionPanelShown
 
