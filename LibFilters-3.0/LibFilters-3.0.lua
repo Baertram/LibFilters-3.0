@@ -3654,8 +3654,9 @@ local function createSceneCallbacks()
 	end
 end
 
-
-local function createControlCallback(controlRef, filterTypes, inputType)
+--TODO 2022-10-21 Use specialPanelControlFunc to determine UNIVERSAL_DECONSTRUCTION.control and add the callback
+--with LF_SMITHING_DECONSTRUCTION etc -> Maybe solve this via special callbacks instead, like LF_ALCHEMY etc.!
+local function createControlCallback(controlRef, filterTypes, inputType, specialPanelControlFunc)
 	local ctrlName = "n/a"
 	local controlRefNew, _ = getCtrl(controlRef)
 	if controlRefNew ~= controlRef then controlRef = controlRefNew end
@@ -3719,9 +3720,21 @@ local function createControlCallbacks()
 	if isDebugEnabled then dd("-->CreateControlCallbacks---") end
 	--Controls
 	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
+	--[[
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingControls) do
 		for controlRef, filterTypes in pairs(callbackDataPerFilterType) do
 			createControlCallback(controlRef, filterTypes, inputType)
+		end
+	end
+	]]
+	for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
+		for controlRef, controlCallbackData in pairs(controlsCallbackData) do
+			local controlFilterTypes = controlCallbackData.filterTypes
+			if controlFilterTypes ~= nil then
+				local specialPanelControlFunc = controlCallbackData.specialPanelControlFunc
+				local specialIndicator= controlCallbackData.specialIndicator
+				createControlCallback(controlRef, controlFilterTypes, inputType, specialPanelControlFunc)
+			end
 		end
 	end
 end

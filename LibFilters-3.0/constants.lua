@@ -21,6 +21,7 @@ local getScene = SM.GetScene
 --Local library variable
 local libFilters = {}
 
+local libFilters_IsUniversalDeconstructionPanelShown
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
@@ -2420,32 +2421,54 @@ local callbacksUsingScenes = {
 callbacks.usingScenes = callbacksUsingScenes
 
 
---[control] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ...}
---0 means no dedicated LF_* constant can be used and the filterType will be determined
+------------------------------------------------------------------------------------------------------------------------
+--Special control callback check functions
+local function universalDeconstructionPanelCheck(filterTypePassedIn, panelControlPassedIn, isInGamepadMode)
+	local panelControlDetermined = panelControlPassedIn
+	--TODO Check if universal deconstruction is shown and return the universal decon panel control then
+	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
+	local isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown() or false
+	if isUniversalDecon == true then
+		panelControlDetermined = filterTypeToUniversalOrNormalDeconAndExtractVars[isInGamepadMode][filterTypePassedIn][isUniversalDecon]
+	end
+	return panelControlDetermined
+end
+
+
+--[control] = { filterTypes={LF_* filterTypeConstant, ...}, specialPanelControlFunc=funcRef, specialIndicator=nil}, {filterTypes={LF_* filterTypeConstant,...}, specialPanelControlFunc=funcRef, specialIndicator=0}, ...}
+--specialIndicator 0 means no dedicated LF_* constant can be used and the filterType will be determined
 -->0 should be added as last entry if an automated check should be done at the end!
 --Example:
---[controlVariable] = { LF_INVENTORY, 0 }
+--[controlVariable] = { filterTypes={LF_INVENTORY}, specialIndicator=0 }
+--specialPanelControlFunc is a function with parameters = LF_constant, panelControl, isInGamepadMode. It checks code and returns an alternative
+--panelControl to register/run the callback on, or the default panelControl
 local callbacksUsingControls = {
 	--Keyboard
 	[false] = {
 	 	--LF_SMITHING_REFINE
 		--LF_JEWELRY_REFINE
-		[refinementPanel] 					= { LF_SMITHING_REFINE, LF_JEWELRY_REFINE },
+		[refinementPanel] 					= { filterTypes={LF_SMITHING_REFINE}, specialPanelControlFunc=nil, specialIndicator=nil }, { filterTypes={LF_JEWELRY_REFINE}, specialPanelControlFunc=nil, specialIndicator=nil},
 	 	--LF_SMITHING_CREATION
 		--LF_JEWELRY_CREATION
-		[creationPanel] 					= { LF_SMITHING_CREATION, LF_JEWELRY_CREATION },
+		[creationPanel] 					= { filterTypes={LF_SMITHING_CREATION}, specialPanelControlFunc=nil, specialIndicator=nil }, { filterTypes={ LF_JEWELRY_CREATION}, specialPanelControlFunc=nil, specialIndicator=nil},
 		--LF_SMITHING_DECONSTRUCT
 		--LF_JEWELRY_DECONSTRUCT
-		[deconstructionPanel] 				= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT },
+
+--TODO 2022-10-21 Use specialPanelControlFunc to determine UNIVERSAL_DECONSTRUCTION.control and add the callback
+--with LF_SMITHING_DECONSTRUCTION etc -> Maybe solve this via special callbacks instead, like LF_ALCHEMY etc.!
+		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
+		-->Therefor the specialPanelControlFunc will check if the UnievrsalDecon panel is shown and replace the panelControl where the callback
+		-->was added/run on
+		[deconstructionPanel] 				= { filterTypes={LF_SMITHING_DECONSTRUCT}, specialPanelControlFunc=universalDeconstructionPanelCheck, specialIndicator=nil }, { filterTypes={LF_JEWELRY_DECONSTRUCT}, specialPanelControlFunc=universalDeconstructionPanelCheck, specialIndicator=nil},
 		--LF_SMITHING_IMPROVEMENT
 		--LF_JEWELRY_IMPROVEMENT
-		[improvementPanel] 					= { LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT },
+		[improvementPanel] 					= { filterTypes={LF_SMITHING_IMPROVEMENT}, specialPanelControlFunc=nil, specialIndicator=nil }, { filterTypes={LF_JEWELRY_IMPROVEMENT}, specialPanelControlFunc=nil, specialIndicator=nil},
 		--LF_SMITHING_RESEARCH
 		--LF_JEWELRY_RESEARCH
-		[researchPanel] 					= { LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH },
+		[researchPanel] 					= { filterTypes={LF_SMITHING_RESEARCH}, specialPanelControlFunc=nil, specialIndicator=nil }, { filterTypes={LF_JEWELRY_RESEARCH}, specialPanelControlFunc=nil, specialIndicator=nil},
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[ZO_ListDialog1] 					= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG, },
+		[ZO_ListDialog1] 					= { filterTypes={LF_SMITHING_RESEARCH_DIALOG}, specialPanelControlFunc=nil, specialIndicator=nil }, { filterTypes={LF_JEWELRY_RESEARCH_DIALOG}, specialPanelControlFunc=nil, specialIndicator=nil} ,
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2519,9 +2542,16 @@ for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
 end
 --Controls
 for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
-	for controlVar, filterTypes in pairs(controlsCallbackData) do
-		for _, filterType in ipairs(filterTypes) do
-			filterTypeToCallbackRef[inputType][filterType] = { ref = controlVar, refType = LIBFILTERS_CON_TYPEOFREF_CONTROL }
+	for controlVar, controlCallbackData in pairs(controlsCallbackData) do
+		local controlFilterTypes = controlCallbackData.filterTypes
+		if controlFilterTypes ~= nil then
+			local specialPanelControlFunc = controlCallbackData.specialPanelControlFunc
+			local specialIndicator= controlCallbackData.specialIndicator
+			for _, filterTypes in pairs(controlFilterTypes) do
+				for _, filterType in ipairs(filterTypes) do
+					filterTypeToCallbackRef[inputType][filterType] = { ref = controlVar, refType = LIBFILTERS_CON_TYPEOFREF_CONTROL, specialPanelControlFunc=specialPanelControlFunc, specialIndicator=0 }
+				end
+			end
 		end
 	end
 end
