@@ -1117,7 +1117,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 					--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 				end
 			end
-			return lReferencesToFilterType, lFilterTypeDetected
+			return lReferencesToFilterType, lFilterTypeDetected, isUniversalDeconPanelShown
 
 		else
 			--Dynamically get the filterType via the currently shown control/fragment/scene/special check and specialForced check
@@ -1129,7 +1129,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 					end
 					--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 					--Abort the for ... do loop now as data was found
-					return lReferencesToFilterType, lFilterTypeDetected
+					return lReferencesToFilterType, lFilterTypeDetected, isUniversalDeconPanelShown
 				end
 			end --for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 		end
@@ -1140,7 +1140,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 		dd("<found filterType: %s", tos(lFilterTypeDetected))
 		dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	end
-	return lReferencesToFilterType, lFilterTypeDetected
+	return lReferencesToFilterType, lFilterTypeDetected, isUniversalDeconPanelShown
 end
 
 --Is the filterType cached at libFilters._currentFilterType (set during call to updater functions and other functions)
@@ -1845,8 +1845,8 @@ libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeFor
 -- Get the actually used filterType via the shown control/scene/userdata information
 -- returns number LF*_filterType
 function libFilters:GetCurrentFilterType()
-	local filterTypeReference, filterType = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
-	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s, filterTypeDetected: %s", tos(filterTypeReference), tos(filterType)) end
+	local filterTypeReference, filterType, isUniversalDeconPanelShown = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
+	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s, filterTypeDetected: %s, isUniversalDeconPanelShown: %s", tos(filterTypeReference), tos(filterType), tos(isUniversalDeconPanelShown)) end
 	if filterTypeReference == nil then return end
 
 	--updateLastAndCurrentFilterType(nil, filterTypeReference, false)
@@ -2701,7 +2701,7 @@ function libFilters:IsUniversalDeconstructionPanelShown(isGamepadMode)
 	local universalDeconScene = isGamepadMode and universalDeconstructScene_GP or universalDeconstructScene
 	if not universalDeconScene then return false end
 	local isShowing = universalDeconScene:IsShowing()
-	if isDebugEnabled then dd("IsUniversalDeconstructionPanelShown - %q, gamepadMode: %s", tos(isShowing), tos(isGamepadMode)) end
+	if isDebugEnabled then dv("IsUniversalDeconstructionPanelShown - %q, gamepadMode: %s", tos(isShowing), tos(isGamepadMode)) end
 	return isShowing, universalDeconScene
 end
 libFilters_IsUniversalDeconstructionPanelShown = libFilters.IsUniversalDeconstructionPanelShown
@@ -3190,7 +3190,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 
 	if filterTypes == nil or fragmentOrSceneOrControl == nil or stateStr == nil or stateStr == "" then return end
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	local lReferencesToFilterType, filterType
+	local lReferencesToFilterType, filterType, isUniversalDeconPanelShown
 	--local skipIsShownChecks = false
 	--local checkIfHidden = (stateStr == SCENE_HIDDEN and true) or false
 	local checkIfHidden = false
@@ -3303,7 +3303,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	--Detect which control/fragment/scene is currently shown
 	if #filterTypes == 0 then
 		--Detect the currently shown control/fragment/scene and get the filterType
-		lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
+		lReferencesToFilterType, filterType, isUniversalDeconPanelShown = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
 	else
 		local checkForAllPanelsAtTheEnd = false
 		--Check the given filterTypes first
@@ -3321,7 +3321,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 					end
 				end
 				if not skipCheck then
-					lReferencesToFilterType, filterType = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
+					lReferencesToFilterType, filterType, isUniversalDeconPanelShown = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
 					if filterType ~= nil and lReferencesToFilterType ~= nil then
 						if isDebugEnabled then dv("<<filterType was found in loop: %s", tos(filterType)) end
 						break -- leave the loop if filterType and reference were found
@@ -3332,7 +3332,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		--At the end: was any entry with filterType = 0 provided in the filterTypes table?
 		if checkForAllPanelsAtTheEnd == true and filterType == nil and lReferencesToFilterType == nil then
 			--Detect the currently shown control/fragment/scene and get the filterType
-			lReferencesToFilterType, filterType = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
+			lReferencesToFilterType, filterType, isUniversalDeconPanelShown = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
 		end
 	end
 	--end
@@ -3438,7 +3438,7 @@ local libFilters_GetCallbackReference = libFilters.GetCallbackReference
 function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType, doNotUpdateCurrentAndLastFilterTypes)
 	if inputType == nil then inputType = IsGamepad() end
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
-	local lReferencesOfShownFilterType, shownFilterType = detectShownReferenceNow(nil, inputType, false, false)
+	local lReferencesOfShownFilterType, shownFilterType, isUniversalDeconPanelShown = detectShownReferenceNow(nil, inputType, false, false)
 	if shownFilterType == nil or lReferencesOfShownFilterType == nil then return end
 	--Raise the callback of the filterType with SCENE_SHOWN
 	local filterTypes = { shownFilterType }
