@@ -552,7 +552,12 @@ end
 
 local function getCtrlName(ctrlVar)
 	if ctrlVar ~= nil then
-		local ctrlName = (ctrlVar.GetName ~= nil and ctrlVar:GetName()) or (ctrlVar.name ~= nil and ctrlVar.name)
+		local ctrlName
+		if ctrlVar.GetName ~= nil then
+			ctrlName = ctrlVar:GetName()
+		elseif ctrlVar.name ~= nil then
+			ctrlName = ctrlVar.name
+		end
 		if ctrlName ~= nil and ctrlName ~= "" then return ctrlName end
 	end
 	return "n/a"
@@ -3738,11 +3743,14 @@ local function createControlCallbacks()
 	--New code since 2022-10-21, support for Universal Deconstruction where LF_SMITHING_DECONSTRUCTION e.g. will be used
 	--as filterType but the control for the callback is not SMITHING.deconstructionPanel but UNIVERSAL_DECONSTRUCTION.control
 	-->specialPanelControlFunc will take care of the correct detection of the control to register the callback to then
-	for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
+	for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
 d(">inputType: " ..tos(inputType))
-		for controlRef, controlCallbackData in pairs(controlsCallbackData) do
-d(">>controlRef: " ..tos(getCtrlName(controlRef)) .. ", filterTypes: " ..tos(controlCallbackData.filterTypes))
-			createControlCallback(controlRef, controlCallbackData.filterTypes, inputType, controlCallbackData.specialPanelControlFunc)
+		for controlRef, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
+d(">>controlRef: " ..tos(getCtrlName(controlRef)))
+			for _, controlCallbackData in ipairs(controlVarCallbackData) do
+d(">>>filterTypes: " ..tos(controlCallbackData.filterTypes))
+				createControlCallback(controlRef, controlCallbackData.filterTypes, inputType, controlCallbackData.specialPanelControlFunc)
+			end
 		end
 	end
 end

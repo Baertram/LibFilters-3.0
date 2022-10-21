@@ -2553,17 +2553,20 @@ for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
 		end
 	end
 end
+
 --Controls
-for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
-	for controlVar, controlCallbackData in pairs(controlsCallbackData) do
-		local controlFilterTypes = controlCallbackData.filterTypes
-		if controlFilterTypes ~= nil then
-			for _, filterType in ipairs(controlFilterTypes) do
-				filterTypeToCallbackRef[inputType][filterType] = {
-					ref = controlVar,
-					refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
-					specialPanelControlFunc=controlCallbackData.specialPanelControlFunc
-				}
+for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
+	for controlVar, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
+		for _, controlCallbackData in ipairs(controlsCallbackDataOfInputType) do
+			local controlFilterTypes = controlCallbackData.filterTypes
+			if controlFilterTypes ~= nil then
+				for _, filterType in ipairs(controlFilterTypes) do
+					filterTypeToCallbackRef[inputType][filterType] = {
+						ref = controlVar,
+						refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
+						specialPanelControlFunc=controlCallbackData.specialPanelControlFunc
+					}
+				end
 			end
 		end
 	end
