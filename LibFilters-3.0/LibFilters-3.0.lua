@@ -3169,7 +3169,7 @@ end
 		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
 ]]
-function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
+function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateStr, isInGamepadMode, typeOfRef, doNotUpdateCurrentAndLastFilterTypes, specialPanelControlFunc)
 	local isShown = (stateStr == SCENE_SHOWN and true) or false
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
 	--Backup the lastFilterTyp and references if given
@@ -3196,16 +3196,17 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	local checkIfHidden = false
 
 	if isDebugEnabled then
-		dv("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s", tos(stateStr), tos(#filterTypes), tos(typeOfRef))
+		dv("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s, specialPanelControlFunc: %s", tos(stateStr), tos(#filterTypes), tos(typeOfRef), tos(specialPanelControlFunc))
 		if #filterTypes > 0 then
 			for filterTypeIdx, filterTypePassedIn in ipairs(filterTypes) do
 				dv(">passedInFilterType %s: %s", tos(filterTypeIdx), tos(filterTypePassedIn))
 			end
 		end
 	end
-
+	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	--!!!SCENE_HIDING and SCENE_SHOWING are not supported as of 2022-01-04!!!
 	--> So the code below relating to these states is just "left over" for future implementation!
+	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	--Are we hiding or is a control/scene/fragment already hidden?
 	--The shown checks might not work properly then, so we need to "cache" the last used filterType and reference variables!
@@ -3220,6 +3221,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		checkIfHidden = true
 	end
 
+	--Hide the scene/fragment/control
 	if stateStr == SCENE_HIDDEN then --or stateStr == SCENE_HIDING   then
 
 		if lastKnownFilterType ~= nil then
@@ -3269,11 +3271,13 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
                     skipIsShownChecks = true
                 end
         ]]
+
+	--Show the scene/fragment/control
 	elseif stateStr == SCENE_SHOWN then
 		---With the addon craftbag extended active:
 		--Some fragments like BACKPACK_MAIL_LAYOUT_FRAGMENT are changing their hidden state to Shown after the CRAFTBAG_FRAGMENT was shown already.
 		-->In order to leave only the craftbag fragment active we need to check the later called "non-craftbag" (layout) fragments and do not fire
-		--> their state change
+		-->their state change!
 		if isInGamepadMode == false and CraftBagExtended ~= nil and lastKnownFilterType == LF_CRAFTBAG then
 			if isDebugEnabled then dv(">>CraftBagExtended active") end
 			if not craftbagRefsFragment[fragmentOrSceneOrControl] then
@@ -3306,10 +3310,12 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		lReferencesToFilterType, filterType, isUniversalDeconPanelShown = detectShownReferenceNow(nil, isInGamepadMode, checkIfHidden, false)
 	else
 		local checkForAllPanelsAtTheEnd = false
-		--Check the given filterTypes first
+		--Check if the controls/fragments/scenes for the given filterTypes are shown/hidden (checkIfHidden) first
 		for idx, filterTypeInLoop in ipairs(filterTypes) do
 			if filterType == nil and lReferencesToFilterType == nil then
 				local skipCheck = false
+				--is the filterType set to 0 (automatically detection based on some code,
+				--e.g. at re-used fragments like BACKPACK_LAYOUT_FRAGMENT at inventory, bank deposit, guild bank deposit, trading house sell, mail, trade, ...)
 				if filterTypeInLoop == 0 then
 					--If the entry is not the last entry in the table "dynamically move it there"
 					if idx ~= #filterTypes then
@@ -3321,6 +3327,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 					end
 				end
 				if not skipCheck then
+					--Get the reference variables and filterType currently shown
 					lReferencesToFilterType, filterType, isUniversalDeconPanelShown = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
 					if filterType ~= nil and lReferencesToFilterType ~= nil then
 						if isDebugEnabled then dv("<<filterType was found in loop: %s", tos(filterType)) end
@@ -3422,12 +3429,14 @@ local libFilters_CallbackRaise = libFilters.CallbackRaise
 
 
 --Get the relevant reference variable (scene, fragment, control) for the callback of a filterType and inputType
---returns the reference variable, and the type of reference variable
+--returns the reference variable, and the type of reference variable,
+--- and nilable:specialPanelControlFunc function (used for UniversalDeconstruction) with params controlPassedIn (should be = callbackRefData.ref), filterType, inputType
+--- returning either a new control determined within teh function (e.g. UNIVERSAL_DECONSTRUCTION.control) or the parameter controlPassedIn
 function libFilters:GetCallbackReference(filterType, inputType)
 	if inputType == nil then inputType = IsGamepad() end
 	local callbackRefData = filterTypeToCallbackRef[inputType][filterType]
 	if callbackRefData == nil then return end
-	return callbackRefData.ref, callbackRefData.refType
+	return callbackRefData.ref, callbackRefData.refType, callbackRefData.specialPanelControlFunc
 end
 local libFilters_GetCallbackReference = libFilters.GetCallbackReference
 
@@ -3443,9 +3452,9 @@ function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType, doNotUpdat
 	--Raise the callback of the filterType with SCENE_SHOWN
 	local filterTypes = { shownFilterType }
 	--local refVar = lReferencesOfShownFilterType[1]
-	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, shownFilterType, inputType)
+	local refVar, typeOfRef, specialControlFunc = libFilters_GetCallbackReference(libFilters, shownFilterType, inputType)
 	if not refVar then return end
-	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
+	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes, specialControlFunc)
 end
 
 
@@ -3458,17 +3467,17 @@ function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doN
 	doNotUpdateCurrentAndLastFilterTypes = doNotUpdateCurrentAndLastFilterTypes or false
 	--Raise the callback of the filterType with SCENE_SHOWN
 	local filterTypes = { filterType }
-	local refVar, typeOfRef = libFilters_GetCallbackReference(libFilters, filterType, inputType)
+	local refVar, typeOfRef, specialControlFunc = libFilters_GetCallbackReference(libFilters, filterType, inputType)
 	if not refVar then
 		if isDebugEnabled then dfe("No callback reference found for filterType: %s, inputType: %s", tos(filterType), tos(inputType)) end
 		return
 	end
-	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes)
+	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes, specialControlFunc)
 end
 local libFilters_RaiseFilterTypeCallback = libFilters.RaiseFilterTypeCallback
 
 
-local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef, stateStr, inputType, refType, refName)
+local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef, stateStr, inputType, refType, refName, specialPanelControlFunc)
 	if isDebugEnabled then
 		dv(">checkIfSpecialCallbackNeedsToBeAdded - %q, stateStr: %s, refType: %s", tos(refName), tos(stateStr), tos(refType))
 	end
@@ -3561,7 +3570,7 @@ local function onSceneStateChange(oldState, newState, filterTypes, scene, inputT
 end
 
 
-local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType)
+local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, specialPanelControlFunc)
 	local ctrlName
 	if isDebugEnabled then
 		ctrlName = getCtrlName(ctrlRef)
@@ -3570,15 +3579,15 @@ local function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputTy
 	end
 	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN --using the SCENE_* constants to unify the callback name for fragments, scenes and controls
 	if isShown == true then
-		--Call the code 1 frame later (zo_callLater with 0 ms > next frame) so the controls' shown state (used within detectShownReferenceNow())
+		--Call the code 1 frame later (zo_callLater with 0 ms -> next frame) so the controls' shown state (used within detectShownReferenceNow())
 		--will be updated properly. Else it will fire too early and the control is still in another state, on it's way to state "Shown"!
 		zo_callLater(function()
-			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL)
-			checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
+			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, nil, specialPanelControlFunc)
+			checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName, specialPanelControlFunc)
 		end, 0)
 	else
-		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL)
-		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName)
+		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, nil, specialPanelControlFunc)
+		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName, specialPanelControlFunc)
 	end
 end
 
@@ -3654,8 +3663,6 @@ local function createSceneCallbacks()
 	end
 end
 
---TODO 2022-10-21 Use specialPanelControlFunc to determine UNIVERSAL_DECONSTRUCTION.control and add the callback
---with LF_SMITHING_DECONSTRUCTION etc -> Maybe solve this via special callbacks instead, like LF_ALCHEMY etc.!
 local function createControlCallback(controlRef, filterTypes, inputType, specialPanelControlFunc)
 	local ctrlName = "n/a"
 	local controlRefNew, _ = getCtrl(controlRef)
@@ -3687,12 +3694,12 @@ local function createControlCallback(controlRef, filterTypes, inputType, special
 		if onShowHandler ~= nil then
 			ZO_PostHookHandler(controlRef, "OnEffectivelyShown", function(ctrlRef)
 				if not libFilters.isInitialized then return end
-				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType)
+				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType, specialPanelControlFunc)
 			end)
 		else
 			controlRef:SetHandler("OnEffectivelyShown", function(ctrlRef)
 				if not libFilters.isInitialized then return end
-				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType)
+				onControlHiddenStateChange(true, filterTypes, ctrlRef, inputType, specialPanelControlFunc)
 			end)
 		end
 
@@ -3701,12 +3708,12 @@ local function createControlCallback(controlRef, filterTypes, inputType, special
 		if onHideHandler ~= nil then
 			ZO_PostHookHandler(controlRef, "OnHide", function(ctrlRef)
 				if not libFilters.isInitialized then return end
-				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
+				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType, specialPanelControlFunc)
 			end)
 		else
 			controlRef:SetHandler("OnHide", function(ctrlRef)
 				if not libFilters.isInitialized then return end
-				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType)
+				onControlHiddenStateChange(false, filterTypes, ctrlRef, inputType, specialPanelControlFunc)
 			end)
 		end
 		callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] = callbacksAdded[LIBFILTERS_CON_TYPEOFREF_CONTROL][controlRef] or {}
@@ -3721,20 +3728,21 @@ local function createControlCallbacks()
 	--Controls
 	--[control] = LF_* filterTypeConstant. 0 means no dedicated LF_* constant can be used and the filterType will be determined
 	--[[
+	--Old code before 2022-10-21
 	for inputType, callbackDataPerFilterType in pairs(callbacksUsingControls) do
 		for controlRef, filterTypes in pairs(callbackDataPerFilterType) do
 			createControlCallback(controlRef, filterTypes, inputType)
 		end
 	end
 	]]
+	--New code since 2022-10-21, support for Universal Deconstruction where LF_SMITHING_DECONSTRUCTION e.g. will be used
+	--as filterType but the control for the callback is not SMITHING.deconstructionPanel but UNIVERSAL_DECONSTRUCTION.control
+	-->specialPanelControlFunc will take care of the correct detection of the control to register the callback to then
 	for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
+d(">inputType: " ..tos(inputType))
 		for controlRef, controlCallbackData in pairs(controlsCallbackData) do
-			local controlFilterTypes = controlCallbackData.filterTypes
-			if controlFilterTypes ~= nil then
-				local specialPanelControlFunc = controlCallbackData.specialPanelControlFunc
-				local specialIndicator= controlCallbackData.specialIndicator
-				createControlCallback(controlRef, controlFilterTypes, inputType, specialPanelControlFunc)
-			end
+d(">>controlRef: " ..tos(getCtrlName(controlRef)) .. ", filterTypes: " ..tos(controlCallbackData.filterTypes))
+			createControlCallback(controlRef, controlCallbackData.filterTypes, inputType, controlCallbackData.specialPanelControlFunc)
 		end
 	end
 end
@@ -4097,7 +4105,7 @@ end
 --______________________________________________________________________________________________________________________
 --______________________________________________________________________________________________________________________
 --TODO: Only for debugging
---if GetDisplayName() == "@Baertram" then debugSlashToggle() end
+if GetDisplayName() == "@Baertram" then debugSlashToggle() end
 
 
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
