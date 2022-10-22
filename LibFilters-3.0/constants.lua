@@ -2269,8 +2269,9 @@ mapping.inventoryUpdaters = { }
 --[Mapping for the callbacks as filterType panels are shown/hidden]
 libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
---The pattern for the filterPanel shown/hidden callbacks, e.g. "LibFilters3-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY
-libFilters.callbackPattern = GlobalLibName .. "-%s-%s"
+--The pattern for the filterPanel shown/hidden callbacks,
+-->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
+libFilters.callbackPattern = GlobalLibName .. "-%s-%s-%s"
 
 --The supported SCENE states for the callbacks
 --Currently: shown and hidden
