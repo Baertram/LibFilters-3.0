@@ -298,7 +298,7 @@ local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesTo
 	end
 	doNotUpdateLast = doNotUpdateLast or false
 	if not doNotUpdateLast then
-		local currentFilterTypeBefore 			= libFilters._currentFilterType
+		local currentFilterTypeBefore 				= libFilters._currentFilterType
 		if currentFilterTypeBefore ~= nil then
 			libFilters._lastFilterType 				= currentFilterTypeBefore
 		end
@@ -1682,9 +1682,10 @@ local function applyUniversalDeconstructionHook()
 		local wasShownBefore = false
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
 			--Get the filterType by help of the current tab
-			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, tab.key)
+			local currentTab = tab.key
+			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, currentTab)
 			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, filterType: %s, lastFilterType: %s",
-					tos(tab.key), tos(libFiltersFilterType), tos(libFilters._lastFilterType)) end
+					tos(currentTab), tos(libFiltersFilterType), tos(libFilters._lastFilterType)) end
 			if libFiltersFilterType == nil then return end
 			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
 			universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
@@ -1697,9 +1698,12 @@ local function applyUniversalDeconstructionHook()
 			--Hide old panel
 			local isInGamepadMode = IsGamepad()
 			local universalDeconRefVar = (isInGamepadMode and universalDeconstructPanel_GP) or universalDeconstructPanel
+
+			local lastTab = (wasShownBefore == true and libFilters._currentFilterTypeUniversalDeconTab) or nil
 			local universalDeconData = {
 				isShown = true,
-				currentTab = libFilters._currentFilterTypeUniversalDeconTab
+				lastTab = lastTab,
+				currentTab = currentTab
 			}
 			if wasShownBefore == true then
 				onControlHiddenStateChange(false, { libFilters._currentFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
@@ -1708,7 +1712,8 @@ local function applyUniversalDeconstructionHook()
 			--Show new panel
 			universalDeconData = {
 				isShown = true,
-				currentTab = tab.key
+				lastTab = lastTab,
+				currentTab = currentTab
 			}
 			--libFilters_CallbackRaise(libFilters, { libFiltersFilterType }, universalDeconRefVar, SCENE_SHOWN, isInGamepadMode, typeOfRef, false, nil, universalDeconData)
 			onControlHiddenStateChange(true, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
@@ -3223,8 +3228,8 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
 		universalDeconData.isShown = libFilters_IsUniversalDeconstructionPanelShown()
 	end
-	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN and universalDeconData.currentTab == nil then
-		dfe("[CallbackRaise]ERROR at UNIVERSAL DECON - state: %s - Current tab coming from unknown!", tos(stateStr))
+	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN and universalDeconData.lastTab == nil then
+		dfe("[CallbackRaise]ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
 		return
 	end
 
@@ -3486,13 +3491,13 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		local callbackStr = ">!!! CALLBACK -> filterType: %q [%s] - %s"
 		if universalDeconData.isShown == true then
 			callbackStr = callbackStr .. " - UniversalDecon - TabNow: %s, TabBefore: %s !!!>"
-			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconSelectedTabNow), tos(universalDeconData.currentTab))
+			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 		else
 			callbackStr = callbackStr .. " !!!>"
 			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr))
 		end
-		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDeconTab: %s",
-				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow))
+		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDecon - TabNow: %s, TabBefore: %s",
+				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 	end
 
 	--Update currentFilterTyp and ref if the ref is shown. Do not update if it got hidden!
@@ -3517,6 +3522,7 @@ libFilters_CallbackRaise = libFilters.CallbackRaise
 
 
 --Get the relevant reference variable (scene, fragment, control) for the callback of a filterType and inputType
+--Boolean inputType true gamepad, false keyboard input mode. Leave empty to automatically detect it
 --returns the reference variable, and the type of reference variable,
 --- and nilable:specialPanelControlFunc function (used for UniversalDeconstruction) with params controlPassedIn (should be = callbackRefData.ref), filterType, inputType
 --- returning either a new control determined within the function (e.g. UNIVERSAL_DECONSTRUCTION.control) or the parameter controlPassedIn
@@ -3531,6 +3537,9 @@ local libFilters_GetCallbackReference = libFilters.GetCallbackReference
 
 --For the special callbacks: Detect the currently shown filterType and panel reference variables, and then raise the
 --callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
+--Boolean inputType true gamepad, false keyboard input mode. Leave empty to automatically detect it
+--Boolean doNotUpdateCurrentAndLastFilterTypes controls if the raise of the callback will save the now shown, and last shown, callbacks
+--filterTypes etc., or not.
 --returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured
 function libFilters:RaiseShownFilterTypeCallback(stateStr, inputType, doNotUpdateCurrentAndLastFilterTypes)
 	if inputType == nil then inputType = IsGamepad() end
@@ -3552,6 +3561,9 @@ end
 
 --Raise the callback of a dedicated filterType
 --callback with "stateStr" (SCENE_SHOWN or SCENE_HIDDEN) for the relevant control/fragment/scene of that filterType
+--Boolean inputType true gamepad, false keyboard input mode. Leave empty to automatically detect it
+--Boolean doNotUpdateCurrentAndLastFilterTypes controls if the raise of the callback will save the now shown, and last shown, callbacks
+--filterTypes etc., or not.
 --Parameter universalDeconTab can be used to raise the callback for the universal deconstruction panels "all", "armor", "weapons", "jewelry" or "enchant"
 --IF the filterType constant LF* passed in matches the tab e.g. LF_SMITHING_DECONSTRUCT for all, armor, weapons, LF_JEWELRY_DECONSTRUCT for jewelry and
 --LF_ENCHANTING_EXTRACT for enchant
