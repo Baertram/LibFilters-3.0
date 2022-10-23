@@ -4002,7 +4002,7 @@ local function createSpecialCallbacks()
 		local currentFilterType = libFilters._currentFilterType
 		local lastFilterType = libFilters._lastFilterType
 		libFilters._lastFilterTypeNoCallback = false
-		local isUniversalDeconShown = libFilters_IsUniversalDeconstructionPanelShown()
+		local isUniversalDeconShown = (libFilters._currentFilterTypeUniversalDeconTab ~= nil and true) or false
 		if isDebugEnabled then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s, isUniversalDecon: %s",
 				tos(craftSkill), tos(currentFilterType), tos(lastFilterType), tos(isUniversalDeconShown)) end
 		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
@@ -4029,7 +4029,12 @@ local function createSpecialCallbacks()
 		end
 		if not isCraftingFilterType[currentFilterType] then return end
 		--Fire the HIDE callback of the last used crafting filterType
-		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil, false)
+		local universalDeconData = {
+			isShown = isUniversalDeconShown,
+			lastTab = libFilters._lastFilterTypeUniversalDeconTab,
+			currentTab = libFilters._currentFilterTypeUniversalDeconTab
+		}
+		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil, false, universalDeconData)
 	end
 
 	local function eventCraftingStationInteract(eventId, craftSkill)
