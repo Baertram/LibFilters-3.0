@@ -1683,7 +1683,7 @@ local function applyUniversalDeconstructionHook()
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
 			--Get the filterType by help of the current tab
 			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, tab.key)
-			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback: %q, filterType: %s, lastFilterType: %s",
+			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, filterType: %s, lastFilterType: %s",
 					tos(tab.key), tos(libFiltersFilterType), tos(libFilters._lastFilterType)) end
 			if libFiltersFilterType == nil then return end
 			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
@@ -1697,13 +1697,21 @@ local function applyUniversalDeconstructionHook()
 			--Hide old panel
 			local isInGamepadMode = IsGamepad()
 			local universalDeconRefVar = (isInGamepadMode and universalDeconstructPanel_GP) or universalDeconstructPanel
+			local universalDeconData = {
+				isShown = true,
+				currentTab = libFilters._currentFilterTypeUniversalDeconTab
+			}
 			if wasShownBefore == true then
-				onControlHiddenStateChange(false, { libFilters._currentFilterType }, universalDeconRefVar, isInGamepadMode, nil)
-				--libFilters_CallbackRaise(libFilters, { libFilters._lastFilterType }, refVar, SCENE_HIDDEN, isInGamepadMode, typeOfRef, false, nil, tab.key)
+				onControlHiddenStateChange(false, { libFilters._currentFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
+				--libFilters_CallbackRaise(libFilters, { libFilters._lastFilterType }, refVar, SCENE_HIDDEN, isInGamepadMode, typeOfRef, false, nil, universalDeconData)
 			end
 			--Show new panel
-			--libFilters_CallbackRaise(libFilters, { libFiltersFilterType }, universalDeconRefVar, SCENE_SHOWN, isInGamepadMode, typeOfRef, false, nil, tab.key)
-			onControlHiddenStateChange(true, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil)
+			universalDeconData = {
+				isShown = true,
+				currentTab = tab.key
+			}
+			--libFilters_CallbackRaise(libFilters, { libFiltersFilterType }, universalDeconRefVar, SCENE_SHOWN, isInGamepadMode, typeOfRef, false, nil, universalDeconData)
+			onControlHiddenStateChange(true, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
 			wasShownBefore = true
 		end
 
@@ -3477,8 +3485,8 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		local callbackRefType = typeOfRefToName[typeOfRef]
 		local callbackStr = ">!!! CALLBACK -> filterType: %q [%s] - %s"
 		if universalDeconData.isShown == true then
-			callbackStr = callbackStr .. " - UniversalDecon !!!>"
-			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconData.isShown))
+			callbackStr = callbackStr .. " - UniversalDecon - TabNow: %s, TabBefore: %s !!!>"
+			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconSelectedTabNow), tos(universalDeconData.currentTab))
 		else
 			callbackStr = callbackStr .. " !!!>"
 			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr))
@@ -3673,7 +3681,7 @@ local function onSceneStateChange(oldState, newState, filterTypes, scene, inputT
 end
 
 
-function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, specialPanelControlFunc)
+function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, specialPanelControlFunc, universalDeconData)
 	local ctrlName
 	if isDebugEnabled then
 		ctrlName = getCtrlName(ctrlRef)
@@ -3685,11 +3693,11 @@ function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, sp
 		--Call the code 1 frame later (zo_callLater with 0 ms -> next frame) so the controls' shown state (used within detectShownReferenceNow())
 		--will be updated properly. Else it will fire too early and the control is still in another state, on it's way to state "Shown"!
 		zo_callLater(function()
-			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, nil, specialPanelControlFunc, nil)
+			libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, nil, specialPanelControlFunc, universalDeconData)
 			checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName, specialPanelControlFunc)
 		end, 0)
 	else
-		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, nil, specialPanelControlFunc, nil)
+		libFilters_CallbackRaise(libFilters, filterTypes, ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, nil, specialPanelControlFunc, universalDeconData)
 		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName, specialPanelControlFunc)
 	end
 end
