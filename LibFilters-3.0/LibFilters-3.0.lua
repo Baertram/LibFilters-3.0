@@ -3500,6 +3500,13 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 	end
 
+	--Universal Deconstruction - If closed the currentTabNow will be nil, so use lastTab instead
+	if not isShown and universalDeconData.isShown == true then
+		if universalDeconSelectedTabNow == nil then
+			universalDeconSelectedTabNow = universalDeconData.lastTab
+		end
+	end
+
 	--Update currentFilterTyp and ref if the ref is shown. Do not update if it got hidden!
 	if isShown and not doNotUpdateCurrentAndLastFilterTypes then
 		updateLastAndCurrentFilterType(filterType, lReferencesToFilterType, universalDeconSelectedTabNow, true)
