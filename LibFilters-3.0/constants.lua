@@ -2428,6 +2428,7 @@ callbacks.usingScenes = callbacksUsingScenes
 
 ------------------------------------------------------------------------------------------------------------------------
 --Special control callback check functions
+--[[
 local function universalDeconstructionPanelCheck(filterTypePassedIn, panelControlPassedIn, isInGamepadMode)
 	local panelControlDetermined = panelControlPassedIn
 	--Check if universal deconstruction is shown and return the universal decon panel control then
@@ -2438,6 +2439,7 @@ local function universalDeconstructionPanelCheck(filterTypePassedIn, panelContro
 	end
 	return panelControlDetermined
 end
+]]
 
 
 --[control] = { {filterTypes={LF_* filterTypeConstant, ...}, specialPanelControlFunc=funcRef}, {filterTypes={0}, specialPanelControlFunc=funcRef}, {...} }
@@ -2485,6 +2487,14 @@ local callbacksUsingControls = {
 	[true] = {
 
 		--Dedicated controls
+		--Universal Deconstruction: Re-Uses filterTypes
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		--LF_ENCHANTING_EXTRACTION
+		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
+		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
+		-->was added/run on
+		[universalDeconstructPanel_GP]		= { {filterTypes={LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION}, specialPanelControlFunc=nil}, },
 	},
 }
 callbacks.usingControls = callbacksUsingControls
