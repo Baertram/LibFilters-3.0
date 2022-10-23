@@ -3584,9 +3584,10 @@ function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doN
 			dfe("Passed in UNIVERSAL DECONSTRUCTION filterType is not allowed: %", tos(filterType))
 			return
 		end
+		local lastTab = libFilters._lastFilterTypeUniversalDeconTab or universalDeconTab
 		universalDeconData = {
 			isShown 	= true,
-			lastTab		= libFilters._lastFilterTypeUniversalDeconTab,
+			lastTab		= lastTab,
 			currentTab 	= universalDeconTab
 		}
 	end
