@@ -2470,15 +2470,6 @@ local callbacksUsingControls = {
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
 		[listDialog1] 						= { {filterTypes={LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG}, specialPanelControlFunc=nil}, },
-
-		--Universal Deconstruction: Re-Uses filterTypes
-		--LF_SMITHING_DECONSTRUCT
-		--LF_JEWELRY_DECONSTRUCT
-		--LF_ENCHANTING_EXTRACTION
-		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
-		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
-		-->was added/run on
-		[universalDeconstructPanel]			= { {filterTypes={LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION}, specialPanelControlFunc=nil}, },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2487,14 +2478,6 @@ local callbacksUsingControls = {
 	[true] = {
 
 		--Dedicated controls
-		--Universal Deconstruction: Re-Uses filterTypes
-		--LF_SMITHING_DECONSTRUCT
-		--LF_JEWELRY_DECONSTRUCT
-		--LF_ENCHANTING_EXTRACTION
-		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
-		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
-		-->was added/run on
-		[universalDeconstructPanel_GP]		= { {filterTypes={LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION}, specialPanelControlFunc=nil}, },
 	},
 }
 callbacks.usingControls = callbacksUsingControls
@@ -2513,7 +2496,15 @@ local callbacksUsingSpecials = {
 		[alchemy.control]              		= { LF_ALCHEMY_CREATION },									--via ALCHEMY:SetMode
 		--All crafting tables open/close via EVENT_CRAFTING_STATION_INTERACT and EVENT_END_CRAFTING_STATION_INTERACT
 
-		--todo [universalDeconstructPanel]			= {}
+		--Universal Deconstruction: Re-Uses filterTypes
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		--LF_ENCHANTING_EXTRACTION
+		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
+		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
+		-->was added/run on
+		--> Also a special hook will be added at universalDeconstructionPanel:RegisterCallback("OnFilterChanged", function(tab, craftingTypes, includeBanked)
+		[universalDeconstructPanel]			= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION }, --via UNIVERSAL_DECONSTRUCTION.deconstructionPanel:OnFilterChanged
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2522,7 +2513,14 @@ local callbacksUsingSpecials = {
 	[true] = {
 		[provisioner_GP.control] 			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via GAMEPAD_PROVISIONER:OnTabFilterChanged
 
-		--todo [universalDeconstructPanel_GP] = {}
+		--Universal Deconstruction: Re-Uses filterTypes
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		--LF_ENCHANTING_EXTRACTION
+		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
+		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
+		-->was added/run on
+		[universalDeconstructPanel_GP]		= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION }, --via UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel:OnFilterChanged
 	},
 
 }
