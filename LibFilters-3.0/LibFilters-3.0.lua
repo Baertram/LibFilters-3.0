@@ -1735,20 +1735,30 @@ local function applyUniversalDeconstructionHook()
 		universalDeconstructPanel:RegisterCallback("OnFilterChanged", 		universalDeconOnFilterChangedCallback)
 		universalDeconstructPanel_GP:RegisterCallback("OnFilterChanged", 	universalDeconOnFilterChangedCallback)
 
-		--TODO: 2022-10-24 The OnFilterChanged callback at keyboard mode does not fire as you re-open the universal decon panel!
+		--2022-10-24 The OnFilterChanged callback at keyboard mode does not fire as you re-open the universal decon panel!
 		--So we need an extra universalDeconstructPanel.control OnEffectivelyShown hook here which only runs as the UI re-opens,
 		--but not at first open. It should fire the SCENE_SHOWN callback then with libFilters._lastFilterType and _lastFilterTypeUniversalDeconTab then!
+		local wasUniversalDeconControlShownOnce = false
 		local filterTypesOfUniversalDecon = callbacks.usingSpecials[false][universalDeconstructPanel]
 		--createControlCallback(universalDeconstructPanel.control, filterTypesOfUniversalDecon, false, nil)
 		ZO_PostHookHandler(universalDeconstructPanel.control, "OnEffectivelyShown", function(ctrlRef)
-			if not libFilters.isInitialized or not wasShownBefore then return end
+			if not libFilters.isInitialized then return end
+			if not wasUniversalDeconControlShownOnce then
+				wasUniversalDeconControlShownOnce = true
+				return
+			end
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon, ctrlRef, false, nil)
 		end)
 
+		local wasUniversalDeconGPControlShownOnce = false
 		local filterTypesOfUniversalDecon_GP = callbacks.usingSpecials[true][universalDeconstructPanel]
 		--createControlCallback(universalDeconstructPanel_GP.control, filterTypesOfUniversalDecon_GP, true, nil)
 		ZO_PostHookHandler(universalDeconstructPanel_GP.control, "OnEffectivelyShown", function(ctrlRef)
-			if not libFilters.isInitialized or not wasShownBefore then return end
+			if not libFilters.isInitialized then return end
+			if not wasUniversalDeconGPControlShownOnce then
+				wasUniversalDeconGPControlShownOnce = true
+				return
+			end
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon_GP, ctrlRef, true, nil)
 		end)
 
