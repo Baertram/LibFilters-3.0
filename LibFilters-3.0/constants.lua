@@ -1113,11 +1113,14 @@ local isCraftingFilterType = {
 mapping.isCraftingFilterType = isCraftingFilterType
 
 --Mapping for the filterType to the normal deconstruction/extraction, or universal deconstruction panels
-local filterTypeToUniversalOrNormalDeconAndExtractVars = {}
-filterTypeToUniversalOrNormalDeconAndExtractVars = {
+local filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	--KEYBOARD mode---------------------------------------
 	[false] = {
 		[LF_SMITHING_DECONSTRUCT] = {
+			[true] = 	universalDeconstructPanel or deconstructionPanel,
+			[false] = 	deconstructionPanel,
+		},
+		[LF_JEWELRY_DECONSTRUCT] = {
 			[true] = 	universalDeconstructPanel or deconstructionPanel,
 			[false] = 	deconstructionPanel,
 		},
@@ -1129,6 +1132,10 @@ filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	--GAMEPAD mode---------------------------------------
 	[true] = {
 		[LF_SMITHING_DECONSTRUCT] = {
+			[true] = 	universalDeconstructPanel_GP or deconstructionPanel_GP,
+			[false] = 	deconstructionPanel_GP,
+		},
+		[LF_JEWELRY_DECONSTRUCT] = {
 			[true] = 	universalDeconstructPanel_GP or deconstructionPanel_GP,
 			[false] = 	deconstructionPanel_GP,
 		},
