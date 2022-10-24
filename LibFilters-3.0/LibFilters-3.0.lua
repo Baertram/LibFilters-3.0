@@ -101,6 +101,7 @@ callbacks.added = callbacksAdded
 
 local libFilters_CallbackRaise
 local onControlHiddenStateChange
+local createControlCallback
 
 local libFiltersFilterConstants = 	constants.filterTypes
 local isCraftingFilterType = 		mapping.isCraftingFilterType
@@ -1684,7 +1685,7 @@ local function applyUniversalDeconstructionHook()
 			--Get the filterType by help of the current tab
 			local filterTypeBefore = libFilters._lastFilterType
 			local universalDeconTabBefore = libFilters._lastFilterTypeUniversalDeconTab
-			local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
+			--local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
 
 			local currentTab = tab.key
 			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, currentTab)
@@ -1703,13 +1704,13 @@ local function applyUniversalDeconstructionHook()
 			local isInGamepadMode = IsGamepad()
 			local universalDeconRefVar = (isInGamepadMode and universalDeconstructPanel_GP) or universalDeconstructPanel
 
-			local lastTab = (wasShownBefore == true and universalDeconTabBefore) or nil
+			local lastTab = (wasShownBefore == true and universalDeconTabBefore) or currentTab
 			local universalDeconData = {
 				isShown = true,
 				lastTab = lastTab,
 				currentTab = currentTab
 			}
-			if wasShownBefore == true and wasUniversalDeconShownBefore == true then
+			if wasShownBefore == true then
 				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
 				--libFilters_CallbackRaise(libFilters, { libFilters._lastFilterType }, refVar, SCENE_HIDDEN, isInGamepadMode, typeOfRef, false, nil, universalDeconData)
 			end
@@ -1730,9 +1731,26 @@ local function applyUniversalDeconstructionHook()
 		-->See helper.lua, helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"]
 
 
-		--Add the callbacks
+		--Add the callbacks for OnFilterChanged
 		universalDeconstructPanel:RegisterCallback("OnFilterChanged", 		universalDeconOnFilterChangedCallback)
 		universalDeconstructPanel_GP:RegisterCallback("OnFilterChanged", 	universalDeconOnFilterChangedCallback)
+
+		--TODO: 2022-10-24 The OnFilterChanged callback at keyboard mode does not fire as you re-open the universal decon panel!
+		--So we need an extra universalDeconstructPanel.control OnEffectivelyShown hook here which only runs as the UI re-opens,
+		--but not at first open. It should fire the SCENE_SHOWN callback then with libFilters._lastFilterType and _lastFilterTypeUniversalDeconTab then!
+		local filterTypesOfUniversalDecon = callbacks.usingSpecials[false][universalDeconstructPanel]
+		--createControlCallback(universalDeconstructPanel.control, filterTypesOfUniversalDecon, false, nil)
+		ZO_PostHookHandler(universalDeconstructPanel.control, "OnEffectivelyShown", function(ctrlRef)
+			if not libFilters.isInitialized or not wasShownBefore then return end
+			onControlHiddenStateChange(true, filterTypesOfUniversalDecon, ctrlRef, false, nil)
+		end)
+
+		local filterTypesOfUniversalDecon_GP = callbacks.usingSpecials[true][universalDeconstructPanel]
+		--createControlCallback(universalDeconstructPanel_GP.control, filterTypesOfUniversalDecon_GP, true, nil)
+		ZO_PostHookHandler(universalDeconstructPanel_GP.control, "OnEffectivelyShown", function(ctrlRef)
+			if not libFilters.isInitialized or not wasShownBefore then return end
+			onControlHiddenStateChange(true, filterTypesOfUniversalDecon_GP, ctrlRef, true, nil)
+		end)
 
 		universalDeconHookApplied = true
 	end
@@ -3302,7 +3320,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	if stateStr == SCENE_HIDDEN then --or stateStr == SCENE_HIDING   then
 
 		if lastKnownFilterType ~= nil then
-			if isDebugEnabled then dd(">lastKnownFilterType: %s", tos(lastKnownFilterType)) end
+			if isDebugEnabled then dv(">lastKnownFilterType: %s", tos(lastKnownFilterType)) end
 
 			--Check if the fragment or scene hiding/hidden is related to the lastKnown filterType:
 			--Some fragments like INVENTORY_FRAGMENT and BACKPACK_MAIL_LAYOUT_FRAGMENT are added to the same scenes (mail send e.g.).
@@ -3813,7 +3831,7 @@ local function createSceneCallbacks()
 	end
 end
 
-local function createControlCallback(controlRef, filterTypes, inputType, specialPanelControlFunc)
+function createControlCallback(controlRef, filterTypes, inputType, specialPanelControlFunc)
 	local ctrlName = "n/a"
 	local controlRefNew, _ = getCtrl(controlRef)
 	if controlRefNew ~= controlRef then controlRef = controlRefNew end
@@ -3889,11 +3907,11 @@ local function createControlCallbacks()
 	--as filterType but the control for the callback is not SMITHING.deconstructionPanel but UNIVERSAL_DECONSTRUCTION.control
 	-->specialPanelControlFunc will take care of the correct detection of the control to register the callback to then
 	for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
-d(">inputType: " ..tos(inputType))
+--d(">inputType: " ..tos(inputType))
 		for controlRef, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
-d(">>controlRef: " ..tos(getCtrlName(controlRef)))
+--d(">>controlRef: " ..tos(getCtrlName(controlRef)))
 			for _, controlCallbackData in ipairs(controlVarCallbackData) do
-d(">>>filterTypes: " ..tos(controlCallbackData.filterTypes))
+--d(">>>filterTypes: " ..tos(controlCallbackData.filterTypes))
 				createControlCallback(controlRef, controlCallbackData.filterTypes, inputType, controlCallbackData.specialPanelControlFunc)
 			end
 		end
