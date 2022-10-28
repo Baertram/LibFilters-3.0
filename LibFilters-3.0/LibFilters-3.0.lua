@@ -1687,16 +1687,18 @@ local function applyUniversalDeconstructionHook()
 
 
 		local function updateCurrentAndLastUniversalDeconVariables(tab)
-			libFilters._currentFilterTypeUniversalDeconTab = tab.key
-			local currentFilterTypeUniversalDeconTab = libFilters._currentFilterTypeUniversalDeconTab
 			local lastFilterTypeUniversalDeconTab
+			local currentFilterTypeUniversalDeconTab = libFilters._currentFilterTypeUniversalDeconTab
 			--Any tab was shown before: following calls to UniversalDecon panel's OnFilterChanged function
-			if currentFilterTypeUniversalDeconTab ~= nil and wasShownBefore then
+			if wasShownBefore == true then
 				local currentFilterTypeUniversalDeconTabCopy = currentFilterTypeUniversalDeconTab
 				lastFilterTypeUniversalDeconTab = currentFilterTypeUniversalDeconTabCopy
 				libFilters._lastFilterTypeUniversalDeconTab = lastFilterTypeUniversalDeconTab
 			end
-			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - tab: %q, lastTab: %s", tos(currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
+			libFilters._currentFilterTypeUniversalDeconTab = tab.key
+
+			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - tab: %q, lastTab: %s",
+					tos(currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
 		end
 
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
@@ -1709,8 +1711,9 @@ local function applyUniversalDeconstructionHook()
 			local universalDeconTabBefore = libFilters._lastFilterTypeUniversalDeconTab
 			local lastTab = universalDeconTabBefore
 	 		--local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
-			local currentTab = tab.key
-d("°°° [universalDecon:FilterChanged]TabNow: " .. tos(currentTab) ..", last: " ..tos(lastTab))
+			local currentTabBefore = libFilters._currentFilterTypeUniversalDeconTab
+			local currentTab = currentTabBefore
+--d("°°° [universalDecon:FilterChanged]TabNow: " .. tos(currentTab) ..", last: " ..tos(lastTab))
 
 			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, currentTab)
 			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, lastTab: %q, filterType: %s, lastFilterType: %s",
