@@ -4364,7 +4364,7 @@ end
 --______________________________________________________________________________________________________________________
 --______________________________________________________________________________________________________________________
 --TODO: Only for debugging
-if GetDisplayName() == "@Baertram" then debugSlashToggle() end
+--if GetDisplayName() == "@Baertram" then debugSlashToggle() end
 
 
 --Apply any fixes needed to be run before EVENT_ADD_ON_LOADED
