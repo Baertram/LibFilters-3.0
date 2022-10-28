@@ -1587,8 +1587,8 @@ libFilters.RunFilters = runFilters
 ------------------------------------------------------------------------------------------------------------------------
 --HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
-local universalDeconHookApplied = false
-local wasShownBefore = false
+local universalDeconHookApplied         = false
+local wasUniversalDeconPanelShownBefore = false
 --local ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = false
 local function applyUniversalDeconstructionHook()
 	--2022-02-11 PTS API101033 Universal Deconstruction
@@ -1690,7 +1690,7 @@ local function applyUniversalDeconstructionHook()
 			local lastFilterTypeUniversalDeconTab
 			local currentFilterTypeUniversalDeconTab = libFilters._currentFilterTypeUniversalDeconTab
 			--Any tab was shown before: following calls to UniversalDecon panel's OnFilterChanged function
-			if wasShownBefore == true then
+			if wasUniversalDeconPanelShownBefore == true then
 				local currentFilterTypeUniversalDeconTabCopy = currentFilterTypeUniversalDeconTab
 				lastFilterTypeUniversalDeconTab = currentFilterTypeUniversalDeconTabCopy
 				libFilters._lastFilterTypeUniversalDeconTab = lastFilterTypeUniversalDeconTab
@@ -1734,9 +1734,9 @@ local function applyUniversalDeconstructionHook()
 				isShown = true, --This tells the called functions that the universal deconstruction panel is currently shown, generally!
 				lastTab = lastTab,
 				currentTab = currentTab,
-				wasShownBefore = wasShownBefore
+				wasShownBefore = wasUniversalDeconPanelShownBefore
 			}
-			if wasShownBefore == true then
+			if wasUniversalDeconPanelShownBefore == true then
 				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHideCurrentTab)
 			end
 			--Show new panel
@@ -1744,10 +1744,10 @@ local function applyUniversalDeconstructionHook()
 				isShown = true, --This tells the called functions that the universal deconstruction panel is currently shown, generally!
 				lastTab = lastTab,
 				currentTab = currentTab,
-				wasShownBefore = wasShownBefore
+				wasShownBefore = wasUniversalDeconPanelShownBefore
 			}
 			onControlHiddenStateChange(true, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataShowNewTab)
-			wasShownBefore = true
+			wasUniversalDeconPanelShownBefore = true
 		end
 
 		--ZOs workaround needed?
@@ -3569,6 +3569,26 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		return
 	end
 
+	--Universal Deconstruction - If UniversalDecon panel is closed the currentTabNow will be nil, so use the currently shown universalDecon Tab before the panel
+	--was closed instead: libFilters._currentFilterTypeUniversalDeconTab
+	--> Passed in from EVENT_CRAFTING_INTERACTON_END call
+	if not isShown and universalDeconData.isShown == true then
+		if universalDeconSelectedTabNow == nil then
+			if universalDeconData.currentTab ~= nil then
+				universalDeconSelectedTabNow = universalDeconData.currentTab
+			elseif universalDeconData.lastTab ~= nil then
+				--If currentTab cannot be used try the last activetab before to at least send some info, that the universalDecon panel was closed
+				--and not any normal decon, jewelry decon or enchanting extarction panel!
+				dd("CallbackRaise-universal deconstruction CLOSED - currentTab is NIL! Using last tab: %q", tos(universalDeconData.lastTab))
+				universalDeconSelectedTabNow = universalDeconData.lastTab
+			else
+				--If currentTab AND lastTab cannot be used just pass in the "all" tab...
+				dd("CallbackRaise-universal deconstruction CLOSED - currentTab AND lastTab are NIL! Using last tab: %q", "all")
+				universalDeconSelectedTabNow = "all"
+			end
+		end
+	end
+
 	if lReferencesToFilterType == nil then lReferencesToFilterType = {} end
 
 	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
@@ -3586,18 +3606,6 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		end
 		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDecon - TabNow: %s, TabBefore: %s",
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
-	end
-
-	--Universal Deconstruction - If UniversalDecon panel is closed the currentTabNow will be nil, so use lastTab instead
-	if not isShown and universalDeconData.isShown == true then
-		if universalDeconSelectedTabNow == nil then
-			if universalDeconData.lastTab ~= nil then
-				universalDeconSelectedTabNow = universalDeconData.lastTab
-			else
-				dd("CallbackRaise-universal deconstruction CLOSED - lastTab is NIL! Using current tab as last tab: %q", tos(currentFilterTypeUniversalDeconTabBeforeReset))
-				universalDeconSelectedTabNow = currentFilterTypeUniversalDeconTabBeforeReset
-			end
-		end
 	end
 
 	--Update currentFilterTyp and ref if the ref is shown. Do not update if it got hidden!
@@ -3688,7 +3696,8 @@ function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doN
 		universalDeconData = {
 			isShown 	= true,
 			lastTab		= lastTab,
-			currentTab 	= universalDeconTab
+			currentTab 	= universalDeconTab,
+			wasShownBefore = wasUniversalDeconPanelShownBefore
 		}
 	end
 	local filterTypes = { filterType }
