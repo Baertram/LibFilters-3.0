@@ -11,11 +11,13 @@
 --[Bugs]
 -- #xx) 2022-xx-xx, Baertram: Gamepad/Keyboad mode - ...
 
--- #02) 2022-10-29, Baertram, Keyboard mode - Universal decon panel close by direct open of LF_MAIL_SEND wont fire the SCENE_HIDDEN callback fro UniversalDecon
---	Keyboard universal decon:
---	If mail send panel was enabled before and then universal decon is opened and mail send panel is opened via keybind #,
---	the universal decon "OnClose" callback wont fire before the new mail fragments show. EVENT_CRAFTING_INTERACTION_END and
---  universal_decon.deconstructionPanel.control OnHidden are too slow here...
+-- #02) 2022-10-29, Baertram, Gamepad mode - Universal decon panel close at jewelry tab by direct open of LF_INVENTORY and re-open of
+--  Universal Decon panel afterwards will hide inventory, show jewelry, close jewerly and show jewelry again.
+--  Seems this happens because control of universal decon OnEffectivelyShown will be triggered, then inventory wants to call something
+-- like a "hide" but the currentFilterType is the universal decon's LF_JEWELRY_DECONSTRUCT already and then the OnShow of OnFilterChanged
+-- of the universal decon gamepad panel fires again: Seems only keyboard mode actually needs the additional control's OnEffectivelyShown then
+-- as the universaldeconGamepad.deconstructionPanel.inventory OnFilterChanged is called more often (on reopen too!) in Gamepad mode, compare to
+-- keyboard mode?
 
 --[Feature requests]
 -- #f1)
@@ -1781,6 +1783,8 @@ local function applyUniversalDeconstructionHook()
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon, ctrlRef, false, nil)
 		end)
 
+		--Needed? 2022-10-29 -- See bugs #2
+		--[[
 		local wasUniversalDeconGPControlShownOnce = false
 		local filterTypesOfUniversalDecon_GP = callbacks.usingSpecials[true][universalDeconstructPanel_GP]
 		--createControlCallback(universalDeconstructPanel_GP.control, filterTypesOfUniversalDecon_GP, true, nil)
@@ -1795,18 +1799,28 @@ local function applyUniversalDeconstructionHook()
 			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel_GP.inventory:GetCurrentFilter())
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon_GP, ctrlRef, true, nil)
 		end)
+		]]
 
-		UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE:RegisterCallback("StateChange",
+		--Keyboard/Gamepad universal decon: If mail send panel was enabled before and then universal decon is opened
+		--and mail send panel is opened via keybind #, the universal decon "OnClose" callback wont fire before
+		--the new mail fragments show. EVENT_CRAFTING_INTERACTION_END and OnHidden of the UniversalDecon panel
+		--control are too slow here...
+		--So we need the extra scene HIDDE check here!
+		universalDeconstructScene:RegisterCallback("StateChange",
 			function(oldState, newState)
 				if not libFilters.isInitialized then return end
-				--Keyboard universal decon: If mail send panel was enabled before and then universal decon is opened
-				--and mail send panel is opened via keybind #, the universal decon "OnClose" callback wont fire before
-				--the new mail fragments show. EVENT_CRAFTING_INTERACTION_END and OnHidden of the UniversalDecon panel
-				--control are too slow here...
-				--So we need the extra scene HIDDE check here!
 				if newState == SCENE_HIDDEN then
 					if isDebugEnabled then dd("[UNIVERSAL DECON Keyboard SCENE HIDDEN]") end
 					universalDeconOnFilterChangedCallback(universalDeconstructPanel.inventory:GetCurrentFilter(), nil, nil)
+				end
+			end)
+
+		universalDeconstructScene_GP:RegisterCallback("StateChange",
+			function(oldState, newState)
+				if not libFilters.isInitialized then return end
+				if newState == SCENE_HIDDEN then
+					if isDebugEnabled then dd("[UNIVERSAL DECON Gamepad SCENE HIDDEN]") end
+					universalDeconOnFilterChangedCallback(universalDeconstructPanel_GP.inventory:GetCurrentFilter(), nil, nil)
 				end
 			end)
 
