@@ -292,28 +292,34 @@ if isDebugEnabled then dd("LIBRARY MAIN FILE - START") end
 --LOCAL HELPER FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 --Copy the current filterType to lastFilterType (same for the referenceVariables table) if the filterType / refVariables
---table needs an update
+--table needs an update, and for the UniversalDeconstruction panel's selected tab
 local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterTyp, universalDeconTab, doNotUpdateLast)
 	if isDebugEnabled then dd("!°!updateLastAndCurrentFilterType - filterType: %s, universalDeconTab: %s, doNotUpdateLast: %s, current: %s, last: %s, lastUniversalDeconTab: %s",
-		tos(lFilterTypeDetected), tos(universalDeconTab), tos(doNotUpdateLast), tos(libFilters._currentFilterType), tos(libFilters._lastFilterType), tos(libFilters._lastFilterTypeUniversalDeconTab))
+		tos(lFilterTypeDetected), tos(universalDeconTab), tos(doNotUpdateLast), tos(libFilters._currentFilterType),
+			tos(libFilters._lastFilterType), tos(libFilters._lastFilterTypeUniversalDeconTab))
 	end
 	doNotUpdateLast = doNotUpdateLast or false
 	if not doNotUpdateLast then
 		local currentFilterTypeBefore 				= libFilters._currentFilterType
 		if currentFilterTypeBefore ~= nil then
-			libFilters._lastFilterType 				= currentFilterTypeBefore
+			local _lastFilterType = currentFilterTypeBefore
+			libFilters._lastFilterType 				= _lastFilterType
 		end
+		--[[
 		local currentFilterTypeUniversalDeconTabBefore = libFilters._currentFilterTypeUniversalDeconTab
 		if currentFilterTypeUniversalDeconTabBefore ~= nil then
-			libFilters._lastFilterTypeUniversalDeconTab = currentFilterTypeUniversalDeconTabBefore
+			local _lastFilterTypeUniversalDeconTab = currentFilterTypeUniversalDeconTabBefore
+			libFilters._lastFilterTypeUniversalDeconTab = _lastFilterTypeUniversalDeconTab
 		end
+		]]
 		local currentFilterTypeReferencesBefore = libFilters._currentFilterTypeReferences
 		if currentFilterTypeReferencesBefore ~= nil then
-			libFilters._lastFilterTypeReferences 	= currentFilterTypeReferencesBefore
+			local _lastFilterTypeReferences = currentFilterTypeReferencesBefore
+			libFilters._lastFilterTypeReferences 	= _lastFilterTypeReferences
 		end
 	end
 	libFilters._currentFilterType                  = 	lFilterTypeDetected
-	libFilters._currentFilterTypeUniversalDeconTab = 	universalDeconTab
+	--libFilters._currentFilterTypeUniversalDeconTab = 	universalDeconTab
 	libFilters._currentFilterTypeReferences        = 	lReferencesToFilterTyp
 end
 
@@ -1582,7 +1588,8 @@ libFilters.RunFilters = runFilters
 --HOOK VARIABLEs TO ADD .additionalFilter to them
 ------------------------------------------------------------------------------------------------------------------------
 local universalDeconHookApplied = false
-local ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = false
+local wasShownBefore = false
+--local ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = false
 local function applyUniversalDeconstructionHook()
 	--2022-02-11 PTS API101033 Universal Deconstruction
 	-->Apply early so it is done before the helpers load!
@@ -1679,18 +1686,35 @@ local function applyUniversalDeconstructionHook()
 		libFilters.GetUniversalDeconstructionPanelActiveTabFilterType = libFilters_getUniversalDeconstructionPanelActiveTabFilterType
 
 
+		local function updateCurrentAndLastUniversalDeconVariables(tab)
+			libFilters._currentFilterTypeUniversalDeconTab = tab.key
+			local currentFilterTypeUniversalDeconTab = libFilters._currentFilterTypeUniversalDeconTab
+			local lastFilterTypeUniversalDeconTab
+			--Any tab was shown before: following calls to UniversalDecon panel's OnFilterChanged function
+			if currentFilterTypeUniversalDeconTab ~= nil and wasShownBefore then
+				local currentFilterTypeUniversalDeconTabCopy = currentFilterTypeUniversalDeconTab
+				lastFilterTypeUniversalDeconTab = currentFilterTypeUniversalDeconTabCopy
+				libFilters._lastFilterTypeUniversalDeconTab = lastFilterTypeUniversalDeconTab
+			end
+			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - tab: %q, lastTab: %s", tos(currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
+		end
+
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
-		local wasShownBefore = false
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
-			--Get the filterType by help of the current tab
+			--Update the last shown UniversalDecon tab and filterType
+			updateCurrentAndLastUniversalDeconVariables(tab)
+
+			--Get the filterType by help of the current activated UniversalDecon tab
 			local filterTypeBefore = libFilters._lastFilterType
 			local universalDeconTabBefore = libFilters._lastFilterTypeUniversalDeconTab
-			--local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
-
+			local lastTab = universalDeconTabBefore
+	 		--local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
 			local currentTab = tab.key
+d("°°° [universalDecon:FilterChanged]TabNow: " .. tos(currentTab) ..", last: " ..tos(lastTab))
+
 			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, currentTab)
-			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, filterType: %s, lastFilterType: %s",
-					tos(currentTab), tos(libFiltersFilterType), tos(filterTypeBefore)) end
+			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, lastTab: %q, filterType: %s, lastFilterType: %s",
+					tos(currentTab), tos(lastTab), tos(libFiltersFilterType), tos(filterTypeBefore)) end
 			if libFiltersFilterType == nil then return end
 			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
 			universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
@@ -1703,25 +1727,23 @@ local function applyUniversalDeconstructionHook()
 			--Hide old panel
 			local isInGamepadMode = IsGamepad()
 			local universalDeconRefVar = (isInGamepadMode and universalDeconstructPanel_GP) or universalDeconstructPanel
-
-			local lastTab = (wasShownBefore == true and universalDeconTabBefore) or currentTab
-			local universalDeconData = {
-				isShown = true,
+			local universalDeconDataHideCurrentTab = {
+				isShown = true, --This tells the called functions that the universal deconstruction panel is currently shown, generally!
 				lastTab = lastTab,
-				currentTab = currentTab
+				currentTab = currentTab,
+				wasShownBefore = wasShownBefore
 			}
 			if wasShownBefore == true then
-				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
-				--libFilters_CallbackRaise(libFilters, { libFilters._lastFilterType }, refVar, SCENE_HIDDEN, isInGamepadMode, typeOfRef, false, nil, universalDeconData)
+				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHideCurrentTab)
 			end
 			--Show new panel
-			universalDeconData = {
-				isShown = true,
+			local universalDeconDataShowNewTab = {
+				isShown = true, --This tells the called functions that the universal deconstruction panel is currently shown, generally!
 				lastTab = lastTab,
-				currentTab = currentTab
+				currentTab = currentTab,
+				wasShownBefore = wasShownBefore
 			}
-			--libFilters_CallbackRaise(libFilters, { libFiltersFilterType }, universalDeconRefVar, SCENE_SHOWN, isInGamepadMode, typeOfRef, false, nil, universalDeconData)
-			onControlHiddenStateChange(true, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconData)
+			onControlHiddenStateChange(true, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataShowNewTab)
 			wasShownBefore = true
 		end
 
@@ -1743,10 +1765,13 @@ local function applyUniversalDeconstructionHook()
 		--createControlCallback(universalDeconstructPanel.control, filterTypesOfUniversalDecon, false, nil)
 		ZO_PostHookHandler(universalDeconstructPanel.control, "OnEffectivelyShown", function(ctrlRef)
 			if not libFilters.isInitialized then return end
+			if isDebugEnabled then dd("universalDeconstructPanel OnEffectivelyShown-wasUniversalDeconControlShownOnce: %s", tos(wasUniversalDeconControlShownOnce)) end
 			if not wasUniversalDeconControlShownOnce then
 				wasUniversalDeconControlShownOnce = true
 				return
 			end
+			--Update the last shown UniversalDecon tab and filterType
+			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel.inventory:GetCurrentFilter())
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon, ctrlRef, false, nil)
 		end)
 
@@ -1755,10 +1780,13 @@ local function applyUniversalDeconstructionHook()
 		--createControlCallback(universalDeconstructPanel_GP.control, filterTypesOfUniversalDecon_GP, true, nil)
 		ZO_PostHookHandler(universalDeconstructPanel_GP.control, "OnEffectivelyShown", function(ctrlRef)
 			if not libFilters.isInitialized then return end
+			if isDebugEnabled then dd("universalDeconstructPanel GAMEPAD OnEffectivelyShown-wasUniversalDeconControlShownOnce: %s", tos(wasUniversalDeconGPControlShownOnce)) end
 			if not wasUniversalDeconGPControlShownOnce then
 				wasUniversalDeconGPControlShownOnce = true
 				return
 			end
+			--Update the last shown UniversalDecon tab and filterType
+			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel_GP.inventory:GetCurrentFilter())
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon_GP, ctrlRef, true, nil)
 		end)
 
@@ -1925,16 +1953,18 @@ libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeFor
 
 -- Get the actually used filterType via the shown control/scene/userdata information
 -- returns number LF*_filterType
+--		   String universalDeconSelectedTabKey e.g. "all", "weapons", "armor", "jewelry", "enchantments" if the universal deconstruction panel is currently active
+-->		 (which re-usess LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTARCT)
 function libFilters:GetCurrentFilterType()
-	local filterTypeReference, filterType, isUniversalDeconPanelShown = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
-	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s, filterTypeDetected: %s, isUniversalDeconPanelShown: %s", tos(filterTypeReference), tos(filterType), tos(isUniversalDeconPanelShown)) end
+	local filterTypeReference, filterType, universalDeconSelectedTabKey = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
+	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s, filterTypeDetected: %s, universalDeconTabKey: %s", tos(filterTypeReference), tos(filterType), tos(universalDeconSelectedTabKey)) end
 	if filterTypeReference == nil then return end
 
 	--updateLastAndCurrentFilterType(nil, filterTypeReference, false)
 
 	local currentFilterType = filterType
 	--FilterType was not detected yet (e.g. from cached filterType currently shown)
-	if currentFilterType == nil then
+	if currentFilterType == nil and universalDeconSelectedTabKey == nil then
 		--Check each shown variable for the LibFilters filterType LF_* constant
 		for _, shownVariable in ipairs(filterTypeReference) do
 			--Do not update the references to libFilters._currentFilterTypeReferences as it was done above already
@@ -1945,7 +1975,7 @@ function libFilters:GetCurrentFilterType()
 			end
 		end
 	end
-	return currentFilterType
+	return currentFilterType, universalDeconSelectedTabKey
 end
 
 
@@ -3260,16 +3290,18 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
 		universalDeconData.isShown = libFilters_IsUniversalDeconstructionPanelShown()
 	end
-	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN and universalDeconData.lastTab == nil then
-		dfe("[CallbackRaise]ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
-		return
+	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN then
+		if universalDeconData.lastTab == nil and universalDeconData.wasShownBefore then
+			dfe("[CallbackRaise]ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
+			return
+		end
 	end
 
 	local switchToLastFilterType = false
 
 	--Backup the lastFilterTyp and references if given
 	local lastFilterTypeBefore                  		= libFilters._lastFilterType
-	local lastFilterTypeUniversalDeconTabBefore 		= libFilters._lastFilterTypeUniversalDeconTabBefore
+	local lastFilterTypeUniversalDeconTabBefore 		= libFilters._lastFilterTypeUniversalDeconTab
 	local lastFilterTypeRefBefore               		= libFilters._lastFilterTypeReferences
 	local currentFilterType                            	= libFilters._currentFilterType
 	local currentFilterTypeUniversalDeconTab           	= libFilters._currentFilterTypeUniversalDeconTab
@@ -3277,9 +3309,13 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	local currentFilterTypeBeforeReset                  = currentFilterType
 	local currentFilterTypeUniversalDeconTabBeforeReset = currentFilterTypeUniversalDeconTab
 	local currentFilterTypeRefBeforeReset               = currentFilterTypeRef
+	local lastFilterTypeBeforeReset                  	= lastFilterTypeBefore
+	local lastFilterTypeUniversalDeconTabBeforeReset 	= lastFilterTypeUniversalDeconTabBefore
+	local lastFilterTypeRefBeforeReset               	= lastFilterTypeRefBefore
 	if isDebugEnabled then
-		dd("[CallbackRaise]state: %s, currentBefore: %s, lastBefore: %s, currentUniversalDeconTab: %s, doNotUpdate: %s",
-				tos(stateStr), tos(currentFilterTypeBeforeReset), tos(lastFilterTypeBefore), tos(currentFilterTypeUniversalDeconTab), tos(doNotUpdateCurrentAndLastFilterTypes))
+		dd("[CallbackRaise]state: %s, currentBefore: %s, lastBefore: %s, currentUniversalDeconTab: %s, lastUniversalDeconTab: %s, doNotUpdate: %s",
+				tos(stateStr), tos(currentFilterTypeBeforeReset), tos(lastFilterTypeBeforeReset), tos(currentFilterTypeUniversalDeconTab),
+				tos(lastFilterTypeUniversalDeconTabBeforeReset), tos(doNotUpdateCurrentAndLastFilterTypes))
 	end
 
 	--Update lastFilterType and ref and reset the currentFilterType and ref to nil
@@ -3473,7 +3509,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				-->later than the last successfully fired callback (e.g. with enabled addon PerfectPixel the LF_MAIL_SEND
 				-->BACKPACK_MAIL_LAYOUT_FRAGMENT fragment in keyboard mode will fire it's statechange before inventory_fragment
 				-->fires. The inventory fragment will then overwrite the current filterType and set it to nil, and the lastFilterType
-				-->will be set to LF_MAIL_SEND, which is incorrect and leads to errors in the further processing
+				-->will be set to LF_MAIL_SEND, which is incorrect and leads to errors in the further processing)
 				local currentFilterTypeBefore 			= libFilters._lastFilterType
 				if currentFilterTypeBefore ~= nil then
 					libFilters._currentFilterType 			= currentFilterTypeBefore
@@ -3484,7 +3520,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 					libFilters._lastFilterType = lastFilterTypeBefore
 				end
 				if lastFilterTypeUniversalDeconTabBefore ~= nil then
-					libFilters._lastFilterTypeUniversalDeconTabBefore = lastFilterTypeUniversalDeconTabBefore
+					libFilters._lastFilterTypeUniversalDeconTab = lastFilterTypeUniversalDeconTabBefore
 				end
 				if lastFilterTypeRefBefore ~= nil then
 					libFilters._lastFilterTypeReferences = lastFilterTypeRefBefore
@@ -3507,7 +3543,10 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	if ( lastCallbackState ~= nil and lastCallbackState == stateStr
 			and (
 				(currentFilterTypeBeforeReset ~= nil and filterType == currentFilterTypeBeforeReset)
-			and (currentFilterTypeUniversalDeconTabBeforeReset == nil or (currentFilterTypeUniversalDeconTabBeforeReset ~= nil and universalDeconSelectedTabNow ~= nil and universalDeconSelectedTabNow == currentFilterTypeUniversalDeconTabBeforeReset))
+			and (currentFilterTypeUniversalDeconTabBeforeReset == nil
+					or (currentFilterTypeUniversalDeconTabBeforeReset ~= nil and universalDeconSelectedTabNow ~= nil
+						and universalDeconSelectedTabNow == currentFilterTypeUniversalDeconTabBeforeReset)
+				)
 		)
 	) then
 		--Reset the current and last variables now
@@ -3546,15 +3585,20 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 	end
 
-	--Universal Deconstruction - If closed the currentTabNow will be nil, so use lastTab instead
+	--Universal Deconstruction - If UniversalDecon panel is closed the currentTabNow will be nil, so use lastTab instead
 	if not isShown and universalDeconData.isShown == true then
 		if universalDeconSelectedTabNow == nil then
-			universalDeconSelectedTabNow = universalDeconData.lastTab
+			if universalDeconData.lastTab ~= nil then
+				universalDeconSelectedTabNow = universalDeconData.lastTab
+			else
+				dd("CallbackRaise-universal deconstruction CLOSED - lastTab is NIL! Using current tab as last tab: %q", tos(currentFilterTypeUniversalDeconTabBeforeReset))
+				universalDeconSelectedTabNow = currentFilterTypeUniversalDeconTabBeforeReset
+			end
 		end
 	end
 
 	--Update currentFilterTyp and ref if the ref is shown. Do not update if it got hidden!
-	if isShown and not doNotUpdateCurrentAndLastFilterTypes then
+	if isShown == true and not doNotUpdateCurrentAndLastFilterTypes then
 		updateLastAndCurrentFilterType(filterType, lReferencesToFilterType, universalDeconSelectedTabNow, true)
 	end
 
