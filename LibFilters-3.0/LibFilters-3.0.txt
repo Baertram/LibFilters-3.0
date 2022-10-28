@@ -13,5 +13,5 @@ LibFilters-3.0.lua
 helper.lua
 
 ## Uncomment the 2 test/*.lua, *.xml lines below to enable the /lftestfilters <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex slash command to show the test UI -> See /test/test.lua for other slash commands
-##test/test.lua
-##test/test.xml
+test/test.lua
+test/test.xml
