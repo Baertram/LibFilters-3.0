@@ -3,17 +3,19 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.6 - Last updated: 2022-10-24, Baertram
+--Bugs/Todo List for version: 3.0 r3.6 - Last updated: 2022-10-29, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				0
+--Bugs total: 				2
 --Feature requests total: 	0
 
 --[Bugs]
 -- #xx) 2022-xx-xx, Baertram: Gamepad/Keyboad mode - ...
 
--- #01) 2022-03-09, Baertram: Gamepad/Keyboad mode - Add new PTS Universal Deconstruction OnShow/OnHide callbacks
---			But there exists no dedicated LF_UNIVERSAL_DECONSTRUCTION, so it needs to fire the callbacks of LF_SMITHING_DECONSTRUCT,
---			LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACT with the additional info "we are currently at Universal Deconstruction!" somehow
+-- #02) 2022-10-29, Baertram, Keyboard mode - Universal decon panel close by direct open of LF_MAIL_SEND wont fire the SCENE_HIDDEN callback fro UniversalDecon
+--	Keyboard universal decon:
+--	If mail send panel was enabled before and then universal decon is opened and mail send panel is opened via keybind #,
+--	the universal decon "OnClose" callback wont fire before the new mail fragments show. EVENT_CRAFTING_INTERACTION_END and
+--  universal_decon.deconstructionPanel.control OnHidden are too slow here...
 
 --[Feature requests]
 -- #f1)
