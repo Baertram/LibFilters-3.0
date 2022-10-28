@@ -103,6 +103,7 @@ callbacks.added = callbacksAdded
 
 local libFilters_CallbackRaise
 local onControlHiddenStateChange
+local onSceneStateChange
 local createControlCallback
 
 local libFiltersFilterConstants = 	constants.filterTypes
@@ -1794,6 +1795,20 @@ local function applyUniversalDeconstructionHook()
 			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel_GP.inventory:GetCurrentFilter())
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon_GP, ctrlRef, true, nil)
 		end)
+
+		UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE:RegisterCallback("StateChange",
+			function(oldState, newState)
+				if not libFilters.isInitialized then return end
+				--Keyboard universal decon: If mail send panel was enabled before and then universal decon is opened
+				--and mail send panel is opened via keybind #, the universal decon "OnClose" callback wont fire before
+				--the new mail fragments show. EVENT_CRAFTING_INTERACTION_END and OnHidden of the UniversalDecon panel
+				--control are too slow here...
+				--So we need the extra scene HIDDE check here!
+				if newState == SCENE_HIDDEN then
+					if isDebugEnabled then dd("[UNIVERSAL DECON Keyboard SCENE HIDDEN]") end
+					universalDeconOnFilterChangedCallback(universalDeconstructPanel.inventory:GetCurrentFilter(), nil, nil)
+				end
+			end)
 
 		universalDeconHookApplied = true
 	end
@@ -3795,7 +3810,7 @@ local function onFragmentStateChange(oldState, newState, filterTypes, fragment, 
 end
 
 
-local function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
+function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 	local sceneName
 	if isDebugEnabled then
 		sceneName = getSceneName(scene)
