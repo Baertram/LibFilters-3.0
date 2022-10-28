@@ -1782,7 +1782,7 @@ local function applyUniversalDeconstructionHook()
 		end)
 
 		local wasUniversalDeconGPControlShownOnce = false
-		local filterTypesOfUniversalDecon_GP = callbacks.usingSpecials[true][universalDeconstructPanel]
+		local filterTypesOfUniversalDecon_GP = callbacks.usingSpecials[true][universalDeconstructPanel_GP]
 		--createControlCallback(universalDeconstructPanel_GP.control, filterTypesOfUniversalDecon_GP, true, nil)
 		ZO_PostHookHandler(universalDeconstructPanel_GP.control, "OnEffectivelyShown", function(ctrlRef)
 			if not libFilters.isInitialized then return end
