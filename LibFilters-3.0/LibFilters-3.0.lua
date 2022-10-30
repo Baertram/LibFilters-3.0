@@ -1741,7 +1741,7 @@ local function applyUniversalDeconstructionHook()
 				currentTab = currentTab,
 				wasShownBefore = wasUniversalDeconPanelShownBefore
 			}
-			if wasUniversalDeconPanelShownBefore == true then
+			if wasUniversalDeconPanelShownBefore == true and not isInGamepadMode then
 				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHideCurrentTab)
 			end
 			--Show new panel
