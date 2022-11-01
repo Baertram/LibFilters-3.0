@@ -3562,19 +3562,29 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	if isDebugEnabled then
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		local callbackRefType = typeOfRefToName[typeOfRef]
-		local callbackStr = "> !!! CALLBACK -> filterType: %q [%s] - %s"
-		if universalDeconData.isShown == true then
-			callbackStr = "|UD".. callbackStr .. " - UniversalDecon - TabNow: %s, TabBefore: %s !!!>"
-			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
-		else
-			callbackStr = callbackStr .. " !!!>"
-			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr))
-		end
 		local callbackRaisePrefixStr = ""
+		local callbackRaiseSuffixStr = ""
+		local callbackStr = "!!! CALLBACK -> filterType: %q [%s] - %s"
 		if universalDeconData.isShown == true then
 			callbackRaisePrefixStr = "|UD> "
 		end
-		dd(callbackRaisePrefixStr .. "Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDecon - TabNow: %s, TabBefore: %s",
+		if isShown == true then
+			callbackRaisePrefixStr = ">> " .. callbackRaisePrefixStr
+			callbackRaiseSuffixStr = " >>"
+		else
+			callbackRaisePrefixStr = "<< " .. callbackRaisePrefixStr
+			callbackRaiseSuffixStr = " <<"
+		end
+		if universalDeconData.isShown == true then
+			callbackStr = callbackStr .. " - UniversalDecon - TabNow: %s, TabBefore: %s !!!"
+			df(callbackRaisePrefixStr .. callbackStr .. callbackRaiseSuffixStr,
+					tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
+		else
+			callbackStr = callbackStr .. " !!!"
+			df(callbackRaisePrefixStr .. callbackStr .. callbackRaiseSuffixStr,
+					tos(filterTypeName), tos(filterType), tos(stateStr))
+		end
+		dd(callbackRaisePrefixStr .. "Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDecon - TabNow: %s, TabBefore: %s" .. callbackRaiseSuffixStr,
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 	end
 

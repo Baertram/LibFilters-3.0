@@ -681,29 +681,24 @@ local smithing                    = kbc.smithing
 --Refinement
 kbc.refinementPanel               = smithing.refinementPanel
 local refinementPanel 			  = kbc.refinementPanel
-if refinementPanel == nil then d("refinementPanel is NIL!") end
 
 --Create
 kbc.creationPanel                 = smithing.creationPanel
 local creationPanel 			  = kbc.creationPanel
-if creationPanel == nil then d("creationPanel is NIL!") end
 
 --Deconstruction
 kbc.deconstructionPanel           = smithing.deconstructionPanel
 local deconstructionPanel 		  = kbc.deconstructionPanel
-if deconstructionPanel == nil then d("deconstructionPanel is NIL!") end
 
 --Improvement
 kbc.improvementPanel              = smithing.improvementPanel
 local improvementPanel 			  = kbc.improvementPanel
-if improvementPanel == nil then d("improvementPanel is NIL!") end
 
 --Research
 kbc.researchPanel                 = smithing.researchPanel
 local researchPanel 			  = kbc.researchPanel
 kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
 local researchChooseItemDialog 	  = kbc.researchChooseItemDialog
-if researchPanel == nil then d("researchPanel is NIL!") end
 
 --Enchanting
 kbc.enchantingClass               = ZO_Enchanting
