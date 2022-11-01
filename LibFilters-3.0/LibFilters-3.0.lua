@@ -302,6 +302,7 @@ if isDebugEnabled then dd("LIBRARY MAIN FILE - START") end
 --Is a filterType that is supported at UniversalDeconstruction, e.g. LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACT
 local function isUniversalDeconstructionSupportedFilterType(filterType)
 	local isSupported = universalDeconLibFiltersFilterTypeSupported[filterType] or false
+	if isDebugEnabled then dd("|UD> IsUniversalDeconstructionSupportedFilterType - %q, filterType: %s", tos(isSupported), tos(filterType)) end
 	return isSupported
 end
 libFilters.IsUniversalDeconstructionSupportedFilterType = isUniversalDeconstructionSupportedFilterType
@@ -1682,7 +1683,7 @@ local function applyUniversalDeconstructionHook()
 			local isGamepadMode = IsGamepad()
 			libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
 			local isShowingUniversalDeconScene, universaldDeconScene = libFilters_IsUniversalDeconstructionPanelShown()
-			if isDebugEnabled then dv("getUniversalDeconstructionPanelActiveTab - filterPanelIdComingFrom: %s", tos(filterPanelIdComingFrom) ) end
+			if isDebugEnabled then dv("|UD> GetUniversalDeconstructionPanelActiveTabFilterType - filterPanelId: %s", tos(filterPanelIdComingFrom) ) end
 			if isShowingUniversalDeconScene and universaldDeconScene ~= nil then
 				local universalDeconSelectedTab
 				local universalDeconSelectedTabKey
@@ -1722,7 +1723,7 @@ local function applyUniversalDeconstructionHook()
 				libFilters._currentFilterTypeUniversalDeconTab = tab.key
 			end
 
-			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - doReset: %s, tab: %q, lastTab: %s",
+			if isDebugEnabled then dd("|UD> updateCurrentAndLastUniversalDeconVariables - doReset: %s, tab: %q, lastTab: %s",
 					tos(doReset), tos(libFilters._currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
 		end
 
@@ -1741,7 +1742,7 @@ local function applyUniversalDeconstructionHook()
 			--d("°°° [universalDecon:FilterChanged]TabNow: " .. tos(currentTab) ..", last: " ..tos(lastTab))
 
 			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, currentTab)
-			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, lastTab: %q, filterType: %s, lastFilterType: %s",
+			if isDebugEnabled then dd("|UD> universalDeconOnFilterChangedCallback - tab: %q, lastTab: %q, filterType: %s, lastFilterType: %s",
 					tos(currentTab), tos(lastTab), tos(libFiltersFilterType), tos(filterTypeBefore)) end
 			if libFiltersFilterType == nil then return end
 			--Set the .LibFilters3_filterType at the UNIVERSAL_DECONSTRUCTION(_GAMEPAD) table
@@ -1802,7 +1803,7 @@ local function applyUniversalDeconstructionHook()
 		--createControlCallback(universalDeconstructPanel.control, filterTypesOfUniversalDecon, false, nil)
 		ZO_PostHookHandler(universalDeconstructPanel.control, "OnEffectivelyShown", function(ctrlRef)
 			if not libFilters.isInitialized then return end
-			if isDebugEnabled then dd("universalDeconstructPanel OnEffectivelyShown-wasUniversalDeconControlShownOnce: %s", tos(wasUniversalDeconControlShownOnce)) end
+			if isDebugEnabled then dd("|UD> universalDeconstructPanel OnEffectivelyShown-wasUniversalDeconControlShownOnce: %s", tos(wasUniversalDeconControlShownOnce)) end
 			if not wasUniversalDeconControlShownOnce then
 				wasUniversalDeconControlShownOnce = true
 				return
@@ -1839,7 +1840,7 @@ local function applyUniversalDeconstructionHook()
 			function(oldState, newState)
 				if not libFilters.isInitialized then return end
 				if newState == SCENE_HIDDEN then
-					if isDebugEnabled then dd("[UNIVERSAL DECON Keyboard SCENE HIDDEN]") end
+					if isDebugEnabled then dd("|UD> [UNIVERSAL DECON Keyboard SCENE HIDDEN]") end
 					universalDeconOnFilterChangedCallback(universalDeconstructPanel.inventory:GetCurrentFilter(), nil, nil)
 
 					--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
@@ -1852,7 +1853,7 @@ local function applyUniversalDeconstructionHook()
 			function(oldState, newState)
 				if not libFilters.isInitialized then return end
 				if newState == SCENE_HIDDEN then
-					if isDebugEnabled then dd("[UNIVERSAL DECON Gamepad SCENE HIDDEN]") end
+					if isDebugEnabled then dd("|UD> [UNIVERSAL DECON Gamepad SCENE HIDDEN]") end
 					universalDeconOnFilterChangedCallback(universalDeconstructPanel_GP.inventory:GetCurrentFilter(), nil, nil)
 
 					--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
@@ -3387,7 +3388,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	end
 	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN then
 		if universalDeconData.lastTab == nil and universalDeconData.wasShownBefore then
-			dfe("[CallbackRaise]ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
+			dfe("[CallbackRaise]|UD> ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
 			return
 		end
 	end
@@ -3671,11 +3672,11 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			elseif universalDeconData.lastTab ~= nil then
 				--If currentTab cannot be used try the last activetab before to at least send some info, that the universalDecon panel was closed
 				--and not any normal decon, jewelry decon or enchanting extarction panel!
-				dd("CallbackRaise-universal deconstruction CLOSED - currentTab is NIL! Using last tab: %q", tos(universalDeconData.lastTab))
+				dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab is NIL! Using last tab: %q", tos(universalDeconData.lastTab))
 				universalDeconSelectedTabNow = universalDeconData.lastTab
 			else
 				--If currentTab AND lastTab cannot be used just pass in the "all" tab...
-				dd("CallbackRaise-universal deconstruction CLOSED - currentTab AND lastTab are NIL! Using last tab: %q", "all")
+				dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab AND lastTab are NIL! Using last tab: %q", "all")
 				universalDeconSelectedTabNow = "all"
 			end
 		end
@@ -3688,15 +3689,19 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	if isDebugEnabled then
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		local callbackRefType = typeOfRefToName[typeOfRef]
-		local callbackStr = ">!!! CALLBACK -> filterType: %q [%s] - %s"
+		local callbackStr = "> !!! CALLBACK -> filterType: %q [%s] - %s"
 		if universalDeconData.isShown == true then
-			callbackStr = callbackStr .. " - UniversalDecon - TabNow: %s, TabBefore: %s !!!>"
+			callbackStr = "|UD".. callbackStr .. " - UniversalDecon - TabNow: %s, TabBefore: %s !!!>"
 			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 		else
 			callbackStr = callbackStr .. " !!!>"
 			df(callbackStr, tos(filterTypeName), tos(filterType), tos(stateStr))
 		end
-		dd("Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDecon - TabNow: %s, TabBefore: %s",
+		local callbackRaisePrefixStr = ""
+		if universalDeconData.isShown == true then
+			callbackRaisePrefixStr = "|UD> "
+		end
+		dd(callbackRaisePrefixStr .. "Callback %s raise %q - state: %s, filterType: %s, gamePadMode: %s, UniversalDecon - TabNow: %s, TabBefore: %s",
 				tos(callbackRefType), callbackName, tos(stateStr), tos(filterType), tos(isInGamepadMode), tos(universalDeconSelectedTabNow), tos(universalDeconData.lastTab))
 	end
 
