@@ -823,7 +823,7 @@ if not universalDeconstructPanel_GP.inventory.GetCurrentFilter then
 end
 
 
---  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTARCT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
+--  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTRACT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
 helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
     version = 1,
     filterTypes = {

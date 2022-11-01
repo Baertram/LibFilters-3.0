@@ -2371,7 +2371,7 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 					tos(delay))
 			return
 		else
-			if delay < 0 then delay = 1 end
+			if delay < 0 then delay = 0 end
 		end
 	else
 		delay = 10 --default value: 10ms
@@ -2500,7 +2500,7 @@ end
 -- Get reference (inventory, layoutData, scene, fragment, control, etc.) where the number filterType was assigned to, and
 --it's filterFunction was added to the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
 -- returns table referenceVariablesOfLF_*filterType { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
---If the filterType passed in is a UniversalDeconstruction supported one, return the reference for it too as 2nd return parameter "universalDeconRef"
+--If the filterType passed in is a UniversalDeconstruction supported one, 2nd return parameter "universalDeconRef" will be a table with the reference varable to the UniversalDeconstruction panel
 function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	if not filterType or filterType == "" then
@@ -2525,6 +2525,7 @@ libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 -- OPTIONAL parameter boolean isInGamepadMode: Check with gamepad mode or keyboard. Leave empty to let it be determined automatically
 -- returns table currentlyShownReferenceVariablesOfLF_*filterType { [1] = control/scene/userdata/inventory number, [2] = control/scene/userdata/inventory number, ... },
 --		   number filterType
+--		   nilable:String universalDeconSelectedTabKey
 function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	if isDebugEnabled then dd("[---] GetCurrentFilterTypeReference filterType: %q, %s [---]", tos(filterType), tos(isInGamepadMode)) end
@@ -3692,7 +3693,7 @@ libFilters_CallbackRaise = libFilters.CallbackRaise
 --Boolean inputType true gamepad, false keyboard input mode. Leave empty to automatically detect it
 --returns the reference variable, and the type of reference variable,
 --- and nilable:specialPanelControlFunc function (used for UniversalDeconstruction) with params controlPassedIn (should be = callbackRefData.ref), filterType, inputType
---- returning either a new control determined within the function (e.g. UNIVERSAL_DECONSTRUCTION.control) or the parameter controlPassedIn
+---> returning either a new control determined within the function (e.g. UNIVERSAL_DECONSTRUCTION.control) or the parameter controlPassedIn
 function libFilters:GetCallbackReference(filterType, inputType)
 	if inputType == nil then inputType = IsGamepad() end
 	local callbackRefData = filterTypeToCallbackRef[inputType][filterType]
