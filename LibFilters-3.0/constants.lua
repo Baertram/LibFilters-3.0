@@ -2643,7 +2643,7 @@ local callbacksUsingControls = {
 		[improvementPanel] 					= { {filterTypes={LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT}, specialPanelControlFunc=nil}, },
 		--LF_SMITHING_RESEARCH
 		--LF_JEWELRY_RESEARCH
-		[researchPanel] 					= { {filterTypes={LF_SMITHING_RESEARC, LF_JEWELRY_RESEARCH}, specialPanelControlFunc=nil}, },
+		[researchPanel] 					= { {filterTypes={LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}, specialPanelControlFunc=nil}, },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
 		[listDialog1] 						= { {filterTypes={LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG}, specialPanelControlFunc=nil}, },
