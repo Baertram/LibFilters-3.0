@@ -1593,6 +1593,8 @@ libFilters.RunFilters = runFilters
 ------------------------------------------------------------------------------------------------------------------------
 local universalDeconHookApplied         = false
 local wasUniversalDeconPanelShownBefore = false
+local wasUniversalDeconPanelGPEventCraftingBeginUsed 	= false
+local updateCurrentAndLastUniversalDeconVariables
 --local ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = false
 local function applyUniversalDeconstructionHook()
 	--2022-02-11 PTS API101033 Universal Deconstruction
@@ -1690,7 +1692,8 @@ local function applyUniversalDeconstructionHook()
 		libFilters.GetUniversalDeconstructionPanelActiveTabFilterType = libFilters_getUniversalDeconstructionPanelActiveTabFilterType
 
 
-		local function updateCurrentAndLastUniversalDeconVariables(tab)
+		function updateCurrentAndLastUniversalDeconVariables(tab, doReset)
+			doReset = doReset or false
 			local lastFilterTypeUniversalDeconTab
 			local currentFilterTypeUniversalDeconTab = libFilters._currentFilterTypeUniversalDeconTab
 			--Any tab was shown before: following calls to UniversalDecon panel's OnFilterChanged function
@@ -1699,7 +1702,11 @@ local function applyUniversalDeconstructionHook()
 				lastFilterTypeUniversalDeconTab = currentFilterTypeUniversalDeconTabCopy
 				libFilters._lastFilterTypeUniversalDeconTab = lastFilterTypeUniversalDeconTab
 			end
-			libFilters._currentFilterTypeUniversalDeconTab = tab.key
+			if doReset == true then
+				libFilters._currentFilterTypeUniversalDeconTab = nil
+			else
+				libFilters._currentFilterTypeUniversalDeconTab = tab.key
+			end
 
 			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - tab: %q, lastTab: %s",
 					tos(currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
@@ -1708,16 +1715,16 @@ local function applyUniversalDeconstructionHook()
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
 			--Update the last shown UniversalDecon tab and filterType
-			updateCurrentAndLastUniversalDeconVariables(tab)
+			updateCurrentAndLastUniversalDeconVariables(tab, false)
 
 			--Get the filterType by help of the current activated UniversalDecon tab
 			local filterTypeBefore = libFilters._lastFilterType
 			local universalDeconTabBefore = libFilters._lastFilterTypeUniversalDeconTab
 			local lastTab = universalDeconTabBefore
-	 		--local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
+			--local wasUniversalDeconShownBefore = (universalDeconTabBefore ~= nil and true) or false
 			local currentTabBefore = libFilters._currentFilterTypeUniversalDeconTab
 			local currentTab = currentTabBefore
---d("°°° [universalDecon:FilterChanged]TabNow: " .. tos(currentTab) ..", last: " ..tos(lastTab))
+			--d("°°° [universalDecon:FilterChanged]TabNow: " .. tos(currentTab) ..", last: " ..tos(lastTab))
 
 			local libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, currentTab)
 			if isDebugEnabled then dd("universalDeconOnFilterChangedCallback - tab: %q, lastTab: %q, filterType: %s, lastFilterType: %s",
@@ -1741,10 +1748,16 @@ local function applyUniversalDeconstructionHook()
 				wasShownBefore = wasUniversalDeconPanelShownBefore
 			}
 			--If the UniversalDecon panel was shown before (in keyboard mode!) the hidden state needs to be called for the current shown tab first
-			-->TODO: 2022-10-30: Test if this breaks universald decon gamepad tab changes? If so: Add a boolean to event_crafting_station_interact_begin and if it's called the
-			-->2nd time skip the onControlHiddenStateChange(false at gamepad mode ONCE!
-			if wasUniversalDeconPanelShownBefore == true and not isInGamepadMode then
+			-->2022-10-30: GAMEPAD: Universald Decon tab changes won't work properly anymore if removed so added a boolean to EVENT_CRAFTING_TABLE_INTERACT
+			--and if it's called the 2nd time skip the onControlHiddenStateChange(false) at gamepad mode here ONCE until next EVENT_CRAFTING_TABLE_INTERACT
+			--was called
+			if wasUniversalDeconPanelShownBefore == true
+					and (not isInGamepadMode or (isInGamepadMode and not wasUniversalDeconPanelGPEventCraftingBeginUsed) ) then
 				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHideCurrentTab)
+			end
+			--reset the prevention variable (set at EVENT_CRAFTING_TABLE_INTERACT) so next tab change in gamepad mode fires the callbacks properly again
+			if isInGamepadMode == true and wasUniversalDeconPanelGPEventCraftingBeginUsed == true then
+				wasUniversalDeconPanelGPEventCraftingBeginUsed = false
 			end
 			--Show new panel
 			local universalDeconDataShowNewTab = {
@@ -1781,7 +1794,7 @@ local function applyUniversalDeconstructionHook()
 				return
 			end
 			--Update the last shown UniversalDecon tab and filterType
-			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel.inventory:GetCurrentFilter())
+			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel.inventory:GetCurrentFilter(), false)
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon, ctrlRef, false, nil)
 		end)
 
@@ -4176,6 +4189,12 @@ local function createSpecialCallbacks()
 		--Fire the HIDE callback of the last used crafting filterType
 		local universalDeconTab = (isUniversalDeconShown == true and currentTab) or nil
 		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil, false, universalDeconTab)
+		--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
+		--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
+		if isUniversalDeconShown == true then
+			local universalDeconstructPanelToUse = (IsGamepad() == true and universalDeconstructPanel_GP) or universalDeconstructPanel
+			updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
+		end
 	end
 
 	local function eventCraftingStationInteract(eventId, craftSkill)
@@ -4191,6 +4210,16 @@ local function createSpecialCallbacks()
 			end
 		end
 		craftTypesOpenedAlready[craftSkill] = true
+
+		--Universal Deconstruction check
+		local isInGamepadMode = IsGamepad()
+		wasUniversalDeconPanelGPEventCraftingBeginUsed = false
+		--If Gamepad Universal Deconstruction was shown before the first open of the panel will hide, show, hide the lastPanel (e.g. LF_INVENTORY)
+		--and the universal decon tab somehow. Prevent this by setting a variable here and clering it at the UniversalDeconGamepad.deconstructionPanel.inventoy:OnFilterChanged
+		--callback again
+		if isInGamepadMode and wasUniversalDeconPanelShownBefore == true then
+			wasUniversalDeconPanelGPEventCraftingBeginUsed = true
+		end
 	end
 	EM:RegisterForEvent(GlobalLibName, EVENT_CRAFTING_STATION_INTERACT, eventCraftingStationInteract)
 
