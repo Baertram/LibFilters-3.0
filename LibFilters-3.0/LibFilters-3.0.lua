@@ -299,6 +299,14 @@ if isDebugEnabled then dd("LIBRARY MAIN FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
+--Is a filterType that is supported at UniversalDeconstruction, e.g. LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACT
+local function isUniversalDeconstructionSupportedFilterType(filterType)
+	local isSupported = universalDeconLibFiltersFilterTypeSupported[filterType] or false
+	return isSupported
+end
+libFilters.IsUniversalDeconstructionSupportedFilterType = isUniversalDeconstructionSupportedFilterType
+
+
 --Copy the current filterType to lastFilterType (same for the referenceVariables table) if the filterType / refVariables
 --table needs an update, and for the UniversalDeconstruction panel's selected tab
 local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterTyp, universalDeconTab, doNotUpdateLast)
@@ -1599,6 +1607,8 @@ local universalDeconHookApplied         = false
 local wasUniversalDeconPanelShownBefore = false
 local wasUniversalDeconPanelGPEventCraftingBeginUsed 	= false
 local updateCurrentAndLastUniversalDeconVariables
+
+
 --local ZOsUniversalDeconGPWorkaroundForGetCurrentFilterNeeded = false
 local function applyUniversalDeconstructionHook()
 	--2022-02-11 PTS API101033 Universal Deconstruction
