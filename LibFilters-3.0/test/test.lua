@@ -962,7 +962,7 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 			d(strfor(prefixBr.. "Setting filter function %q for %s filterTypes", filterFunctionName, filterTypesSelectedStr))
 			updateCustomFilterFunction({ filterType }, filterFunction, filterFunctionName)
 			allCustomFilterFunctionsDisabled = false
-			refreshNeeded = true
+			--refreshNeeded = true
 		end
 		--if refreshNeeded then
 			--refreshEnableList()

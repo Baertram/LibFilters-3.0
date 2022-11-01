@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.5
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.6
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -20,7 +20,6 @@ local getScene = SM.GetScene
 
 --Local library variable
 local libFilters = {}
-
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
@@ -308,19 +307,6 @@ end
 libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 
---Check if Universal Deconstruction is enabled
-libFilters.isUniversalDeconstructionProvided = false
-local isUniversalDeconstructionProvided = libFilters.isUniversalDeconstructionProvided
-local function isUniversalDeconGiven()
-	if not isUniversalDeconstructionProvided then
-		isUniversalDeconstructionProvided = (ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil and true) or false
-	end
-	libFilters.isUniversalDeconstructionProvided = isUniversalDeconstructionProvided
-	return isUniversalDeconstructionProvided
-end
-isUniversalDeconGiven()
-
-
 
 --[Inventory types]
 local invTypeBackpack           		=	INVENTORY_BACKPACK
@@ -592,12 +578,14 @@ kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
 
 --Universal Deconstruction
 local universalDeconstructPanel
-if isUniversalDeconstructionProvided then
-	kbc.universalDeconstruct 	  = UNIVERSAL_DECONSTRUCTION
-	kbc.universalDeconstructPanel = kbc.universalDeconstruct.deconstructionPanel
-	universalDeconstructPanel = kbc.universalDeconstructPanel
-	kbc.universalDeconstructScene = UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE
-end
+kbc.universalDeconstruct 	  = UNIVERSAL_DECONSTRUCTION
+kbc.universalDeconstructPanel = kbc.universalDeconstruct.deconstructionPanel
+universalDeconstructPanel = kbc.universalDeconstructPanel
+kbc.universalDeconstructScene = UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE
+
+--Dialogs
+kbc.listDialog1 				= ZO_ListDialog1
+local listDialog1 = kbc.listDialog1
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
@@ -789,12 +777,10 @@ local provisionerFragment_GP 	 = gpc.provisionerFragment_GP
 
 --Universal Deconstruction
 local universalDeconstructPanel_GP
-if isUniversalDeconstructionProvided then
-	gpc.universalDeconstruct_GP  = UNIVERSAL_DECONSTRUCTION_GAMEPAD
-	gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPanel
-	universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
-	gpc.universalDeconstructScene_GP = UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE
-end
+gpc.universalDeconstruct_GP  = UNIVERSAL_DECONSTRUCTION_GAMEPAD
+gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPanel
+universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
+gpc.universalDeconstructScene_GP = UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
@@ -1108,11 +1094,14 @@ local isCraftingFilterType = {
 mapping.isCraftingFilterType = isCraftingFilterType
 
 --Mapping for the filterType to the normal deconstruction/extraction, or universal deconstruction panels
-local filterTypeToUniversalOrNormalDeconAndExtractVars = {}
-filterTypeToUniversalOrNormalDeconAndExtractVars = {
+local filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	--KEYBOARD mode---------------------------------------
 	[false] = {
 		[LF_SMITHING_DECONSTRUCT] = {
+			[true] = 	universalDeconstructPanel or deconstructionPanel,
+			[false] = 	deconstructionPanel,
+		},
+		[LF_JEWELRY_DECONSTRUCT] = {
 			[true] = 	universalDeconstructPanel or deconstructionPanel,
 			[false] = 	deconstructionPanel,
 		},
@@ -1124,6 +1113,10 @@ filterTypeToUniversalOrNormalDeconAndExtractVars = {
 	--GAMEPAD mode---------------------------------------
 	[true] = {
 		[LF_SMITHING_DECONSTRUCT] = {
+			[true] = 	universalDeconstructPanel_GP or deconstructionPanel_GP,
+			[false] = 	deconstructionPanel_GP,
+		},
+		[LF_JEWELRY_DECONSTRUCT] = {
 			[true] = 	universalDeconstructPanel_GP or deconstructionPanel_GP,
 			[false] = 	deconstructionPanel_GP,
 		},
@@ -2264,8 +2257,9 @@ mapping.inventoryUpdaters = { }
 --[Mapping for the callbacks as filterType panels are shown/hidden]
 libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
---The pattern for the filterPanel shown/hidden callbacks, e.g. "LibFilters3-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY
-libFilters.callbackPattern = GlobalLibName .. "-%s-%s"
+--The pattern for the filterPanel shown/hidden callbacks,
+-->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
+libFilters.callbackPattern = GlobalLibName .. "-%s-%s-%s"
 
 --The supported SCENE states for the callbacks
 --Currently: shown and hidden
@@ -2420,32 +2414,38 @@ local callbacksUsingScenes = {
 callbacks.usingScenes = callbacksUsingScenes
 
 
---[control] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ...}
---0 means no dedicated LF_* constant can be used and the filterType will be determined
+------------------------------------------------------------------------------------------------------------------------
+--Special control callback check functions
+
+
+--[control] = { {filterTypes={LF_* filterTypeConstant, ...}, specialPanelControlFunc=funcRef}, {filterTypes={0}, specialPanelControlFunc=funcRef}, {...} }
+--filterTypes={0} means no dedicated LF_* constant can be used and the filterType will be determined
 -->0 should be added as last entry if an automated check should be done at the end!
 --Example:
---[controlVariable] = { LF_INVENTORY, 0 }
+--[controlVariable] = { filterTypes={LF_INVENTORY}}
+--specialPanelControlFunc is a function with parameters = LF_constant, panelControl, isInGamepadMode. It checks code and returns an alternative
+--panelControl to register/run the callback on, or the default panelControl passed in if no special control is needed
 local callbacksUsingControls = {
 	--Keyboard
 	[false] = {
 	 	--LF_SMITHING_REFINE
 		--LF_JEWELRY_REFINE
-		[refinementPanel] 					= { LF_SMITHING_REFINE, LF_JEWELRY_REFINE },
+		[refinementPanel] 					= { {filterTypes={LF_SMITHING_REFINE, LF_JEWELRY_REFINE}, specialPanelControlFunc=nil}, },
 	 	--LF_SMITHING_CREATION
 		--LF_JEWELRY_CREATION
-		[creationPanel] 					= { LF_SMITHING_CREATION, LF_JEWELRY_CREATION },
+		[creationPanel] 					= { {filterTypes={LF_SMITHING_CREATION, LF_JEWELRY_CREATION}, specialPanelControlFunc=nil}, },
 		--LF_SMITHING_DECONSTRUCT
 		--LF_JEWELRY_DECONSTRUCT
-		[deconstructionPanel] 				= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT },
+		[deconstructionPanel] 				= { {filterTypes={LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT}, specialPanelControlFunc=nil}, },
 		--LF_SMITHING_IMPROVEMENT
 		--LF_JEWELRY_IMPROVEMENT
-		[improvementPanel] 					= { LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT },
+		[improvementPanel] 					= { {filterTypes={LF_SMITHING_IMPROVEMENT, LF_JEWELRY_IMPROVEMENT}, specialPanelControlFunc=nil}, },
 		--LF_SMITHING_RESEARCH
 		--LF_JEWELRY_RESEARCH
-		[researchPanel] 					= { LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH },
+		[researchPanel] 					= { {filterTypes={LF_SMITHING_RESEARC, LF_JEWELRY_RESEARCH}, specialPanelControlFunc=nil}, },
 		--LF_SMITHING_RESEARCH_DIALOG
 		--LF_JEWELRY_RESEARCH_DIALOG
-		[ZO_ListDialog1] 					= { LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG, },
+		[listDialog1] 						= { {filterTypes={LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG}, specialPanelControlFunc=nil}, },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2472,7 +2472,15 @@ local callbacksUsingSpecials = {
 		[alchemy.control]              		= { LF_ALCHEMY_CREATION },									--via ALCHEMY:SetMode
 		--All crafting tables open/close via EVENT_CRAFTING_STATION_INTERACT and EVENT_END_CRAFTING_STATION_INTERACT
 
-		--todo [universalDeconstructPanel]			= {}
+		--Universal Deconstruction: Re-Uses filterTypes
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		--LF_ENCHANTING_EXTRACTION
+		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
+		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
+		-->was added/run on
+		--> Also a special hook will be added at universalDeconstructionPanel:RegisterCallback("OnFilterChanged", function(tab, craftingTypes, includeBanked)
+		[universalDeconstructPanel]			= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION }, --via UNIVERSAL_DECONSTRUCTION.deconstructionPanel:OnFilterChanged
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2481,7 +2489,14 @@ local callbacksUsingSpecials = {
 	[true] = {
 		[provisioner_GP.control] 			= { LF_PROVISIONING_COOK, LF_PROVISIONING_BREW },  			--via GAMEPAD_PROVISIONER:OnTabFilterChanged
 
-		--todo [universalDeconstructPanel_GP] = {}
+		--Universal Deconstruction: Re-Uses filterTypes
+		--LF_SMITHING_DECONSTRUCT
+		--LF_JEWELRY_DECONSTRUCT
+		--LF_ENCHANTING_EXTRACTION
+		--Universal deconstruction: Re-uses filterTypes LF_SMITHING_DECONSTRUCT and LF_JEWELRY_DECONSTRUCT and just shows them at new UI controls
+		-->Therefor the specialPanelControlFunc will check if the UniversalDecon panel is shown and replace the panelControl where the callback
+		-->was added/run on
+		[universalDeconstructPanel_GP]		= { LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACTION }, --via UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel:OnFilterChanged
 	},
 
 }
@@ -2505,7 +2520,10 @@ local filterTypeToCallbackRef = {
 for inputType, sceneCallbackData in pairs(callbacksUsingScenes) do
 	for sceneVar, filterTypes in pairs(sceneCallbackData) do
 		for _, filterType in ipairs(filterTypes) do
-			filterTypeToCallbackRef[inputType][filterType] = { ref = sceneVar, refType = LIBFILTERS_CON_TYPEOFREF_SCENE }
+			filterTypeToCallbackRef[inputType][filterType] = {
+				ref = sceneVar,
+				refType = LIBFILTERS_CON_TYPEOFREF_SCENE
+			}
 		end
 	end
 end
@@ -2513,15 +2531,28 @@ end
 for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
 	for fragmentVar, filterTypes in pairs(fragmentCallbackData) do
 		for _, filterType in ipairs(filterTypes) do
-			filterTypeToCallbackRef[inputType][filterType] = { ref = fragmentVar, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+			filterTypeToCallbackRef[inputType][filterType] = {
+				ref = fragmentVar,
+				refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT
+			}
 		end
 	end
 end
+
 --Controls
-for inputType, controlsCallbackData in pairs(callbacksUsingControls) do
-	for controlVar, filterTypes in pairs(controlsCallbackData) do
-		for _, filterType in ipairs(filterTypes) do
-			filterTypeToCallbackRef[inputType][filterType] = { ref = controlVar, refType = LIBFILTERS_CON_TYPEOFREF_CONTROL }
+for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
+	for controlVar, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
+		for _, controlCallbackData in ipairs(controlsCallbackDataOfInputType) do
+			local controlFilterTypes = controlCallbackData.filterTypes
+			if controlFilterTypes ~= nil then
+				for _, filterType in ipairs(controlFilterTypes) do
+					filterTypeToCallbackRef[inputType][filterType] = {
+						ref = controlVar,
+						refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
+						specialPanelControlFunc=controlCallbackData.specialPanelControlFunc
+					}
+				end
+			end
 		end
 	end
 end
@@ -2530,7 +2561,10 @@ for inputType, specialsCallbackData in pairs(callbacksUsingSpecials) do
 	for specialVar, filterTypes in pairs(specialsCallbackData) do
 		for _, filterType in ipairs(filterTypes) do
 			local refType = checkIfControlSceneFragmentOrOther(specialVar)
-			filterTypeToCallbackRef[inputType][filterType] = { ref = specialVar, refType = refType }
+			filterTypeToCallbackRef[inputType][filterType] = {
+				ref = specialVar,
+				refType = refType
+			}
 		end
 	end
 end
@@ -2544,7 +2578,7 @@ callbacks.filterTypeToCallbackRef = filterTypeToCallbackRef
 callbacks.special = {
 	--LF_SMITHING_RESEARCH_DIALOG
 	--LF_JEWELRY_RESEARCH_DIALOG
-	[ZO_ListDialog1] = {
+	[listDialog1] = {
 		[SCENE_HIDDEN] = function(controlOrSceneOrFragmentRef, stateStr, inputType, refType)
 			if libFilters.debug then dv(">>>Special callback: ZO_ListDialog1:OnHide") end
 			--Detect the shown panel again
