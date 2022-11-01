@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.6
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.7
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -1333,6 +1333,40 @@ local filterTypeToReference = {
 	},
 }
 mapping.LF_FilterTypeToReference = filterTypeToReference
+
+--FilterTypes that do not return a reference variable above at "filterTypeToReference" directly as they are implemented special,
+--will return these variables here
+local filterTypesToReferenceImplementedSpecial = {
+	--KEYBOARD
+	[false] = {
+		[LF_ENCHANTING_CREATION]   = { enchanting },
+		[LF_ENCHANTING_EXTRACTION] = { enchanting },
+	},
+	--GAMEPAD
+	[true] = {
+
+	},
+}
+mapping.LF_FilterTypesToReferenceImplementedSpecial = filterTypesToReferenceImplementedSpecial
+
+--The following filterTypes fallback to keyboard reference variables as gamepad re-uses the same
+local filterTypesGamepadFallbackToKeyboard = {
+		[LF_CRAFTBAG]                 = true,
+		[LF_BANK_WITHDRAW]            = true,
+		[LF_GUILDBANK_WITHDRAW]       = true,
+		[LF_HOUSE_BANK_WITHDRAW]      = true,
+		[LF_SMITHING_REFINE]          = true,
+		[LF_SMITHING_DECONSTRUCT]     = true,
+		[LF_SMITHING_IMPROVEMENT]     = true,
+		[LF_SMITHING_RESEARCH]        = true,
+		[LF_JEWELRY_REFINE]           = true,
+		[LF_JEWELRY_DECONSTRUCT]      = true,
+		[LF_JEWELRY_IMPROVEMENT]      = true,
+		[LF_JEWELRY_RESEARCH]         = true,
+		[LF_ALCHEMY_CREATION]         = true,
+		[LF_RETRAIT]                  = true,
+}
+mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard = filterTypesGamepadFallbackToKeyboard
 
 
 --The mapping table containing the "lookup" data of control or scene/fragment to us for "is hidden" checks

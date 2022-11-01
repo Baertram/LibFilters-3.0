@@ -138,6 +138,10 @@ local filterTypeToFilterTypeRespectingCraftType = 					mapping.filterTypeToFilte
 local filterTypeToUpdaterName = 									mapping.filterTypeToUpdaterName
 local updaterNameToFilterType = 									mapping.updaterNameToFilterType
 local LF_FilterTypeToReference = 									mapping.LF_FilterTypeToReference
+local LF_FilterTypesToReferenceImplementedSpecial = 			    mapping.LF_FilterTypesToReferenceImplementedSpecial
+local LF_FilterTypeToReferenceGamepadFallbackToKeyboard =  			mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard
+
+
 local LF_FilterTypeToCheckIfReferenceIsHidden = 					mapping.LF_FilterTypeToCheckIfReferenceIsHidden
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes =	mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
@@ -2497,6 +2501,24 @@ end
 -- API to get controls/scenes/fragments/userdata/inventories which contain the libFilters filterType
 --**********************************************************************************************************************
 
+local function getFilterTypeReference(filterType, isInGamepadMode)
+	local refVars = LF_FilterTypesToReferenceImplementedSpecial[isInGamepadMode][filterType]
+	if refVars == nil then
+		if isInGamepadMode == true then
+			local gamepadFallbackToKeyboardRef = LF_FilterTypeToReferenceGamepadFallbackToKeyboard[filterType]
+			if not gamepadFallbackToKeyboardRef then
+				--use keyboard ref vars
+				refVars = LF_FilterTypeToReference[false][filterType]
+			else
+				refVars = LF_FilterTypeToReference[true][filterType]
+			end
+		else
+			refVars = LF_FilterTypeToReference[false][filterType]
+		end
+	end
+	return refVars
+end
+
 -- Get reference (inventory, layoutData, scene, fragment, control, etc.) where the number filterType was assigned to, and
 --it's filterFunction was added to the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
 -- returns table referenceVariablesOfLF_*filterType { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
@@ -2509,7 +2531,7 @@ function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 		return
 	end
 	if isDebugEnabled then dd("GetFilterTypeReferences filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
-	local filterReferences = LF_FilterTypeToReference[isInGamepadMode][filterType]
+	local filterReferences = getFilterTypeReference(filterType, isInGamepadMode)
 	--if the filterType passed in is a UniversalDeconstruction supported one, return the reference for it too as 2nd return parameter.
 	local universalDeconRef
 	if universalDeconLibFiltersFilterTypeSupported[filterType] == true then
