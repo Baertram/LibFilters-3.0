@@ -1708,8 +1708,8 @@ local function applyUniversalDeconstructionHook()
 				libFilters._currentFilterTypeUniversalDeconTab = tab.key
 			end
 
-			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - tab: %q, lastTab: %s",
-					tos(currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
+			if isDebugEnabled then dd("|> updateCurrentAndLastUniversalDeconVariables - doReset: %s, tab: %q, lastTab: %s",
+					tos(doReset), tos(libFilters._currentFilterTypeUniversalDeconTab), tos(lastFilterTypeUniversalDeconTab)) end
 		end
 
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
@@ -1827,6 +1827,10 @@ local function applyUniversalDeconstructionHook()
 				if newState == SCENE_HIDDEN then
 					if isDebugEnabled then dd("[UNIVERSAL DECON Keyboard SCENE HIDDEN]") end
 					universalDeconOnFilterChangedCallback(universalDeconstructPanel.inventory:GetCurrentFilter(), nil, nil)
+
+					--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
+					--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
+					updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
 				end
 			end)
 
@@ -1836,6 +1840,10 @@ local function applyUniversalDeconstructionHook()
 				if newState == SCENE_HIDDEN then
 					if isDebugEnabled then dd("[UNIVERSAL DECON Gamepad SCENE HIDDEN]") end
 					universalDeconOnFilterChangedCallback(universalDeconstructPanel_GP.inventory:GetCurrentFilter(), nil, nil)
+
+					--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
+					--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
+					updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
 				end
 			end)
 
@@ -4158,14 +4166,15 @@ local function createSpecialCallbacks()
 		local currentFilterType = libFilters._currentFilterType
 		local lastFilterType = libFilters._lastFilterType
 		libFilters._lastFilterTypeNoCallback = false
-		local lastTab = libFilters._lastFilterTypeUniversalDeconTab
+		--local lastTab = libFilters._lastFilterTypeUniversalDeconTab
 		local currentTab = libFilters._currentFilterTypeUniversalDeconTab
 		local isUniversalDeconShown = (currentTab ~= nil and true) or false
-		if isDebugEnabled then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s, isUniversalDecon: %s",
-				tos(craftSkill), tos(currentFilterType), tos(lastFilterType), tos(isUniversalDeconShown)) end
 		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
 		-->This would lead to a SCENE_HIDDEN callback firing for the lastFilterType the next time the crafting table opens, eben though the "recipes" tab at the crafting table would be
 		-->re-opened and thus no callback would be needed (SCENE_HIDDEN for lastFilterType already fired as the recipestab was activated!)
+		if isDebugEnabled then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s, isUniversalDecon: %s",
+				tos(craftSkill), tos(currentFilterType), tos(lastFilterType), tos(isUniversalDeconShown)) end
+
 		local lastFilterTypeIsValidAtClosedCraftingTable = (lastFilterType ~= nil and checkForValidFilterTypeAtSamePanel(lastFilterType, nil, craftSkill)) or false
 		if currentFilterType == nil and lastFilterTypeIsValidAtClosedCraftingTable == true then
 			if isDebugEnabled then dv(">lastFilterType will \'not\' raise a HIDDEN callback at next crafting table open!") end
@@ -4192,7 +4201,6 @@ local function createSpecialCallbacks()
 		--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
 		--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
 		if isUniversalDeconShown == true then
-			local universalDeconstructPanelToUse = (IsGamepad() == true and universalDeconstructPanel_GP) or universalDeconstructPanel
 			updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
 		end
 	end
