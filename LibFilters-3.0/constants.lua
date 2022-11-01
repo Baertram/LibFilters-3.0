@@ -21,8 +21,6 @@ local getScene = SM.GetScene
 --Local library variable
 local libFilters = {}
 
-local libFilters_IsUniversalDeconstructionPanelShown
-
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
 _G[GlobalLibName] 			= libFilters --global table LibFilters3
@@ -2418,18 +2416,6 @@ callbacks.usingScenes = callbacksUsingScenes
 
 ------------------------------------------------------------------------------------------------------------------------
 --Special control callback check functions
---[[
-local function universalDeconstructionPanelCheck(filterTypePassedIn, panelControlPassedIn, isInGamepadMode)
-	local panelControlDetermined = panelControlPassedIn
-	--Check if universal deconstruction is shown and return the universal decon panel control then
-	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
-	local isUniversalDecon = libFilters_IsUniversalDeconstructionPanelShown() or false
-	if isUniversalDecon == true then
-		panelControlDetermined = filterTypeToUniversalOrNormalDeconAndExtractVars[isInGamepadMode][filterTypePassedIn][isUniversalDecon]
-	end
-	return panelControlDetermined
-end
-]]
 
 
 --[control] = { {filterTypes={LF_* filterTypeConstant, ...}, specialPanelControlFunc=funcRef}, {filterTypes={0}, specialPanelControlFunc=funcRef}, {...} }

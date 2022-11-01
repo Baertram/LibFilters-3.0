@@ -2500,6 +2500,7 @@ end
 -- Get reference (inventory, layoutData, scene, fragment, control, etc.) where the number filterType was assigned to, and
 --it's filterFunction was added to the constant "defaultOriginalFilterAttributeAtLayoutData" (.additionalFilter)
 -- returns table referenceVariablesOfLF_*filterType { [NumericalNonGapIndex e.g.1] = inventory/layoutData/scene/control/userdata/etc., [2] = inventory/layoutData/scene/control/userdata/etc., ... }
+--If the filterType passed in is a UniversalDeconstruction supported one, return the reference for it too as 2nd return parameter "universalDeconRef"
 function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	if not filterType or filterType == "" then
@@ -2509,7 +2510,12 @@ function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 	end
 	if isDebugEnabled then dd("GetFilterTypeReferences filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
 	local filterReferences = LF_FilterTypeToReference[isInGamepadMode][filterType]
-	return filterReferences
+	--if the filterType passed in is a UniversalDeconstruction supported one, return the reference for it too as 2nd return parameter.
+	local universalDeconRef
+	if universalDeconLibFiltersFilterTypeSupported[filterType] == true then
+		universalDeconRef = (isInGamepadMode == true and universalDeconstructPanel_GP.control) or universalDeconstructPanel.control
+	end
+	return filterReferences, universalDeconRef
 end
 libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 
