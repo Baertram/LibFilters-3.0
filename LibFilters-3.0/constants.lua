@@ -13,6 +13,8 @@ local strform = string.format
 local strup = string.upper
 local tins = table.insert
 
+local IsGamepad = IsInGamepadPreferredMode
+
 --local ZOs speed-up variables
 --local IsGamepad = IsInGamepadPreferredMode
 local SM = SCENE_MANAGER
@@ -40,10 +42,13 @@ libFilters.isInitialized = false
 --function runFilters, and API function libFilters:SetFilterAllState(boolean newState)
 libFilters.useFilterAllFallback = false
 
+--Local variables used further down below
+local filterTypeToCheckIfReferenceIsHidden
 
 ------------------------------------------------------------------------------------------------------------------------
 --Debugging output enabled/disabled: Changed via SLASH_COMMANDS /libfiltersdebug or /lfdebug
 libFilters.debug = false
+local isDebugEnabled = libFilters.debug
 
 --LibDebugLogger & debugging functions
 if LibDebugLogger then
@@ -288,7 +293,7 @@ constants.subControlsToLoop = subControlsToLoop
 local function checkIfControlSceneFragmentOrOther(refVar)
 	local retVar
 	--Scene or fragment
-	if refVar.sceneManager and refVar.state then
+	if refVar.sceneManager or refVar.state or refVar._state then
 		if refVar.name ~= nil or refVar.fragments ~= nil then
 			retVar = LIBFILTERS_CON_TYPEOFREF_SCENE -- Scene
 		else
@@ -306,7 +311,162 @@ local function checkIfControlSceneFragmentOrOther(refVar)
 end
 libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
+local function getCtrl(retCtrl)
+	local checkType = "retCtrl"
+	local ctrlToCheck = retCtrl
 
+	if ctrlToCheck ~= nil then
+		if ctrlToCheck.IsHidden == nil then
+			for _, subControlName in ipairs(subControlsToLoop)do
+				if ctrlToCheck[subControlName] ~= nil and
+					ctrlToCheck[subControlName].IsHidden ~= nil then
+					ctrlToCheck = ctrlToCheck[subControlName]
+					checkType = "retCtrl." .. subControlName
+					break -- leave the loop
+				end
+			end
+		end
+	end
+	return ctrlToCheck, checkType
+end
+libFilters.GetCtrl = getCtrl
+
+local function checkIfRefVarIsShown(refVar)
+	if not refVar then return false, nil end
+	local refType = checkIfControlSceneFragmentOrOther(refVar)
+	--Control
+	local isShown = false
+	if refType == LIBFILTERS_CON_TYPEOFREF_CONTROL then
+		local refCtrl = getCtrl(refVar)
+		if refCtrl == nil or refCtrl.IsHidden == nil then
+			isShown = false
+		else
+			isShown = not refCtrl:IsHidden()
+		end
+	--Scene
+	elseif refType == LIBFILTERS_CON_TYPEOFREF_SCENE then
+		if isDebugEnabled then dv("!checkIfRefVarIsShown - scene state: %q", tos(refVar.state)) end
+		isShown = ((refVar.state == SCENE_SHOWN and true) or (refVar.IsShowing ~= nil and refVar:IsShowing())) or false
+	--Fragment
+	elseif refType == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
+		if isDebugEnabled then dv("!checkIfRefVarIsShown - fragment state: %q", tos(refVar.state)) end
+		isShown = ((refVar.state == SCENE_FRAGMENT_SHOWN and true) or (refVar.IsShowing ~= nil and refVar:IsShowing())) or false
+	--Other
+	elseif refType == LIBFILTERS_CON_TYPEOFREF_OTHER then
+		if type(refVar) == "boolean" then
+			isShown = refVar
+		else
+			isShown = false
+		end
+	end
+	if isDebugEnabled then dv("!checkIfRefVarIsShown - refVar %q: %s, refType: %s", tos(refVar), tos(isShown), tos(refType)) end
+	return isShown, refVar, refType
+end
+libFilters.CheckIfRefVarIsShown = checkIfRefVarIsShown
+
+local function getFragmentControlName(fragment)
+	if fragment ~= nil then
+		local fragmentControl
+		if fragment.name ~= nil then
+			return fragment.name
+		elseif fragment._name ~= nil then
+			return fragment._name
+		elseif fragment.GetControl then
+			fragmentControl = getCtrl(fragment:GetControl())
+		elseif fragment.control then
+			fragmentControl = getCtrl(fragment.control)
+		end
+
+		if fragmentControl ~= nil then
+			local fragmentControlName = (fragmentControl.GetName ~= nil and fragmentControl:GetName())
+					or (fragmentControl.name ~= nil and fragmentControl.name)
+			if fragmentControlName ~= nil and fragmentControlName ~= "" then return fragmentControlName end
+		end
+	end
+	return "n/a"
+end
+libFilters.GetFragmentControlName = getFragmentControlName
+
+local function getSceneName(scene)
+	if scene ~= nil then
+		if scene.GetName then
+			return scene:GetName()
+		else
+			if scene.name ~= nil then
+				local sceneName = scene.name
+				if sceneName ~= "" then return sceneName end
+			end
+		end
+	end
+	return "n/a"
+end
+libFilters.GetSceneName = getSceneName
+
+local function getCtrlName(ctrlVar)
+	if ctrlVar ~= nil then
+		local ctrlName
+		if ctrlVar.GetName ~= nil then
+			ctrlName = ctrlVar:GetName()
+		elseif ctrlVar.name ~= nil then
+			ctrlName = ctrlVar.name
+		end
+		if ctrlName ~= nil and ctrlName ~= "" then return ctrlName end
+	end
+	return "n/a"
+end
+libFilters.GetCtrlName = getCtrlName
+
+local function getTypeOfRefName(typeOfRef, filterTypeRefToHook)
+	if typeOfRef == LIBFILTERS_CON_TYPEOFREF_CONTROL then
+		return getCtrlName(filterTypeRefToHook)
+	elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_SCENE then
+		return getSceneName(filterTypeRefToHook)
+	elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
+		return getFragmentControlName(filterTypeRefToHook)
+	end
+	return "n/a"
+end
+libFilters.GetTypeOfRefName = getTypeOfRefName
+
+local function getRefName(refVar)
+	local typeOfRef = checkIfControlSceneFragmentOrOther(refVar)
+	if typeOfRef == LIBFILTERS_CON_TYPEOFREF_CONTROL then
+		return getCtrlName(refVar)
+	elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_SCENE then
+		return getSceneName(refVar)
+	elseif typeOfRef == LIBFILTERS_CON_TYPEOFREF_FRAGMENT then
+		return getFragmentControlName(refVar)
+	end
+	return "n/a"
+end
+libFilters.GetRefName = getRefName
+
+
+--Check if a control is assigned to the filterType and inputType and if it is currently shown/hidden
+--returns boolean isShown, controlReference controlWhichIsShown
+local function isControlShown(filterType, isInGamepadMode)
+	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
+	local filterTypeData = filterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
+	if filterTypeData == nil then
+		if isDebugEnabled then dv("!isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "filterTypeData is nil!") end
+		return false, nil
+	end
+	local retCtrl = filterTypeData["control"]
+
+	local ctrlToCheck, checkType = getCtrl(retCtrl)
+	if ctrlToCheck == nil or (ctrlToCheck ~= nil and ctrlToCheck.IsHidden == nil) then
+		if isDebugEnabled then dv("!isControlShown - filterType %s: %s, gamepadMode: %s, error: %s", tos(filterType), tos(false), tos(isInGamepadMode), "no control/listView with IsHidden function found!") end
+		return false, nil
+	end
+	local isShown = not ctrlToCheck:IsHidden()
+	if isDebugEnabled then dv("!isControlShown - filterType %s, isShown: %s, gamepadMode: %s, retCtrl: %s, checkType: %s", tos(filterType), tos(isShown), tos(isInGamepadMode), tos(ctrlToCheck), tos(checkType)) end
+	return isShown, ctrlToCheck
+end
+libFilters.IsControlShown = isControlShown
+
+------------------------------------------------------------------------------------------------------------------------
+-- Variables: Inventory
+------------------------------------------------------------------------------------------------------------------------
 
 --[Inventory types]
 local invTypeBackpack           		=	INVENTORY_BACKPACK
@@ -466,11 +626,13 @@ local fence = kbc.fence
 kbc.invFenceLaunderFragment       = BACKPACK_LAUNDER_LAYOUT_FRAGMENT
 local invFenceLaunderFragment 	  = kbc.invFenceLaunderFragment
 invFenceLaunderFragment._name = "BACKPACK_LAUNDER_LAYOUT_FRAGMENT"
+invFenceLaunderFragment._state = "AddedByLibFiltersForDetection"
 
 --Fence sell
 kbc.invFenceSellFragment 		  = BACKPACK_FENCE_LAYOUT_FRAGMENT
 local invFenceSellFragment 		  = kbc.invFenceSellFragment
 invFenceSellFragment._name = "BACKPACK_FENCE_LAYOUT_FRAGMENT"
+invFenceSellFragment._state = "AddedByLibFiltersForDetection"
 
 --[Guild store]
 kbc.guildStoreObj                 = ZO_TradingHouse
@@ -519,24 +681,29 @@ local smithing                    = kbc.smithing
 --Refinement
 kbc.refinementPanel               = smithing.refinementPanel
 local refinementPanel 			  = kbc.refinementPanel
+if refinementPanel == nil then d("refinementPanel is NIL!") end
 
 --Create
 kbc.creationPanel                 = smithing.creationPanel
 local creationPanel 			  = kbc.creationPanel
+if creationPanel == nil then d("creationPanel is NIL!") end
 
 --Deconstruction
 kbc.deconstructionPanel           = smithing.deconstructionPanel
 local deconstructionPanel 		  = kbc.deconstructionPanel
+if deconstructionPanel == nil then d("deconstructionPanel is NIL!") end
 
 --Improvement
 kbc.improvementPanel              = smithing.improvementPanel
 local improvementPanel 			  = kbc.improvementPanel
+if improvementPanel == nil then d("improvementPanel is NIL!") end
 
 --Research
 kbc.researchPanel                 = smithing.researchPanel
 local researchPanel 			  = kbc.researchPanel
 kbc.researchChooseItemDialog      = SMITHING_RESEARCH_SELECT
 local researchChooseItemDialog 	  = kbc.researchChooseItemDialog
+if researchPanel == nil then d("researchPanel is NIL!") end
 
 --Enchanting
 kbc.enchantingClass               = ZO_Enchanting
@@ -1399,7 +1566,7 @@ mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard = filterTypesGamepadFa
   }
 }
 ]]
-local filterTypeToCheckIfReferenceIsHidden = {
+filterTypeToCheckIfReferenceIsHidden = {
 --Keyboard mode
 	[false] = {
 		--Works: 2021-12-13
@@ -2565,9 +2732,11 @@ local filterTypeToCallbackRef = {
 --Fill the mapping table above for each type of reference and inputType
 --Scenes
 for inputType, sceneCallbackData in pairs(callbacksUsingScenes) do
+d("[SCENE callbacks - inputType: " ..tos(inputType))
 	for sceneVar, filterTypes in pairs(sceneCallbackData) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][sceneVar] then
 			for _, filterType in ipairs(filterTypes) do
+d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(sceneVar)))
 				filterTypeToCallbackRef[inputType][filterType] = {
 					ref = sceneVar,
 					refType = LIBFILTERS_CON_TYPEOFREF_SCENE
@@ -2578,9 +2747,11 @@ for inputType, sceneCallbackData in pairs(callbacksUsingScenes) do
 end
 --Fragments
 for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
+d("[FRAGMENT callbacks - inputType: " ..tos(inputType))
 	for fragmentVar, filterTypes in pairs(fragmentCallbackData) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][fragmentVar] then
 			for _, filterType in ipairs(filterTypes) do
+d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(fragmentVar)))
 				filterTypeToCallbackRef[inputType][filterType] = {
 					ref = fragmentVar,
 					refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT
@@ -2592,12 +2763,14 @@ end
 
 --Controls
 for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
+d("[CONTROL callbacks - inputType: " ..tos(inputType))
 	for controlVar, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][controlVar] then
-			for _, controlCallbackData in ipairs(controlsCallbackDataOfInputType) do
+			for _, controlCallbackData in ipairs(controlVarCallbackData) do
 				local controlFilterTypes = controlCallbackData.filterTypes
 				if controlFilterTypes ~= nil then
 					for _, filterType in ipairs(controlFilterTypes) do
+d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(controlVar)))
 						filterTypeToCallbackRef[inputType][filterType] = {
 							ref = controlVar,
 							refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
@@ -2606,6 +2779,8 @@ for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) 
 					end
 				end
 			end
+		else
+d("<excluded control: " ..tos(getRefName(controlVar)))
 		end
 	end
 end
@@ -2615,7 +2790,7 @@ d("[SPECIAL callbacks - inputType: " ..tos(inputType))
 	for specialVar, filterTypes in pairs(specialsCallbackData) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][specialVar] then
 			for _, filterType in ipairs(filterTypes) do
-d(">Adding filterType to specialCallbacks: " ..tos(filterType))
+d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(specialVar)))
 				local refType = checkIfControlSceneFragmentOrOther(specialVar)
 				filterTypeToCallbackRef[inputType][filterType] = {
 					ref = specialVar,
