@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.6
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.7
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -1334,6 +1334,40 @@ local filterTypeToReference = {
 }
 mapping.LF_FilterTypeToReference = filterTypeToReference
 
+--FilterTypes that do not return a reference variable above at "filterTypeToReference" directly as they are implemented special,
+--will return these variables here
+local filterTypesToReferenceImplementedSpecial = {
+	--KEYBOARD
+	[false] = {
+		[LF_ENCHANTING_CREATION]   = { enchanting },
+		[LF_ENCHANTING_EXTRACTION] = { enchanting },
+	},
+	--GAMEPAD
+	[true] = {
+
+	},
+}
+mapping.LF_FilterTypesToReferenceImplementedSpecial = filterTypesToReferenceImplementedSpecial
+
+--The following filterTypes fallback to keyboard reference variables as gamepad re-uses the same
+local filterTypesGamepadFallbackToKeyboard = {
+		[LF_CRAFTBAG]                 = true,
+		[LF_BANK_WITHDRAW]            = true,
+		[LF_GUILDBANK_WITHDRAW]       = true,
+		[LF_HOUSE_BANK_WITHDRAW]      = true,
+		[LF_SMITHING_REFINE]          = true,
+		[LF_SMITHING_DECONSTRUCT]     = true,
+		[LF_SMITHING_IMPROVEMENT]     = true,
+		[LF_SMITHING_RESEARCH]        = true,
+		[LF_JEWELRY_REFINE]           = true,
+		[LF_JEWELRY_DECONSTRUCT]      = true,
+		[LF_JEWELRY_IMPROVEMENT]      = true,
+		[LF_JEWELRY_RESEARCH]         = true,
+		[LF_ALCHEMY_CREATION]         = true,
+		[LF_RETRAIT]                  = true,
+}
+mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard = filterTypesGamepadFallbackToKeyboard
+
 
 --The mapping table containing the "lookup" data of control or scene/fragment to us for "is hidden" checks
 --The control must be a control with IsHidden() function or a .control subtable with that function
@@ -2503,6 +2537,19 @@ local callbacksUsingSpecials = {
 callbacks.usingSpecials = callbacksUsingSpecials
 
 
+--Exclude these callback variables as they would overwrite the filterTypes of other callbacks!
+-->UniversalDeconstrction e.g.
+local callbacksExcludeFilterTypesFromFilterTypeToCallbackRef = {
+	--Keyboard
+	[false] = {
+		[universalDeconstructPanel] = true, --UniversalDeconstruction Keyboard: Prevent overwriting LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTRACT in table filterTypeToCallbackRef
+	},
+	--Gamepad
+	[true] = {
+		[universalDeconstructPanel_GP] = true,  --UniversalDeconstruction Gamepad: Prevent overwriting LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTRACT in table filterTypeToCallbackRef
+	},
+}
+
 --The mapping tables to determine the callback's reference variables by the filterType and inputType
 local filterTypeToCallbackRef = {
 	--Keyboard
@@ -2519,22 +2566,26 @@ local filterTypeToCallbackRef = {
 --Scenes
 for inputType, sceneCallbackData in pairs(callbacksUsingScenes) do
 	for sceneVar, filterTypes in pairs(sceneCallbackData) do
-		for _, filterType in ipairs(filterTypes) do
-			filterTypeToCallbackRef[inputType][filterType] = {
-				ref = sceneVar,
-				refType = LIBFILTERS_CON_TYPEOFREF_SCENE
-			}
+		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][sceneVar] then
+			for _, filterType in ipairs(filterTypes) do
+				filterTypeToCallbackRef[inputType][filterType] = {
+					ref = sceneVar,
+					refType = LIBFILTERS_CON_TYPEOFREF_SCENE
+				}
+			end
 		end
 	end
 end
 --Fragments
 for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
 	for fragmentVar, filterTypes in pairs(fragmentCallbackData) do
-		for _, filterType in ipairs(filterTypes) do
-			filterTypeToCallbackRef[inputType][filterType] = {
-				ref = fragmentVar,
-				refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT
-			}
+		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][fragmentVar] then
+			for _, filterType in ipairs(filterTypes) do
+				filterTypeToCallbackRef[inputType][filterType] = {
+					ref = fragmentVar,
+					refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT
+				}
+			end
 		end
 	end
 end
@@ -2542,15 +2593,17 @@ end
 --Controls
 for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
 	for controlVar, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
-		for _, controlCallbackData in ipairs(controlsCallbackDataOfInputType) do
-			local controlFilterTypes = controlCallbackData.filterTypes
-			if controlFilterTypes ~= nil then
-				for _, filterType in ipairs(controlFilterTypes) do
-					filterTypeToCallbackRef[inputType][filterType] = {
-						ref = controlVar,
-						refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
-						specialPanelControlFunc=controlCallbackData.specialPanelControlFunc
-					}
+		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][controlVar] then
+			for _, controlCallbackData in ipairs(controlsCallbackDataOfInputType) do
+				local controlFilterTypes = controlCallbackData.filterTypes
+				if controlFilterTypes ~= nil then
+					for _, filterType in ipairs(controlFilterTypes) do
+						filterTypeToCallbackRef[inputType][filterType] = {
+							ref = controlVar,
+							refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
+							specialPanelControlFunc=controlCallbackData.specialPanelControlFunc
+						}
+					end
 				end
 			end
 		end
@@ -2558,13 +2611,17 @@ for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) 
 end
 --Specials
 for inputType, specialsCallbackData in pairs(callbacksUsingSpecials) do
+d("[SPECIAL callbacks - inputType: " ..tos(inputType))
 	for specialVar, filterTypes in pairs(specialsCallbackData) do
-		for _, filterType in ipairs(filterTypes) do
-			local refType = checkIfControlSceneFragmentOrOther(specialVar)
-			filterTypeToCallbackRef[inputType][filterType] = {
-				ref = specialVar,
-				refType = refType
-			}
+		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][specialVar] then
+			for _, filterType in ipairs(filterTypes) do
+d(">Adding filterType to specialCallbacks: " ..tos(filterType))
+				local refType = checkIfControlSceneFragmentOrOther(specialVar)
+				filterTypeToCallbackRef[inputType][filterType] = {
+					ref = specialVar,
+					refType = refType
+				}
+			end
 		end
 	end
 end
