@@ -309,19 +309,6 @@ end
 libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOther
 
 
---Check if Universal Deconstruction is enabled
-libFilters.isUniversalDeconstructionProvided = false
-local isUniversalDeconstructionProvided = libFilters.isUniversalDeconstructionProvided
-local function isUniversalDeconGiven()
-	if not isUniversalDeconstructionProvided then
-		isUniversalDeconstructionProvided = (ZO_UNIVERSAL_DECONSTRUCTION_FILTER_TYPES ~= nil and true) or false
-	end
-	libFilters.isUniversalDeconstructionProvided = isUniversalDeconstructionProvided
-	return isUniversalDeconstructionProvided
-end
-isUniversalDeconGiven()
-
-
 
 --[Inventory types]
 local invTypeBackpack           		=	INVENTORY_BACKPACK
@@ -593,12 +580,10 @@ kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
 
 --Universal Deconstruction
 local universalDeconstructPanel
-if isUniversalDeconstructionProvided then
-	kbc.universalDeconstruct 	  = UNIVERSAL_DECONSTRUCTION
-	kbc.universalDeconstructPanel = kbc.universalDeconstruct.deconstructionPanel
-	universalDeconstructPanel = kbc.universalDeconstructPanel
-	kbc.universalDeconstructScene = UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE
-end
+kbc.universalDeconstruct 	  = UNIVERSAL_DECONSTRUCTION
+kbc.universalDeconstructPanel = kbc.universalDeconstruct.deconstructionPanel
+universalDeconstructPanel = kbc.universalDeconstructPanel
+kbc.universalDeconstructScene = UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE
 
 --Dialogs
 kbc.listDialog1 				= ZO_ListDialog1
@@ -794,12 +779,10 @@ local provisionerFragment_GP 	 = gpc.provisionerFragment_GP
 
 --Universal Deconstruction
 local universalDeconstructPanel_GP
-if isUniversalDeconstructionProvided then
-	gpc.universalDeconstruct_GP  = UNIVERSAL_DECONSTRUCTION_GAMEPAD
-	gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPanel
-	universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
-	gpc.universalDeconstructScene_GP = UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE
-end
+gpc.universalDeconstruct_GP  = UNIVERSAL_DECONSTRUCTION_GAMEPAD
+gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPanel
+universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
+gpc.universalDeconstructScene_GP = UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua

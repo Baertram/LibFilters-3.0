@@ -144,7 +144,6 @@ local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes =	mapping.LF_Fil
 local LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup = mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
 local LF_FilterTypeToDialogOwnerControl = 							mapping.LF_FilterTypeToDialogOwnerControl
 
-local isUniversalDeconGiven = 										libFilters.isUniversalDeconstructionProvided
 local libFilters_IsUniversalDeconstructionPanelShown
 local filterTypeToUniversalOrNormalDeconAndExtractVars = 			mapping.filterTypeToUniversalOrNormalDeconAndExtractVars
 local universalDeconTabKeyToLibFiltersFilterType	   =			mapping.universalDeconTabKeyToLibFiltersFilterType
@@ -1598,7 +1597,7 @@ local wasUniversalDeconPanelShownBefore = false
 local function applyUniversalDeconstructionHook()
 	--2022-02-11 PTS API101033 Universal Deconstruction
 	-->Apply early so it is done before the helpers load!
-	if isUniversalDeconGiven and not universalDeconHookApplied then
+	if not universalDeconHookApplied then
 		--Add a filter changed callback to keyboard and gamepad variables in order to set the currently active LF filterType constant
 		-->Will be re-using LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT AND LF_ENCHANTING_EXTRACTION as there does not exist any
 		-->LF_UNIVERSAL_DECONSTRUCTION constant! .additionalFilter functions will also be taken from normal deconstruction/jewelry deconstruction
@@ -1741,6 +1740,9 @@ local function applyUniversalDeconstructionHook()
 				currentTab = currentTab,
 				wasShownBefore = wasUniversalDeconPanelShownBefore
 			}
+			--If the UniversalDecon panel was shown before (in keyboard mode!) the hidden state needs to be called for the current shown tab first
+			-->TODO: 2022-10-30: Test if this breaks universald decon gamepad tab changes? If so: Add a boolean to event_crafting_station_interact_begin and if it's called the
+			-->2nd time skip the onControlHiddenStateChange(false at gamepad mode ONCE!
 			if wasUniversalDeconPanelShownBefore == true and not isInGamepadMode then
 				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHideCurrentTab)
 			end
@@ -2840,7 +2842,6 @@ end
 
 --Check if the Universal Deconstruction panel is shown
 function libFilters:IsUniversalDeconstructionPanelShown(isGamepadMode)
-	if not isUniversalDeconGiven then return false end
 	if isGamepadMode == nil then isGamepadMode = IsGamepad() end
 	--Check if the gamepad or keyboard scene :IsShowing()
 	local universalDeconScene = isGamepadMode and universalDeconstructScene_GP or universalDeconstructScene
