@@ -2732,11 +2732,11 @@ local filterTypeToCallbackRef = {
 --Fill the mapping table above for each type of reference and inputType
 --Scenes
 for inputType, sceneCallbackData in pairs(callbacksUsingScenes) do
-d("[SCENE callbacks - inputType: " ..tos(inputType))
+--d("[SCENE callbacks - inputType: " ..tos(inputType))
 	for sceneVar, filterTypes in pairs(sceneCallbackData) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][sceneVar] then
 			for _, filterType in ipairs(filterTypes) do
-d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(sceneVar)))
+--d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(sceneVar)))
 				filterTypeToCallbackRef[inputType][filterType] = {
 					ref = sceneVar,
 					refType = LIBFILTERS_CON_TYPEOFREF_SCENE
@@ -2747,11 +2747,11 @@ d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(s
 end
 --Fragments
 for inputType, fragmentCallbackData in pairs(callbacksUsingFragments) do
-d("[FRAGMENT callbacks - inputType: " ..tos(inputType))
+--d("[FRAGMENT callbacks - inputType: " ..tos(inputType))
 	for fragmentVar, filterTypes in pairs(fragmentCallbackData) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][fragmentVar] then
 			for _, filterType in ipairs(filterTypes) do
-d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(fragmentVar)))
+--d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(fragmentVar)))
 				filterTypeToCallbackRef[inputType][filterType] = {
 					ref = fragmentVar,
 					refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT
@@ -2763,14 +2763,14 @@ end
 
 --Controls
 for inputType, controlsCallbackDataOfInputType in pairs(callbacksUsingControls) do
-d("[CONTROL callbacks - inputType: " ..tos(inputType))
+--d("[CONTROL callbacks - inputType: " ..tos(inputType))
 	for controlVar, controlVarCallbackData in pairs(controlsCallbackDataOfInputType) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][controlVar] then
 			for _, controlCallbackData in ipairs(controlVarCallbackData) do
 				local controlFilterTypes = controlCallbackData.filterTypes
 				if controlFilterTypes ~= nil then
 					for _, filterType in ipairs(controlFilterTypes) do
-d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(controlVar)))
+--d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(controlVar)))
 						filterTypeToCallbackRef[inputType][filterType] = {
 							ref = controlVar,
 							refType = LIBFILTERS_CON_TYPEOFREF_CONTROL,
@@ -2780,17 +2780,17 @@ d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(c
 				end
 			end
 		else
-d("<excluded control: " ..tos(getRefName(controlVar)))
+--d("<excluded control: " ..tos(getRefName(controlVar)))
 		end
 	end
 end
 --Specials
 for inputType, specialsCallbackData in pairs(callbacksUsingSpecials) do
-d("[SPECIAL callbacks - inputType: " ..tos(inputType))
+--d("[SPECIAL callbacks - inputType: " ..tos(inputType))
 	for specialVar, filterTypes in pairs(specialsCallbackData) do
 		if not callbacksExcludeFilterTypesFromFilterTypeToCallbackRef[inputType][specialVar] then
 			for _, filterType in ipairs(filterTypes) do
-d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(specialVar)))
+--d(">Adding filterType: " ..tos(filterType) .. ", name: " ..tostring(getRefName(specialVar)))
 				local refType = checkIfControlSceneFragmentOrOther(specialVar)
 				filterTypeToCallbackRef[inputType][filterType] = {
 					ref = specialVar,

@@ -3673,7 +3673,7 @@ function libFilters:RaiseFilterTypeCallback(filterType, stateStr, inputType, doN
 	local filterTypes = { filterType }
 	local refVar, typeOfRef, specialControlFunc = libFilters_GetCallbackReference(libFilters, filterType, inputType)
 	if not refVar then
-		dd("[) ERROR (]No callback reference found for filterType: %s, inputType: %s", tos(filterType), tos(inputType))
+		dfe("[) ERROR (]No callback reference found for filterType: %s, inputType: %s", tos(filterType), tos(inputType))
 		return
 	end
 	return libFilters_CallbackRaise(libFilters, filterTypes, refVar, stateStr, inputType, typeOfRef, doNotUpdateCurrentAndLastFilterTypes, specialControlFunc, universalDeconData)
