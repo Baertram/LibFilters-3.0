@@ -3211,7 +3211,7 @@ libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
 -- Callback API
 --**********************************************************************************************************************
 --Create the callbackname for a libFilters filterPanel shown/hidden callback
---It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]
+--It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
 --number filterType needs to be a valid LF_* filterType constant
 --boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
 --boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
@@ -3268,6 +3268,104 @@ function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, input
 		return
 	end
 	return callBackUniqueName
+end
+
+--Remove an added callbackname for a libFilters filterPanel shown/hidden callback again
+--It will remove the entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
+--number filterType needs to be a valid LF_* filterType constant
+--boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
+--boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
+--nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+--Returns boolean wasRemoved true/false
+function libFilters:RemoveCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
+	isShown = isShown or false
+	if yourAddonName == nil or yourAddonName == "" or yourAddonName == GlobalLibName or type(yourAddonName) ~= "string" then
+		dfe("[RemoveCallbackName]ERROR - The addonName %q must be a string, or cannot be used!", tos(yourAddonName))
+		return
+	end
+	if type(isShown) ~= "boolean" then
+		dfe("[RemoveCallbackName]ERROR - isShown %q needs to be a boolean (false/true)!", tos(isShown))
+		return
+	end
+	if universalDeconActiveTab == nil then universalDeconActiveTab = "" end
+	if type(universalDeconActiveTab) ~= "string" or (universalDeconActiveTab ~= "" and universalDeconTabKeyToLibFiltersFilterType[universalDeconActiveTab] == nil) then
+		dfe("[RemoveCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
+		return
+	end
+
+	--Build the unique callback Name
+	local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+
+	--Add the callback to the registered table
+	if universalDeconActiveTab == "" then
+		universalDeconActiveTab = "_NONE_"
+	end
+	if inputType == nil then
+		--Keyboard
+		if callbacks.registeredCallbacks[false][yourAddonName] ~= nil then
+			if callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] ~= nil then
+				if callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
+					local callbackData = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown]
+					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
+						callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+						if NonContiguousCount(callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
+							callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = nil
+						end
+						if NonContiguousCount(callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab]) == 0 then
+							callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] = nil
+						end
+						if NonContiguousCount(callbacks.registeredCallbacks[false][yourAddonName]) == 0 then
+							callbacks.registeredCallbacks[false][yourAddonName] = nil
+						end
+					end
+				end
+			end
+		end
+		--Gamepad
+		if callbacks.registeredCallbacks[true][yourAddonName] ~= nil then
+			if callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] ~= nil then
+				if callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
+					local callbackData = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown]
+					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
+						callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+						if NonContiguousCount(callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
+							callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = nil
+						end
+						if NonContiguousCount(callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab]) == 0 then
+							callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] = nil
+						end
+						if NonContiguousCount(callbacks.registeredCallbacks[true][yourAddonName]) == 0 then
+							callbacks.registeredCallbacks[true][yourAddonName] = nil
+						end
+					end
+				end
+			end
+		end
+	elseif type(inputType) == "boolean" then
+		if callbacks.registeredCallbacks[inputType][yourAddonName] ~= nil then
+			if callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] ~= nil then
+				if callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
+					local callbackData = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
+					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
+						callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+						if NonContiguousCount(callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
+							callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = nil
+						end
+						if NonContiguousCount(callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab]) == 0 then
+							callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] = nil
+						end
+						if NonContiguousCount(callbacks.registeredCallbacks[inputType][yourAddonName]) == 0 then
+							callbacks.registeredCallbacks[inputType][yourAddonName] = nil
+						end
+					end
+				end
+			end
+		end
+	else
+		dfe("[RemoveCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
+		return
+	end
+	return true
 end
 
 --**********************************************************************************************************************
