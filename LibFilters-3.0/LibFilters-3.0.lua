@@ -3222,7 +3222,24 @@ libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
 -->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
 function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName)
 	isShown = isShown or false
+	if yourAddonName == nil or yourAddonName == "" or yourAddonName == GlobalLibName or type(yourAddonName) ~= "string" then
+		dfe("[CreateCallbackName]ERROR - The addonName %q must be a string, or cannot be used!", tos(yourAddonName))
+		return
+	end
+	if type(isShown) ~= "boolean" then
+		dfe("[CreateCallbackName]ERROR - isShown %q needs to be a boolean (false/true)!", tos(isShown))
+		return
+	end
 	if universalDeconActiveTab == nil then universalDeconActiveTab = "" end
+	if type(universalDeconActiveTab) ~= "string" or (universalDeconActiveTab ~= "" and universalDeconActiveTab) then
+		dfe("[CreateCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchanting)!", tos(universalDeconActiveTab))
+		return
+	end
+	if raiseBeforeOtherAddonsCallbackName ~= nil and (raiseBeforeOtherAddonsCallbackName == "" or raiseBeforeOtherAddonsCallbackName == GlobalLibName or type(raiseBeforeOtherAddonsCallbackName) ~= "string") then
+		dfe("[CreateCallbackName]ERROR - The raiseBeforeOtherAddonsCallbackName %q must be a string, or cannot be used!", tos(raiseBeforeOtherAddonsCallbackName))
+		return
+	end
+
 	--Build the unique callback Name
 	local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 
@@ -3241,11 +3258,14 @@ function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, input
 		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] or {}
 		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] or {}
 		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown] = { callbackName=callBackUniqueName, raiseBefore=raiseBeforeOtherAddonsCallbackName }
-	else
+	elseif type(inputType) == "boolean" then
 		callbacks.registeredCallbacks[inputType][yourAddonName] = callbacks.registeredCallbacks[inputType][yourAddonName] or {}
 		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] or {}
 		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] or {}
 		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = { callbackName=callBackUniqueName, raiseBefore=raiseBeforeOtherAddonsCallbackName }
+	else
+		dfe("[CreateCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
+		return
 	end
 	return callBackUniqueName
 end
@@ -3670,36 +3690,38 @@ d("[OTHER ADDONs CALLBACKs - FIRE NOW]")
 						universalDeconActiveTabOfCallbackOfOtherAddonForCallback = nil
 					end
 					for filterTypeOfCallbackOfUniqueAddon, callbackDataOfFilterTypesOfUniqueAddon in pairs(filterTypesOfCallbacksOfUniqueAddon) do
-						for isShownCallback, callbackDataOfUniqueAddon in pairs(callbackDataOfFilterTypesOfUniqueAddon) do
-							if isShownCallback == isShown then
-								local callbackNameOfUniqueAddon = callbackDataOfUniqueAddon.callbackName
-d(">isShownCallback: " .. tos(isShownCallback) ..", uniqueAddonName: " ..tos(uniqueAddonName) .. ", filterType: " ..tos(filterTypeOfCallbackOfUniqueAddon) .. ", callBackName: " ..tos(callbackNameOfUniqueAddon))
-								if callbackNameOfUniqueAddon ~= nil and callbackNameOfUniqueAddon ~= "" and not callbacksOfOtherAddonsAddedForRaise[callbackNameOfUniqueAddon] then
-									--Any other callbach should be risen before?
-									local callbackRaiseBeforeName = callbackDataOfUniqueAddon.raiseBefore
-									if callbackRaiseBeforeName ~= nil and callbackRaiseBeforeName ~= "" and callbackRaiseBeforeName ~= callbackNameOfUniqueAddon
-											and not callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] then
-d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
-										--Check if this other callback exists and raise it first
-										--todo
-										--Add the callbackData of the callback to raise first to the sorted callback raising table now
-										--todo
-										callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] = true
-d(">>>added 'run before' callback to sorted table")
+						if filterTypeOfCallbackOfUniqueAddon == filterType then
+							for isShownCallback, callbackDataOfUniqueAddon in pairs(callbackDataOfFilterTypesOfUniqueAddon) do
+								if isShownCallback == isShown then
+									local callbackNameOfUniqueAddon = callbackDataOfUniqueAddon.callbackName
+	d(">isShownCallback: " .. tos(isShownCallback) ..", uniqueAddonName: " ..tos(uniqueAddonName) .. ", filterType: " ..tos(filterTypeOfCallbackOfUniqueAddon) .. ", callBackName: " ..tos(callbackNameOfUniqueAddon))
+									if callbackNameOfUniqueAddon ~= nil and callbackNameOfUniqueAddon ~= "" and not callbacksOfOtherAddonsAddedForRaise[callbackNameOfUniqueAddon] then
+										--Any other callbach should be risen before?
+										local callbackRaiseBeforeName = callbackDataOfUniqueAddon.raiseBefore
+										if callbackRaiseBeforeName ~= nil and callbackRaiseBeforeName ~= "" and callbackRaiseBeforeName ~= callbackNameOfUniqueAddon
+												and not callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] then
+	d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
+											--Check if this other callback exists and raise it first
+											--todo
+											--Add the callbackData of the callback to raise first to the sorted callback raising table now
+											--todo
+											callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] = true
+	d(">>>added 'run before' callback to sorted table")
+											tins(callbacksOfOtherAddonsSortedToRaiseNow, {
+												callbackNameOfUniqueAddon = callbackRaiseBeforeName,
+												filterTypeOfCallbackOfUniqueAddon = filterTypeOfCallbackOfUniqueAddon,
+												universalDeconActiveTabOfCallbackOfUniqueAddon = universalDeconActiveTabOfCallbackOfOtherAddonForCallback,
+											})
+										end
+	d(">>>added callback to sorted table")
+										--Add the callbackData to the sorted callback raising table now
+										callbacksOfOtherAddonsAddedForRaise[callbackNameOfUniqueAddon] = true
 										tins(callbacksOfOtherAddonsSortedToRaiseNow, {
-											callbackNameOfUniqueAddon = callbackRaiseBeforeName,
+											callbackNameOfUniqueAddon = callbackNameOfUniqueAddon,
 											filterTypeOfCallbackOfUniqueAddon = filterTypeOfCallbackOfUniqueAddon,
 											universalDeconActiveTabOfCallbackOfUniqueAddon = universalDeconActiveTabOfCallbackOfOtherAddonForCallback,
 										})
 									end
-d(">>>added callback to sorted table")
-									--Add the callbackData to the sorted callback raising table now
-									callbacksOfOtherAddonsAddedForRaise[callbackNameOfUniqueAddon] = true
-									tins(callbacksOfOtherAddonsSortedToRaiseNow, {
-										callbackNameOfUniqueAddon = callbackNameOfUniqueAddon,
-										filterTypeOfCallbackOfUniqueAddon = filterTypeOfCallbackOfUniqueAddon,
-										universalDeconActiveTabOfCallbackOfUniqueAddon = universalDeconActiveTabOfCallbackOfOtherAddonForCallback,
-									})
 								end
 							end
 						end
