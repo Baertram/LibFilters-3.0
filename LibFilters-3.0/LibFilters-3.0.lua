@@ -3231,8 +3231,8 @@ function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, input
 		return
 	end
 	if universalDeconActiveTab == nil then universalDeconActiveTab = "" end
-	if type(universalDeconActiveTab) ~= "string" or (universalDeconActiveTab ~= "" and universalDeconActiveTab) then
-		dfe("[CreateCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchanting)!", tos(universalDeconActiveTab))
+	if type(universalDeconActiveTab) ~= "string" or (universalDeconActiveTab ~= "" and universalDeconTabKeyToLibFiltersFilterType[universalDeconActiveTab] == nil) then
+		dfe("[CreateCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
 		return
 	end
 	if raiseBeforeOtherAddonsCallbackName ~= nil and (raiseBeforeOtherAddonsCallbackName == "" or raiseBeforeOtherAddonsCallbackName == GlobalLibName or type(raiseBeforeOtherAddonsCallbackName) ~= "string") then
