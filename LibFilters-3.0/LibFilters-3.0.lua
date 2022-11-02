@@ -3781,7 +3781,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	)
 
 
-d("[OTHER ADDONs CALLBACKs - FIRE NOW]")
+--d("[OTHER ADDONs CALLBACKs - FIRE NOW]")
 	--Check if other addons have registered a callback at the panel and raise these callbacks then
 	local callbacksOfOtherAddonsSortedToRaiseNow = {}
 	local callbacksOfOtherAddonsAddedForRaise = {}
@@ -3804,19 +3804,19 @@ d("[OTHER ADDONs CALLBACKs - FIRE NOW]")
 							for isShownCallback, callbackDataOfUniqueAddon in pairs(callbackDataOfFilterTypesOfUniqueAddon) do
 								if isShownCallback == isShown then
 									local callbackNameOfUniqueAddon = callbackDataOfUniqueAddon.callbackName
-	d(">isShownCallback: " .. tos(isShownCallback) ..", uniqueAddonName: " ..tos(uniqueAddonName) .. ", filterType: " ..tos(filterTypeOfCallbackOfUniqueAddon) .. ", callBackName: " ..tos(callbackNameOfUniqueAddon))
+--d(">isShownCallback: " .. tos(isShownCallback) ..", uniqueAddonName: " ..tos(uniqueAddonName) .. ", filterType: " ..tos(filterTypeOfCallbackOfUniqueAddon) .. ", callBackName: " ..tos(callbackNameOfUniqueAddon))
 									if callbackNameOfUniqueAddon ~= nil and callbackNameOfUniqueAddon ~= "" and not callbacksOfOtherAddonsAddedForRaise[callbackNameOfUniqueAddon] then
 										--Any other callbach should be risen before?
 										local callbackRaiseBeforeName = callbackDataOfUniqueAddon.raiseBefore
 										if callbackRaiseBeforeName ~= nil and callbackRaiseBeforeName ~= "" and callbackRaiseBeforeName ~= callbackNameOfUniqueAddon
 												and not callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] then
-d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
+--d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
 											--Check if this other callback exists and raise it first
 											local otherAddonsCallbackData = callbacks.allRegisteredAddonCallbacks[callbackRaiseBeforeName]
 											if otherAddonsCallbackData == true then
 												--Add the callbackData of the callback to raise first to the sorted callback raising table now
 												callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] = true
-	d(">>>added 'run before' callback to sorted table")
+--d(">>>added 'run before' callback to sorted table")
 												tins(callbacksOfOtherAddonsSortedToRaiseNow, {
 													callbackNameOfUniqueAddon = callbackRaiseBeforeName,
 													filterTypeOfCallbackOfUniqueAddon = filterTypeOfCallbackOfUniqueAddon,
@@ -3824,7 +3824,7 @@ d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
 												})
 											end
 										end
-	d(">>>added callback to sorted table")
+--d(">>>added callback to sorted table")
 										--Add the callbackData to the sorted callback raising table now
 										callbacksOfOtherAddonsAddedForRaise[callbackNameOfUniqueAddon] = true
 										tins(callbacksOfOtherAddonsSortedToRaiseNow, {
@@ -3842,20 +3842,21 @@ d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
 		end
 
 		if callbacksOfOtherAddonsSortedToRaiseNow ~= nil and #callbacksOfOtherAddonsSortedToRaiseNow > 0 then
-d(">>>>Run " ..tos(#callbacksOfOtherAddonsSortedToRaiseNow) .." callbacks now")
+--d(">>>>Run " ..tos(#callbacksOfOtherAddonsSortedToRaiseNow) .." callbacks now")
 			for _, callbackDataToRaise in ipairs(callbacksOfOtherAddonsSortedToRaiseNow) do
+				local callbackNameOfUniqueAddon = callbackDataToRaise.callbackNameOfUniqueAddon
 				local filterTypeOfCallbackOfUniqueAddon = callbackDataToRaise.filterTypeOfCallbackOfUniqueAddon
 				local universalDeconActiveTabOfCallbackOfUniqueAddon = callbackDataToRaise.universalDeconActiveTabOfCallbackOfUniqueAddon
 
 				if isDebugEnabled then
 					local filterTypeNameOfUniqueAddonCallback = libFilters_GetFilterTypeName(libFilters, filterTypeOfCallbackOfUniqueAddon)
 
-					df(callbackRaisePrefixStr .. callbackStr .. callbackRaiseSuffixStr,
+					df(callbackRaisePrefixStr .. "(" .. callbackNameOfUniqueAddon .. ") " .. callbackStr .. callbackRaiseSuffixStr,
 							tos(filterTypeNameOfUniqueAddonCallback), tos(filterTypeOfCallbackOfUniqueAddon),
 							tos(stateStr), tos(callbackDataToRaise.universalDeconActiveTabOfCallbackOfUniqueAddon), tos(universalDeconData.lastTab))
 				end
 				--Raise the registered callback of other addons
-				CM:FireCallbacks(callbackDataToRaise.callbackNameOfUniqueAddon,
+				CM:FireCallbacks(callbackNameOfUniqueAddon,
 						filterTypeOfCallbackOfUniqueAddon,
 						stateStr,
 						isInGamepadMode,
