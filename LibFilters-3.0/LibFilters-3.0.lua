@@ -87,6 +87,7 @@ local mapping = 					libFilters.mapping
 local callbacks = 					mapping.callbacks
 
 local callbackPattern = 			libFilters.callbackPattern
+local callbackBaseLibPattern = 		libFilters.callbackBaseLibPattern
 local callbacksUsingScenes = 		callbacks.usingScenes
 local callbacksUsingFragments = 	callbacks.usingFragments
 local callbacksUsingControls = 		callbacks.usingControls
@@ -102,6 +103,14 @@ callbacksAdded[2] = {}
 --fragments
 callbacksAdded[3] = {}
 callbacks.added = callbacksAdded
+--The registered callbacks which will be fired: Table of unique addonName, subTable per false (keyboard)/true (gamepad) input mode, subtable
+--for universalDeconstructionActiveTab, subtable with filterType
+callbacks.registeredCallbacks = {
+	--Keyboard
+	[false] = {},
+	--Gamepad
+	[true] = {},
+}
 
 local libFilters_CallbackRaise
 local onControlHiddenStateChange
@@ -3202,13 +3211,37 @@ libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
 -- Callback API
 --**********************************************************************************************************************
 --Create the callbackname for a libFilters filterPanel shown/hidden callback
+--It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]
 --number filterType needs to be a valid LF_* filterType constant
 --boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
+--boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
 --Returns String callbackNameGenerated
 -->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
-function libFilters:CreateCallbackName(yourAddonName, filterType, isShown)
+function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
 	isShown = isShown or false
-	return strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType))
+	if universalDeconActiveTab == nil then universalDeconActiveTab = "" end
+	--Build the unique callback Name
+	local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+
+	--Add the callback to the registered table
+	if universalDeconActiveTab == "" then
+		universalDeconActiveTab = "_NONE_"
+	end
+	if inputType == nil then
+		--Keyboard
+		callbacks.registeredCallbacks[false][yourAddonName] = callbacks.registeredCallbacks[false][yourAddonName] or {}
+		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] or {}
+		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = callBackUniqueName
+		--Gamepad
+		callbacks.registeredCallbacks[true][yourAddonName] = callbacks.registeredCallbacks[true][yourAddonName] or {}
+		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] or {}
+		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = callBackUniqueName
+	else
+		callbacks.registeredCallbacks[inputType][yourAddonName] = callbacks.registeredCallbacks[inputType][yourAddonName] or {}
+		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] or {}
+		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = callBackUniqueName
+	end
+	return callBackUniqueName
 end
 
 --**********************************************************************************************************************
@@ -3326,7 +3359,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	--todo: 2022-01-14: Currently parameter doNotUpdateCurrentAndLastFilterTypes is not used anywhere. Was used for crafting tables > inventory -> crafting table switch I think I remember?!
 	if doNotUpdateCurrentAndLastFilterTypes == true
 			and ((lastKnownFilterType ~= nil and currentFilterType ~= nil and lastKnownFilterType ~= currentFilterType) or
-			     (lastFilterTypeUniversalDeconTab ~= nil and currentFilterTypeUniversalDeconTab ~= nil and lastFilterTypeUniversalDeconTab ~= currentFilterTypeUniversalDeconTab)
+			(lastFilterTypeUniversalDeconTab ~= nil and currentFilterTypeUniversalDeconTab ~= nil and lastFilterTypeUniversalDeconTab ~= currentFilterTypeUniversalDeconTab)
 	) then
 		checkIfHidden = true
 	end
@@ -3389,7 +3422,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
                 end
         ]]
 
-	--Show the scene/fragment/control
+		--Show the scene/fragment/control
 	elseif stateStr == SCENE_SHOWN then
 		---With the addon craftbag extended active:
 		--Some fragments like BACKPACK_MAIL_LAYOUT_FRAGMENT are changing their hidden state to Shown after the CRAFTBAG_FRAGMENT was shown already.
@@ -3511,12 +3544,12 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	local lastCallbackState = libFilters._lastCallbackState
 	if ( lastCallbackState ~= nil and lastCallbackState == stateStr
 			and (
-				(currentFilterTypeBeforeReset ~= nil and filterType == currentFilterTypeBeforeReset)
-			and (currentFilterTypeUniversalDeconTabBeforeReset == nil
+			(currentFilterTypeBeforeReset ~= nil and filterType == currentFilterTypeBeforeReset)
+					and (currentFilterTypeUniversalDeconTabBeforeReset == nil
 					or (currentFilterTypeUniversalDeconTabBeforeReset ~= nil and universalDeconSelectedTabNow ~= nil
-						and universalDeconSelectedTabNow == currentFilterTypeUniversalDeconTabBeforeReset)
-				)
-		)
+					and universalDeconSelectedTabNow == currentFilterTypeUniversalDeconTabBeforeReset)
+			)
+	)
 	) then
 		--Reset the current and last variables now
 		libFilters._currentFilterType                  	= currentFilterTypeBeforeReset
@@ -3556,15 +3589,21 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	end
 
 	if lReferencesToFilterType == nil then lReferencesToFilterType = {} end
+	--Default callback name for LibFilters base callback (non-addon related, only raised directly by the library internally!)
+	-->The addon callbacks should be raised directly after this one!
+	--local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType) .. "-" .. tos(universalDeconSelectedTabNow)
+	local universalDeconSelectedTabNowForCallbackName = universalDeconSelectedTabNow
+	if universalDeconSelectedTabNowForCallbackName == nil then
+		universalDeconSelectedTabNowForCallbackName = ""
+	end
+	local callbackName = strfor(callbackBaseLibPattern, (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconSelectedTabNowForCallbackName))
 
-	local callbackName = GlobalLibName .. "-" .. stateStr .. "-" .. tos(filterType)
-
+	local callbackRaisePrefixStr = ""
+	local callbackRaiseSuffixStr = ""
+	local callbackStr = "!!! CALLBACK -> filterType: %q [%s] - %s"
 	if isDebugEnabled then
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
 		local callbackRefType = typeOfRefToName[typeOfRef]
-		local callbackRaisePrefixStr = ""
-		local callbackRaiseSuffixStr = ""
-		local callbackStr = "!!! CALLBACK -> filterType: %q [%s] - %s"
 		if universalDeconData.isShown == true then
 			callbackRaisePrefixStr = "|UD> "
 		end
@@ -3595,7 +3634,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 
 	--Fire the callback now
 	libFilters._lastCallbackState = stateStr
-
+	--Raise the library internal callback
 	CM:FireCallbacks(callbackName,
 			filterType,
 			stateStr,
@@ -3604,6 +3643,47 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			lReferencesToFilterType,
 			universalDeconSelectedTabNow
 	)
+
+	local otherAddonCallbacks = callbacks.registeredCallbacks[isInGamepadMode] --[yourAddonName][universalDeconActiveTab]
+	if otherAddonCallbacks ~= nil then
+d(">OTHER ADDONS CALLBACKS:")
+		local universalDeconSelectedTabNowForCallbackNameCheckStr = universalDeconSelectedTabNowForCallbackName
+		if universalDeconSelectedTabNowForCallbackNameCheckStr == "" then
+			universalDeconSelectedTabNowForCallbackNameCheckStr = "_NONE_"
+		end
+
+		for uniqueAddonName, callbacksOfAddon in pairs(otherAddonCallbacks) do
+			for universalDeconActiveTabOfCallbackOfOtherAddon, filterTypesOfCallbacksOfUniqueAddon in pairs(callbacksOfAddon) do
+				if universalDeconActiveTabOfCallbackOfOtherAddon == universalDeconSelectedTabNowForCallbackNameCheckStr then
+					local universalDeconActiveTabOfCallbackOfOtherAddonForCallback = universalDeconSelectedTabNowForCallbackNameCheckStr
+					if universalDeconActiveTabOfCallbackOfOtherAddonForCallback == "_NONE_" then
+						universalDeconActiveTabOfCallbackOfOtherAddonForCallback = nil
+					end
+					for filterTypeOfCallbackOfUniqueAddon, callbackNameOfUniqueAddon in pairs(filterTypesOfCallbacksOfUniqueAddon) do
+	d(">uniqueAddonName: " ..tos(uniqueAddonName) .. ", filterType: " ..tos(filterTypeOfCallbackOfUniqueAddon) .. ", callBackName: " ..tos(callbackNameOfUniqueAddon))
+						if callbackNameOfUniqueAddon ~= nil and callbackNameOfUniqueAddon ~= "" then
+							if isDebugEnabled then
+								local filterTypeNameOfUniqueAddonCallback = libFilters_GetFilterTypeName(libFilters, filterTypeOfCallbackOfUniqueAddon)
+
+								df(callbackRaisePrefixStr .. callbackStr .. callbackRaiseSuffixStr,
+										tos(filterTypeNameOfUniqueAddonCallback), tos(filterTypeOfCallbackOfUniqueAddon),
+										tos(stateStr), tos(universalDeconActiveTabOfCallbackOfOtherAddonForCallback), tos(universalDeconData.lastTab))
+							end
+							--Raise the registered callback of other addons
+							CM:FireCallbacks(callbackNameOfUniqueAddon,
+									filterTypeOfCallbackOfUniqueAddon,
+									stateStr,
+									isInGamepadMode,
+									fragmentOrSceneOrControl,
+									lReferencesToFilterType,
+									universalDeconActiveTabOfCallbackOfOtherAddonForCallback
+							)
+						end
+					end
+				end
+			end
+		end
+	end
 	return true
 end
 libFilters_CallbackRaise = libFilters.CallbackRaise
