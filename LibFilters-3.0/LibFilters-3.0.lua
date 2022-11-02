@@ -111,6 +111,9 @@ callbacks.registeredCallbacks = {
 	--Gamepad
 	[true] = {},
 }
+--The table containing all other addon registered unique calback names as key and value = boolean true
+callbacks.allRegisteredAddonCallbacks = {}
+
 
 local libFilters_CallbackRaise
 local onControlHiddenStateChange
@@ -3220,23 +3223,23 @@ libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
 --> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
 --Returns String callbackNameGenerated
 -->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
-function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName)
+function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName)
 	isShown = isShown or false
 	if yourAddonName == nil or yourAddonName == "" or yourAddonName == GlobalLibName or type(yourAddonName) ~= "string" then
-		dfe("[CreateCallbackName]ERROR - The addonName %q must be a string, or cannot be used!", tos(yourAddonName))
+		dfe("[RegisterCallbackName]ERROR - The addonName %q must be a string, or cannot be used!", tos(yourAddonName))
 		return
 	end
 	if type(isShown) ~= "boolean" then
-		dfe("[CreateCallbackName]ERROR - isShown %q needs to be a boolean (false/true)!", tos(isShown))
+		dfe("[RegisterCallbackName]ERROR - isShown %q needs to be a boolean (false/true)!", tos(isShown))
 		return
 	end
 	if universalDeconActiveTab == nil then universalDeconActiveTab = "" end
 	if type(universalDeconActiveTab) ~= "string" or (universalDeconActiveTab ~= "" and universalDeconTabKeyToLibFiltersFilterType[universalDeconActiveTab] == nil) then
-		dfe("[CreateCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
+		dfe("[RegisterCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
 		return
 	end
 	if raiseBeforeOtherAddonsCallbackName ~= nil and (raiseBeforeOtherAddonsCallbackName == "" or raiseBeforeOtherAddonsCallbackName == GlobalLibName or type(raiseBeforeOtherAddonsCallbackName) ~= "string") then
-		dfe("[CreateCallbackName]ERROR - The raiseBeforeOtherAddonsCallbackName %q must be a string, or cannot be used!", tos(raiseBeforeOtherAddonsCallbackName))
+		dfe("[RegisterCallbackName]ERROR - The raiseBeforeOtherAddonsCallbackName %q must be a string, or cannot be used!", tos(raiseBeforeOtherAddonsCallbackName))
 		return
 	end
 
@@ -3264,9 +3267,12 @@ function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, input
 		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] or {}
 		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = { callbackName=callBackUniqueName, raiseBefore=raiseBeforeOtherAddonsCallbackName }
 	else
-		dfe("[CreateCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
+		dfe("[RegisterCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
 		return
 	end
+
+	callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = true
+
 	return callBackUniqueName
 end
 
@@ -3277,19 +3283,19 @@ end
 --boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
 --nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
 --Returns boolean wasRemoved true/false
-function libFilters:RemoveCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
+function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
 	isShown = isShown or false
 	if yourAddonName == nil or yourAddonName == "" or yourAddonName == GlobalLibName or type(yourAddonName) ~= "string" then
-		dfe("[RemoveCallbackName]ERROR - The addonName %q must be a string, or cannot be used!", tos(yourAddonName))
+		dfe("[UnregisterCallbackName]ERROR - The addonName %q must be a string, or cannot be used!", tos(yourAddonName))
 		return
 	end
 	if type(isShown) ~= "boolean" then
-		dfe("[RemoveCallbackName]ERROR - isShown %q needs to be a boolean (false/true)!", tos(isShown))
+		dfe("[UnregisterCallbackName]ERROR - isShown %q needs to be a boolean (false/true)!", tos(isShown))
 		return
 	end
 	if universalDeconActiveTab == nil then universalDeconActiveTab = "" end
 	if type(universalDeconActiveTab) ~= "string" or (universalDeconActiveTab ~= "" and universalDeconTabKeyToLibFiltersFilterType[universalDeconActiveTab] == nil) then
-		dfe("[RemoveCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
+		dfe("[UnregisterCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
 		return
 	end
 
@@ -3308,6 +3314,8 @@ function libFilters:RemoveCallbackName(yourAddonName, filterType, isShown, input
 					local callbackData = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown]
 					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
 						callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+						callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
+
 						if NonContiguousCount(callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
 							callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = nil
 						end
@@ -3328,6 +3336,8 @@ function libFilters:RemoveCallbackName(yourAddonName, filterType, isShown, input
 					local callbackData = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown]
 					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
 						callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+						callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
+
 						if NonContiguousCount(callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
 							callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = nil
 						end
@@ -3348,6 +3358,8 @@ function libFilters:RemoveCallbackName(yourAddonName, filterType, isShown, input
 					local callbackData = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
 					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
 						callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+						callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
+
 						if NonContiguousCount(callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
 							callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = nil
 						end
@@ -3362,7 +3374,7 @@ function libFilters:RemoveCallbackName(yourAddonName, filterType, isShown, input
 			end
 		end
 	else
-		dfe("[RemoveCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
+		dfe("[UnregisterCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
 		return
 	end
 	return true
@@ -3798,18 +3810,19 @@ d("[OTHER ADDONs CALLBACKs - FIRE NOW]")
 										local callbackRaiseBeforeName = callbackDataOfUniqueAddon.raiseBefore
 										if callbackRaiseBeforeName ~= nil and callbackRaiseBeforeName ~= "" and callbackRaiseBeforeName ~= callbackNameOfUniqueAddon
 												and not callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] then
-	d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
+d(">>callbackRaiseBefore: " ..tos(callbackRaiseBeforeName))
 											--Check if this other callback exists and raise it first
-											--todo
-											--Add the callbackData of the callback to raise first to the sorted callback raising table now
-											--todo
-											callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] = true
+											local otherAddonsCallbackData = callbacks.allRegisteredAddonCallbacks[callbackRaiseBeforeName]
+											if otherAddonsCallbackData == true then
+												--Add the callbackData of the callback to raise first to the sorted callback raising table now
+												callbacksOfOtherAddonsAddedForRaise[callbackRaiseBeforeName] = true
 	d(">>>added 'run before' callback to sorted table")
-											tins(callbacksOfOtherAddonsSortedToRaiseNow, {
-												callbackNameOfUniqueAddon = callbackRaiseBeforeName,
-												filterTypeOfCallbackOfUniqueAddon = filterTypeOfCallbackOfUniqueAddon,
-												universalDeconActiveTabOfCallbackOfUniqueAddon = universalDeconActiveTabOfCallbackOfOtherAddonForCallback,
-											})
+												tins(callbacksOfOtherAddonsSortedToRaiseNow, {
+													callbackNameOfUniqueAddon = callbackRaiseBeforeName,
+													filterTypeOfCallbackOfUniqueAddon = filterTypeOfCallbackOfUniqueAddon,
+													universalDeconActiveTabOfCallbackOfUniqueAddon = universalDeconActiveTabOfCallbackOfOtherAddonForCallback,
+												})
+											end
 										end
 	d(">>>added callback to sorted table")
 										--Add the callbackData to the sorted callback raising table now
