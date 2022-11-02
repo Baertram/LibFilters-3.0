@@ -104,7 +104,7 @@ callbacksAdded[2] = {}
 callbacksAdded[3] = {}
 callbacks.added = callbacksAdded
 --The registered callbacks which will be fired: Table of unique addonName, subTable per false (keyboard)/true (gamepad) input mode, subtable
---for universalDeconstructionActiveTab, subtable with filterType
+--for universalDeconstructionActiveTab, subtable with filterType, and subTable with isShown (boolean true = callback showing, false = callback hiding)
 callbacks.registeredCallbacks = {
 	--Keyboard
 	[false] = {},
@@ -3231,15 +3231,18 @@ function libFilters:CreateCallbackName(yourAddonName, filterType, isShown, input
 		--Keyboard
 		callbacks.registeredCallbacks[false][yourAddonName] = callbacks.registeredCallbacks[false][yourAddonName] or {}
 		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] or {}
-		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = callBackUniqueName
+		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] or {}
+		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown] = callBackUniqueName
 		--Gamepad
 		callbacks.registeredCallbacks[true][yourAddonName] = callbacks.registeredCallbacks[true][yourAddonName] or {}
 		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] or {}
-		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = callBackUniqueName
+		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] or {}
+		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown] = callBackUniqueName
 	else
 		callbacks.registeredCallbacks[inputType][yourAddonName] = callbacks.registeredCallbacks[inputType][yourAddonName] or {}
 		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] or {}
-		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = callBackUniqueName
+		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] or {}
+		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = callBackUniqueName
 	end
 	return callBackUniqueName
 end
@@ -3644,9 +3647,9 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			universalDeconSelectedTabNow
 	)
 
-	local otherAddonCallbacks = callbacks.registeredCallbacks[isInGamepadMode] --[yourAddonName][universalDeconActiveTab]
+	--Check if other addons have registered a callback at the panel and raise these callbacks then
+	local otherAddonCallbacks = callbacks.registeredCallbacks[isInGamepadMode] --[yourAddonName][universalDeconActiveTab][filterType][showTrueOrHideFalse]
 	if otherAddonCallbacks ~= nil then
-d(">OTHER ADDONS CALLBACKS:")
 		local universalDeconSelectedTabNowForCallbackNameCheckStr = universalDeconSelectedTabNowForCallbackName
 		if universalDeconSelectedTabNowForCallbackNameCheckStr == "" then
 			universalDeconSelectedTabNowForCallbackNameCheckStr = "_NONE_"
