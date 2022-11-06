@@ -3214,15 +3214,15 @@ libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
 -- Callback API
 --**********************************************************************************************************************
 --Create the callbackname for a libFilters filterPanel shown/hidden callback
---It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
---number filterType needs to be a valid LF_* filterType constant
---boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
---boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
---nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
---nilable:String raiseBeforeOtherAddonsCallbackName If this callbackName (of another addon) is given the callback should be raised after this callback was raised. The callbackName provided here must match the
---> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
---Returns String callbackNameGenerated
--->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
+----It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
+----number filterType needs to be a valid LF_* filterType constant
+----boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
+----boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
+----nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+----nilable:String raiseBeforeOtherAddonsCallbackName If this callbackName (of another addon) is given the callback should be raised after this callback was raised. The callbackName provided here must match the
+----> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
+----Returns String callbackNameGenerated
+---->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
 function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName)
 	isShown = isShown or false
 	if yourAddonName == nil or yourAddonName == "" or yourAddonName == GlobalLibName or type(yourAddonName) ~= "string" then
