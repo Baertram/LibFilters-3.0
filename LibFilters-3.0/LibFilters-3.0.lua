@@ -3275,6 +3275,9 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 
 	return callBackUniqueName
 end
+--Compatibility for older addons!
+libFilters.CreateCallbackName = libFilters.RegisterCallbackName
+
 
 --Remove an added callbackname for a libFilters filterPanel shown/hidden callback again
 --It will remove the entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
@@ -3772,6 +3775,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	libFilters._lastCallbackState = stateStr
 	--Raise the library internal callback
 	CM:FireCallbacks(callbackName,
+			callbackName,
 			filterType,
 			stateStr,
 			isInGamepadMode,
@@ -3857,6 +3861,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 				end
 				--Raise the registered callback of other addons
 				CM:FireCallbacks(callbackNameOfUniqueAddon,
+						callbackNameOfUniqueAddon,
 						filterTypeOfCallbackOfUniqueAddon,
 						stateStr,
 						isInGamepadMode,
@@ -4574,6 +4579,52 @@ local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 	EM:RegisterForEvent(MAJOR .. "_EVENT_PLAYER_ACTIVATED", EVENT_PLAYER_ACTIVATED, eventPlayerActivatedCallback)
 end
 
+------------------------------------------------------------------------------------------------------------------------
+local function doTestStuff()
+libFilters._callbackData = {}
+libFilters._callbackData[LF_INVENTORY] = {}
+
+	local function callbackFunctionForInvShown(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+	d("callbackinvshown")
+
+		libFilters._callbackData[LF_INVENTORY][stateStr] = {
+	callbackName = callbackName,
+	filterType = filterType,
+	stateStr = stateStr,
+	isInGamepadMode = isInGamepadMode,
+	fragmentOrSceneOrControl = fragmentOrSceneOrControl,
+	lReferencesToFilterType = lReferencesToFilterType,
+	universalDeconSelectedTabNow = universalDeconSelectedTabNow,
+}
+
+		if filterType == LF_INVENTORY then
+			d("Inventory - " ..tos(stateStr))
+		end
+	end
+
+	local function callbackFunctionForInvHidden(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+	d("callbackinvhidden")
+libFilters._callbackData[LF_INVENTORY][stateStr] = {
+	callbackName = callbackName,
+	filterType = filterType,
+	stateStr = stateStr,
+	isInGamepadMode = isInGamepadMode,
+	fragmentOrSceneOrControl = fragmentOrSceneOrControl,
+	lReferencesToFilterType = lReferencesToFilterType,
+	universalDeconSelectedTabNow = universalDeconSelectedTabNow,
+}
+		if filterType == LF_INVENTORY then
+			d("Inventory - " ..tos(stateStr))
+		end
+	end
+
+	local callbackNameInvShown = libFilters:CreateCallbackName("ASOD", LF_INVENTORY, true)
+	d("Callback created: " ..callbackNameInvShown)
+	CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
+	local callbackNameInvHidden = libFilters:CreateCallbackName("ASOD", LF_INVENTORY, false)
+	d("Callback created: " ..callbackNameInvHidden)
+	CALLBACK_MANAGER:RegisterCallback(callbackNameInvHidden, callbackFunctionForInvHidden)
+end
 
 --**********************************************************************************************************************
 -- LIBRARY LOADING / INITIALIZATION
@@ -4600,6 +4651,12 @@ function libFilters:InitializeLibFilters()
 
 	--Create the callbacks if not already done
 	createCallbacks()
+
+
+	--Test stuff
+	if GetDisplayName() == "@Baertram" then
+		doTestStuff()
+	end
 end
 
 --______________________________________________________________________________________________________________________
