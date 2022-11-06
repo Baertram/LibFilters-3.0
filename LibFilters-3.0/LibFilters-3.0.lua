@@ -3275,8 +3275,6 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 
 	return callBackUniqueName
 end
---Compatibility for older addons!
-libFilters.CreateCallbackName = libFilters.RegisterCallbackName
 
 
 --Remove an added callbackname for a libFilters filterPanel shown/hidden callback again
@@ -4654,9 +4652,11 @@ function libFilters:InitializeLibFilters()
 
 
 	--Test stuff
+	--[[
 	if GetDisplayName() == "@Baertram" then
 		doTestStuff()
 	end
+	]]
 end
 
 --______________________________________________________________________________________________________________________
