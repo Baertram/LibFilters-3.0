@@ -1911,7 +1911,7 @@ libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeFor
 -- Get the actually used filterType via the shown control/scene/userdata information
 -- returns number LF*_filterType
 --		   String universalDeconSelectedTabKey e.g. "all", "weapons", "armor", "jewelry", "enchantments" if the universal deconstruction panel is currently active
--->		 (which re-usess LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTARCT)
+-->		 (which re-usess LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACT)
 function libFilters:GetCurrentFilterType()
 	local filterTypeReference, filterType, universalDeconSelectedTabKey = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
 	if isDebugEnabled then dd("GetCurrentFilterType-filterReference: %s, filterTypeDetected: %s, universalDeconTabKey: %s", tos(filterTypeReference), tos(filterType), tos(universalDeconSelectedTabKey)) end
@@ -2787,6 +2787,8 @@ function libFilters:IsAlchemyShown(alchemyMode)
 end
 
 --Check if the Universal Deconstruction panel is shown
+--returns boolean isShown
+--sceneReference UniversalDeconstructionScene (gamepad or keyboard mode)
 function libFilters:IsUniversalDeconstructionPanelShown(isGamepadMode)
 	if isGamepadMode == nil then isGamepadMode = IsGamepad() end
 	--Check if the gamepad or keyboard scene :IsShowing()
@@ -3176,6 +3178,7 @@ local libFilters_IsCraftBagExtendedParentFilterType = libFilters.IsCraftBagExten
 
 
 --Is the vanillaUI CraftBag shown
+--returns boolean isShown
 function libFilters:IsVanillaCraftBagShown()
 	local lReferencesToFilterType, lFilterTypeDetected
 	local inputType = IsGamepad()
@@ -3200,6 +3203,7 @@ local libFilters_IsVanillaCraftBagShown = libFilters.IsVanillaCraftBagShown
 
 
 --Is any CraftBag shown, vanilla UI or CraftBagExtended
+--returns boolean isShown
 function libFilters:IsCraftBagShown()
 	local vanillaUICraftBagShown = libFilters_IsVanillaCraftBagShown(libFilters)
 	local cbeCraftBagShown = libFilters_IsCraftBagExtendedParentFilterType(libFilters, cbeSupportedFilterPanels)
