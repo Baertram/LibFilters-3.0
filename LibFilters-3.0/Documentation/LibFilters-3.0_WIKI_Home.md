@@ -256,7 +256,7 @@ end
 --if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
 --e.g. for LF_INVENTORY shown it would be
 local callbackNameInvShown = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_INVENTORY, true)
---Makes: "LibFilters3-shown-1"
+--Makes: "LibFilters3-MyUniqueAddonName-shown-1"
 
 --The callbackFunction you register to it needs to provide the following parameters in the following order:
 --callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow
