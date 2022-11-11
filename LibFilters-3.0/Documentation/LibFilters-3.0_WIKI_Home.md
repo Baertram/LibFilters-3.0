@@ -48,11 +48,11 @@ LIBFILTERS3_ in gamepad mode.
 These fragments will be added to vanilla gamepad scenes/fragments so they show/hide with them properly.
 
 ## Important - Library initialization
-You MUST call 
+You MUST call
 <pre>
 LibFilters3:InitializeLibFilters()
 </pre>
-once in any of the addons that use LibFilters, at/after EVENT_ADD_ON_LOADED callback, to create the hooks and init the 
+once in any of the addons that use LibFilters, at/after EVENT_ADD_ON_LOADED callback, to create the hooks and init the
 library properly!
 
 ## Filter functions
@@ -68,7 +68,7 @@ Filter function with bagId and slotIndex (often used at crafting tables)
 local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
   return true  show the item in the list / false = hide item
 end
- 
+
 All LF_ constants except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
 are using the InventorySlot filter function!
 
@@ -143,7 +143,7 @@ end
 </pre>
 
 ### Specify own test filterFunction
-You can specify your own global filterFunction from your addon to test the filtering by providing them via the slash command 
+You can specify your own global filterFunction from your addon to test the filtering by providing them via the slash command
 <pre>/lftestfilters OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor globalFilterFunctionUsingBagIdAndSlotIndex</pre> as parameters.
 If no 1st param LF_filterTypeConstantToAddTheFilterFunctionFor was given it will use LF_FILTER_ALL and register the globalFilterFunctionUsingBagIdAndSlotIndex filterFunction provided for all filterTypes in the test environment.
 
@@ -153,7 +153,7 @@ It does not differ between inventorySlot or bagId & slotIndex as normal filterFu
 
 
 ## Callbacks
-LibFilters provides callbacks that fire as a panel is shown/hidden. 
+LibFilters provides callbacks that fire as a panel is shown/hidden.
 You can register your own callback's callback function to run as the callback fires at the different supported LF* constant's panels show/hide.
 The callbacks that can fire use the ESO scene callback shown/hidden constants SCENE_SHOWN and SCENE_HIDDEN (allthough not all callbacks for keyboard/gamepad mode will use scenes. They can depend on multiple different scenes/fragments/controls or even custom code, just the constants SCENE_SHOWN and SCENE_HIDDEN are used internally to differe the OnShow and OnHide callbacks).
 
@@ -192,7 +192,7 @@ CALLBACK_MANAGER:RegisterCallback(callbackNameCreatedByLibFiltersAPIFunctionRegi
 The **callbackNameCreatedByLibFiltersAPIFunctionRegisterCallbackName** is the name you have created via API function libfilters:RegisterCallbackName, for the show or hide callback of your addon's LF* constant!
 The callback function **yourCallbackFunctionForPanelShownOrHidden** uses the following parameters:
 <pre>
-callbackName String: Your callbackName used, created via API function libfilters:RegisterCallbackName 
+callbackName String: Your callbackName used, created via API function libfilters:RegisterCallbackName
 filterType Number: The LibFilzetrs filterType constant LF_* used
 stateStr String: SCENE_SHOWN "shown" or SCENE_HIDDEN "hidden" depending on the callback's purpose (OnShown, or OnHidden)
 isInGamepadMode Boolean: true if currently ingamepad mode, else it will be false
@@ -208,7 +208,7 @@ as LF_SMITHING_DECONSTRUCT counts for normal smithing/clotier/woodworking and un
 ## Example usage
 You need to initialize the library once (See above "Library initialization").
 You need to create a filterFunction for your needs, using the correct parameters (inventorySlot, or bagid & slotIndex).
-You need to define a unique filtertAg for each filter, e.g. if your addon name is "MyAddonName1" then create a filterTag starting with your addon name, then an underscore "_", followed by a short description of the purpose and then add "-" and the LF_* constant of the filter as suffix: 
+You need to define a unique filtertAg for each filter, e.g. if your addon name is "MyAddonName1" then create a filterTag starting with your addon name, then an underscore "_", followed by a short description of the purpose and then add "-" and the LF_* constant of the filter as suffix:
 "MyAddonName1_StolenOnlyInInv-1" if you want to only show stolen items in the inventory LF_INVENTORY.
 You need to register a filter in order to add the filterFunction to the .additionalFilter attribute of the filters to run.
 <pre>
@@ -252,7 +252,7 @@ end
 --The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
 --The callback name is build by the library prefix "LibFilters3-" (constant provided is LibFilters3.globalLibName) followed by <yourAddonName> and another "-", followed by the state of the filterPanel as the callback fires (can be either the constant SCENE_SHOWN or SCENE_HIDDEN), followed by "-" and the suffix is the filterType constant
 --of the panel.
---The library provides the API function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName) to generate the callback name for you. isShown is a boolean. 
+--The library provides the API function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName) to generate the callback name for you. isShown is a boolean.
 --if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
 --e.g. for LF_INVENTORY shown it would be
 local callbackNameInvShown = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_INVENTORY, true)
@@ -282,4 +282,5 @@ end
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
 ```
+
 
