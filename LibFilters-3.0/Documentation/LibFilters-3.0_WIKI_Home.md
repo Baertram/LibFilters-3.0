@@ -1,7 +1,7 @@
 # LibFilters
 **An Elder Scrolls Online library to filter your items at the different inventories**
 
-Current version: 3, last updated: 2022-11-01
+Current version: 3, last updated: 2022-11-11
 
 This library is used to filter inventory items (show/hide) at the different panels/inventories -> LibFilters uses the
 term "filterType" for the different inventories (also called filterPanels).
@@ -350,4 +350,51 @@ end
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForSmithingDeconstructionShown)
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvHidden, callbackFunctionForSmithingDeconstructionHidden)
+```
+
+#### Use a callback for show/hide of UniversalDeconstruction panel ####
+The following example will create callback functions that fire each time the UniversalDeconstruction panel (at keyboard mode!) will show or hide, or
+as a tab at the UniversalDeconstruction panel changes (from "all" to "jewelry", or "jewelry" to "enchantments", etc.).
+<br>
+The parameter "LibFilters_OtherAddonName_shown_16_all" is an example how to raise your callback before a callback of another registered addon, using LibFilters callbacks, is raised. That oher addon's name is "OtherAddonName", it's the "OnShow" callback as you can see by the "shown" text of SCENE_SHOWN constant, 15 is LF_SMITHING_DECONSTRUCT which is used at UniversalDecon's "all" tab, and "all" is the UniversalDecon tab name active at that panel.<br>
+
+Used within addon FCO CraftFilter:<br>
+```lua
+ local addonName = "FCOCraftFilter"
+
+
+ --======== UNIVERSAL DECONSTRUCTION ===========================================================
+    --[[
+        callbackName,
+        filterType,
+        stateStr,
+        isInGamepadMode,
+        fragmentOrSceneOrControl,
+        lReferencesToFilterType,
+        universalDeconSelectedTabNow
+    ]]
+    local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+--d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
+        FCOCraftFilter_CheckIfUniversalDeconIsShownAndAddButton(FCOCF_CRAFTINGTYPE_UNIVERSAL_DECONSTRUCTION, stateStr, universalDeconSelectedTabNow)
+    end
+    local callbackNameUniversalDeconDeconAllShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "all", "LibFilters_OtherAddonName_show_16_all")
+    local callbackNameUniversalDeconDeconAllHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "all")
+    CM:RegisterCallback(callbackNameUniversalDeconDeconAllShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+    CM:RegisterCallback(callbackNameUniversalDeconDeconAllHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+    local callbackNameUniversalDeconDeconArmorShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "armor")
+    local callbackNameUniversalDeconDeconArmorHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "armor")
+    CM:RegisterCallback(callbackNameUniversalDeconDeconArmorShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+    CM:RegisterCallback(callbackNameUniversalDeconDeconArmorHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+    local callbackNameUniversalDeconDeconWeaponsShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "weapons")
+    local callbackNameUniversalDeconDeconWeaponsHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "weapons")
+    CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+    CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+    local callbackNameUniversalDeconJewelryDeconShown = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, true, nil, "jewelry")
+    local callbackNameUniversalDeconJewelryDeconHidden = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, false, nil, "jewelry")
+    CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+    CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+    local callbackNameUniversalDeconEnchantingShown = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, true, nil, "enchantments")
+    local callbackNameUniversalDeconEnchantingHidden = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, false, nil, "enchantments")
+    CM:RegisterCallback(callbackNameUniversalDeconEnchantingShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+    CM:RegisterCallback(callbackNameUniversalDeconEnchantingHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
 ```
