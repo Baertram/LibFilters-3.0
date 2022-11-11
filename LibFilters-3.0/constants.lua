@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.7
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.8
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -2454,8 +2454,10 @@ mapping.inventoryUpdaters = { }
 libFilters.mapping.callbacks = {}
 local callbacks = libFilters.mapping.callbacks
 --The pattern for the filterPanel shown/hidden callbacks,
--->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
-libFilters.callbackPattern = GlobalLibName .. "-%s-%s-%s"
+-->e.g. "LibFilters3-<yourAddonName>-shown-1-all" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>, and universalDeconTab "all"
+libFilters.callbackPattern = GlobalLibName .. "-%s-%s-%s-%s"
+--The pattern for non-addons -> Base Library callback raising! LibFilters3-shown-1-all for SCENE_SHOWN and filterType LF_INVENTORY and universalDeconTab "all"
+libFilters.callbackBaseLibPattern = GlobalLibName .. "-%s-%s-%s"
 
 --The supported SCENE states for the callbacks
 --Currently: shown and hidden

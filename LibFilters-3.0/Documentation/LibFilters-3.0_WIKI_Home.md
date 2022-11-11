@@ -48,11 +48,11 @@ LIBFILTERS3_ in gamepad mode.
 These fragments will be added to vanilla gamepad scenes/fragments so they show/hide with them properly.
 
 ## Important - Library initialization
-You MUST call 
+You MUST call
 <pre>
 LibFilters3:InitializeLibFilters()
 </pre>
-once in any of the addons that use LibFilters, at/after EVENT_ADD_ON_LOADED callback, to create the hooks and init the 
+once in any of the addons that use LibFilters, at/after EVENT_ADD_ON_LOADED callback, to create the hooks and init the
 library properly!
 
 ## Filter functions
@@ -68,7 +68,7 @@ Filter function with bagId and slotIndex (often used at crafting tables)
 local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
   return true  show the item in the list / false = hide item
 end
- 
+
 All LF_ constants except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
 are using the InventorySlot filter function!
 
@@ -143,7 +143,7 @@ end
 </pre>
 
 ### Specify own test filterFunction
-You can specify your own global filterFunction from your addon to test the filtering by providing them via the slash command 
+You can specify your own global filterFunction from your addon to test the filtering by providing them via the slash command
 <pre>/lftestfilters OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor globalFilterFunctionUsingBagIdAndSlotIndex</pre> as parameters.
 If no 1st param LF_filterTypeConstantToAddTheFilterFunctionFor was given it will use LF_FILTER_ALL and register the globalFilterFunctionUsingBagIdAndSlotIndex filterFunction provided for all filterTypes in the test environment.
 
@@ -153,27 +153,46 @@ It does not differ between inventorySlot or bagId & slotIndex as normal filterFu
 
 
 ## Callbacks
-LibFilters provides callbacks that fire as a panel is shown/hidden. The test UI shows you as this happens e.g.
-You can register your own callback's callback function to run as the callback fires. The callbacks that can fire use the ESO scene callback shown/hidden constants SCENE_SHOWN and SCENE_HIDDEN (allthough not all callbacks for keyboard/gamepad mode will use scenes. They can depend on multiple different scenes/fragments/controls or even custom code).
+LibFilters provides callbacks that fire as a panel is shown/hidden.
+You can register your own callback's callback function to run as the callback fires at the different supported LF* constant's panels show/hide.
+The callbacks that can fire use the ESO scene callback shown/hidden constants SCENE_SHOWN and SCENE_HIDDEN (allthough not all callbacks for keyboard/gamepad mode will use scenes. They can depend on multiple different scenes/fragments/controls or even custom code, just the constants SCENE_SHOWN and SCENE_HIDDEN are used internally to differe the OnShow and OnHide callbacks).
 
-You need a unique callback name (e.g. starting with your addonName and then the LibFilters filterType constant LF_* you want to register the callback with, followed by a string like SHOWN or HIDDEN (which the constants SCENE_SHOWN and SCENE_HIDDEN provide).
-You need to use the API function to create such a unique callback name first.
+You need a unique callback name (e.g. starting with your addonName and then the LibFilters filterType constant LF_* you want to register the callback for, followed by a string like SHOWN or HIDDEN (which the constants SCENE_SHOWN and SCENE_HIDDEN provide)
+You need to use the API function **libFilters:RegisterCallbackName** to create such a unique callback name first AND to register it's execution, so that you can use the CALLBACK_MANAGER of ESO to add a callbackFunction to this unique callbackName.
 <pre>
---Create the callbackname for a libFilters filterPanel shown/hidden callback
+---Create the callbackname for a libFilters filterPanel shown/hidden callback
+----It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
+----number filterType needs to be a valid LF_* filterType constant
+----boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
+----boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
+----nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+----nilable:String raiseBeforeOtherAddonsCallbackName If this callbackName (of another addon) is given the callback should be raised after this callback was raised. The callbackName provided here must match the
+----> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
+----Returns String callbackNameGenerated
+---->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
+LibFilters3:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName)
+</pre>
+You can unregister a registered callbackName again by using the function
+<pre>
+--Remove an added callbackname for a libFilters filterPanel shown/hidden callback again
+--It will remove the entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
 --number filterType needs to be a valid LF_* filterType constant
 --boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
---Returns String callbackNameGenerated
--->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
-libfilters:CreateCallbackName(yourAddonName, filterType, isShown)
+--boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
+--nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+--Returns boolean wasRemoved true/false
+LibFilters3:UnregisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
 </pre>
-After that you need to register this callbackname in your addon via the CALLBACK_MANAGER of ESO:
+
+
+After registering a callbackName you need to register a callbackFunction to that callbackname in your addon via the CALLBACK_MANAGER of ESO:
 <pre>
-CALLBACK_MANAGER:RegisterCallback(callbackNameCreatedByLibFiltersAPI, yourCallbackFunctionForPanelShownOrHidden)
+CALLBACK_MANAGER:RegisterCallback(callbackNameCreatedByLibFiltersAPIFunctionRegisterCallbackName, yourCallbackFunctionForPanelShownOrHidden)
 </pre>
-The <callbackNameCreatedByLibFiltersAPI> is the name you have created via API function libfilters:CreateCallbackName, for the show or hide callback of your addon's LF* constant!
-The callback function <yourCallbackFunctionForPanelShownOrHidden> you will use for panel shown or panel hidden usess the following parameters:
+The **callbackNameCreatedByLibFiltersAPIFunctionRegisterCallbackName** is the name you have created via API function libfilters:RegisterCallbackName, for the show or hide callback of your addon's LF* constant!
+The callback function **yourCallbackFunctionForPanelShownOrHidden** uses the following parameters:
 <pre>
-callbackName String: Your callbackName used, created via API function libfilters:CreateCallbackName 
+callbackName String: Your callbackName used, created via API function libfilters:RegisterCallbackName
 filterType Number: The LibFilzetrs filterType constant LF_* used
 stateStr String: SCENE_SHOWN "shown" or SCENE_HIDDEN "hidden" depending on the callback's purpose (OnShown, or OnHidden)
 isInGamepadMode Boolean: true if currently ingamepad mode, else it will be false
@@ -189,7 +208,7 @@ as LF_SMITHING_DECONSTRUCT counts for normal smithing/clotier/woodworking and un
 ## Example usage
 You need to initialize the library once (See above "Library initialization").
 You need to create a filterFunction for your needs, using the correct parameters (inventorySlot, or bagid & slotIndex).
-You need to define a unique filtertAg for each filter, e.g. if your addon name is "MyAddonName1" then create a filterTag starting with your addon name, then an underscore "_", followed by a short description of the purpose and then add "-" and the LF_* constant of the filter as suffix: 
+You need to define a unique filtertAg for each filter, e.g. if your addon name is "MyAddonName1" then create a filterTag starting with your addon name, then an underscore "_", followed by a short description of the purpose and then add "-" and the LF_* constant of the filter as suffix:
 "MyAddonName1_StolenOnlyInInv-1" if you want to only show stolen items in the inventory LF_INVENTORY.
 You need to register a filter in order to add the filterFunction to the .additionalFilter attribute of the filters to run.
 <pre>
@@ -233,26 +252,29 @@ end
 --The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
 --The callback name is build by the library prefix "LibFilters3-" (constant provided is LibFilters3.globalLibName) followed by <yourAddonName> and another "-", followed by the state of the filterPanel as the callback fires (can be either the constant SCENE_SHOWN or SCENE_HIDDEN), followed by "-" and the suffix is the filterType constant
 --of the panel.
---The library provides the API function libfilters:CreateCallbackName(filterType, isShown) to generate the callback name for you. isShown is a boolean. 
+--The library provides the API function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName) to generate the callback name for you. isShown is a boolean.
 --if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
 --e.g. for LF_INVENTORY shown it would be
-local callbackNameInvShown = libfilters:CreateCallbackName(LF_INVENTORY, true)
+local callbackNameInvShown = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_INVENTORY, true)
 --Makes: "LibFilters3-shown-1"
 
 --The callbackFunction you register to it needs to provide the following parameters in the following order:
---number filterType is the LF_* constantfor the panel currently shown/hidden
+--callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow
+--Your defined callback's unique name
+--number filterType is the LF_* constant for the panel currently shown/hidden
 --string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
 --boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
 --refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 --table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
+--nilable:String universalDeconSelectedTabNow e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
 
-local function callbackFunctionForInvShown(filterType, fragmentOrSceneOrControl, lReferencesToFilterType, isInGamepadMode, stateStr)
+local function callbackFunctionForInvShown(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
   --Register your filterFunction here e.g. or do whatever is needed, like adding custom controls of your addon to the currently shown panel
   if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_INVENTORY) then
     libFilters:RegisterFilter(myAddonUniqueFilterTag, LF_INVENTORY, filterFuncForPlayerInv)
   end
 end
-local function callbackFunctionForInvHidden(filterType, fragmentOrSceneOrControl, lReferencesToFilterType, isInGamepadMode, stateStr)
+local function callbackFunctionForInvHidden(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
   --Unregister your filterFunction here e.g. or do whatever is needed, ikehiding custom controls of your addon at the currently hidden panel
   libFilters:UnRegisterFilter(myAddonUniqueFilterTag, LF_INVENTORY)
 end
@@ -260,4 +282,5 @@ end
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
 ```
+
 
