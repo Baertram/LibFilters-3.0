@@ -4675,4 +4675,3 @@ applyFixesEarly()
 EM:RegisterForEvent(MAJOR .. "_EVENT_ADDON_LOADED", EVENT_ADD_ON_LOADED, eventAddonLoadedCallback)
 
 if isDebugEnabled then dd("LIBRARY MAIN FILE - END") end
-

@@ -224,9 +224,12 @@ You need to check if a filter is registered already before registering/unregiste
 You can use the API functions provided in LibFilters-3.0.lua, search for "BEGIN LibFilters API functions BEGIN" and look below that tag, until "END LibFilters API functions END"
 
 ### Example code
-The following example code initiates the library and adds a filter function to the normal player inventory, which will hide items which are bound.
+
+#### Hide items at the player backpack (inventory) ####
+The following example code initiates the library and adds a filter function to the normal player inventory, which will hide items that are bound.
 -> See file /test/test.lua for more examples.
 ```lua
+
 --Call at EVENT_ADD_ON_LOADED as the library, once added to your addon's manifest .txt file tag ## DependsOn: LibFilters-3.0, will be ready then (loaded dependency before your addon was loaded)
 --Initi the library and it's API
 local libFilters = LibFilters3
@@ -242,11 +245,6 @@ local filterFuncForPlayerInv(inventorySlot)
   return IsItemLinkBound(itemLink)
 end
 
---Register a filterFunction to player inventory
-if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_INVENTORY) then
-  libFilters:RegisterFilter(myAddonUniqueFilterTag, LF_INVENTORY, filterFuncForPlayerInv)
-end
-
 --At any time the filter should not be applied anymore (e.g. as the inventory LF_INVENTORY hides) you need to unregister the filter again.
 --LibFilters will keep all registered filterFuctions active until you manually unregister them! So make sure to register and unregister them properly if not needed anymore
 --The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
@@ -257,6 +255,9 @@ end
 --e.g. for LF_INVENTORY shown it would be
 local callbackNameInvShown = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_INVENTORY, true)
 --Makes: "LibFilters3-MyUniqueAddonName-shown-1"
+local callbackNameInvHidden = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_INVENTORY, false)
+--Makes: "LibFilters3-MyUniqueAddonName-hidden-1"
+
 
 --The callbackFunction you register to it needs to provide the following parameters in the following order:
 --callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow
@@ -281,6 +282,72 @@ end
 
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
 CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForInvShown)
+CALLBACK_MANAGER:RegisterCallback(callbackNameInvHidden, callbackFunctionForInvHidden)
 ```
 
+#### Hide items at the smithing crafting table, deconstruction ####
+The following example code initiates the library and adds a filter function to the smithing deconstruction crafting table, which will hide items that are bound.
+-> See file /test/test.lua for more examples.
 
+```lua
+--Call at EVENT_ADD_ON_LOADED as the library, once added to your addon's manifest .txt file tag ## DependsOn: LibFilters-3.0, will be ready then (loaded dependency before your addon was loaded)
+--Initi the library and it's API
+local libFilters = LibFilters3
+libFilters:InitializeLibFilters()
+
+local myAddonUniqueFilterTag = "MyAddonName_FilterForFilterType" .. tostring(LF_SMITHING_DECONSTRUCT)
+
+--The filterFunction for the crafting table deconstruct, using bagId and slotIndex as parameter. Check documentation "Example filter functions" above to see which filterType uses which parameters for the filterFunctions
+--This filterFunction checks if the items are bound and hides them then
+local filterFuncForSmithingDeconstruction(bagId, slotIndex)
+  local itemLink = GetItemLink(bagId, slotIndex)
+  return IsItemLinkBound(itemLink)
+end
+
+--At any time the filter should not be applied anymore (e.g. as the crafting table LF_SMITHING_DECONSTRUCT hides) you need to unregister the filter again.
+--LibFilters will keep all registered filterFuctions active until you manually unregister them! So make sure to register and unregister them properly if not needed anymore
+--The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
+--The callback name is build by the library prefix "LibFilters3-" (constant provided is LibFilters3.globalLibName) followed by <yourAddonName> and another "-", followed by the state of the filterPanel as the callback fires (can be either the constant SCENE_SHOWN or SCENE_HIDDEN), followed by "-" and the suffix is the filterType constant
+--of the panel.
+--The library provides the API function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName) to generate the callback name for you. isShown is a boolean.
+--if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
+--e.g. for LF_INVENTORY shown it would be
+local callbackNameInvShown = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_SMITHING_DECONSTRUCT, true)
+--Makes: "LibFilters3-MyUniqueAddonName-shown-16"
+local callbackNameInvHidden = libfilters:RegisterCallbackName("MyUniqueAddonName", LF_SMITHING_DECONSTRUCT, false)
+--Makes: "LibFilters3-MyUniqueAddonName-hidden-16"
+
+
+--The callbackFunction you register to it needs to provide the following parameters in the following order:
+--callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow
+--Your defined callback's unique name
+--number filterType is the LF_* constant for the panel currently shown/hidden
+--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
+--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
+--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
+--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
+--nilable:String universalDeconSelectedTabNow e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+
+local function callbackFunctionForSmithingDeconstructionShown(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+  --As LF_SMITHING_DECONSTRUCT could be re-used for UniversalDeconstruction exclude the uniersal decon panels here!
+  --Check if the param universalDeconSelectedTabNow is nil, else it's a String containing the UniversalDecon currently selected tab!
+  if universalDeconSelectedTabNow ~= nil then return end
+
+  --Register your filterFunction here e.g. or do whatever is needed, like adding custom controls of your addon to the currently shown panel
+  if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_INVENTORY) then
+    libFilters:RegisterFilter(myAddonUniqueFilterTag, LF_SMITHING_DECONSTRUCT, filterFuncForSmithingDeconstruction)
+  end
+end
+local function callbackFunctionForSmithingDeconstructionHidden(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+  --As LF_SMITHING_DECONSTRUCT could be re-used for UniversalDeconstruction exclude the uniersal decon panels here!
+  --Check if the param universalDeconSelectedTabNow is nil, else it's a String containing the UniversalDecon currently selected tab!
+  if universalDeconSelectedTabNow ~= nil then return end
+
+  --Unregister your filterFunction here e.g. or do whatever is needed, e.g. hiding custom controls of your addon at the currently hidden panel
+  libFilters:UnRegisterFilter(myAddonUniqueFilterTag, LF_SMITHING_DECONSTRUCT)
+end
+
+--Registering this callbackname in your addon is done via the CALLBACK_MANAGER
+CALLBACK_MANAGER:RegisterCallback(callbackNameInvShown, callbackFunctionForSmithingDeconstructionShown)
+CALLBACK_MANAGER:RegisterCallback(callbackNameInvHidden, callbackFunctionForSmithingDeconstructionHidden)
+```
