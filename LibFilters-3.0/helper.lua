@@ -619,7 +619,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             local base = SMITHING.researchPanel
 
 
---d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
+d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
             -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
             local function predicate(bagId, slotIndex)
                 local result = DoesNotBlockResearch(bagId, slotIndex)
@@ -648,12 +648,14 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             local toIterator
             local skipTable
 
-            if smithingResearchPanel then
+            if smithingResearchPanel ~= nil then
+d(">Found research panel")
                 local addonAddedFilters = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
                 if addonAddedFilters ~= nil then
-                    fromIterator = addonAddedFilters.from
-                    toIterator =  addonAddedFilters.to
-                    skipTable = addonAddedFilters.skipTable
+d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters)
+                    fromIterator =  addonAddedFilters.from
+                    toIterator =    addonAddedFilters.to
+                    skipTable =     addonAddedFilters.skipTable
                 end
             end
             if fromIterator == nil then
@@ -664,7 +666,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             end
             for researchLineIndex = fromIterator, toIterator do
                 --Skip any entry in the researchLine (by their index)?
-                if not skipTable or (skipTable and skipTable[researchLineIndex] == nil) then
+                if not skipTable or (skipTable ~= nil and skipTable[researchLineIndex] == nil) then
                     local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
                     if numTraits > 0 then
                         local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)

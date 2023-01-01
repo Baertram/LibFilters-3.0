@@ -31,7 +31,6 @@ libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
 ------------------------------------------------------------------------------------------------------------------------
 
-
 libFilters.filters = {}
 local filters = libFilters.filters
 
@@ -145,6 +144,10 @@ if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 libFilters.constants = {}
 local constants = libFilters.constants
+
+--10 milliseconds delay before filter update routines run -> to combine same updaters and unstress the client/server
+constants.defaultFilterUpdaterDelay = 10
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LF_* FILTER PANEL ID constants

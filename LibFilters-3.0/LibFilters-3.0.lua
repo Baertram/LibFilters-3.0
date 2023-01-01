@@ -87,6 +87,8 @@ local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
 local callbacks = 					mapping.callbacks
 
+local defaultFilterUpdaterDelay = 	constants.defaultFilterUpdaterDelay
+
 local callbackPattern = 			libFilters.callbackPattern
 local callbackBaseLibPattern = 		libFilters.callbackBaseLibPattern
 local callbacksUsingScenes = 		callbacks.usingScenes
@@ -766,9 +768,11 @@ end
 
 
 local function getSmithingResearchPanel()
-	 local helpers = libFilters.helpers
-	 if not helpers then return end
-	 return helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
+	if IsGamepad() then
+		return researchPanel_GP
+	else
+		return researchPanel
+	end
 end
 
 
@@ -2316,7 +2320,7 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 			if delay < 0 then delay = 0 end
 		end
 	else
-		delay = 10 --default value: 10ms
+		delay = defaultFilterUpdaterDelay --default value: 10ms
 	end
 	if isDebugEnabled then dv(">callbackName: %s, delay: %s", tos(callbackName), tos(delay)) end
 
@@ -2360,8 +2364,10 @@ end
 function libFilters:RequestUpdateForResearchFilters(delay)
 	local updaterName = "SMITHING_RESEARCH"
 	if isDebugEnabled then dd("[U-API]RequestUpdateForResearchFilters delay: %s", tos(delay)) end
-	libFilters_RequestUpdateByName(libFilters, updaterName, delay, nil)
+	libFilters_RequestUpdateByName(libFilters, updaterName, delay, getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_RESEARCH, gcit()))
 end
+local libFilters_RequestUpdateForResearchFilters = libFilters.RequestUpdateForResearchFilters
+
 
 -- Get the updater name of a number filterType
 -- returns String updateName
@@ -3279,7 +3285,7 @@ end
 --will be reset if a new filter for the research horizontal scroll list for the same crafting type will be un-/registered
 local cachedLastCombinedSkipTable = {}
 
---Combine all the registered skipTables of the research horizontal scroll bar, and add them to the table SMITHING.researchPanel table,
+--Combine all the registered skipTables of the research horizontal scroll bar, and add them to the researchPanel table,
 --with entry LibFilters3_HorizontalScrollbarFilters
 local function combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
 d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craftingType))
@@ -3292,11 +3298,25 @@ d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craf
 
 	--Was the same table cached before already?
 	if cachedLastCombinedSkipTable ~= nil and cachedLastCombinedSkipTable[craftingType] ~= nil then
+d(">>using cached combined skipTables")
 		combinedSkipTables = cachedLastCombinedSkipTable[craftingType]
 	else
+d(">>building new combined skipTables")
 		--Combine only those entries which got the skipTable entry with value == boolean true
-		for filterTag, skipTable in pairs(filtersRegistered) do
-			combineTablesOnlyBooleanTrue(combinedSkipTables, skipTable)
+		for filterTag, skipTableData in pairs(filtersRegistered) do
+			if skipTableData.skipTable ~= nil then
+				combineTablesOnlyBooleanTrue(combinedSkipTables, skipTableData.skipTable)
+			end
+			if skipTableData.from ~= nil then
+				if combinedSkipTables.from == nil or combinedSkipTables.from < skipTableData.from then
+					combinedSkipTables.from = skipTableData.from
+				end
+			end
+			if skipTableData.to ~= nil then
+				if combinedSkipTables.to == nil or combinedSkipTables.to > skipTableData.to then
+					combinedSkipTables.to = skipTableData.to
+				end
+			end
 		end
 	end
 
@@ -3306,19 +3326,24 @@ d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craf
 end
 
 --Use API function libFilters.ApplyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh) to apply the combined
---skiptables to the SMITHING.researchPanel table LibFilters3_HorizontalScrollbarFilters
+--skiptables to the researchPanel table LibFilters3_HorizontalScrollbarFilters
 local function applyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh)
+d("[LF3]applyCraftingResearchHorizontalScrollbarFilters")
 	craftingType = craftingType or gcit()
 	noRefresh = noRefresh or false
 	local wasBuild, combinedSkipTables = combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
-	if wasBuild == true then
+	if wasBuild == true and combinedSkipTables ~= nil then
+d(">combinedTable was build")
 		--Apply the combined skiptables to the panel now
-		local smithingResearchPanel = getSmithingResearchPanel()
+		local smithingResearchPanel = getSmithingResearchPanel(craftingType)
 		if smithingResearchPanel ~= nil then
 			smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = combinedSkipTables
+
+			--Update the research panel now?
 			if not noRefresh then
 				--Refresh the panel now
-				smithingResearchPanel:Refresh() --> Will rebuild the list entries and call list:Commit()
+				--smithingResearchPanel:Refresh() --> Will rebuild the list entries and call list:Commit()
+				libFilters_RequestUpdateForResearchFilters(libFilters, 0)
 			end
 		end
 	end
@@ -3332,8 +3357,8 @@ local registerResearchHorizontolScrollBarFilterParametersErrorStr = "Invalid arg
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter table skipTable was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 --If different addons register skipTables for the same crafting type, these skipTables will be combined!
--->The combined entries of the skipTable are added, directly upon registering such filter, to they keyboard SMITHING.researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
--->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via SMITHING.researchPanel:Refresh()
+-->The combined entries of the skipTable are added, directly upon registering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+-->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
 function libFilters:RegisterResearchHorizontalScrollbarFilter(filterTag, craftingType, skipTable, fromResearchLineIndex, toResearchLineIndex, noInUseError)
 	if not filterTag or not craftingType or not skipTable then
 		dfe(registerResearchHorizontolScrollBarFilterParametersErrorStr, "RegisterResearchHorizontalScrollbarFilter", tos(filterTag), tos(craftingType), tos(skipTable), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(noInUseError))
@@ -3349,7 +3374,7 @@ function libFilters:RegisterResearchHorizontalScrollbarFilter(filterTag, craftin
 		end
 		return false
 	end
-	filtersRegistered[craftingType][filterTag] = skipTable
+	filtersRegistered[craftingType][filterTag] = { skipTable = skipTable, from = fromResearchLineIndex, to = toResearchLineIndex }
 	cachedLastCombinedSkipTable[craftingType] = nil
 	applyCraftingResearchHorizontalScrollbarFilters(craftingType, true)
 	return true
@@ -3358,8 +3383,8 @@ end
 --Unregister a filter by help of a researchLineIndex "skipTable" for a craftingType, which will show the entries at the horizontal scroll list again.
 --If different addons have registered skipTables for the same crafting type, these skipTables will be combined, and thus unregistering 1 filterTag might
 --still have any other registered which hides the entry at the horizontal scrollbar
--->The combined entries of the skipTable are added, directly upon unregistering such filter, to they keyboard SMITHING.researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
--->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via SMITHING.researchPanel:Refresh()
+-->The combined entries of the skipTable are added, directly upon unregistering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+-->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
 function libFilters:UnregisterResearchHorizontalScrollbarFilter(filterTag, craftingType)
 	if not filterTag or filterTag == "" or craftingType == nil then
 		dfe("Invalid arguments to UnregisterResearchHorizontalScrollbarFilter(%q, %s).\n>Needed format is: String filterTag, number CraftingInteractionType",
