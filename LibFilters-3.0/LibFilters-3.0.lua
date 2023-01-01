@@ -30,6 +30,7 @@ local libFilters 	= LibFilters3
 local MAJOR      	= libFilters.name
 local GlobalLibName = libFilters.globalLibName
 local filters    	= libFilters.filters
+local horizontalScrollBarFilters = libFilters.horizontalScrollBarFilters
 
 local callbacksCreated = false
 local fixesLateApplied = false
@@ -743,6 +744,12 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 end
 
 
+local function getSmithingResearchPanel()
+	 local helpers = libFilters.helpers
+	 if not helpers then return end
+	 return helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
+end
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - fix function
@@ -1378,7 +1385,7 @@ local inventoryUpdaters           = {
 			researchPanel_GP:Refresh()
 		else
 			if isDebugEnabled then dv("[U]updateFunction_Keyboard_SMITHING_RESEARCH - SMITHING.researchPanel:Refresh() called") end
-			kbc.researchPanel:Refresh()
+			researchPanel:Refresh()
 		end
 	end,
 	SMITHING_RESEARCH_DIALOG = function()
@@ -2030,7 +2037,7 @@ function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, c
 end
 
 
-local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType, function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables), OPTIONAL boolean noInUseError)"
+local registerFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType, function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables), OPTIONAL boolean noInUseError)"
 --Register a filter function at the String filterTag and number filterType.
 --If filterType LF_FILTER_ALL is used this filterFunction will be used for all available filterTypes of the filterTag, where no other filterFunction was explicitly registered
 --(as a kind of "fallback filter function").
@@ -2041,7 +2048,7 @@ local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s)
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
 	local filterCallbacks = filters[filterType]
 	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
-		dfe(registerFilteParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+		dfe(registerFilterParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
 	noInUseError = noInUseError or false
@@ -2067,7 +2074,7 @@ local libFilters_RegisterFilter = libFilters.RegisterFilter
 function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
 	local filterCallbacks = filters[filterType]
 	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
-		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered",
+		dfe(registerFilterParametersErrorStr, "RegisterFilterIfUnregistered",
 				tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
@@ -3123,12 +3130,100 @@ end
 
 
 --**********************************************************************************************************************
--- Special API
+-- API for the horizontal scrollbar filters, at e.g. SMITHING.researchPanel
 --**********************************************************************************************************************
+local function combineTablesOnlyBooleanTrue(dest, ...)
+    for sourceTableIndex = 1, select("#", ...) do
+        local sourceTable = select(sourceTableIndex, ...)
+        for key, data in pairs(sourceTable) do
+			if data ~= nil and data == true and not dest[key] then
+				dest[key] = true
+			end
+        end
+    end
+end
+
+--Combine all the registered skipTables of the research horizontal scroll bar, and add them to the table SMITHING.researchPanel table,
+--with entry LibFilters3_ResearchHorizontalScrollbarFilters
+local function combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
+d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craftingType))
+	if not craftingType then return false end
+	local combinedSkipTables = {}
+
+	--Get all registered skiptables
+	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
+	if filtersRegistered == nil then return false end
+	--Combine only those entries which got the skipTable entry with value == boolean true
+	for filterTag, skipTable in pairs(filtersRegistered) do
+d(">>filterTag: " ..tos(filterTag))
+		combineTablesOnlyBooleanTrue(combinedSkipTables, skipTable)
+	end
+d("!combinedSkipTable was build")
+	if NonContiguousCount(combinedSkipTables) == 0 then return end
+
+	--Apply the combined skiptables to the panel now
+	local smithingResearchPanel = getSmithingResearchPanel()
+	if smithingResearchPanel ~= nil then
+		smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters = combinedSkipTables
+		return true
+	end
+end
+libFilters.CombineCraftingResearchHorizontalScrollbarFilterSkipTables = combineCraftingResearchHorizontalScrollbarFilterSkipTables
+
+
+local registerResearchHorizontolScrollBarFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number CraftingInteractionTpe, table skipTable = {[researchLineIndex] = boolean skipOrNot, ...}, OPTIONAL number fromResearchLineIndex, OPTIONAl number toResearchLineIndex"
+--Register a filter by help of a researchLineIndex "skipTable" for a craftingType
+--The skipTable contains key = researchLineIndex and value = boolean where "true" means: filter/skip this researchLineIndex at the horizontal scroll list (hide it!)
+--If different addons register skipTables for the same crafting type, these skipTables will be combined!
+-->The combined entries of the skipTable are added to tkey keyboard SMITHING.researchPanel table, with entry LibFilters3_ResearchHorizontalScrollbarFilters
+--Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
+--Returns true if filter table skipTable was registered, else nil in case of parameter errors, or false if same tag+type was already registered
+function libFilters:RegisterResearchHorizontalScrollbarFilter(filterTag, craftingType, skipTable, fromResearchLineIndex, toResearchLineIndex, noInUseError)
+	if not filterTag or not craftingType or not skipTable then
+		dfe(registerResearchHorizontolScrollBarFilterParametersErrorStr, "RegisterResearchHorizontalScrollbarFilter", tos(filterTag), tos(craftingType), tos(skipTable), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(noInUseError))
+		return
+	end
+	if isDebugEnabled then dd("RegisterResearchHorizontalScrollbarFilter-%q,%q,%q,%q,%q,%s", tos(filterTag), tos(craftingType), tos(skipTable), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(noInUseError)) end
+	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"]
+	filtersRegistered[craftingType] = filtersRegistered[craftingType] or {}
+	if filtersRegistered[craftingType][filterTag] ~= nil then
+		if not noInUseError then
+			dfe("FilterTag \'%q\' craftingType \'%q\' skipTable is already in use!",
+					tos(filterTag), tos(craftingType))
+		end
+		return false
+	end
+	filtersRegistered[craftingType][filterTag] = skipTable
+	return true
+end
+
+--Unregister a filter by help of a researchLineIndex "skipTable" for a craftingType, which will show the entries at the horizontal scroll list again.
+--If different addons have registered skipTables for the same crafting type, these skipTables will be combined, and thus unregistering 1 filterTag might
+--still have any other registered which hides the entry at the horizontal scrollbar
+-->The combined entries of the skipTable are added to tkey keyboard SMITHING.researchPanel table, with entry LibFilters3_ResearchHorizontalScrollbarFilters
+function libFilters:UnregisterResearchHorizontalScrollbarFilter(filterTag, craftingType)
+	if not filterTag or filterTag == "" or craftingType == nil then
+		dfe("Invalid arguments to UnregisterResearchHorizontalScrollbarFilter(%q, %s).\n>Needed format is: String filterTag, number CraftingInteractionType",
+			tos(filterTag), tos(craftingType))
+		return
+	end
+	if isDebugEnabled then dd("UnregisterResearchHorizontalScrollbarFilter-%q,%s", tos(filterTag), tos(craftingType)) end
+	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
+	if filtersRegistered ~= nil and filtersRegistered[filterTag] ~= nil then
+		filtersRegistered[filterTag] = nil
+		return true
+	end
+	return false
+end
+
+
+--[[
 --Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
 --indices
 --Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
 --keyboard mode
+--The table additionalData can be used to pass in additional information like an addon name so that you can use
+--libFilters:GetCurrentResearchLineLoopValues() to read the last used data and check for this additionalData table entries
 function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
 	 local craftingType = GetCraftingInteractionType()
 	if isDebugEnabled then dd("SetResearchLineLoopValues craftingType: %q, fromResearchLineIndex: %q, toResearchLineIndex: %q, skipTable: %s", tos(craftingType), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(skipTable)) end
@@ -3138,18 +3233,45 @@ function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchL
 	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
 		  toResearchLineIndex = numSmithingResearchLines
 	 end
-	 local helpers = libFilters.helpers
-	 if not helpers then return end
-	 local smithingResearchPanel = helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
-	 if smithingResearchPanel then
-		  smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
-				from		= fromResearchLineIndex,
-				to			= toResearchLineIndex,
-				skipTable	= skipTable,
-		  }
+	 local smithingResearchPanel = getSmithingResearchPanel()
+	 if smithingResearchPanel ~= nil then
+		 local newLibFilters_3ResearchLineLoopValues =
+			{
+				from			= fromResearchLineIndex,
+				to				= toResearchLineIndex,
+				skipTable		= skipTable,
+				craftingType 	= craftingType,
+				additionalData 	= additionalData
+		  	}
+		 smithingResearchPanel.LibFilters_3ResearchLineLoopValues = newLibFilters_3ResearchLineLoopValues
+
+		 --Backup the last used filter values for other addons -> See function libFilters:GetCurrentResearchLineLoopValues()
+		 smithingResearchPanel.LibFilters_3ResearchLineLoopValuesBefore = ZO_ShallowTableCopy(newLibFilters_3ResearchLineLoopValues)
 	 end
 end
 
+--Returns the currently set researchLine loop values for the horizontal scroll list at the research panel
+--returns table LibFilters_3ResearchLineLoopValues
+-- {
+--   number fromResearchLineIndex
+--   number toResearchLineIndex
+--   nilable:table skipTable (contains [researchLineIndex] = boolean as row -> if boolean == true, then this researchLineIndex won't be shown at the horizontal list)
+--   number craftingType
+--   nilable:table additiionalData
+-- }
+function libFilters:GetCurrentResearchLineLoopValues()
+	local smithingResearchPanel = getSmithingResearchPanel()
+	if smithingResearchPanel ~= nil then
+		return smithingResearchPanel.LibFilters_3ResearchLineLoopValuesBefore
+	end
+	return nil
+end
+]]
+
+
+--**********************************************************************************************************************
+-- Special API
+--**********************************************************************************************************************
 --Check if the addon CraftBagExtended is enabled and if the craftbag is currently shown at a "non vanilla craftbag" filterType
 --e.g. LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL, LF_GUILDBANK_DEPOSIT, LF_BANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT
 --Will return boolean true if CBE is enabled and a supported parent filterType panelis shown. Else returns false

@@ -598,7 +598,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     version = 6,
     filterTypes = {
         [true] = {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH},
-        [false]={LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}
+        [false]= {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}
     },
     locations = {
         [1] = SMITHING.researchPanel,
@@ -646,11 +646,11 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             local fromIterator
             local toIterator
             local skipTable
-            if smithingResearchPanel and smithingResearchPanel.LibFilters_3ResearchLineLoopValues then
-                local customLoopData = smithingResearchPanel.LibFilters_3ResearchLineLoopValues
-                fromIterator = customLoopData.from
-                toIterator =  customLoopData.to
-                skipTable = customLoopData.skipTable
+            if smithingResearchPanel and smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters then
+                local addonAddedFilters = smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters
+                fromIterator = addonAddedFilters.from
+                toIterator =  addonAddedFilters.to
+                skipTable = addonAddedFilters.skipTable
             end
             if fromIterator == nil then
                 fromIterator = 1
@@ -659,6 +659,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
                 toIterator = GetNumSmithingResearchLines(craftingType)
             end
             for researchLineIndex = fromIterator, toIterator do
+                --Skip any entry in the researchLine (by their index)?
                 if not skipTable or (skipTable and skipTable[researchLineIndex] == nil) then
                     local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
                     if numTraits > 0 then

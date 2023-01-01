@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.8
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.9
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -34,6 +34,12 @@ libFilters.globalLibName    = GlobalLibName
 
 libFilters.filters = {}
 local filters = libFilters.filters
+
+--Horizontal scrollbar filters for e.g. crafting tables research panel
+libFilters.horizontalScrollBarFilters = {}
+local horizontalScrollBarFilters = libFilters.horizontalScrollBarFilters
+horizontalScrollBarFilters["craftingResearch"] = {}
+
 -- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
 -- after EVENT_ADD_ON_LOADED
 libFilters.isInitialized = false
