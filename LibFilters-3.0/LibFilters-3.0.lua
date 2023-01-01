@@ -2282,10 +2282,24 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 		local filterTypesTable = updaterNameToFilterType[updaterName]
 		local countFilterTypesWithUpdaterName = (filterTypesTable and #filterTypesTable) or 0
 		if countFilterTypesWithUpdaterName > 1 then
-			--TODO:
-			--Which filterType is the correct one for the updater name?
-			--One cannot know! use the first one?
-			filterType = filterTypesTable[1]
+			if countFilterTypesWithUpdaterName > 2 then
+				--Should not happen? Always take the 1st entry then as fallback
+				filterType = filterTypesTable[1]
+			else
+				--Which filterType is the correct one for the updater name?
+				--If there are 2 filterTypes it should be LF_SMITHING_ and LF_JEWELRY_, so the filterType should be
+				--detectable by help of the current CraftingInteractionType?
+				local craftingType = gcit()
+				for _, filterTypeLoop in ipairs(filterTypesTable) do
+					if filterType ~= nil then
+						filterType = getFilterTypeByFilterTypeRespectingCraftType(filterTypeLoop, craftingType)
+					end
+				end
+				if filterType == nil then
+					--Should not happen? Always take the 1st entry then as fallback
+					filterType = filterTypesTable[1]
+				end
+			end
 		elseif countFilterTypesWithUpdaterName == 1 then
 			filterType = filterTypesTable[1]
 		end
