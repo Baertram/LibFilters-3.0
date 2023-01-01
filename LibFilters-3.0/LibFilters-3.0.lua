@@ -3143,32 +3143,50 @@ local function combineTablesOnlyBooleanTrue(dest, ...)
     end
 end
 
+--Cached table of combined skipTaables. WIll be set below at function combineCraftingResearchHorizontalScrollbarFilterSkipTables and
+--will be reset if a new filter for the research horizontal scroll list for the same crafting type will be un-/registered
+local cachedLastCombinedSkipTable = {}
+
 --Combine all the registered skipTables of the research horizontal scroll bar, and add them to the table SMITHING.researchPanel table,
 --with entry LibFilters3_ResearchHorizontalScrollbarFilters
 local function combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
 d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craftingType))
-	if not craftingType then return false end
+	if not craftingType then return false, nil end
 	local combinedSkipTables = {}
 
 	--Get all registered skiptables
 	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
-	if filtersRegistered == nil then return false end
-	--Combine only those entries which got the skipTable entry with value == boolean true
-	for filterTag, skipTable in pairs(filtersRegistered) do
-d(">>filterTag: " ..tos(filterTag))
-		combineTablesOnlyBooleanTrue(combinedSkipTables, skipTable)
-	end
-d("!combinedSkipTable was build")
-	if NonContiguousCount(combinedSkipTables) == 0 then return end
+	if filtersRegistered == nil then return false, nil end
 
-	--Apply the combined skiptables to the panel now
-	local smithingResearchPanel = getSmithingResearchPanel()
-	if smithingResearchPanel ~= nil then
-		smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters = combinedSkipTables
-		return true
+	--Was the same table cached before already?
+	if cachedLastCombinedSkipTable ~= nil and cachedLastCombinedSkipTable[craftingType] ~= nil then
+		combinedSkipTables = cachedLastCombinedSkipTable[craftingType]
+	else
+		--Combine only those entries which got the skipTable entry with value == boolean true
+		for filterTag, skipTable in pairs(filtersRegistered) do
+			combineTablesOnlyBooleanTrue(combinedSkipTables, skipTable)
+		end
+	end
+
+	if NonContiguousCount(combinedSkipTables) == 0 then return false, nil end
+	cachedLastCombinedSkipTable[craftingType] = combinedSkipTables
+	return true, combinedSkipTables
+end
+
+local function runCraftingResearchHorizontalScrollbarFilters(craftingType)
+	craftingType = craftingType or gcit()
+	local wasBuild, combinedSkipTables = combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
+	if wasBuild == true then
+		--Apply the combined skiptables to the panel now
+		local smithingResearchPanel = getSmithingResearchPanel()
+		if smithingResearchPanel ~= nil then
+			smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters = combinedSkipTables
+			--Refresh the panel now
+			smithingResearchPanel:Refresh() --> Will rebuild the list entries and call list:Commit()
+		end
 	end
 end
-libFilters.CombineCraftingResearchHorizontalScrollbarFilterSkipTables = combineCraftingResearchHorizontalScrollbarFilterSkipTables
+libFilters.RunCraftingResearchHorizontalScrollbarFilters = runCraftingResearchHorizontalScrollbarFilters
 
 
 local registerResearchHorizontolScrollBarFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number CraftingInteractionTpe, table skipTable = {[researchLineIndex] = boolean skipOrNot, ...}, OPTIONAL number fromResearchLineIndex, OPTIONAl number toResearchLineIndex"
@@ -3194,6 +3212,7 @@ function libFilters:RegisterResearchHorizontalScrollbarFilter(filterTag, craftin
 		return false
 	end
 	filtersRegistered[craftingType][filterTag] = skipTable
+	cachedLastCombinedSkipTable[craftingType] = nil
 	return true
 end
 
@@ -3211,6 +3230,7 @@ function libFilters:UnregisterResearchHorizontalScrollbarFilter(filterTag, craft
 	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
 	if filtersRegistered ~= nil and filtersRegistered[filterTag] ~= nil then
 		filtersRegistered[filterTag] = nil
+		cachedLastCombinedSkipTable[craftingType] = nil
 		return true
 	end
 	return false
