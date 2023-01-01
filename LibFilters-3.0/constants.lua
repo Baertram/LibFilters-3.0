@@ -229,6 +229,12 @@ constants.filterTypes = libFiltersFilterConstants
 local defaultLibFiltersAttributeToStoreTheFilterType = "LibFilters3_filterType"
 constants.defaultAttributeToStoreTheFilterType = defaultLibFiltersAttributeToStoreTheFilterType
 
+--The default attribute at the SMITHING.researchPanel (currently the only one) to store the horizontal scroll list filters'
+--combined skipTable at
+local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = "LibFilters3_HorizontalScrollbarFilters"
+constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters
+
+
 --The default attribute at an inventory/layoutData table where the filter functions of LiFilters should be added to
 --and where ZOs or other addons could have already added filter functions to -> See LibFilters-3.0.lua, function HookAdditionalFilters
 -->Default is: .additionalFilter e.g. at PLAYER_INVENTORY.inventories[INVENTORY_BACKPACK] and BACKPACK_MENU_BAR_LAYOUT_FRAGMENT

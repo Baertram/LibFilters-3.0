@@ -44,6 +44,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 local helpers = {}
 local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --.LibFilters3_filterType
+local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters --"LibFilters3_HorizontalScrollbarFilters"
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --.additionalFilter
 
 
@@ -595,7 +596,7 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
 
 --enable LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH -- since API 100023 Summerset
 helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
-    version = 6,
+    version = 7, --last changed 2023-01-01
     filterTypes = {
         [true] = {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH},
         [false]= {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}
@@ -646,11 +647,14 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             local fromIterator
             local toIterator
             local skipTable
-            if smithingResearchPanel and smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters then
-                local addonAddedFilters = smithingResearchPanel.LibFilters3_ResearchHorizontalScrollbarFilters
-                fromIterator = addonAddedFilters.from
-                toIterator =  addonAddedFilters.to
-                skipTable = addonAddedFilters.skipTable
+
+            if smithingResearchPanel then
+                local addonAddedFilters = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
+                if addonAddedFilters ~= nil then
+                    fromIterator = addonAddedFilters.from
+                    toIterator =  addonAddedFilters.to
+                    skipTable = addonAddedFilters.skipTable
+                end
             end
             if fromIterator == nil then
                 fromIterator = 1
