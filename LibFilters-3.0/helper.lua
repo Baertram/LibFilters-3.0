@@ -652,10 +652,10 @@ d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
 d(">Found research panel")
                 local addonAddedFilters = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
                 if addonAddedFilters ~= nil then
-d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters)
                     fromIterator =  addonAddedFilters.from
                     toIterator =    addonAddedFilters.to
                     skipTable =     addonAddedFilters.skipTable
+d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .. ", from: " .. tos(fromIterator) .. ", to: " ..tos(toIterator))
                 end
             end
             if fromIterator == nil then
