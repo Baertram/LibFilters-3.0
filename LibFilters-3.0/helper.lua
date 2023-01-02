@@ -609,18 +609,18 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     helper = {
         funcName = "Refresh",
         func = function(self)
-			if iigpm or (self.panelContent and self.panelContent == ZO_GamepadSmithingTopLevelMaskResearch) then
-				-- if Gamepad researchPanel has not been initialized yet, stop.
-				if not self.researchLineList then 
-					return 
-				end
-			end
+            if iigpm or (self.panelContent and self.panelContent == ZO_GamepadSmithingTopLevelMaskResearch) then
+                -- if Gamepad researchPanel has not been initialized yet, stop.
+                if not self.researchLineList then
+                    return
+                end
+            end
             --Test: Always use SMITHING.researchPanel as self, even in gamepad mode, so registered filter functions at
             --will be read from .additionalFilter!
             local base = SMITHING.researchPanel
 
 
---d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
+            --d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
             --v- Added by LibFilters -v-
             -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
             local function predicate(bagId, slotIndex)
@@ -645,20 +645,21 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             end
 
             --v- Added by LibFilters -v-
-            --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
-            --and only show some of the entries
             local smithingResearchPanel = self
             local fromIterator
             local toIterator
             local skipTable
-            local numSmithingResearchLines
+            local isCurrentlyResearching = {}
 
+            --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
+            --and only show some of the entries (filtered by the skipList entries)
             if smithingResearchPanel ~= nil then
                 local addonAddedFiltersForHorizontalScrollBar = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
                 if addonAddedFiltersForHorizontalScrollBar ~= nil then
                     fromIterator =  addonAddedFiltersForHorizontalScrollBar.from
                     toIterator =    addonAddedFiltersForHorizontalScrollBar.to
                     skipTable =     addonAddedFiltersForHorizontalScrollBar.skipTable
+d("[LF3]SkipTable found, from: " ..tos(fromIterator) .. ", to: " ..tos(toIterator))
                 end
             end
             local numResearchLines = GetNumSmithingResearchLines(craftingType)
@@ -668,11 +669,21 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             if toIterator == nil then
                 toIterator = numResearchLines
             end
+            --[[
+            --todo: 2023-01-02 Not working as researchLineIndicesShown could be 13 for blacksmithing (armor and weapons -> max 14) but the filtered entries could be less
+            --because the actual filter at the smithing table only shows the armor parts. To fix this the currently selected filter at the smithing tbale needs to be
+            --read and a mapping between filterAtSmithingTable2maximumResearchLines needs to be created :-(
             local researchLineIndicesShown = toIterator - fromIterator
+            if researchLineIndicesShown > numResearchLines then researchLineIndicesShown = numResearchLines end
             local numFiltered = (skipTable ~= nil and NonContiguousCount(skipTable)) or 0
-            local allItemsFiltered = (numFiltered >= researchLineIndicesShown and true) or false
-            local isCurrentlyResearching = {}
-            --^- Added by LibFilters -^-
+            local allItemsFiltered = false
+d(">researchLineIndicesShown" ..tos(researchLineIndicesShown) .. ", numFiltered: " ..tos(numFiltered))
+            if researchLineIndicesShown == numFiltered then
+                allItemsFiltered = (numFiltered > researchLineIndicesShown and true) or false
+            else
+                allItemsFiltered = (numFiltered >= researchLineIndicesShown and true) or false
+            end
+            ]]
 
             for researchLineIndex = fromIterator, toIterator do
                 local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
@@ -687,7 +698,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 
                     --Skip any entry in the researchLine (by their index)?
                     if not skipTable or (skipTable ~= nil and skipTable[researchLineIndex] == nil) then
-                    --^- Added by LibFilters -^-
+                        --^- Added by LibFilters -^-
                         local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
                         if expectedTypeFilter == self.typeFilter then
                             local itemTraitCounts = self:GenerateResearchTraitCounts(virtualInventoryList, craftingType, researchLineIndex, numTraits)
@@ -705,6 +716,8 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 
                             self.researchLineList:AddEntry(data)
                         end
+                    elseif skipTable ~= nil and skipTable[researchLineIndex] == true then
+                        d(">skipped researchLineIndex: " ..tos(name))
                     end --Added by LibFilters
                 end
             end
@@ -726,6 +739,9 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 
 
             --LibFilters 3: If all items are filtered now: Hide the currently shown item label and the trait list
+            --Other approach: Check if the horizontal scroll list got no entries.
+            local allItemsFiltered = (#self.researchLineList.list == 0 and true) or false
+
             local researchTimerHidden = true
             if allItemsFiltered then
                 researchTimerHidden = true
