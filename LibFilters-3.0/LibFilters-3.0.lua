@@ -2360,7 +2360,9 @@ function libFilters:RequestUpdate(filterType, delay)
 end
 
 
---Update the filters and the horizontal scrollbar filters for the SMITHING researchPanel
+--Update the normal filters (LF_SMITHING_RESEARCH / LF_JEWELRY_RESEARCH) and the horizontal scrollbar filters
+-- (fromResearcLineIndex, toResearchLineIndex, skipTable) for the crafting researchPanel
+--OPTIONAL parameter number delay will add a delay to the call of the updater function
 function libFilters:RequestUpdateForResearchFilters(delay)
 	local updaterName = "SMITHING_RESEARCH"
 	if isDebugEnabled then dd("[U-API]RequestUpdateForResearchFilters delay: %s", tos(delay)) end
@@ -3371,7 +3373,9 @@ libFilters.ApplyCraftingResearchHorizontalScrollbarFilters = applyCraftingResear
 
 local registerResearchHorizontolScrollBarFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number CraftingInteractionTpe, table skipTable = {[researchLineIndex] = boolean skipOrNot, ...}, OPTIONAL number fromResearchLineIndex, OPTIONAl number toResearchLineIndex"
 --Register a filter by help of a researchLineIndex "skipTable" for a craftingType
---The skipTable contains key = researchLineIndex and value = boolean where "true" means: filter/skip this researchLineIndex at the horizontal scroll list (hide it!)
+--Parameter tyble skipTable contains key = researchLineIndex and value = boolean where "true" means: filter/skip (hide) this researchLineIndex at the horizontal scroll list.
+--Parameter number fromResearchLineIndex sets the researchLineIndex to start the output of the horizontal scrollbar: It filters (hides) the possibe entries "in total".
+--Parameter number toResearchLineIndex sets the researchLineIndex to stop the output of the horizontal scrollbar: It filters (hides) the possible entries "in total".
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter table skipTable was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 --If different addons register skipTables for the same crafting type, these skipTables will be combined!
@@ -3419,58 +3423,6 @@ function libFilters:UnregisterResearchHorizontalScrollbarFilter(filterTag, craft
 	end
 	return false
 end
-
-
---[[
---Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
---indices
---Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
---keyboard mode
---The table additionalData can be used to pass in additional information like an addon name so that you can use
---libFilters:GetCurrentResearchLineLoopValues() to read the last used data and check for this additionalData table entries
-function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
-	 local craftingType = GetCraftingInteractionType()
-	if isDebugEnabled then dd("SetResearchLineLoopValues craftingType: %q, fromResearchLineIndex: %q, toResearchLineIndex: %q, skipTable: %s", tos(craftingType), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(skipTable)) end
-	 if craftingType == CRAFTING_TYPE_INVALID then return false end
-	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
-	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
-	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
-		  toResearchLineIndex = numSmithingResearchLines
-	 end
-	 local smithingResearchPanel = getSmithingResearchPanel()
-	 if smithingResearchPanel ~= nil then
-		 local newLibFilters_3ResearchLineLoopValues =
-			{
-				from			= fromResearchLineIndex,
-				to				= toResearchLineIndex,
-				skipTable		= skipTable,
-				craftingType 	= craftingType,
-				additionalData 	= additionalData
-		  	}
-		 smithingResearchPanel.LibFilters_3ResearchLineLoopValues = newLibFilters_3ResearchLineLoopValues
-
-		 --Backup the last used filter values for other addons -> See function libFilters:GetCurrentResearchLineLoopValues()
-		 smithingResearchPanel.LibFilters_3ResearchLineLoopValuesBefore = ZO_ShallowTableCopy(newLibFilters_3ResearchLineLoopValues)
-	 end
-end
-
---Returns the currently set researchLine loop values for the horizontal scroll list at the research panel
---returns table LibFilters_3ResearchLineLoopValues
--- {
---   number fromResearchLineIndex
---   number toResearchLineIndex
---   nilable:table skipTable (contains [researchLineIndex] = boolean as row -> if boolean == true, then this researchLineIndex won't be shown at the horizontal list)
---   number craftingType
---   nilable:table additiionalData
--- }
-function libFilters:GetCurrentResearchLineLoopValues()
-	local smithingResearchPanel = getSmithingResearchPanel()
-	if smithingResearchPanel ~= nil then
-		return smithingResearchPanel.LibFilters_3ResearchLineLoopValuesBefore
-	end
-	return nil
-end
-]]
 
 
 --**********************************************************************************************************************
