@@ -735,11 +735,25 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
                 end
             end
             self.timer.control:SetHidden(researchTimerHidden)
+            local selfControl = self.control
+            GetControl(selfControl, "TraitContainer"):SetHidden(allItemsFiltered)
+
             if iigpm() then
                 --todo 2023-01-02
-                GetControl(self.control, "TraitContainer"):SetHidden(allItemsFiltered)
+                --Gamepad mode
             else
-                GetControl(self.control, "ResearchLineListSelectedLabel"):SetHidden(allItemsFiltered)
+                --Keyboard mode
+                GetControl(selfControl, "ResearchLineList"):SetHidden(allItemsFiltered)
+                GetControl(selfControl, "ContainerDivider"):SetHidden(allItemsFiltered)
+                GetControl(selfControl, "ResearchLineListSelectedLabel"):SetHidden(allItemsFiltered)
+                if allItemsFiltered == true then
+                    local researchProgressLabel = GetControl(selfControl, "ResearchProgressLabel")
+                    if researchProgressLabel ~= nil then
+                        researchProgressLabel:SetText(GetString(SI_SMITHING_DECONSTRUCTION_NO_MATCHING_ITEMS))
+                        researchProgressLabel:SetHidden(false)
+                    end
+                end
+
                 local researchSlotNamePrefix = self.control:GetName() .. "ZO_SmithingResearchSlot"
                 for traitIndex=1, GetNumSmithingTraitItems() do
                     local researchSlot = GetControl(researchSlotNamePrefix, tos(traitIndex))
