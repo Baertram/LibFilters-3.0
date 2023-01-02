@@ -671,6 +671,7 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
             local researchLineIndicesShown = toIterator - fromIterator
             local numFiltered = (skipTable ~= nil and NonContiguousCount(skipTable)) or 0
             local allItemsFiltered = (numFiltered >= researchLineIndicesShown and true) or false
+            local isCurrentlyResearching = {}
             --^- Added by LibFilters -^-
 
             for researchLineIndex = fromIterator, toIterator do
@@ -681,6 +682,10 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
                         local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
                         if researchingTraitIndex then
                             numCurrentlyResearching = numCurrentlyResearching + 1
+
+                            --v- Added by LibFilters -v-
+                            isCurrentlyResearching[researchLineIndex] = true
+                            --^- Added by LibFilters -^-
                         end
 
                         local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
@@ -721,12 +726,21 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
 
 
             --LibFilters 3: If all items are filtered now: Hide the currently shown item label and the trait list
-            if iigpm() then
-                --todo
-
+            local researchTimerHidden = true
+            if allItemsFiltered then
+                researchTimerHidden = true
             else
-                ZO_SmithingTopLevelResearchPanelResearchLineListSelectedLabel:SetHidden(allItemsFiltered)
-                local researchSlotNamePrefix = "ZO_SmithingTopLevelResearchPanelZO_SmithingResearchSlot"
+                if numCurrentlyResearching > 0 and isCurrentlyResearching[self.researchLineIndex] == true then
+                    researchTimerHidden = false
+                end
+            end
+            self.timer.control:SetHidden(researchTimerHidden)
+            if iigpm() then
+                --todo 2023-01-02
+                GetControl(self.control, "TraitContainer"):SetHidden(allItemsFiltered)
+            else
+                GetControl(self.control, "ResearchLineListSelectedLabel"):SetHidden(allItemsFiltered)
+                local researchSlotNamePrefix = self.control:GetName() .. "ZO_SmithingResearchSlot"
                 for traitIndex=1, GetNumSmithingTraitItems() do
                     local researchSlot = GetControl(researchSlotNamePrefix, tos(traitIndex))
                     if researchSlot ~= nil then

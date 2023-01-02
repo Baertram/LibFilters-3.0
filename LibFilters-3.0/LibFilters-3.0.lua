@@ -3292,16 +3292,17 @@ d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craf
 	if not craftingType then return false, nil end
 	local combinedSkipTables = {}
 
-	--Get all registered skiptables
+	--Get all registered skipTables for the CraftingType
 	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
-	if filtersRegistered == nil then return false, nil end
+	--If no skipTables are registred: Nothing to filter!
+	if filtersRegistered == nil then return true, nil end
 
 	--Was the same table cached before already?
 	if cachedLastCombinedSkipTable ~= nil and cachedLastCombinedSkipTable[craftingType] ~= nil then
-d(">>using cached combined skipTables")
+		d(">>using cached combined skipTables")
 		combinedSkipTables = cachedLastCombinedSkipTable[craftingType]
 	else
-d(">>building new combined skipTables")
+		d(">>building new combined skipTables")
 		--Combine only those entries which got the skipTable entry with value == boolean true
 		for filterTag, skipTableData in pairs(filtersRegistered) do
 			if skipTableData.skipTable ~= nil then
@@ -3320,7 +3321,11 @@ d(">>building new combined skipTables")
 		end
 	end
 
-	if NonContiguousCount(combinedSkipTables) == 0 then return false, nil end
+	if NonContiguousCount(combinedSkipTables) == 0 then
+d(">>no skip table needed -> No filters applied")
+		cachedLastCombinedSkipTable[craftingType] = nil
+		return true, nil
+	end
 	cachedLastCombinedSkipTable[craftingType] = combinedSkipTables
 	return true, combinedSkipTables
 end
@@ -3332,20 +3337,25 @@ d("[LF3]applyCraftingResearchHorizontalScrollbarFilters")
 	craftingType = craftingType or gcit()
 	noRefresh = noRefresh or false
 	local wasBuild, combinedSkipTables = combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
-	if wasBuild == true and combinedSkipTables ~= nil then
+	if wasBuild == true then
 d(">combinedTable was build")
 		--Apply the combined skiptables to the panel now
 		local smithingResearchPanel = getSmithingResearchPanel(craftingType)
 		if smithingResearchPanel ~= nil then
-			local from = 	combinedSkipTables.from
-			local to = 		combinedSkipTables.to
-			combinedSkipTables.from = nil
-			combinedSkipTables.to = nil
-			smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {
-				from =		from,
-				to = 		to,
-				skipTable = combinedSkipTables
-			}
+			if combinedSkipTables ~= nil then
+				local from = 	combinedSkipTables.from
+				local to = 		combinedSkipTables.to
+				combinedSkipTables.from = nil
+				combinedSkipTables.to = nil
+				smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {
+					from =		from,
+					to = 		to,
+					skipTable = combinedSkipTables
+				}
+			else
+				--Nothing to filter
+				smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {}
+			end
 
 			--Update the research panel now?
 			if not noRefresh then
