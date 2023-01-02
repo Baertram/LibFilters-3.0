@@ -30,6 +30,7 @@ local libFilters 	= LibFilters3
 local MAJOR      	= libFilters.name
 local GlobalLibName = libFilters.globalLibName
 local filters    	= libFilters.filters
+local horizontalScrollBarFilters = libFilters.horizontalScrollBarFilters
 
 local callbacksCreated = false
 local fixesLateApplied = false
@@ -86,6 +87,8 @@ local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
 local callbacks = 					mapping.callbacks
 
+local defaultFilterUpdaterDelay = 	constants.defaultFilterUpdaterDelay
+
 local callbackPattern = 			libFilters.callbackPattern
 local callbackBaseLibPattern = 		libFilters.callbackBaseLibPattern
 local callbacksUsingScenes = 		callbacks.usingScenes
@@ -136,6 +139,8 @@ local invTypeCraftBag =				inventoryTypes["craftbag"]
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
 local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
+local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters --"LibFilters3_HorizontalScrollbarFilters"
+
 
 local updaterNamePrefix = libFilters.constants.updaterNamePrefix
 
@@ -165,40 +170,48 @@ local universalDeconFilterTypeToFilterBase = 					    mapping.universalDeconFilt
 local universalDeconLibFiltersFilterTypeSupported = 				mapping.universalDeconLibFiltersFilterTypeSupported
 
 --Keyboard
-local kbc                      = 	constants.keyboard
-local playerInv                = 	kbc.playerInv
-local inventories              = 	kbc.inventories
+local kbc                      	= 	constants.keyboard
+local playerInv                	= 	kbc.playerInv
+local inventories              	= 	kbc.inventories
 --local craftBagFragment 		   = 	kbc.craftBagFragment
 --local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
-local store                    = 	kbc.store
+local quickslots               	=    kbc.quickslots
+local store                    	= 	kbc.store
 --local storeBuy                 = 	kbc.vendorBuy
 --local storeSell                = 	kbc.vendorSell
---local storeBuyBack             = 	kbc.vendorBuyBack
---local storeRepair              = 	kbc.vendorRepair
-local storeWindows             = 	kbc.storeWindows
-local guildStoreSellFragment   = 	kbc.guildStoreSellFragment
+local vendorBuyBack             = 	kbc.vendorBuyBack
+local vendorRepair              = 	kbc.vendorRepair
+local storeWindows             	= 	kbc.storeWindows
+local guildStoreSellFragment   	= 	kbc.guildStoreSellFragment
 --local fence                    = 	kbc.fence
-local researchChooseItemDialog = 	kbc.researchChooseItemDialog
---local playerInvCtrl            =    kbc.playerInvCtrl
-local companionEquipmentCtrl   = 	kbc.companionEquipment.control
-local characterCtrl            =	kbc.characterCtrl
-local companionCharacterCtrl   = 	kbc.companionCharacterCtrl
-local deconstructionPanel	   =    kbc.deconstructionPanel
-local researchPanel			   =    kbc.researchPanel
-local enchantingClass		   =    kbc.enchantingClass
-local enchanting               = 	kbc.enchanting
-local enchantingInvCtrl        = 	enchanting.inventoryControl
-local alchemyClass		   	   =	kbc.alchemyClass
-local alchemy                  = 	kbc.alchemy
-local alchemyCtrl              =	kbc.alchemyCtrl
-local provisionerClass		   =	kbc.provisionerClass
-local provisioner			   =    kbc.provisioner
---local provCtrl 				   =    provisioner.control
-local provisionerScene 		   =    kbc.provisionerScene
+local researchChooseItemDialog 	= 	kbc.researchChooseItemDialog
+--local playerInvCtrl            =   kbc.playerInvCtrl
+local companionEquipment 	   	= 	kbc.companionEquipment
+local companionEquipmentCtrl   	= 	companionEquipment.control
+local characterCtrl            	=	kbc.characterCtrl
+local companionCharacterCtrl   	= 	kbc.companionCharacterCtrl
+local refinementPanel		   	=   kbc.refinementPanel
+local creationPanel			   	=   kbc.creationPanel
+local deconstructionPanel	   	=   kbc.deconstructionPanel
+local improvementPanel	   	   	=   kbc.improvementPanel
+local researchPanel			   	=   kbc.researchPanel
+local enchantingClass		   	=   kbc.enchantingClass
+local enchanting               	= 	kbc.enchanting
+local enchantingInvCtrl        	= 	enchanting.inventoryControl
+local alchemyClass		   	   	=	kbc.alchemyClass
+local alchemy                  	= 	kbc.alchemy
+local alchemyCtrl              	=	kbc.alchemyCtrl
+local provisionerClass		   	=	kbc.provisionerClass
+local provisioner			   	=   kbc.provisioner
+--local provCtrl 				 =    provisioner.control
+local provisionerScene 		   	=   kbc.provisionerScene
 --local smithing				   =    kbc.smithing
+local retrait 				   	= 	kbc.retrait
+local reconstruct 			 	= 	kbc.reconstruct
+
 local universalDeconstruct      = 	kbc.universalDeconstruct
 local universalDeconstructPanel = 	kbc.universalDeconstructPanel
-local universalDeconstructScene = kbc.universalDeconstructScene
+local universalDeconstructScene =   kbc.universalDeconstructScene
 
 local craftbagRefsFragment = LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 local enchantingModeToFilterType = mapping.enchantingModeToFilterType
@@ -220,18 +233,29 @@ local store_componentsGP        = 	store_GP.components
 --local storeRepair_GP            =	gpc.vendorRepair_GP
 --local fence_GP                  =	gpc.fence_GP
 
-local researchPanel_GP          = 	gpc.researchPanel_GP
---local playerInvCtrl_GP          = 	gpc.playerInvCtrl_GP
-local companionEquipmentCtrl_GP = 	gpc.companionEquipment_GP.control
---local characterCtrl_GP          =	gpc.characterCtrl_GP
+--local playerInvCtrl_GP         = 	gpc.playerInvCtrl_GP
+local companionEquipment_GP 	=   gpc.companionEquipment_GP
+local companionEquipmentCtrl_GP = 	companionEquipment_GP.control
+--local characterCtrl_GP         =	gpc.characterCtrl_GP
 local companionCharacterCtrl_GP = 	gpc.companionCharacterCtrl_GP
-local deconstructionPanel_GP   =    gpc.deconstructionPanel_GP
+local refinementPanel_GP	    =   gpc.refinementPanel_GP
+local creationPanel_GP		    =   gpc.creationPanel_GP
+local deconstructionPanel_GP    =   gpc.deconstructionPanel_GP
+local improvementPanel_GP		=   gpc.improvementPanel_GP
+local researchPanel_GP          = 	gpc.researchPanel_GP
+local researchChooseItemDialog_GP = gpc.researchChooseItemDialog_GP
 local enchanting_GP             = 	gpc.enchanting_GP
 local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
 local alchemy_GP                = 	gpc.alchemy
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 local provisioner_GP			=   gpc.provisioner_GP
 local provisionerScene_GP 	    =   gpc.provisionerScene_GP
+local invMailSend_GP 			= 	gpc.invMailSend_GP
+local invPlayerTrade_GP 		= 	gpc.invPlayerTrade_GP
+local invGuildStoreSell_GP 		= 	gpc.invGuildStoreSell_GP
+local retrait_GP 				= 	gpc.retrait_GP
+local reconstruct_GP 			= 	gpc.reconstruct_GP
+
 --local provCtrl_GP				=   gpc.provisioner_GP.control
 local universalDeconstruct_GP   =   gpc.universalDeconstruct_GP
 local universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
@@ -743,6 +767,14 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 end
 
 
+local function getSmithingResearchPanel()
+	if IsGamepad() then
+		return researchPanel_GP
+	else
+		return researchPanel
+	end
+end
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS - fix function
@@ -1222,15 +1254,15 @@ gpc.InventoryUpdateFunctions      = {
 		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "depositList")
 	end,
 	[LF_MAIL_SEND] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(gpc.invMailSend_GP, "inventoryList")
+		updateFunction_GP_ZO_GamepadInventoryList(invMailSend_GP, "inventoryList")
 	end,
 	[LF_TRADE] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(gpc.invPlayerTrade_GP, "inventoryList")
+		updateFunction_GP_ZO_GamepadInventoryList(invPlayerTrade_GP, "inventoryList")
 	end,
 	[LF_GUILDSTORE_SELL] = function()
-		if isDebugEnabled and gpc.invGuildStoreSell_GP == nil then dv("[U]updateFunction LF_GUILDSTORE_SELL: Added reference to GAMEPAD_TRADING_HOUSE_SELL") end
-        gpc.invGuildStoreSell_GP = gpc.invGuildStoreSell_GP or GAMEPAD_TRADING_HOUSE_SELL
-		updateFunction_GP_UpdateList(gpc.invGuildStoreSell_GP)
+		if isDebugEnabled and invGuildStoreSell_GP == nil then dv("[U]updateFunction LF_GUILDSTORE_SELL: Added reference to GAMEPAD_TRADING_HOUSE_SELL") end
+        invGuildStoreSell_GP = invGuildStoreSell_GP or GAMEPAD_TRADING_HOUSE_SELL
+		updateFunction_GP_UpdateList(invGuildStoreSell_GP)
 	end,
 	[LF_VENDOR_SELL] = function()
 		updateFunction_GP_Vendor(ZO_MODE_STORE_SELL)
@@ -1259,9 +1291,9 @@ local inventoryUpdaters           = {
 	end,
 	INVENTORY_COMPANION = function()
 		if IsGamepad() then
-			updateFunction_GP_ItemList(gpc.companionEquipment_GP)
+			updateFunction_GP_ItemList(companionEquipment_GP)
 		else
-			SafeUpdateList(kbc.companionEquipment, nil)
+			SafeUpdateList(companionEquipment, nil)
 		end
 	end,
 	CRAFTBAG = function()
@@ -1288,7 +1320,7 @@ local inventoryUpdaters           = {
 			if isDebugEnabled then dv("[U]updateFunction_GP_QUICKSLOT - Not supported yet!") end
 	--		SafeUpdateList(quickslots_GP) --TODO quickslots GP are not supported yet
 		else
-			SafeUpdateList(kbc.quickslots)
+			SafeUpdateList(quickslots)
 		end
 	end,
 	BANK_WITHDRAW = function()
@@ -1326,14 +1358,14 @@ local inventoryUpdaters           = {
 		if IsGamepad() then
 			updateFunction_GP_Vendor(ZO_MODE_STORE_BUY_BACK)
 		else
-			SafeUpdateList(kbc.vendorBuyBack)
+			SafeUpdateList(vendorBuyBack)
 		end
 	end,
 	VENDOR_REPAIR = function()
 		if IsGamepad() then
 			updateFunction_GP_Vendor(ZO_MODE_STORE_REPAIR)
 		else
-			SafeUpdateList(kbc.vendorRepair)
+			SafeUpdateList(vendorRepair)
 		end
 	end,
 	GUILDSTORE_BROWSE = function()
@@ -1347,9 +1379,9 @@ local inventoryUpdaters           = {
 	end,
 	SMITHING_REFINE = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gpc.refinementPanel_GP)
+			updateCraftingInventoryDirty(refinementPanel_GP)
 		else
-			updateCraftingInventoryDirty(kbc.refinementPanel)
+			updateCraftingInventoryDirty(refinementPanel)
 		end
 	end,
 	SMITHING_CREATION = function()
@@ -1366,9 +1398,9 @@ local inventoryUpdaters           = {
 	end,
 	SMITHING_IMPROVEMENT = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gpc.improvementPanel_GP)
+			updateCraftingInventoryDirty(improvementPanel_GP)
 		else
-			updateCraftingInventoryDirty(kbc.improvementPanel)
+			updateCraftingInventoryDirty(improvementPanel)
 		end
 	end,
 	SMITHING_RESEARCH = function()
@@ -1378,7 +1410,7 @@ local inventoryUpdaters           = {
 			researchPanel_GP:Refresh()
 		else
 			if isDebugEnabled then dv("[U]updateFunction_Keyboard_SMITHING_RESEARCH - SMITHING.researchPanel:Refresh() called") end
-			kbc.researchPanel:Refresh()
+			researchPanel:Refresh()
 		end
 	end,
 	SMITHING_RESEARCH_DIALOG = function()
@@ -1390,16 +1422,16 @@ local inventoryUpdaters           = {
 			--sceneStateChangeCallbackUpdater(gamepadConstants.researchChooseItemDialog_GP, SCENE_HIDDEN, SCENE_SHOWING, 1, nil)
 			if not researchPanel_GP.confirmList then return end
 			if isDebugEnabled then dv("[U]updateFunction_GP_SMITHING_RESEARCH_DIALOG - GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE:FireCallbacks(StateChange, nil, SCENE_SHOWING) called") end
-			gpc.researchChooseItemDialog_GP:FireCallbacks("StateChange", nil, SCENE_SHOWING)
+			researchChooseItemDialog_GP:FireCallbacks("StateChange", nil, SCENE_SHOWING)
 		else
 			dialogUpdaterFunc(researchChooseItemDialog)
 		end
 	end,
 	ALCHEMY_CREATION = function()
 		if IsGamepad() then
-			updateCraftingInventoryDirty(gpc.alchemy_GP)
+			updateCraftingInventoryDirty(alchemy_GP)
 		else
-			updateCraftingInventoryDirty(kbc.alchemy)
+			updateCraftingInventoryDirty(alchemy)
 		end
 	end,
 	ENCHANTING = function()
@@ -1432,18 +1464,18 @@ local inventoryUpdaters           = {
 	RETRAIT = function()
 		if IsGamepad() then
 			if isDebugEnabled then dv("[U]updateFunction_GP_RETRAIT: ZO_RETRAIT_STATION_RETRAIT_GAMEPAD:Refresh() called") end
-			gpc.retrait_GP:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
+			retrait_GP:Refresh() -- ZO_RETRAIT_STATION_RETRAIT_GAMEPAD
 		else
-			updateCraftingInventoryDirty(kbc.retrait)
+			updateCraftingInventoryDirty(retrait)
 		end
 	end,
 	RECONSTRUCTION = function()
 		if IsGamepad() then
 			if isDebugEnabled then dv("[U]updateFunction_GP_RECONSTRUCTION: ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD:RefreshFocusItems() called") end
 			-- not sure how reconstruct works, how it would be filtered.
-			gpc.reconstruct_GP:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
+			reconstruct_GP:RefreshFocusItems() -- ZO_RETRAIT_STATION_RECONSTRUCT_GAMEPAD
 		else
-			updateCraftingInventoryDirty(kbc.reconstruct)
+			updateCraftingInventoryDirty(reconstruct)
 		end
 	end,
 }
@@ -2030,7 +2062,7 @@ function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, c
 end
 
 
-local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType, function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables), OPTIONAL boolean noInUseError)"
+local registerFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType, function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables), OPTIONAL boolean noInUseError)"
 --Register a filter function at the String filterTag and number filterType.
 --If filterType LF_FILTER_ALL is used this filterFunction will be used for all available filterTypes of the filterTag, where no other filterFunction was explicitly registered
 --(as a kind of "fallback filter function").
@@ -2041,7 +2073,7 @@ local registerFilteParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s)
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
 	local filterCallbacks = filters[filterType]
 	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
-		dfe(registerFilteParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+		dfe(registerFilterParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
 	noInUseError = noInUseError or false
@@ -2067,7 +2099,7 @@ local libFilters_RegisterFilter = libFilters.RegisterFilter
 function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
 	local filterCallbacks = filters[filterType]
 	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= "function" then
-		dfe(registerFilteParametersErrorStr, "RegisterFilterIfUnregistered",
+		dfe(registerFilterParametersErrorStr, "RegisterFilterIfUnregistered",
 				tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
 		return
 	end
@@ -2254,10 +2286,24 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 		local filterTypesTable = updaterNameToFilterType[updaterName]
 		local countFilterTypesWithUpdaterName = (filterTypesTable and #filterTypesTable) or 0
 		if countFilterTypesWithUpdaterName > 1 then
-			--TODO:
-			--Which filterType is the correct one for the updater name?
-			--One cannot know! use the first one?
-			filterType = filterTypesTable[1]
+			if countFilterTypesWithUpdaterName > 2 then
+				--Should not happen? Always take the 1st entry then as fallback
+				filterType = filterTypesTable[1]
+			else
+				--Which filterType is the correct one for the updater name?
+				--If there are 2 filterTypes it should be LF_SMITHING_ and LF_JEWELRY_, so the filterType should be
+				--detectable by help of the current CraftingInteractionType?
+				local craftingType = gcit()
+				for _, filterTypeLoop in ipairs(filterTypesTable) do
+					if filterType ~= nil then
+						filterType = getFilterTypeByFilterTypeRespectingCraftType(filterTypeLoop, craftingType)
+					end
+				end
+				if filterType == nil then
+					--Should not happen? Always take the 1st entry then as fallback
+					filterType = filterTypesTable[1]
+				end
+			end
 		elseif countFilterTypesWithUpdaterName == 1 then
 			filterType = filterTypesTable[1]
 		end
@@ -2274,7 +2320,7 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 			if delay < 0 then delay = 0 end
 		end
 	else
-		delay = 10 --default value: 10ms
+		delay = defaultFilterUpdaterDelay --default value: 10ms
 	end
 	if isDebugEnabled then dv(">callbackName: %s, delay: %s", tos(callbackName), tos(delay)) end
 
@@ -2312,6 +2358,17 @@ function libFilters:RequestUpdate(filterType, delay)
 	if isDebugEnabled then dd("[U-API]RequestUpdate filterType: %q, updaterName: %s, delay: %s", tos(filterType), tos(updaterName), tos(delay)) end
 	libFilters_RequestUpdateByName(libFilters, updaterName, delay, filterType)
 end
+
+
+--Update the normal filters (LF_SMITHING_RESEARCH / LF_JEWELRY_RESEARCH) and the horizontal scrollbar filters
+-- (fromResearcLineIndex, toResearchLineIndex, skipTable) for the crafting researchPanel
+--OPTIONAL parameter number delay will add a delay to the call of the updater function
+function libFilters:RequestUpdateForResearchFilters(delay)
+	local updaterName = "SMITHING_RESEARCH"
+	if isDebugEnabled then dd("[U-API]RequestUpdateForResearchFilters delay: %s", tos(delay)) end
+	libFilters_RequestUpdateByName(libFilters, updaterName, delay, getFilterTypeByFilterTypeRespectingCraftType(LF_SMITHING_RESEARCH, gcit()))
+end
+local libFilters_RequestUpdateForResearchFilters = libFilters.RequestUpdateForResearchFilters
 
 
 -- Get the updater name of a number filterType
@@ -2712,6 +2769,96 @@ end
 --return boolean isJewerlyCrafting
 function libFilters:IsJewelryCrafting()
 	return (gcit() == CRAFTING_TYPE_JEWELRYCRAFTING) or false
+end
+
+
+--Check if the refinement panel is shown.
+--return boolean isShown, control refinementPanel
+function libFilters:IsRefinementShown()
+	if IsGamepad() then
+		if refinementPanel_GP ~= nil then
+			if refinementPanel_GP.control ~= nil and not refinementPanel_GP.control:IsHidden() then
+				return true, refinementPanel_GP.control
+			end
+		end
+	else
+		if refinementPanel ~= nil and refinementPanel.control ~= nil and not refinementPanel.control:IsHidden() then
+			return true, refinementPanel.control
+		end
+	end
+	return false, nil
+end
+
+
+--Check if the creation panel is shown.
+--return boolean isShown, control creationPanel
+function libFilters:IsCreationShown()
+	if IsGamepad() then
+		if creationPanel_GP ~= nil then
+			if creationPanel_GP.control ~= nil and not creationPanel_GP.control:IsHidden() then
+				return true, creationPanel_GP.control
+			end
+		end
+	else
+		if creationPanel ~= nil and creationPanel.control ~= nil and not creationPanel.control:IsHidden() then
+			return true, creationPanel.control
+		end
+	end
+	return false, nil
+end
+
+
+--Check if the deconstruction panel is shown.
+--return boolean isShown, control deconstructionPanel
+function libFilters:IsDeconstructionShown()
+	if IsGamepad() then
+		if deconstructionPanel_GP ~= nil then
+			if deconstructionPanel_GP.control ~= nil and not deconstructionPanel_GP.control:IsHidden() then
+				return true, deconstructionPanel_GP.control
+			end
+		end
+	else
+		if deconstructionPanel ~= nil and deconstructionPanel.control ~= nil and not deconstructionPanel.control:IsHidden() then
+			return true, deconstructionPanel.control
+		end
+	end
+	return false, nil
+end
+
+
+--Check if the improvement panel is shown.
+--return boolean isShown, control improvementPanel
+function libFilters:IsImprovementShown()
+	if IsGamepad() then
+		if improvementPanel_GP ~= nil then
+			if improvementPanel_GP.control ~= nil and not improvementPanel_GP.control:IsHidden() then
+				return true, improvementPanel_GP.control
+			end
+		end
+	else
+		if improvementPanel ~= nil and improvementPanel.control ~= nil and not improvementPanel.control:IsHidden() then
+			return true, improvementPanel.control
+		end
+	end
+	return false, nil
+end
+
+
+--Check if the research panel is shown.
+--return boolean isShown, control researchPanel
+function libFilters:IsResearchShown()
+	if IsGamepad() then
+		if researchPanel_GP ~= nil and researchPanel_GP.researchLineList ~= nil then
+			if researchPanel_GP.control ~= nil and not researchPanel_GP.control:IsHidden() then
+				return true, researchPanel_GP.control
+			end
+		end
+	else
+		if researchPanel ~= nil and researchPanel.control ~= nil and not researchPanel.control:IsHidden() then
+			return true, researchPanel.control
+		end
+	end
+	return false, nil
 end
 
 
@@ -3123,33 +3270,164 @@ end
 
 
 --**********************************************************************************************************************
--- Special API
+-- API for the horizontal scrollbar filters, at e.g. SMITHING.researchPanel
 --**********************************************************************************************************************
---Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
---indices
---Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
---keyboard mode
-function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
-	 local craftingType = GetCraftingInteractionType()
-	if isDebugEnabled then dd("SetResearchLineLoopValues craftingType: %q, fromResearchLineIndex: %q, toResearchLineIndex: %q, skipTable: %s", tos(craftingType), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(skipTable)) end
-	 if craftingType == CRAFTING_TYPE_INVALID then return false end
-	 if not fromResearchLineIndex or fromResearchLineIndex <= 0 then fromResearchLineIndex = 1 end
-	 local numSmithingResearchLines = GetNumSmithingResearchLines(craftingType)
-	 if not toResearchLineIndex or toResearchLineIndex > numSmithingResearchLines then
-		  toResearchLineIndex = numSmithingResearchLines
-	 end
-	 local helpers = libFilters.helpers
-	 if not helpers then return end
-	 local smithingResearchPanel = helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"].locations[1]
-	 if smithingResearchPanel then
-		  smithingResearchPanel.LibFilters_3ResearchLineLoopValues = {
-				from		= fromResearchLineIndex,
-				to			= toResearchLineIndex,
-				skipTable	= skipTable,
-		  }
-	 end
+local function combineTablesOnlyBooleanTrue(dest, ...)
+    for sourceTableIndex = 1, select("#", ...) do
+        local sourceTable = select(sourceTableIndex, ...)
+        for key, data in pairs(sourceTable) do
+			if data ~= nil and data == true and not dest[key] then
+				dest[key] = true
+			end
+        end
+    end
 end
 
+--Cached table of combined skipTaables. WIll be set below at function combineCraftingResearchHorizontalScrollbarFilterSkipTables and
+--will be reset if a new filter for the research horizontal scroll list for the same crafting type will be un-/registered
+local cachedLastCombinedSkipTable = {}
+
+--Combine all the registered skipTables of the research horizontal scroll bar, and add them to the researchPanel table,
+--with entry LibFilters3_HorizontalScrollbarFilters
+local function combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
+--d("[LF3]combineCraftingResearchHorizontalScrollbarFilterSkipTables: " ..tos(craftingType))
+	if not craftingType then return false, nil end
+	local combinedSkipTables = {}
+
+	--Get all registered skipTables for the CraftingType
+	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
+	--If no skipTables are registred: Nothing to filter!
+	if filtersRegistered == nil then return true, nil end
+
+	--Was the same table cached before already?
+	if cachedLastCombinedSkipTable ~= nil and cachedLastCombinedSkipTable[craftingType] ~= nil then
+		--d(">>using cached combined skipTables")
+		combinedSkipTables = cachedLastCombinedSkipTable[craftingType]
+	else
+		--d(">>building new combined skipTables")
+		--Combine only those entries which got the skipTable entry with value == boolean true
+		for filterTag, skipTableData in pairs(filtersRegistered) do
+			if skipTableData.skipTable ~= nil then
+				combineTablesOnlyBooleanTrue(combinedSkipTables, skipTableData.skipTable)
+			end
+			if skipTableData.from ~= nil then
+				if combinedSkipTables.from == nil or combinedSkipTables.from < skipTableData.from then
+					combinedSkipTables.from = skipTableData.from
+				end
+			end
+			if skipTableData.to ~= nil then
+				if combinedSkipTables.to == nil or combinedSkipTables.to > skipTableData.to then
+					combinedSkipTables.to = skipTableData.to
+				end
+			end
+		end
+	end
+
+	if NonContiguousCount(combinedSkipTables) == 0 then
+--d(">>no skip table needed -> No filters applied")
+		cachedLastCombinedSkipTable[craftingType] = nil
+		return true, nil
+	end
+	cachedLastCombinedSkipTable[craftingType] = combinedSkipTables
+	return true, combinedSkipTables
+end
+
+--Use API function libFilters.ApplyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh) to apply the combined
+--skiptables to the researchPanel table LibFilters3_HorizontalScrollbarFilters
+local function applyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh)
+--d("[LF3]applyCraftingResearchHorizontalScrollbarFilters")
+	craftingType = craftingType or gcit()
+	noRefresh = noRefresh or false
+	local wasBuild, combinedSkipTables = combineCraftingResearchHorizontalScrollbarFilterSkipTables(craftingType)
+	if wasBuild == true then
+--d(">combinedTable was build")
+		--Apply the combined skiptables to the panel now
+		local smithingResearchPanel = getSmithingResearchPanel(craftingType)
+		if smithingResearchPanel ~= nil then
+			if combinedSkipTables ~= nil then
+				local from = 	combinedSkipTables.from
+				local to = 		combinedSkipTables.to
+				combinedSkipTables.from = nil
+				combinedSkipTables.to = nil
+				smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {
+					from =		from,
+					to = 		to,
+					skipTable = combinedSkipTables
+				}
+			else
+				--Nothing to filter
+				smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {}
+			end
+
+			--Update the research panel now?
+			if not noRefresh then
+				--Refresh the panel now
+				--smithingResearchPanel:Refresh() --> Will rebuild the list entries and call list:Commit()
+				libFilters_RequestUpdateForResearchFilters(libFilters, 0)
+			end
+		end
+	end
+end
+libFilters.ApplyCraftingResearchHorizontalScrollbarFilters = applyCraftingResearchHorizontalScrollbarFilters
+
+
+local registerResearchHorizontolScrollBarFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %q, %q, %s).\n>Needed format is: String uniqueFilterTag, number CraftingInteractionTpe, table skipTable = {[researchLineIndex] = boolean skipOrNot, ...}, OPTIONAL number fromResearchLineIndex, OPTIONAl number toResearchLineIndex"
+--Register a filter by help of a researchLineIndex "skipTable" for a craftingType
+--Parameter tyble skipTable contains key = researchLineIndex and value = boolean where "true" means: filter/skip (hide) this researchLineIndex at the horizontal scroll list.
+--Parameter number fromResearchLineIndex sets the researchLineIndex to start the output of the horizontal scrollbar: It filters (hides) the possibe entries "in total".
+--Parameter number toResearchLineIndex sets the researchLineIndex to stop the output of the horizontal scrollbar: It filters (hides) the possible entries "in total".
+--Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
+--Returns true if filter table skipTable was registered, else nil in case of parameter errors, or false if same tag+type was already registered
+--If different addons register skipTables for the same crafting type, these skipTables will be combined!
+-->The combined entries of the skipTable are added, directly upon registering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+-->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
+function libFilters:RegisterResearchHorizontalScrollbarFilter(filterTag, craftingType, skipTable, fromResearchLineIndex, toResearchLineIndex, noInUseError)
+	if not filterTag or not craftingType or not skipTable then
+		dfe(registerResearchHorizontolScrollBarFilterParametersErrorStr, "RegisterResearchHorizontalScrollbarFilter", tos(filterTag), tos(craftingType), tos(skipTable), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(noInUseError))
+		return
+	end
+	if isDebugEnabled then dd("RegisterResearchHorizontalScrollbarFilter-%q,%q,%q,%q,%q,%s", tos(filterTag), tos(craftingType), tos(skipTable), tos(fromResearchLineIndex), tos(toResearchLineIndex), tos(noInUseError)) end
+	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"]
+	filtersRegistered[craftingType] = filtersRegistered[craftingType] or {}
+	if filtersRegistered[craftingType][filterTag] ~= nil then
+		if not noInUseError then
+			dfe("FilterTag \'%q\' craftingType \'%q\' skipTable is already in use!",
+					tos(filterTag), tos(craftingType))
+		end
+		return false
+	end
+	filtersRegistered[craftingType][filterTag] = { skipTable = skipTable, from = fromResearchLineIndex, to = toResearchLineIndex }
+	cachedLastCombinedSkipTable[craftingType] = nil
+	applyCraftingResearchHorizontalScrollbarFilters(craftingType, true)
+	return true
+end
+
+--Unregister a filter by help of a researchLineIndex "skipTable" for a craftingType, which will show the entries at the horizontal scroll list again.
+--If different addons have registered skipTables for the same crafting type, these skipTables will be combined, and thus unregistering 1 filterTag might
+--still have any other registered which hides the entry at the horizontal scrollbar
+-->The combined entries of the skipTable are added, directly upon unregistering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+-->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
+function libFilters:UnregisterResearchHorizontalScrollbarFilter(filterTag, craftingType)
+	if not filterTag or filterTag == "" or craftingType == nil then
+		dfe("Invalid arguments to UnregisterResearchHorizontalScrollbarFilter(%q, %s).\n>Needed format is: String filterTag, number CraftingInteractionType",
+			tos(filterTag), tos(craftingType))
+		return
+	end
+	if isDebugEnabled then dd("UnregisterResearchHorizontalScrollbarFilter-%q,%s", tos(filterTag), tos(craftingType)) end
+	local filtersRegistered = horizontalScrollBarFilters["craftingResearch"][craftingType]
+	if filtersRegistered ~= nil and filtersRegistered[filterTag] ~= nil then
+		filtersRegistered[filterTag] = nil
+		cachedLastCombinedSkipTable[craftingType] = nil
+		applyCraftingResearchHorizontalScrollbarFilters(craftingType, true)
+		return true
+	end
+	return false
+end
+
+
+--**********************************************************************************************************************
+-- Special API
+--**********************************************************************************************************************
 --Check if the addon CraftBagExtended is enabled and if the craftbag is currently shown at a "non vanilla craftbag" filterType
 --e.g. LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL, LF_GUILDBANK_DEPOSIT, LF_BANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT
 --Will return boolean true if CBE is enabled and a supported parent filterType panelis shown. Else returns false

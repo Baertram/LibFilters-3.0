@@ -1,6 +1,6 @@
 # API functions of LibFilters
 
-Last updated: 2022-11-11<br>
+Last updated: 2023-01-02<br>
 **The WIKI entries here might be outdated.**<br>
 **!!!Please ALWAYS have a look at the file LibFilters-3.0/LibFilters-3.0.lua and search for!!!**<br>
 ```
@@ -137,7 +137,12 @@ function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerC
 function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, compareToLowerCase)
 
 
-## Filter update / refresh of (inventory/crafting/...) list
+##  Panel updaters (apply the registered filters/remove the unregistered filters)
+Registered/Unregistered filters only apply to the panels/inventories/scenes/fragments/controls/userdata as you refresh/update them via their methods.<br>
+LibFilters provides updater methods to do that for you, which you can manually call as you need them (e.g. via libFilters:RequestUpdate(LF*_filterTypeConstant).<br>
+
+
+### Filter update / refresh of (inventory/crafting/...) list
 --Will call the updater function of number filterType, read from table "libFilters.mapping.inventoryUpdaters", depending
 --on keyboard/gamepad mode.
 --It will overwrite updaters of the same filterType which have been called within 10 milliseconds, so that they are not
@@ -178,6 +183,14 @@ function libFilters:GetUpdaterCallback(updaterName)
 -- Get the updater function used for updating/refresh of the inventories etc., by help of a number filterType
 -- returns nilable:function updaterFunction(OPTIONAL filterType)
 function libFilters:GetFilterTypeUpdaterCallback(filterType)
+```
+
+### Filter update of specil panels
+```lua
+--Update the normal filters (LF_SMITHING_RESEARCH / LF_JEWELRY_RESEARCH) and the horizontal scrollbar filters
+-- (fromResearcLineIndex, toResearchLineIndex, skipTable) for the crafting researchPanel
+--OPTIONAL parameter number delay will add a delay to the call of the updater function
+function libFilters:RequestUpdateForResearchFilters(delay)
 ```
 
 ##  API to get library internal tables, variables and other constants
@@ -311,15 +324,41 @@ function libFilters:IsAlchemyShown(alchemyMode)
 function libFilters:IsUniversalDeconstructionPanelShown(isGamepadMode)
 ```
 
+##  Horizontal scrollbar filters (at crafting tables like "Research")
+```lua
+--Register a filter by help of a researchLineIndex "skipTable" for a craftingType
+--Parameter tyble skipTable contains key = researchLineIndex and value = boolean where "true" means: filter/skip (hide) this researchLineIndex at the horizontal scroll list.
+--Parameter number fromResearchLineIndex sets the researchLineIndex to start the output of the horizontal scrollbar: It filters (hides) the possibe entries "in total".
+--Parameter number toResearchLineIndex sets the researchLineIndex to stop the output of the horizontal scrollbar: It filters (hides) the possible entries "in total".
+--Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
+--Returns true if filter table skipTable was registered, else nil in case of parameter errors, or false if same tag+type was already registered
+--If different addons register skipTables for the same crafting type, these skipTables will be combined!
+-->The combined entries of the skipTable are added, directly upon registering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+-->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
+function libFilters:RegisterResearchHorizontalScrollbarFilter(filterTag, craftingType, skipTable, fromResearchLineIndex, toResearchLineIndex, noInUseError)
+
+
+--Unregister a filter by help of a researchLineIndex "skipTable" for a craftingType, which will show the entries at the horizontal scroll list again.
+--If different addons have registered skipTables for the same crafting type, these skipTables will be combined, and thus unregistering 1 filterTag might
+--still have any other registered which hides the entry at the horizontal scrollbar
+-->The combined entries of the skipTable are added, directly upon unregistering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+-->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
+function libFilters:UnregisterResearchHorizontalScrollbarFilter(filterTag, craftingType)
+
+
+--Use API function libFilters.ApplyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh) to apply the combined
+--skiptables to the researchPanel table LibFilters3_HorizontalScrollbarFilters
+--Attention: This function will automatically call the Refresh function of the crafting refresh panel afterwards, unless you suppress it via parameter doNotRefresh!
+--Important This function will be automatically called, without a panel resfresh, as the horizontal scrollbar filters get registered or unregistered, so you do not need to manually call it, in general!
+--OPTIONAL parameter number craftingType: The crafting interaction type
+--OPTIONAL parameter boolean doNotRefresh: true = do not call the refresh function of the panel. You can manually refresh the panel via function libFilters:RequestUpdateForResearchFilters(delay)
+
+function libFilters.ApplyCraftingResearchHorizontalScrollbarFilters(craftingType, doNotRefresh)
+```
+
+
 ##  Special API
 ```lua
---Will set the keyboard research panel's indices "from" and "to" to filter the items which do not match to the selected
---indices
---Used in addon AdvancedFilters UPDATED e.g. to filter the research panel LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH in
---keyboard mode
-function libFilters:SetResearchLineLoopValues(fromResearchLineIndex, toResearchLineIndex, skipTable)
-
-
 --Check if the addon CraftBagExtended is enabled and if the craftbag is currently shown at a "non vanilla craftbag" filterType
 --e.g. LF_MAIL_SEND, LF_TRADE, LF_GUILDSTORE_SELL, LF_GUILDBANK_DEPOSIT, LF_BANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT
 --Will return boolean true if CBE is enabled and a supported parent filterType panelis shown. Else returns false

@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.8
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 3.9
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -31,9 +31,14 @@ libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
 ------------------------------------------------------------------------------------------------------------------------
 
-
 libFilters.filters = {}
 local filters = libFilters.filters
+
+--Horizontal scrollbar filters for e.g. crafting tables research panel
+libFilters.horizontalScrollBarFilters = {}
+local horizontalScrollBarFilters = libFilters.horizontalScrollBarFilters
+horizontalScrollBarFilters["craftingResearch"] = {}
+
 -- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
 -- after EVENT_ADD_ON_LOADED
 libFilters.isInitialized = false
@@ -140,6 +145,10 @@ if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
 libFilters.constants = {}
 local constants = libFilters.constants
 
+--10 milliseconds delay before filter update routines run -> to combine same updaters and unstress the client/server
+constants.defaultFilterUpdaterDelay = 10
+
+
 ------------------------------------------------------------------------------------------------------------------------
 --LF_* FILTER PANEL ID constants
 ------------------------------------------------------------------------------------------------------------------------
@@ -222,6 +231,12 @@ constants.filterTypes = libFiltersFilterConstants
 --only different fragments are able to distinguish the filtertype then!
 local defaultLibFiltersAttributeToStoreTheFilterType = "LibFilters3_filterType"
 constants.defaultAttributeToStoreTheFilterType = defaultLibFiltersAttributeToStoreTheFilterType
+
+--The default attribute at the researchPanel (currently the only one) to store the horizontal scroll list filters'
+--combined skipTable at
+local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = "LibFilters3_HorizontalScrollbarFilters"
+constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters
+
 
 --The default attribute at an inventory/layoutData table where the filter functions of LiFilters should be added to
 --and where ZOs or other addons could have already added filter functions to -> See LibFilters-3.0.lua, function HookAdditionalFilters

@@ -44,6 +44,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 local helpers = {}
 local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --.LibFilters3_filterType
+local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters --"LibFilters3_HorizontalScrollbarFilters"
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --.additionalFilter
 
 
@@ -594,11 +595,12 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
 
 
 --enable LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH -- since API 100023 Summerset
+local libFiltersResearchLineLabel
 helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
-    version = 6,
+    version = 7, --last changed 2023-01-01
     filterTypes = {
         [true] = {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH},
-        [false]={LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}
+        [false]= {LF_SMITHING_RESEARCH, LF_JEWELRY_RESEARCH}
     },
     locations = {
         [1] = SMITHING.researchPanel,
@@ -607,18 +609,19 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     helper = {
         funcName = "Refresh",
         func = function(self)
-			if iigpm or (self.panelContent and self.panelContent == ZO_GamepadSmithingTopLevelMaskResearch) then
-				-- if Gamepad researchPanel has not been initialized yet, stop.
-				if not self.researchLineList then 
-					return 
-				end
-			end
+            if iigpm or (self.panelContent and self.panelContent == ZO_GamepadSmithingTopLevelMaskResearch) then
+                -- if Gamepad researchPanel has not been initialized yet, stop.
+                if not self.researchLineList then
+                    return
+                end
+            end
             --Test: Always use SMITHING.researchPanel as self, even in gamepad mode, so registered filter functions at
             --will be read from .additionalFilter!
             local base = SMITHING.researchPanel
 
 
---d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
+            --d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
+            --v- Added by LibFilters -v-
             -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
             local function predicate(bagId, slotIndex)
                 local result = DoesNotBlockResearch(bagId, slotIndex)
@@ -626,6 +629,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
                 result = checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
                 return result
             end
+            --^- Added by LibFilters -^-
 
             -- Begin original function, ZO_SharedSmithingResearch:Refresh()
             self.dirty = false
@@ -640,51 +644,81 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
                 PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, virtualInventoryList) -- IsNotLockedOrRetraitedItem, virtualInventoryList
             end
 
-            --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
-            --and only show some of the entries
+            --v- Added by LibFilters -v-
             local smithingResearchPanel = self
             local fromIterator
             local toIterator
             local skipTable
-            if smithingResearchPanel and smithingResearchPanel.LibFilters_3ResearchLineLoopValues then
-                local customLoopData = smithingResearchPanel.LibFilters_3ResearchLineLoopValues
-                fromIterator = customLoopData.from
-                toIterator =  customLoopData.to
-                skipTable = customLoopData.skipTable
+            local isCurrentlyResearching = {}
+
+            --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
+            --and only show some of the entries (filtered by the skipList entries)
+            if smithingResearchPanel ~= nil then
+                local addonAddedFiltersForHorizontalScrollBar = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
+                if addonAddedFiltersForHorizontalScrollBar ~= nil then
+                    fromIterator =  addonAddedFiltersForHorizontalScrollBar.from
+                    toIterator =    addonAddedFiltersForHorizontalScrollBar.to
+                    skipTable =     addonAddedFiltersForHorizontalScrollBar.skipTable
+--d("[LF3]SkipTable found, from: " ..tos(fromIterator) .. ", to: " ..tos(toIterator))
+                end
             end
+            local numResearchLines = GetNumSmithingResearchLines(craftingType)
             if fromIterator == nil then
                 fromIterator = 1
             end
             if toIterator == nil then
-                toIterator = GetNumSmithingResearchLines(craftingType)
+                toIterator = numResearchLines
             end
-            for researchLineIndex = fromIterator, toIterator do
-                if not skipTable or (skipTable and skipTable[researchLineIndex] == nil) then
-                    local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
-                    if numTraits > 0 then
-                        local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
-                        if researchingTraitIndex then
-                            numCurrentlyResearching = numCurrentlyResearching + 1
-                        end
+            --[[
+            --todo: 2023-01-02 Not working as researchLineIndicesShown could be 13 for blacksmithing (armor and weapons -> max 14) but the filtered entries could be less
+            --because the actual filter at the smithing table only shows the armor parts. To fix this the currently selected filter at the smithing tbale needs to be
+            --read and a mapping between filterAtSmithingTable2maximumResearchLines needs to be created :-(
+            local researchLineIndicesShown = toIterator - fromIterator
+            if researchLineIndicesShown > numResearchLines then researchLineIndicesShown = numResearchLines end
+            local numFiltered = (skipTable ~= nil and NonContiguousCount(skipTable)) or 0
+            local allItemsFiltered = false
+d(">researchLineIndicesShown" ..tos(researchLineIndicesShown) .. ", numFiltered: " ..tos(numFiltered))
+            if researchLineIndicesShown == numFiltered then
+                allItemsFiltered = (numFiltered > researchLineIndicesShown and true) or false
+            else
+                allItemsFiltered = (numFiltered >= researchLineIndicesShown and true) or false
+            end
+            ]]
 
+            for researchLineIndex = fromIterator, toIterator do
+                local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
+                if numTraits > 0 then
+                    local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
+                    if researchingTraitIndex then
+                        numCurrentlyResearching = numCurrentlyResearching + 1
+
+                        --v- Added by LibFilters -v-
+                        isCurrentlyResearching[researchLineIndex] = true
+                    end
+
+                    --Skip any entry in the researchLine (by their index)?
+                    if not skipTable or (skipTable ~= nil and skipTable[researchLineIndex] == nil) then
+                        --^- Added by LibFilters -^-
                         local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
                         if expectedTypeFilter == self.typeFilter then
                             local itemTraitCounts = self:GenerateResearchTraitCounts(virtualInventoryList, craftingType, researchLineIndex, numTraits)
-                            local data = { 
-								name = name, 
-								icon = icon, 
-								numTraits = numTraits,
-								craftingType = craftingType, 
-								itemTraitCounts = itemTraitCounts,
-								areAllTraitsKnown = areAllTraitsKnown,
-								researchLineIndex = researchLineIndex,
-								researchingTraitIndex = researchingTraitIndex,
-								timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs
-							}
-							
+                            local data = {
+                                name = name,
+                                icon = icon,
+                                numTraits = numTraits,
+                                craftingType = craftingType,
+                                itemTraitCounts = itemTraitCounts,
+                                areAllTraitsKnown = areAllTraitsKnown,
+                                researchLineIndex = researchLineIndex,
+                                researchingTraitIndex = researchingTraitIndex,
+                                timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs
+                            }
+
                             self.researchLineList:AddEntry(data)
                         end
-                    end
+                    --elseif skipTable ~= nil and skipTable[researchLineIndex] == true then
+                        --d(">skipped researchLineIndex: " ..tos(name))
+                    end --Added by LibFilters
                 end
             end
 
@@ -701,6 +735,60 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 
             if self.activeRow then
                 self:OnResearchRowActivate(self.activeRow)
+            end
+
+
+            --LibFilters 3: If all items are filtered now: Hide the currently shown item label and the trait list
+            --Other approach: Check if the horizontal scroll list got no entries.
+            local allItemsFiltered = (#self.researchLineList.list == 0 and true) or false
+
+            local researchTimerHidden = true
+            if allItemsFiltered then
+                researchTimerHidden = true
+            else
+                if numCurrentlyResearching > 0 and isCurrentlyResearching[self.researchLineIndex] == true then
+                    researchTimerHidden = false
+                end
+            end
+            self.timer.control:SetHidden(researchTimerHidden)
+            local selfControl = self.control
+            GetControl(selfControl, "TraitContainer"):SetHidden(allItemsFiltered)
+
+            if allItemsFiltered == true then
+                if libFiltersResearchLineLabel == nil then
+                    libFiltersResearchLineLabel = CreateControl("LibFiltersResearchLineInfoLabel", selfControl, CT_LABEL)
+                    libFiltersResearchLineLabel:SetDimensions(30, 5)
+                    libFiltersResearchLineLabel:SetFont("ZoFontGameSmall")
+                end
+                libFiltersResearchLineLabel:SetParent(selfControl)
+                libFiltersResearchLineLabel:SetResizeToFitDescendents(true)
+                libFiltersResearchLineLabel:SetAnchor(CENTER, selfControl, CENTER, 0, 0)
+                libFiltersResearchLineLabel:SetText(GetString(SI_SMITHING_DECONSTRUCTION_NO_MATCHING_ITEMS))
+                libFiltersResearchLineLabel:SetColor(1, 1, 1, 1)
+
+                libFiltersResearchLineLabel:SetHidden(false)
+            else
+                if libFiltersResearchLineLabel ~= nil then
+                    libFiltersResearchLineLabel:SetHidden(true)
+                end
+            end
+
+            if iigpm() then
+                --todo 2023-01-02
+                --Gamepad mode
+            else
+                --Keyboard mode
+                GetControl(selfControl, "ContainerDivider"):SetHidden(allItemsFiltered)
+                GetControl(selfControl, "ResearchLineList"):SetHidden(allItemsFiltered)
+                GetControl(selfControl, "ResearchLineListSelectedLabel"):SetHidden(allItemsFiltered)
+                GetControl(selfControl, "ResearchProgressLabel"):SetHidden(allItemsFiltered)
+                local researchSlotNamePrefix = self.control:GetName() .. "ZO_SmithingResearchSlot"
+                for traitIndex=1, GetNumSmithingTraitItems() do
+                    local researchSlot = GetControl(researchSlotNamePrefix, tos(traitIndex))
+                    if researchSlot ~= nil then
+                        researchSlot:SetHidden(allItemsFiltered)
+                    end
+                end
             end
 
         end,
