@@ -3337,13 +3337,15 @@ d(">combinedTable was build")
 		--Apply the combined skiptables to the panel now
 		local smithingResearchPanel = getSmithingResearchPanel(craftingType)
 		if smithingResearchPanel ~= nil then
-			smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {
-				from =	combinedSkipTables.from,
-				to = 	combinedSkipTables.to
-			}
+			local from = 	combinedSkipTables.from
+			local to = 		combinedSkipTables.to
 			combinedSkipTables.from = nil
 			combinedSkipTables.to = nil
-			smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters].skipTable = combinedSkipTables
+			smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] = {
+				from =		from,
+				to = 		to,
+				skipTable = combinedSkipTables
+			}
 
 			--Update the research panel now?
 			if not noRefresh then

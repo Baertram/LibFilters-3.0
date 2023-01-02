@@ -620,6 +620,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 
 
 d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
+            --v- Added by LibFilters -v-
             -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
             local function predicate(bagId, slotIndex)
                 local result = DoesNotBlockResearch(bagId, slotIndex)
@@ -627,6 +628,7 @@ d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
                 result = checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
                 return result
             end
+            --^- Added by LibFilters -^-
 
             -- Begin original function, ZO_SharedSmithingResearch:Refresh()
             self.dirty = false
@@ -641,20 +643,22 @@ d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
                 PLAYER_INVENTORY:GenerateListOfVirtualStackedItems(INVENTORY_BANK, predicate, virtualInventoryList) -- IsNotLockedOrRetraitedItem, virtualInventoryList
             end
 
+            --v- Added by LibFilters -v-
             --Get the from, to and skipTable values for the research Line index loop below in order to filter the research line horizontal scroll list
             --and only show some of the entries
             local smithingResearchPanel = self
             local fromIterator
             local toIterator
             local skipTable
+            local numSmithingResearchLines
 
             if smithingResearchPanel ~= nil then
 d(">Found research panel")
-                local addonAddedFilters = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
-                if addonAddedFilters ~= nil then
-                    fromIterator =  addonAddedFilters.from
-                    toIterator =    addonAddedFilters.to
-                    skipTable =     addonAddedFilters.skipTable
+                local addonAddedFiltersForHorizontalScrollBar = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
+                if addonAddedFiltersForHorizontalScrollBar ~= nil then
+                    fromIterator =  addonAddedFiltersForHorizontalScrollBar.from
+                    toIterator =    addonAddedFiltersForHorizontalScrollBar.to
+                    skipTable =     addonAddedFiltersForHorizontalScrollBar.skipTable
 d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .. ", from: " .. tos(fromIterator) .. ", to: " ..tos(toIterator))
                 end
             end
@@ -664,6 +668,11 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
             if toIterator == nil then
                 toIterator = GetNumSmithingResearchLines(craftingType)
             end
+            local researchLineIndicesShown = toIterator - fromIterator
+            local numFiltered = (skipTable ~= nil and NonContiguousCount(skipTable)) or 0
+            local allItemsFiltered = (numFiltered >= researchLineIndicesShown and true) or false
+            --^- Added by LibFilters -^-
+
             for researchLineIndex = fromIterator, toIterator do
                 --Skip any entry in the researchLine (by their index)?
                 if not skipTable or (skipTable ~= nil and skipTable[researchLineIndex] == nil) then
@@ -708,6 +717,22 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
 
             if self.activeRow then
                 self:OnResearchRowActivate(self.activeRow)
+            end
+
+
+            --LibFilters 3: If all items are filtered now: Hide the currently shown item label and the trait list
+            if iigpm() then
+                --todo
+
+            else
+                ZO_SmithingTopLevelResearchPanelResearchLineListSelectedLabel:SetHidden(allItemsFiltered)
+                local researchSlotNamePrefix = "ZO_SmithingTopLevelResearchPanelZO_SmithingResearchSlot"
+                for traitIndex=1, GetNumSmithingTraitItems() do
+                    local researchSlot = GetControl(researchSlotNamePrefix, tos(traitIndex))
+                    if researchSlot ~= nil then
+                        researchSlot:SetHidden(allItemsFiltered)
+                    end
+                end
             end
 
         end,
