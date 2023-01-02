@@ -659,7 +659,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
                     fromIterator =  addonAddedFiltersForHorizontalScrollBar.from
                     toIterator =    addonAddedFiltersForHorizontalScrollBar.to
                     skipTable =     addonAddedFiltersForHorizontalScrollBar.skipTable
-d("[LF3]SkipTable found, from: " ..tos(fromIterator) .. ", to: " ..tos(toIterator))
+--d("[LF3]SkipTable found, from: " ..tos(fromIterator) .. ", to: " ..tos(toIterator))
                 end
             end
             local numResearchLines = GetNumSmithingResearchLines(craftingType)
@@ -716,8 +716,8 @@ d(">researchLineIndicesShown" ..tos(researchLineIndicesShown) .. ", numFiltered:
 
                             self.researchLineList:AddEntry(data)
                         end
-                    elseif skipTable ~= nil and skipTable[researchLineIndex] == true then
-                        d(">skipped researchLineIndex: " ..tos(name))
+                    --elseif skipTable ~= nil and skipTable[researchLineIndex] == true then
+                        --d(">skipped researchLineIndex: " ..tos(name))
                     end --Added by LibFilters
                 end
             end
