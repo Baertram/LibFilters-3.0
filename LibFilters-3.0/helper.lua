@@ -595,6 +595,7 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
 
 
 --enable LF_SMITHING_RESEARCH/LF_JEWELRY_RESEARCH -- since API 100023 Summerset
+local libFiltersResearchLineLabel
 helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
     version = 7, --last changed 2023-01-01
     filterTypes = {
@@ -619,7 +620,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
             local base = SMITHING.researchPanel
 
 
-d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
+--d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
             --v- Added by LibFilters -v-
             -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
             local function predicate(bagId, slotIndex)
@@ -653,20 +654,19 @@ d("[LibFilters3]SMITHING / Gamepad SMITHING:Refresh()")
             local numSmithingResearchLines
 
             if smithingResearchPanel ~= nil then
-d(">Found research panel")
                 local addonAddedFiltersForHorizontalScrollBar = smithingResearchPanel[defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters] --"LibFilters3_HorizontalScrollbarFilters"
                 if addonAddedFiltersForHorizontalScrollBar ~= nil then
                     fromIterator =  addonAddedFiltersForHorizontalScrollBar.from
                     toIterator =    addonAddedFiltersForHorizontalScrollBar.to
                     skipTable =     addonAddedFiltersForHorizontalScrollBar.skipTable
-d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .. ", from: " .. tos(fromIterator) .. ", to: " ..tos(toIterator))
                 end
             end
+            local numResearchLines = GetNumSmithingResearchLines(craftingType)
             if fromIterator == nil then
                 fromIterator = 1
             end
             if toIterator == nil then
-                toIterator = GetNumSmithingResearchLines(craftingType)
+                toIterator = numResearchLines
             end
             local researchLineIndicesShown = toIterator - fromIterator
             local numFiltered = (skipTable ~= nil and NonContiguousCount(skipTable)) or 0
@@ -675,37 +675,37 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
             --^- Added by LibFilters -^-
 
             for researchLineIndex = fromIterator, toIterator do
-                --Skip any entry in the researchLine (by their index)?
-                if not skipTable or (skipTable ~= nil and skipTable[researchLineIndex] == nil) then
-                    local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
-                    if numTraits > 0 then
-                        local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
-                        if researchingTraitIndex then
-                            numCurrentlyResearching = numCurrentlyResearching + 1
+                local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
+                if numTraits > 0 then
+                    local researchingTraitIndex, areAllTraitsKnown = self:FindResearchingTraitIndex(craftingType, researchLineIndex, numTraits)
+                    if researchingTraitIndex then
+                        numCurrentlyResearching = numCurrentlyResearching + 1
 
-                            --v- Added by LibFilters -v-
-                            isCurrentlyResearching[researchLineIndex] = true
-                            --^- Added by LibFilters -^-
-                        end
+                        --v- Added by LibFilters -v-
+                        isCurrentlyResearching[researchLineIndex] = true
+                    end
 
+                    --Skip any entry in the researchLine (by their index)?
+                    if not skipTable or (skipTable ~= nil and skipTable[researchLineIndex] == nil) then
+                    --^- Added by LibFilters -^-
                         local expectedTypeFilter = ZO_CraftingUtils_GetSmithingFilterFromTrait(GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, 1))
                         if expectedTypeFilter == self.typeFilter then
                             local itemTraitCounts = self:GenerateResearchTraitCounts(virtualInventoryList, craftingType, researchLineIndex, numTraits)
-                            local data = { 
-								name = name, 
-								icon = icon, 
-								numTraits = numTraits,
-								craftingType = craftingType, 
-								itemTraitCounts = itemTraitCounts,
-								areAllTraitsKnown = areAllTraitsKnown,
-								researchLineIndex = researchLineIndex,
-								researchingTraitIndex = researchingTraitIndex,
-								timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs
-							}
-							
+                            local data = {
+                                name = name,
+                                icon = icon,
+                                numTraits = numTraits,
+                                craftingType = craftingType,
+                                itemTraitCounts = itemTraitCounts,
+                                areAllTraitsKnown = areAllTraitsKnown,
+                                researchLineIndex = researchLineIndex,
+                                researchingTraitIndex = researchingTraitIndex,
+                                timeRequiredForNextResearchSecs = timeRequiredForNextResearchSecs
+                            }
+
                             self.researchLineList:AddEntry(data)
                         end
-                    end
+                    end --Added by LibFilters
                 end
             end
 
@@ -738,22 +738,34 @@ d(">>found " .. defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters .
             local selfControl = self.control
             GetControl(selfControl, "TraitContainer"):SetHidden(allItemsFiltered)
 
+            if allItemsFiltered == true then
+                if libFiltersResearchLineLabel == nil then
+                    libFiltersResearchLineLabel = CreateControl("LibFiltersResearchLineInfoLabel", selfControl, CT_LABEL)
+                    libFiltersResearchLineLabel:SetDimensions(30, 5)
+                    libFiltersResearchLineLabel:SetFont("ZoFontGameSmall")
+                end
+                libFiltersResearchLineLabel:SetParent(selfControl)
+                libFiltersResearchLineLabel:SetResizeToFitDescendents(true)
+                libFiltersResearchLineLabel:SetAnchor(CENTER, selfControl, CENTER, 0, 0)
+                libFiltersResearchLineLabel:SetText(GetString(SI_SMITHING_DECONSTRUCTION_NO_MATCHING_ITEMS))
+                libFiltersResearchLineLabel:SetColor(1, 1, 1, 1)
+
+                libFiltersResearchLineLabel:SetHidden(false)
+            else
+                if libFiltersResearchLineLabel ~= nil then
+                    libFiltersResearchLineLabel:SetHidden(true)
+                end
+            end
+
             if iigpm() then
                 --todo 2023-01-02
                 --Gamepad mode
             else
                 --Keyboard mode
-                GetControl(selfControl, "ResearchLineList"):SetHidden(allItemsFiltered)
                 GetControl(selfControl, "ContainerDivider"):SetHidden(allItemsFiltered)
+                GetControl(selfControl, "ResearchLineList"):SetHidden(allItemsFiltered)
                 GetControl(selfControl, "ResearchLineListSelectedLabel"):SetHidden(allItemsFiltered)
-                if allItemsFiltered == true then
-                    local researchProgressLabel = GetControl(selfControl, "ResearchProgressLabel")
-                    if researchProgressLabel ~= nil then
-                        researchProgressLabel:SetText(GetString(SI_SMITHING_DECONSTRUCTION_NO_MATCHING_ITEMS))
-                        researchProgressLabel:SetHidden(false)
-                    end
-                end
-
+                GetControl(selfControl, "ResearchProgressLabel"):SetHidden(allItemsFiltered)
                 local researchSlotNamePrefix = self.control:GetName() .. "ZO_SmithingResearchSlot"
                 for traitIndex=1, GetNumSmithingTraitItems() do
                     local researchSlot = GetControl(researchSlotNamePrefix, tos(traitIndex))

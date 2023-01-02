@@ -232,7 +232,7 @@ constants.filterTypes = libFiltersFilterConstants
 local defaultLibFiltersAttributeToStoreTheFilterType = "LibFilters3_filterType"
 constants.defaultAttributeToStoreTheFilterType = defaultLibFiltersAttributeToStoreTheFilterType
 
---The default attribute at the SMITHING.researchPanel (currently the only one) to store the horizontal scroll list filters'
+--The default attribute at the researchPanel (currently the only one) to store the horizontal scroll list filters'
 --combined skipTable at
 local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = "LibFilters3_HorizontalScrollbarFilters"
 constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters
