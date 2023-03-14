@@ -757,11 +757,10 @@ d(">researchLineIndicesShown" ..tos(researchLineIndicesShown) .. ", numFiltered:
             if allItemsFiltered == true then
                 if libFiltersResearchLineLabel == nil then
                     libFiltersResearchLineLabel = CreateControl("LibFiltersResearchLineInfoLabel", selfControl, CT_LABEL)
-                    libFiltersResearchLineLabel:SetDimensions(30, 5)
                     libFiltersResearchLineLabel:SetFont("ZoFontGameSmall")
                 end
                 libFiltersResearchLineLabel:SetParent(selfControl)
-                libFiltersResearchLineLabel:SetResizeToFitDescendents(true)
+                libFiltersResearchLineLabel:SetDimensionConstraints(300, 10, selfControl:GetWidth() - 10, 10)
                 libFiltersResearchLineLabel:SetAnchor(CENTER, selfControl, CENTER, 0, 0)
                 libFiltersResearchLineLabel:SetText(GetString(SI_SMITHING_DECONSTRUCTION_NO_MATCHING_ITEMS))
                 libFiltersResearchLineLabel:SetColor(1, 1, 1, 1)
