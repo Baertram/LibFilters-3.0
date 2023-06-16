@@ -1,0 +1,292 @@
+[B][SIZE="4"][COLOR="DarkOrange"]LibFilters-3.0[/COLOR][/SIZE][/B]
+This version of LibFilters does [U]NOT [/U]need any dependency to other libraries anymore (e.g. no LibStub needed).
+You simply reference it by using the global Variable
+[CODE]LibFilters3[/CODE]
+
+[B][U]Other libraries[/U][/B]
+This libray optionally supports the use of [URL="https://www.esoui.com/downloads/info2275-LibDebugLogger.html"]LibDebugLogger[/URL] to log messages to the addon log instead of the normal chat.
+
+
+[B][SIZE="3"]Welcome to LibFilters-3.0![/SIZE][/B]
+
+The goal of LibFilters is to provide an easy interface for applying custom sorting rules to different lists of items found in the game. At the moment, you can filter the inventory, bank withdrawal, bank deposits, guild bank withdrawal, guild bank deposits, vendor buying, vendor selling, buyback, repair, guild store selling, mail sending, trading, smithing (refinement, deconstruction, improvement, research), alchemy creation, enchanting creation, enchanting extraction, fence selling, fence laundering, the craftbag, and the quickslot inventory.
+
+Please check the LibFilters WIKI for examples, API functions and usage instructions:
+[URL="https://github.com/Baertram/LibFilters-3.0/wiki"]LibFilters WIKI[/URL]
+
+
+[B][SIZE="4"][COLOR="MediumTurquoise"]LibFilters 3 r3 was totally recoded and now supports Gamepad mode too![/COLOR][/SIZE][/B]
+A very s[B]pecial thanks to [COLOR="DarkOrange"]IsJustaGhost[/COLOR][/B] for a lot of the Gamepad code, ideas and testing UI + help!
+
+
+To use LibFilters in your addon, you simply assign a reference to it's global variable LibFilters3.
+Yo do NOT need any call to LibStub for it anymore. In your manifest you need to add LibFilters-3.0 to the ##DependsOn tag:
+[CODE]##DependsOn: LibFilters-3.0>=339[/CODE]
+
+In your addon, you need to invoke LibFilters with the global LibFilters3 variable and then initialize LibFilters:
+
+[highlight="Lua"]local libFilters = LibFilters3
+--!!! Add LibFilters-3.0 to your ## DependsOn: or ## OptionalDependsOn: to assure the lib is loaded before your addon's EVENT_ADD_ON_LOADED fires!!!
+libFilters:InitializeLibFilters() -- Must be called ONCE at/After EVENT_ADD_ON_LOADED of your addon to make sure the LibFilters functions exists and everything is ready! Without calling this you won't see any filters applied/working!
+[/highlight]
+
+[U]This is the list of available filterType constants:[/U]
+[CODE]
+LF_INVENTORY                = 1
+LF_BANK_WITHDRAW            = 2
+LF_BANK_DEPOSIT             = 3
+LF_GUILDBANK_WITHDRAW       = 4
+LF_GUILDBANK_DEPOSIT        = 5
+LF_VENDOR_BUY               = 6
+LF_VENDOR_SELL              = 7
+LF_VENDOR_BUYBACK           = 8
+LF_VENDOR_REPAIR            = 9
+LF_GUILDSTORE_BROWSE        = 10
+LF_GUILDSTORE_SELL          = 11
+LF_MAIL_SEND                = 12
+LF_TRADE                    = 13
+LF_SMITHING_REFINE          = 14
+LF_SMITHING_CREATION        = 15
+LF_SMITHING_DECONSTRUCT     = 16
+LF_SMITHING_IMPROVEMENT     = 17
+LF_SMITHING_RESEARCH        = 18
+LF_ALCHEMY_CREATION         = 19
+LF_ENCHANTING_CREATION      = 20
+LF_ENCHANTING_EXTRACTION    = 21
+LF_PROVISIONING_COOK        = 22
+LF_PROVISIONING_BREW        = 23
+LF_FENCE_SELL               = 24
+LF_FENCE_LAUNDER            = 25
+LF_CRAFTBAG                 = 26
+LF_QUICKSLOT                = 27
+LF_RETRAIT                  = 28
+LF_HOUSE_BANK_WITHDRAW      = 29
+LF_HOUSE_BANK_DEPOSIT       = 30
+LF_JEWELRY_REFINE           = 31
+LF_JEWELRY_CREATION         = 32
+LF_JEWELRY_DECONSTRUCT      = 33
+LF_JEWELRY_IMPROVEMENT      = 34
+LF_JEWELRY_RESEARCH         = 35
+LF_SMITHING_RESEARCH_DIALOG = 36
+LF_JEWELRY_RESEARCH_DIALOG  = 37
+LF_INVENTORY_QUEST = 38
+LF_INVENTORY_COMPANION = 39
+
+LF_FILTER_MIN                = LF_INVENTORY
+LF_FILTER_MAX               = LF_INVENTORY_COMPANION [/CODE]
+
+Universal Deconstruction is a special case as it does not provide any dedicated LF_UNIVERSAL_DECONSTRUCT filterType but reuses LF_SMIHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACTION at the UniversalDecon UI, depending on the selected UI Tab!
+You need to register/unregister the according filterTypes for it.
+UniversalDeconstruction callbacks will provide you the actual selected tab at universal decon (e.g. "all", "armor", "weapons", "jewelry" or "enchantments") as an additional parameter so you are able to differe them from normal smithing deconstruction/jewelry deconstruction/enchanting extraction! Non universal-decon panels will leave this param nil.
+
+
+
+The filterTypes will pass information from the bag & slotIndex, or the inventorySlot, to a filterCallback function registered to that filterType. 
+For the slots, these are the keys available in the passed table:
+
+[CODE]
+inventory slot: age, bagId, condition, dataEntry, equipType, filterData,
+  iconFile, inventory, isJunk, isPlayerLocked, itemInstanceId, itemType,
+  launderPrice, locked, meetsUsageRequirement, name, quality, rawName,
+  requiredLevel, searchData, sellPrice, slotControl, slotIndex,
+  specializedItemType, stackCount, stackLaunderPrice, statValue, stolen,
+  uniqueId
+
+store slot: currencyQuantity1, currencyQuantity2, currencyType1,
+  currencyType2, dataEntry, entryType, filterData, icon, isUnique,
+  meetsRequirementsToBuy, meetsRequirementsToEquip, name, price, quality,
+  questNameColor, sellPrice, slotIndex, stack, stackBuyPrice,
+  stackBuyPriceCurrency1, stackBuyPriceCurrency2, statValue
+
+buyback slot: icon, meetsRequirements, name, price, quality, slotIndex,
+  stack, stackBuyPrice
+
+repair slot: bagId, condition, dataEntry, icon, name, quality, repairCost,
+  slotIndex, stackCount
+
+quickslot slot: age, bagId, filterData, iconFile, locked,
+  meetsUsageRequirement, name, quality, sellPrice, slotIndex, slotType,
+  stackCount, stackSellPrice, stolen
+[/CODE]
+
+
+Here is the mapping which filterId constant LF* uses which type of filter function: inventorySlot or bagdId & slotIndex
+Example filter functions:
+[highlight="Lua"]local function FilterSavedItemsForSlot(inventorySlot)
+  return true -- show the item in the list / false = hide item
+end
+
+local function FilterSavedItemsForBagIdAndSlotIndex(bagId, slotIndex)
+  return true -- show the item in the list / false = hide item
+end
+[/highlight]
+
+[CODE]
+--Filter function with inventorySlot
+All LF_ except the ones named below, e.g. LF_INVENTORY, LF_CRAFTBAG, LF_VENDOR_SELL
+
+--Filter function with bagId and slotIndex (most of them are crafting related ones)
+[LF_SMITHING_REFINE]                        = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_SMITHING_DECONSTRUCT]                   = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_SMITHING_IMPROVEMENT]                   = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_SMITHING_RESEARCH]                      = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_SMITHING_RESEARCH_DIALOG]               = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_JEWELRY_REFINE]                         = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_JEWELRY_DECONSTRUCT]                    = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_JEWELRY_IMPROVEMENT]                    = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_JEWELRY_RESEARCH]                       = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_JEWELRY_RESEARCH_DIALOG]                = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_ENCHANTING_CREATION]                    = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_ENCHANTING_EXTRACTION]                  = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_RETRAIT]                                = FilterSavedItemsForBagIdAndSlotIndex,
+[LF_ALCHEMY_CREATION]                       = FilterSavedItemsForBagIdAndSlotIndex,
+[/CODE]
+
+This library uses the inventory/fragment/dialog's attribute "additionalFilters" to register the filter callbackFunction, so it will run in addition to the original filter functions of the ZOs code (if any given, else it will add an additionalFilter attribute to the table).
+It will store the filteres registered via LibFilters3:RegisterFilter internally and add the filter callback functions to the inventory.additionalFilters function, which then is called as the normal filters of the game are applied (e.g. at a refresh of the crafting table contents).
+For this to work properly the UI needs to show the dependend filter panel, e.g. you cannot open the crafting table and stay at the refinement tab, but use filter functions of the desconstruction tab! At the refinement tab there are no updates to the filter tables done to include the LF_SMITHING_DECONSTRUCTION or LF_JEWELRY_DECONSTRUCTION entries of these inventorie's .additionalFilters!
+You'd only have the refinement .additionalFilters (e.g. SMITHING.refinementPanel.inventory.additionalFilters).
+So make sure to show the approrpiate UI in order to call the updaters like SMITHING:OnChangeFilter and apply the filter functions of LibFilters to the inventory.additionalFilters properly.
+
+
+[U]LibFilters API functions:[/U]
+More API functions not listed below can be found at the Wiki (see link below).
+-> Read the WIKI for examples!
+The importants API functions of this library are:
+
+[code]
+function LibFilters3:InitializeLibFilters()
+Must be called after you've assigned LibFilters-3.0 to your local variable, to start the initialization of the library, and to make it work.
+
+function LibFilters3:GetMinFilterType()
+Returns the minimum filterType available
+
+function LibFilters3:GetMaxFilterType()
+Returns the maximum filterType available
+
+function LibFilters3:GetFilterTypes()
+Returns the LibFilters LF* filterType connstants table: value = "name"
+
+function LibFilters3:GetFilterTypeName(libFiltersFilterType)
+Returns the LibFilters LF* filterType connstant's name
+
+function LibFilters3:GetCurrentFilterTypeForInventory(inventoryType)
+Returns the filterType currently affecting the provided inventoryType.
+
+function LibFilters3:GetFilterCallback(filterTag, filterType)
+filterTag is the unique string that identifies your filter. filterType is
+  the provided "LF_" prefixed constants your filter was registered for.
+  Returns the filterCallback registered for the provided filterTag and
+  filterType; returns nil otherwise.
+
+function LibFilters3:IsFilterRegistered(filterTag, filterType)
+filterTag is the unique string that identifies your filter. filterType is
+  the provided "LF_" prefixed constants your filter was registered for.
+  Returns true if there is a filter registered with the provided filterTag.
+  Returns false if there is not a filter registered with the provided
+  filterTag. filterType is optional. If a filterType is provided, will only
+  return true if a filter is registered to that filterType under the
+  provided filterTag.
+
+function LibFilters3:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
+filterTag is a unique string to identify your filter. filterType is one of
+  the provided "LF_" prefixed constants. filterCallback is a function which
+  accepts either one or two arguments; this is determined by the filterType.
+  filterCallback should return true if an item is to be shown.
+  filterCallback should return false if an item should not be shown.
+  noInUseError boolean: Do not show an error message if the filterTag was already registered
+
+function LibFilters3:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
+ Same as RegisterFilter function but only registers the filter if it currently was unregistered
+
+function LibFilters3:UnregisterFilter(filterTag, filterType)
+filterTag is the unique string that identifies your filter. filterType the
+  provided "LF_" prefixed constants your filter was registered for.
+  filterType is optional. If a filterType is not provided, all filters
+  registered with the provided filterTag will be unregistered.
+
+function LibFilters3:RequestUpdate(filterType, delay)
+filterType is one of the provided "LF_" prefixed constants. Runs the updater
+  appropriate for the provided filter type to pick up any filtering changes.
+
+function LibFilters3:RequestUpdateForResearchFilters(delay)
+ Request an update for the carfting table research panel, including normal LF_*_RESEARCH filters and the horizontal scrollBar filters registered 
+ with the functions RegisterResearchHorizontalScrollbarFilter
+
+function LibFilters3:RegisterResearchHorizontalScrollbarFilter(filterTag, craftingType, skipTable, fromResearchLineIndex, toResearchLineIndex, noInUseError)
+Register a filter by help of a researchLineIndex "skipTable" for a craftingType
+Parameter tyble skipTable contains key = researchLineIndex and value = boolean where "true" means: filter/skip (hide) this researchLineIndex at the horizontal scroll list.
+Parameter number fromResearchLineIndex sets the researchLineIndex to start the output of the horizontal scrollbar: It filters (hides) the possibe entries "in total".
+Parameter number toResearchLineIndex sets the researchLineIndex to stop the output of the horizontal scrollbar: It filters (hides) the possible entries "in total".
+Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
+Returns true if filter table skipTable was registered, else nil in case of parameter errors, or false if same tag+type was already registered
+If different addons register skipTables for the same crafting type, these skipTables will be combined!
+->The combined entries of the skipTable are added, directly upon registering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
+
+
+function LibFilters3:UnregisterResearchHorizontalScrollbarFilter(filterTag, craftingType)
+Unregister a filter by help of a researchLineIndex "skipTable" for a craftingType, which will show the entries at the horizontal scroll list again.
+If different addons have registered skipTables for the same crafting type, these skipTables will be combined, and thus unregistering 1 filterTag might
+still have any other registered which hides the entry at the horizontal scrollbar
+->The combined entries of the skipTable are added, directly upon unregistering such filter, to they researchPanel table, with entry LibFilters3_HorizontalScrollbarFilters
+->You need to manually call libFilters:RequestUpdateForResearchFilters(delay) to update the horizontal scrollbar (and the normal research filters) via researchPanel:Refresh()
+
+
+function LibFilters3:ApplyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh)
+Use API function libFilters.ApplyCraftingResearchHorizontalScrollbarFilters(craftingType, noRefresh) to apply the combined
+skiptables to the researchPanel table LibFilters3_HorizontalScrollbarFilters
+
+
+[/code]
+
+
+[U][B]LibFilters panel open/close "callback" API functions:[/B][/U]
+You create a callback identifier (name) for your addon and a LibFilters LF* filterType constant (related to a "panel"). if this panel shows/hides the callback will be raised.
+You register your own callback function to that callback name via CALLBACK_MANAGER:RegisterCallback(callbackNameCreatedByLibFiltersAPIFunction_libFilters RegisterCallbackName, yourCallbackFunction).
+yourCallbackFunction got the following parameters then:
+[CODE]callbackName String The callbackName of the callback just raised,
+			filterType LF* constant,
+			stateStr SCENE_SHOWN or SCENE_HIDDEN,
+			isInGamepadMode true (gamepad or false (keyboard),
+			fragmentOrSceneOrControl fragmentOrSceneOrControlOrUserdata reference variable,
+			lReferencesToFilterType table with all references to that filterType,
+			universalDeconSelectedTabNow nilable:String currently selected universal deconstruction tab "all", "armor", "weapons," "jewelry", "enchantments"[/CODE]
+
+
+-> Read the WIKI for callbacks and examples!
+[CODE]
+--Create the callbackname for a libFilters filterPanel shown/hidden callback
+----It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
+----number filterType needs to be a valid LF_* filterType constant
+----boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
+----boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
+----nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+----nilable:String raiseBeforeOtherAddonsCallbackName If this callbackName (of another addon) is given the callback should be raised after this callback was raised. The callbackName provided here must match the
+----> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
+----Returns String callbackNameGenerated
+---->e.g. "LibFilters3-<yourAddonName>-shown-1" for SCENE_SHOWN and filterType LF_INVENTORY of addon <yourAddonName>
+function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab, raiseBeforeOtherAddonsCallbackName)
+
+function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
+[/CODE]
+
+
+[U][B]Test UI for the filters[/B][/U]
+If you need the test UI please uncomment (remove the ##) the entries of the test.lua and .xml files in the LibFilters-3.0.txt manifest file!
+Use the slash command
+[CODE]/lftestfilters[/CODE]
+to open the Test UI of LibFilters.
+
+A description how the test UI works and how you are able to regisetr your custom filterFunction and run the filters can be found here:
+[URL="https://github.com/Baertram/LibFilters-3.0/wiki#test[/URL]
+
+
+[B][U]Wiki with API, description and example code:[/U][/B]
+[URL="https://github.com/Baertram/LibFilters-3.0/wiki"]LibFilters WIKI[/URL]
+
+
+
+[B][U]GitHub[/U][/B]
+[URL="https://github.com/Baertram/LibFilters-3.0"]LibFilters 3.0 at GitHub[/URL]
+[URL="https://github.com/Baertram/LibFilters-3.0/archive/refs/heads/PTS.zip"]LibFilters 3.0 for the PTS, or "Beta version"[/URL]!
