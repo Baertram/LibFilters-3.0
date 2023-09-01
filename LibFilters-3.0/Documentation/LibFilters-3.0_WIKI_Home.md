@@ -26,8 +26,6 @@ the inventory's "dirty" flag was set to true. Or via function SafeUpdateList (se
 ShouldAddItemToSlot function (some of them are overwriting vanilla UI source code in the file helpers.lua).
 LibFilters3 will use the inventory/fragment (normal hooks), or some special hooks (e.g. ENCHANTING -> OnModeUpdated) to
 add the LF* constant to the inventory/fragment/variables.
-Attention: After Un-/Registering a filter function for a filterType, e.g. LF_INVENTORY, you manually need to handle the update via libFilters:RequestUpdate(filterType) where needed!
-
 With the addition of Gamepad support the special hooks like enchanting were even changed to use the gamepad scenes of
 enchanting as "object to store the" the .additionalFilter entry for the LibFilters filter functions.
 
@@ -276,14 +274,10 @@ local function callbackFunctionForInvShown(callbackName, filterType, stateStr, i
   if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_INVENTORY) then
     libFilters:RegisterFilter(myAddonUniqueFilterTag, LF_INVENTORY, filterFuncForPlayerInv)
   end
-  --Attention: After Un-/Registering a filter function for a filterType, e.g. LF_INVENTORY, you manually need to handle the update
-  libFilters:RequestUpdate(LF_INVENTORY)
 end
 local function callbackFunctionForInvHidden(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
   --Unregister your filterFunction here e.g. or do whatever is needed, ikehiding custom controls of your addon at the currently hidden panel
   libFilters:UnRegisterFilter(myAddonUniqueFilterTag, LF_INVENTORY)
-  --Attention: After Un-/Registering a filter function for a filterType, e.g. LF_INVENTORY, you manually need to handle the update
-  libFilters:RequestUpdate(LF_INVENTORY)
 end
 
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
@@ -340,10 +334,8 @@ local function callbackFunctionForSmithingDeconstructionShown(callbackName, filt
   if universalDeconSelectedTabNow ~= nil then return end
 
   --Register your filterFunction here e.g. or do whatever is needed, like adding custom controls of your addon to the currently shown panel
-  if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_SMITHING_DECONSTRUCT) then
+  if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_INVENTORY) then
     libFilters:RegisterFilter(myAddonUniqueFilterTag, LF_SMITHING_DECONSTRUCT, filterFuncForSmithingDeconstruction)
-    --Attention: After Un-/Registering a filter function for a filterType, e.g. LF_SMITHING_DECONSTRUCT, you manually need to handle the update
-    libFilters:RequestUpdate(LF_SMITHING_DECONSTRUCT)
   end
 end
 local function callbackFunctionForSmithingDeconstructionHidden(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
@@ -353,9 +345,6 @@ local function callbackFunctionForSmithingDeconstructionHidden(callbackName, fil
 
   --Unregister your filterFunction here e.g. or do whatever is needed, e.g. hiding custom controls of your addon at the currently hidden panel
   libFilters:UnRegisterFilter(myAddonUniqueFilterTag, LF_SMITHING_DECONSTRUCT)
-
-  --Attention: After Un-/Registering a filter function for a filterType, e.g. LF_INVENTORY, you manually need to handle the update
-  libFilters:RequestUpdate(LF_SMITHING_DECONSTRUCT)
 end
 
 --Registering this callbackname in your addon is done via the CALLBACK_MANAGER
@@ -387,7 +376,6 @@ Used within addon FCO CraftFilter:<br>
     local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
 --d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
         FCOCraftFilter_CheckIfUniversalDeconIsShownAndAddButton(FCOCF_CRAFTINGTYPE_UNIVERSAL_DECONSTRUCTION, stateStr, universalDeconSelectedTabNow)
-        --The un-/register of the filter callback function and the update of the filters is done via libFilters:RequestUpdate(filterType_LF_constant) internall in that FCOCraftFilter function
     end
     local callbackNameUniversalDeconDeconAllShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "all", "LibFilters_OtherAddonName_show_16_all")
     local callbackNameUniversalDeconDeconAllHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "all")

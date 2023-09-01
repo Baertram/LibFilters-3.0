@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.0
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.1
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -1033,6 +1033,25 @@ gpc.InventoryUpdateFunctions    = {}
 ------------------------------------------------------------------------------------------------------------------------
 libFilters.mapping = {}
 local mapping = libFilters.mapping
+
+--[Mapping for bagId to inventory types]
+mapping.bagIdToInventory = {
+	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
+	[BAG_BANK]				= inventories[INVENTORY_BANK],
+	[BAG_SUBSCRIBER_BANK]	= inventories[INVENTORY_BANK],
+	[BAG_VIRTUAL]			= inventories[INVENTORY_CRAFT_BAG],
+	[BAG_GUILDBANK]			= inventories[INVENTORY_GUILD_BANK],
+	[BAG_HOUSE_BANK_ONE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TWO]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_THREE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FOUR]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_FIVE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SIX]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_SEVEN]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
+}
 
 --[Mapping for filter type to filter function type: inventorySlot or crafting with bagId, slotIndex]
 --Constants of the possible filter function types of LibFilters

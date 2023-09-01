@@ -3,21 +3,15 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r3.6 - Last updated: 2022-10-29, Baertram
+--Bugs/Todo List for version: 3.0 r4.1 - Last updated: 2023-08-31, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				2
+--Bugs total: 				0
 --Feature requests total: 	0
 
 --[Bugs]
 -- #xx) 2022-xx-xx, Baertram: Gamepad/Keyboad mode - ...
 
--- #02) 2022-10-29, Baertram, Gamepad mode - Universal decon panel close at jewelry tab by direct open of LF_INVENTORY and re-open of
---  Universal Decon panel afterwards will hide inventory, show jewelry, close jewerly and show jewelry again.
---  Seems this happens because control of universal decon OnEffectivelyShown will be triggered, then inventory wants to call something
--- like a "hide" but the currentFilterType is the universal decon's LF_JEWELRY_DECONSTRUCT already and then the OnShow of OnFilterChanged
--- of the universal decon gamepad panel fires again: Seems only keyboard mode actually needs the additional control's OnEffectivelyShown then
--- as the universaldeconGamepad.deconstructionPanel.inventory OnFilterChanged is called more often (on reopen too!) in Gamepad mode, compare to
--- keyboard mode?
+-- #01)
 
 --[Feature requests]
 -- #f1)
@@ -3687,8 +3681,8 @@ end
 --[[
 		--The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
 		--The callback name is build by the library prefix "LibFilters3-" (constant provided is LibFilters3.globalLibName) followed by the state of the
-		--filterPanel as the callback fires (can be either the constant SCENE_SHOWN or SCENE_HIDDEN), followed by "-" and the suffix is the filterType constant
-		--of the panel.
+		--filterPanel as the callback fires (can be either the constant SCENE_SHOWN = "shown" or SCENE_HIDDEN = "hidden"), followed by "-" and the suffix
+		--is the filterType constant number of the panel.
 		--The library provides the API function libfilters:CreateCallbackName(filterType, isShown) to generate the callback name for you. isShown is a boolean.
 		--if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
 		--e.g. for LF_INVENTORY shown it would be
@@ -3740,6 +3734,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	end
 
 	--Update lastFilterType and ref and reset the currentFilterType and ref to nil
+	--todo: 2022-01-14: Currently parameter doNotUpdateCurrentAndLastFilterTypes is not used anywhere. Was used for crafting tables > inventory -> crafting table switch I think I remember?!
 	if not doNotUpdateCurrentAndLastFilterTypes then
 		updateLastAndCurrentFilterType(nil, nil, nil, false)
 	end
