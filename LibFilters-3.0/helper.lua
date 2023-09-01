@@ -147,6 +147,8 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --Vendor repair - LF_VENDOR_REPAIR
 local DATA_TYPE_REPAIR_ITEM = 1
+--Called from REPAIR_WINDOW:UpdateList()
+-->See \esoui\ingame\repair\repairwindow.lua
 local function GatherDamagedEquipmentFromBag_Keyboard(bagId, dataTable)
     for slotIndex in ZO_IterateBagSlots(bagId) do
         if TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
@@ -321,6 +323,8 @@ local function GetStolenItems(optFilterFunction, ...)
 end
 
 --Gamepad mode - Vendor repair LF_VENDOR_REPAIR
+--Called from local function GetRepairItems(searchContext)
+--> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
 local function GatherDamagedEquipmentFromBag_Gamepad(searchContext, bagId, itemTable)
     local bagSlots = GetBagSize(bagId)
     for slotIndex = 0, bagSlots - 1 do
