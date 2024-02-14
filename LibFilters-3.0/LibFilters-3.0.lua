@@ -4315,7 +4315,6 @@ local function onFragmentStateChange(oldState, newState, filterTypes, fragment, 
 	end
 end
 
-
 function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 	local sceneName
 	if isDebugEnabled then

@@ -79,14 +79,14 @@ end
 
 --Check for .additionalFilter in an object and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
-	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
+    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
 
     if doesAdditionalFilterFuncExist(objectVar) then
-		if resultIfNoAdditionalFilter then
-			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
-		end
+        if resultIfNoAdditionalFilter then
+            resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
+        end
     end
-	return resultIfNoAdditionalFilter
+    return resultIfNoAdditionalFilter
 end
 
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
@@ -512,9 +512,15 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddItemToList"] = {
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT) and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
-            --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFilters(self, itemData, result)
+
+            --[[
+    return ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
+        and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+            ]]
+
+            local resultFilter = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
+            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)) or false
+            return checkAndRundAdditionalFilters(self, itemData, resultFilter and textSearchResult)
         end,
     },
 }
@@ -534,9 +540,10 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddQuestItemToList"] = {
     helper = {
         funcName = "ShouldAddQuestItemToList",
         func = function(self, questItemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT) and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId)
+            local resultFilter = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT)
+            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId)) or false
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFilters(self, questItemData, result)
+            return checkAndRundAdditionalFilters(self, questItemData, resultFilter and textSearchResult)
         end,
     },
 }

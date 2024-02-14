@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.1
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.2
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -1816,17 +1816,6 @@ filterTypeToCheckIfReferenceIsHidden = {
 													["funcOrAttribute"] = "IsJewelryCrafting",
 													["params"] = {_G[GlobalLibName]},
 													["expectedResults"] = {false},
-												}
-											}
-		},
-		--Works: 2021-12-13
-		[LF_JEWELRY_CREATION] 		  = { ["control"] = creationPanel,					["scene"] = "smithing", 			["fragment"] = nil,
-										   ["special"] = {
-												[1] = {
-													["control"]  =  _G[GlobalLibName],
-													["funcOrAttribute"] = "IsJewelryCrafting",
-													["params"] = {_G[GlobalLibName]},
-													["expectedResults"] = {true},
 												}
 											}
 		},
