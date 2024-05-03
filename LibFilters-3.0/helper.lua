@@ -79,14 +79,14 @@ end
 
 --Check for .additionalFilter in an object and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
-	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
+    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
 
     if doesAdditionalFilterFuncExist(objectVar) then
-		if resultIfNoAdditionalFilter then
-			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
-		end
+        if resultIfNoAdditionalFilter then
+            resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
+        end
     end
-	return resultIfNoAdditionalFilter
+    return resultIfNoAdditionalFilter
 end
 
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
@@ -151,7 +151,7 @@ local DATA_TYPE_REPAIR_ITEM = 1
 -->See \esoui\ingame\repair\repairwindow.lua
 local function GatherDamagedEquipmentFromBag_Keyboard(bagId, dataTable)
     for slotIndex in ZO_IterateBagSlots(bagId) do
-        if TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
+        if TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
             local condition = GetItemCondition(bagId, slotIndex)
             if condition < 100 and not IsItemStolen(bagId, slotIndex) then
                 local icon, stackCount, _, _, _, _, _, functionalQuality, displayQuality = GetItemInfo(bagId, slotIndex)
@@ -505,16 +505,21 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddItemToList"] = {
         [true] = {},
         [false]={LF_QUICKSLOT}
     },
-    version = 6,
+    version = 7,
     locations = {
         [1] = quickslots,
     },
     helper = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT) and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
-            --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFilters(self, itemData, result)
+
+            --[[
+    return ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
+        and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+            ]]
+            local resultFilter = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
+            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)) or false
+            return checkAndRundAdditionalFilters(self, itemData, resultFilter and textSearchResult)
         end,
     },
 }
@@ -523,7 +528,7 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddItemToList"] = {
 -->Will only be executed for quest related inventory items but NOT for the normal inventory or collectible items in the quickslot filters
 --> See \esoui\ingame\quickslot\keyboard\quickslot_keyboard.lua
 helpers["QUICKSLOT_KEYBOARD:ShouldAddQuestItemToList"] = {
-    version = 4,
+    version = 5,
     filterTypes = {
         [true] = {},
         [false]={LF_QUICKSLOT}
@@ -534,9 +539,10 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddQuestItemToList"] = {
     helper = {
         funcName = "ShouldAddQuestItemToList",
         func = function(self, questItemData)
-            local result = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT) and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId)
+            local resultFilter = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT)
+            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId)) or false
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFilters(self, questItemData, result)
+            return checkAndRundAdditionalFilters(self, questItemData, resultFilter and textSearchResult)
         end,
     },
 }
@@ -546,7 +552,7 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddQuestItemToList"] = {
 local DATA_TYPE_COLLECTIBLE_ITEM = 2
 --> See \esoui\ingame\quickslot\keyboard\quickslot_keyboard.lua
 helpers["QUICKSLOT_KEYBOARD:AppendCollectiblesData"] = {
-    version = 4,
+    version = 5,
     filterTypes = {
         [true] = {},
         [false]={LF_QUICKSLOT}
@@ -576,7 +582,7 @@ helpers["QUICKSLOT_KEYBOARD:AppendCollectiblesData"] = {
                 }
                 local result = (not libFiltersQuickslotCollectiblesFilterFunc and true) or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData))
                 --Original result was determined from .additionalFilter registered functions, or if no filterFunction existed: true
-                if result == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
+                if result == true and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
                     table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
                 end
             end
@@ -1049,7 +1055,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY].list:updateFunc"] = 
 --Calling local function GetSellItems(searchContext)
 --> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] = {
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_VENDOR_SELL},
         [false]={}
@@ -1066,7 +1072,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 			local unequippedItems = {}
 			--- Setup sort filter   < zos
 			for _, itemData in ipairs(items) do
-				if itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
+				if itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
                     if checkAndRundAdditionalFilters(vendorSell_GP, itemData, nil) == true then       --Added by LibFilters
                         itemData.isEquipped = false
                         itemData.meetsRequirementsToBuy = true
@@ -1087,7 +1093,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 --Calling local function GetBuybackItems(searchContext)
 --> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc"] = {
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_VENDOR_BUYBACK},
         [false]={}
@@ -1102,7 +1108,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc
 		-- original function GetBuybackItems(searchContext)
 			local items = {}
 			for entryIndex = 1, GetNumBuybackItems() do
-				if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex) then
+				if searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex) then
 					local icon, name, stackCount, price, functionalQuality, meetsRequirementsToEquip, displayQuality = GetBuybackItemInfo(entryIndex)
 					if stackCount > 0 then
 						local itemLink = GetBuybackItemLink(entryIndex)
@@ -1180,7 +1186,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_REPAIR].list:updateFunc"]
 --Calling local function GetStolenSellItems(searchContext)
 --> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc"] = { -- not tested
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_FENCE_SELL},
         [false]={}
@@ -1193,7 +1199,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
         func = function(searchContext)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc')
 			local function TextSearchFilterFunction(itemData)
-				local result = IsStolenItemSellable(itemData) and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+				local result = IsStolenItemSellable(itemData) and searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
                 --Original result was determined, so add the LibFilters filterFunctions now
                 return checkAndRundAdditionalFilters(fenceSell_GP, itemData, result)
 			end
@@ -1208,7 +1214,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
 --Calling local function GetLaunderItems(searchContext)
 --> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
 helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"] = { -- not tested
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_FENCE_LAUNDER},
         [false]={}
@@ -1221,7 +1227,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
         func = function(searchContext)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
 			local function TextSearchFilterFunction(itemData)
-                local result = searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+                local result = searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
                 --Original result was determined, so add the LibFilters filterFunctions now
 				return checkAndRundAdditionalFilters(fenceLaunder_GP, itemData, result)
 			end
@@ -1234,7 +1240,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 --enable LF_INVENTORY_COMPANION for gamepad mode
 --> See \esoui_src\live\esoui\ingame\companion\gamepad\companionequipment_gamepad.lua
 helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not tested
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_INVENTORY_COMPANION},
         [false]={}
@@ -1250,7 +1256,7 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
                 if itemData.actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
                     return false
                 end
-                if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                if not self:IsDataInSearchTextResults(itemData.bagId, itemData.slotIndex) then
                     return false
                 end
 
@@ -1269,7 +1275,7 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
 --enable LF_INVENTORY_QUEST for gamepad mode
 --> See \esoui\ingame\inventory\gamepad\gamepadinventory.lua
 helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_INVENTORY_QUEST},
         [false]={}
@@ -1285,7 +1291,7 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
             --Original result was true so far, so add the LibFilters filterFunctions now
             if not checkAndRundAdditionalFilters(self.scene, slotData, true) then return false end
 
-            return self:IsSlotInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
+            return self:IsDataInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
         end
     },
 }
@@ -1294,7 +1300,7 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 --enable LF_INVENTORY for gamepad mode
 --> See \esoui\ingame\inventory\gamepad\gamepadinventory.lua
 helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_INVENTORY},
         [false]={}
@@ -1307,7 +1313,7 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
         func = function(self, filteredEquipSlot, nonEquipableFilterType)
 --d( 'GAMEPAD_INVENTORY:GetItemDataFilterComparator')
             return function(itemData)
-                if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                if not self:IsDataInSearchTextResults(itemData.bagId, itemData.slotIndex) then
                     return false
                 end
 
