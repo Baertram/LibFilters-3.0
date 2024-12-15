@@ -2,7 +2,7 @@
 ## Author: Baertram, Randactyl, ingeniousclown, et al.
 ## Version: 3.0r4.3
 ## AddOnVersion: 343
-## APIVersion: 101042 101043
+## APIVersion: 101044 101045
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=220
 ## SavedVariables: LIBFILTERS_SV_TEST
