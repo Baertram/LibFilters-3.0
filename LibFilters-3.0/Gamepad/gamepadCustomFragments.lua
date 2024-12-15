@@ -66,6 +66,8 @@ local quickslotFragment_GP   		=			gpc.quickslotFragment_GP
 local customFragments_GP          	= 			gpc.customFragments
 local fragmentPrefix              	= 			gpc.customFragmentPrefix
 
+local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = constants.typeOfRef[3]
+
 --The local variables for the new created custom LibFilters gamepad fragments
 local gamepadLibFiltersInventoryFragment
 local gamepadLibFiltersBankDepositFragment
