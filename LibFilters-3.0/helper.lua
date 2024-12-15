@@ -1348,7 +1348,7 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
         [true] = {
             LF_BANK_WITHDRAW, LF_BANK_DEPOSIT,
             LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT,
-            LF_HOUSEBANK_WITHDRAW, LF_HOUSEBANK_DEPOSIT,
+            LF_HOUSE_BANK_WITHDRAW, LF_HOUSE_BANK_DEPOSIT,
             LF_GUILDSTORE_SELL,
             LF_CRAFTBAG,
             LF_TRADE, LF_MAIL_SEND,
