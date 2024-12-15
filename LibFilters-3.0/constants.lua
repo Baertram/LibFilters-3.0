@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.2
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.3
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -856,7 +856,7 @@ local invGuildStoreSellScene_GP = gpc.invGuildStoreSellScene_GP
 
 
 --[Mail]
-gpc.invMailSendScene_GP         = getScene(SM, "mailManagerGamepad")
+gpc.invMailSendScene_GP         = getScene(SM, "mailGamepad") or getScene(SM, "mailManagerGamepad")
 gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD
 gpc.invMailSendFragment_GP 		= GAMEPAD_MAIL_SEND_FRAGMENT
 
