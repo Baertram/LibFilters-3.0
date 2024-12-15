@@ -31,6 +31,7 @@ local libFilters = LibFilters3
 --Overall constants
 local constants = 								libFilters.constants
 local inventoryTypes = 							constants.inventoryTypes
+local typeOfRef = constants.typeOfRef
 local playerInventoryType = 					inventoryTypes["player"] -- INVENTORY_BACKPACK
 local mapping = 								libFilters.mapping
 local callbacks = 								mapping.callbacks
@@ -39,6 +40,7 @@ local filterTypeToCallbackRef = 				callbacks.filterTypeToCallbackRef
 
 local LF_FilterTypeToReference =				mapping.LF_FilterTypeToReference
 local LF_FilterTypeToCheckIfReferenceIsHidden = mapping.LF_FilterTypeToCheckIfReferenceIsHidden
+local LIBFILTERS_CON_TYPEOFREF_FRAGMENT = typeOfRef[3]
 
 --Keyboard
 local kbc             = 						constants.keyboard
