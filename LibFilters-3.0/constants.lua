@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.5
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.4
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
