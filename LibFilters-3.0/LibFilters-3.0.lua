@@ -3,15 +3,13 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.4 - Last updated: 2024-12-15, Baertram
+--Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-06-03, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				0
+--Bugs total: 				10
 --Feature requests total: 	0
 
 --[Bugs]
--- #xx) 2022-xx-xx, Baertram: Gamepad/Keyboad mode - ...
 
--- #01)
 
 --[Feature requests]
 -- #f1)
@@ -240,7 +238,7 @@ local researchPanel_GP          = 	gpc.researchPanel_GP
 local researchChooseItemDialog_GP = gpc.researchChooseItemDialog_GP
 local enchanting_GP             = 	gpc.enchanting_GP
 local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
-local alchemy_GP                = 	gpc.alchemy
+local alchemy_GP                = 	gpc.alchemy_GP 				--#10
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 local provisioner_GP			=   gpc.provisioner_GP
 local provisionerScene_GP 	    =   gpc.provisionerScene_GP
