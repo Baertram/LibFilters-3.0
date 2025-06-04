@@ -2666,6 +2666,21 @@ function libFilters:IsHouseBankShown()
 end
 
 
+--Is the furniture vault shown
+--returns boolean isShown
+function libFilters:IsFurnitureVaultShown()
+	 --HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
+	local isFurnitureBagShown = IsFurnitureVault(GetBankingBag())
+	if not isFurnitureBagShown then return false end
+	if IsGamepad() then
+		isFurnitureBagShown = gpc.furnitureVaultScene_GP:IsShowing()
+	else
+		isFurnitureBagShown = kbc.furnitureVaultScene:IsShowing()
+	end
+	return isFurnitureBagShown
+end
+
+
 --Check if the store (vendor) panel is shown
 --If OPTIONAL parameter number storeMode (either ZO_MODE_STORE_BUY, ZO_MODE_STORE_BUY_BACK, ZO_MODE_STORE_SELL,
 --ZO_MODE_STORE_REPAIR, ZO_MODE_STORE_SELL_STOLEN, ZO_MODE_STORE_LAUNDER, ZO_MODE_STORE_STABLE) is provided the store

@@ -1340,7 +1340,8 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
 }
 
 --enable LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/LF_TRADE
---LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG/LF_MAIL_SEND for gamepad mode
+--LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG/LF_MAIL_SEND/
+--LF_FURNITURE_VAULT_DEPOSIT/LF_FURNITURE_VAULT_WITHDRAW for gamepad mode
 --> See \esoui\ingame\inventory\gamepad\inventorylist_gamepad.lua
 helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
     version = 2,
@@ -1352,6 +1353,7 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
             LF_GUILDSTORE_SELL,
             LF_CRAFTBAG,
             LF_TRADE, LF_MAIL_SEND,
+            LF_FURNITURE_VAULT_WITHDRAW, LF_FURNITURE_VAULT_DEPOSIT,
         },
         [false]={}
     },
@@ -1376,7 +1378,6 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
                     table.insert(slotsTable, slotData)
                 end
             end
-
 		end
     },
 }

@@ -77,6 +77,7 @@ local gamepadLibFiltersGuildStoreSellFragment
 local gamepadLibFiltersMailSendFragment
 local gamepadLibFiltersPlayerTradeFragment
 local gamepadLibFiltersInventoryQuestFragment
+local gamepadLibFiltersFurnitureVaultDepositFragment
 
 local fragmentsHooked = {}
 local craftBagList_GP, craftBagFragment_GP
@@ -265,8 +266,8 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["control"]		= ZO_GamepadBankingTopLevelMaskContainerdeposit
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_HOUSE_BANK_DEPOSIT]["fragment"] 	= targetFragment
 
-					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }
-					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }, true)
+					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW, LF_FURNITURE_VAULT_WITHDRAW }
+					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW, LF_FURNITURE_VAULT_WITHDRAW }, true)
 					fragmentsHooked[fragmentsHookedName] = true
 				elseif hookName == "depositBank" then
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_WITHDRAW]["control"]			= ZO_GamepadBankingTopLevelMaskContainerwithdraw
@@ -276,8 +277,19 @@ local function hookFragmentStateByPostHookListInitFunction(hookName, sceneId, ob
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["control"]			= ZO_GamepadBankingTopLevelMaskContainerdeposit
 					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_BANK_DEPOSIT]["fragment"] 			= targetFragment
 
-					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }
-					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW }, true)
+					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW, LF_FURNITURE_VAULT_WITHDRAW }
+					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW, LF_FURNITURE_VAULT_WITHDRAW }, true)
+					fragmentsHooked[fragmentsHookedName] = true
+				elseif hookName == "depositFurnitureVault" then
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_WITHDRAW]["control"]	= ZO_GamepadBankingTopLevelMaskContainerwithdraw
+					local withDrawFragment = invBank_GP:GetListFragment("withdraw")
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_WITHDRAW]["fragment"]	= withDrawFragment
+
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_DEPOSIT]["control"]		= ZO_GamepadBankingTopLevelMaskContainerdeposit
+					libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_DEPOSIT]["fragment"]	= targetFragment
+
+					libFilters.mapping.callbacks.usingFragments[true][withDrawFragment]	= { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW, LF_FURNITURE_VAULT_WITHDRAW }
+					libFilters.CreateFragmentCallback(withDrawFragment, { LF_BANK_WITHDRAW, LF_HOUSE_BANK_WITHDRAW, LF_FURNITURE_VAULT_WITHDRAW }, true)
 					fragmentsHooked[fragmentsHookedName] = true
 				end
 			--After guild bank was initialized update the fragments at the libFilters lookup tables for "is shown"
@@ -595,6 +607,14 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	end)
 	]]
 
+	--Furniture vault deposit
+	gamepadLibFiltersFurnitureVaultDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+	gamepadLibFiltersFurnitureVaultDepositFragment._name 		= getCustomLibFiltersFragmentName(LF_FURNITURE_VAULT_DEPOSIT)
+	_G[gamepadLibFiltersFurnitureVaultDepositFragment._name]	= gamepadLibFiltersFurnitureVaultDepositFragment
+	hookFragmentStateByPostHookListInitFunction("depositFurnitureVault", invBankScene_GP, invBank_GP,
+			"deposit", "InitializeLists",
+			gamepadLibFiltersFurnitureVaultDepositFragment,
+			function() return GetBankingBag() == BAG_FURNITURE_VAULT end, true)
 
 	--Guild bank deposit
 	gamepadLibFiltersGuildBankDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
@@ -603,7 +623,6 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	hookFragmentStateByPostHookListInitFunction("depositGuildBank", invGuildBankScene_GP, invGuildBank_GP,
 			"deposit", "InitializeLists",
 			gamepadLibFiltersGuildBankDepositFragment, nil, false)
-
 
 	--Trading house = Guild store sell
 	gamepadLibFiltersGuildStoreSellFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
@@ -765,6 +784,10 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 		return invBankScene_GP:IsShowing() and (IsHouseBankBag(GetBankingBag()) and invBank_GP:IsInDepositMode())
 	end)
 
+	gamepadLibFiltersFurnitureVaultDepositFragment:SetConditional(function()
+		return invBankScene_GP:IsShowing() and (IsFurnitureVault(GetBankingBag()) and invBank_GP:IsInDepositMode())
+	end)
+
 
 	gamepadLibFiltersGuildBankDepositFragment:SetConditional(function()
 		return invGuildBankScene_GP:IsShowing() and invGuildBank_GP:IsInDepositMode()
@@ -809,6 +832,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	customFragmentsUpdateRef[LF_MAIL_SEND].fragment                     			= 	gamepadLibFiltersMailSendFragment
 	customFragmentsUpdateRef[LF_TRADE].fragment                         			= 	gamepadLibFiltersPlayerTradeFragment
 	customFragmentsUpdateRef[LF_INVENTORY_QUEST].fragment 							=   gamepadLibFiltersInventoryQuestFragment
+	customFragmentsUpdateRef[LF_FURNITURE_VAULT_DEPOSIT].fragment      				= 	gamepadLibFiltersFurnitureVaultDepositFragment
 
 	--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 	-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
@@ -820,6 +844,8 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	LF_FilterTypeToReference[true][LF_MAIL_SEND]                                  	= 	{ gamepadLibFiltersMailSendFragment }
 	LF_FilterTypeToReference[true][LF_TRADE]                                      	= 	{ gamepadLibFiltersPlayerTradeFragment }
 	LF_FilterTypeToReference[true][LF_INVENTORY_QUEST] 								=   { gamepadLibFiltersInventoryQuestFragment }
+	LF_FilterTypeToReference[true][LF_FURNITURE_VAULT_DEPOSIT]      				= 	{ gamepadLibFiltersFurnitureVaultDepositFragment }
+
 
 	-->Update the references to the fragments so one is able to use them within the "isShown" routines
 	--LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY]["fragment"] 		= 	gamepadLibFiltersInventoryFragment --uses GAMEPAD_INVENTORY_FRAGMENT now for detection as this' shown state get's updated properly after quickslot wheel was closed again
@@ -830,6 +856,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND]["fragment"]       	= 	gamepadLibFiltersMailSendFragment
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	= 	gamepadLibFiltersPlayerTradeFragment
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_QUEST]["fragment"]	=   gamepadLibFiltersInventoryQuestFragment
+	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_DEPOSIT]["fragment"] =	gamepadLibFiltersFurnitureVaultDepositFragment
 
 	-->Update the new created custom fragments to the callback-by-fragment-StateChange lookup table
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 				= { LF_INVENTORY }
@@ -840,6 +867,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 				= { LF_MAIL_SEND }
 	callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 			= { LF_TRADE }
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryQuestFragment] 			= { LF_INVENTORY_QUEST }
+	callbacksUsingFragments[true][gamepadLibFiltersFurnitureVaultDepositFragment] 	= { LF_FURNITURE_VAULT_DEPOSIT }
 	--Update the callback invoker fragments
 	filterTypeToCallbackRef[true][LF_INVENTORY] = 			{ ref = gamepadLibFiltersInventoryFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_BANK_DEPOSIT] = 		{ ref = gamepadLibFiltersBankDepositFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
@@ -849,6 +877,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	filterTypeToCallbackRef[true][LF_MAIL_SEND] = 			{ ref = gamepadLibFiltersMailSendFragment, 			refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_TRADE] = 				{ ref = gamepadLibFiltersPlayerTradeFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_INVENTORY_QUEST] = 	{ ref = gamepadLibFiltersInventoryQuestFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+	filterTypeToCallbackRef[true][LF_FURNITURE_VAULT_DEPOSIT] =	{ ref = gamepadLibFiltersFurnitureVaultDepositFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 
 	------------------------------------------------------------------------------------------------------------------------
 	-- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
