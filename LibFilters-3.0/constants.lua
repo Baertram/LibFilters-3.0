@@ -1022,6 +1022,7 @@ gpc.customFragments             = {
 	[LF_MAIL_SEND] = 			{name = "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 			fragment=nil},
 	[LF_TRADE] = 				{name = "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 		fragment=nil},
 	[LF_INVENTORY_QUEST] =		{name = "BACKPACK_INVENTORY_QUEST_GAMEPAD_FRAGMENT", 	fragment=nil},
+	[LF_FURNITURE_VAULT_DEPOSIT]= {name = "BACKPACK_FURNITURE_VAULT_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
 }
 
 
