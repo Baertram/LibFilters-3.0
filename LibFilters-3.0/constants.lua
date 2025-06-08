@@ -2050,9 +2050,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
-												  ["funcOrAttribute"] = "IsHouseBankShown",
+												  ["funcOrAttribute"] = "IsNormalBankShown",
 												  ["params"]          = { _G[GlobalLibName] },
-												  ["expectedResults"] = { false },
+												  ["expectedResults"] = { true },
 											  }
 										  }
 		},
@@ -2100,9 +2100,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
-												  ["funcOrAttribute"] = "IsHouseBankShown",
+												  ["funcOrAttribute"] = "IsNormalBankShown",
 												  ["params"]          = { _G[GlobalLibName] },
-												  ["expectedResults"] = { false },
+												  ["expectedResults"] = { true },
 											  }
 										  }
 		},
