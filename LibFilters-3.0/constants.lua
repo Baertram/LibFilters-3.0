@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.4
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.5
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -196,6 +196,8 @@ local libFiltersFilterConstants = {
 	 [37]  	= "LF_JEWELRY_RESEARCH_DIALOG",
 	 [38]  	= "LF_INVENTORY_QUEST",
 	 [39]  	= "LF_INVENTORY_COMPANION",
+	 [40]  	= "LF_FURNITURE_VAULT_WITHDRAW",
+	 [41]  	= "LF_FURNITURE_VAULT_DEPOSIT",
 	 --Add new lines here and make sure you also take care of the control of the inventory needed in tables "LibFilters.filters",
 	 --the updater name in table "filterTypeToUpdaterName*" and updaterFunction in table "inventoryUpdaters",
 	 --as well as the way to hook to the inventory.additionalFilter in function "HookAdditionalFilters",
@@ -490,6 +492,7 @@ local invTypeBank               		=	INVENTORY_BANK
 local invTypeGuildBank          		=	INVENTORY_GUILD_BANK
 local invTypeHouseBank 					=	INVENTORY_HOUSE_BANK
 local invTypeCraftBag 					= 	INVENTORY_CRAFT_BAG
+local invTypeFurnitureVault				= 	INVENTORY_FURNITURE_VAULT
 constants.inventoryTypes = {}
 constants.inventoryTypes["player"]		=	invTypeBackpack
 constants.inventoryTypes["quest"] 		= 	invTypeQuest
@@ -497,6 +500,7 @@ constants.inventoryTypes["bank"] 		= 	invTypeBank
 constants.inventoryTypes["guild_bank"] 	=	invTypeGuildBank
 constants.inventoryTypes["house_bank"] 	= 	invTypeHouseBank
 constants.inventoryTypes["craftbag"] 	=	invTypeCraftBag
+constants.inventoryTypes["furnitureVault"]=	invTypeFurnitureVault
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -764,6 +768,24 @@ kbc.universalDeconstructScene = UNIVERSAL_DECONSTRUCTION_KEYBOARD_SCENE
 kbc.listDialog1 				= ZO_ListDialog1
 local listDialog1 = kbc.listDialog1
 
+--Furniture Vault
+kbc.furnitureVaultCtrl			  			= ZO_FurnitureVault
+kbc.invFurnitureVaultDeposit                = BACKPACK_FURNITURE_VAULT_LAYOUT_FRAGMENT
+local invFurnitureVaultDeposit 			  	= kbc.invFurnitureVaultDeposit
+invFurnitureVaultDeposit._name = "BACKPACK_FURNITURE_VAULT_LAYOUT_FRAGMENT"
+--[[
+additionalFilter = function (slot)
+            return CanStowFurnitureItem(slot.bagId, slot.slotIndex)
+        end,
+]]
+kbc.invFurnitureVaultWithdraw               = inventories[invTypeFurnitureVault]
+local invFurnitureVaultWithdraw 			= kbc.invFurnitureVaultWithdraw
+kbc.furnitureVaultWithdrawFragment       	= FURNITURE_VAULT_FRAGMENT
+local furnitureVaultWithdrawFragment 		= kbc.furnitureVaultWithdrawFragment
+furnitureVaultWithdrawFragment._name = "FURNITURE_VAULT_FRAGMENT"
+kbc.furnitureVaultScene      		  		= getScene(SM, "furnitureVault")
+local furnitureVaultScene 					= kbc.furnitureVaultScene
+
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -959,6 +981,23 @@ gpc.universalDeconstructPanel_GP = gpc.universalDeconstruct_GP.deconstructionPan
 universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
 gpc.universalDeconstructScene_GP = UNIVERSAL_DECONSTRUCTION_GAMEPAD_SCENE
 
+--Furniture Vault
+--deposit: See custom gamepad fragments
+--withdraw: Uses same as keyboard
+--[[
+gpc.invFurnitureVaultDeposit_GP                = BACKPACK_FURNITURE_VAULT_LAYOUT_FRAGMENT
+local invFurnitureVaultDeposit_GP 			  	= gpc.invFurnitureVaultDeposit
+invFurnitureVaultDeposit_GP._name = "BACKPACK_FURNITURE_VAULT_LAYOUT_FRAGMENT"
+gpc.invFurnitureVaultWithdraw_GP               = inventories[invTypeFurnitureVault]
+local invFurnitureVaultWithdraw_GP 			= gpc.invFurnitureVaultWithdraw
+gpc.furnitureVaultWithdrawFragment_GP       	= FURNITURE_VAULT_FRAGMENT
+local furnitureVaultWithdrawFragment_GP 		= gpc.furnitureVaultWithdrawFragment
+furnitureVaultWithdrawFragment_GP._name = "FURNITURE_VAULT_FRAGMENT"
+]]
+gpc.furnitureVaultScene_GP = getScene(SM, "gamepad_furnitureVault")
+local furnitureVaultScene_GP					= gpc.furnitureVaultScene_GP
+
+
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
 -----------------------------------------------------------------------------------------------------------------------
@@ -983,6 +1022,7 @@ gpc.customFragments             = {
 	[LF_MAIL_SEND] = 			{name = "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 			fragment=nil},
 	[LF_TRADE] = 				{name = "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 		fragment=nil},
 	[LF_INVENTORY_QUEST] =		{name = "BACKPACK_INVENTORY_QUEST_GAMEPAD_FRAGMENT", 	fragment=nil},
+	[LF_FURNITURE_VAULT_DEPOSIT]= {name = "BACKPACK_FURNITURE_VAULT_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
 }
 
 
@@ -1051,6 +1091,7 @@ mapping.bagIdToInventory = {
 	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
 	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
 	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
+	[BAG_FURNITURE_VAULT]   = inventories[INVENTORY_FURNITURE_VAULT]
 }
 
 --[Mapping for filter type to filter function type: inventorySlot or crafting with bagId, slotIndex]
@@ -1095,7 +1136,7 @@ end
 
 --[Mapping for panelIdentifier to filterTypes]
 --e.g. the allowed filterTypes at the "bank" panel = withdraw and deposit
--- The allowed filterTypes are determiend via the menu buttons given to switch between the filterTypes, e.g.
+-- The allowed filterTypes are determined via the menu buttons given to switch between the filterTypes, e.g.
 -- smithing = refine, create, deconstruct, improve, research and researchDialog
 -->Unsupported menu buttons like "recipes at the crafting tables, except directly at provisioner" will not be listed!
 local validFilterTypesOfPanel = {
@@ -1171,6 +1212,10 @@ local validFilterTypesOfPanel = {
 		[LF_VENDOR_REPAIR] = true,
 		[LF_SMITHING_RESEARCH] = true,
 		[LF_SMITHING_RESEARCH_DIALOG] = true,
+	},
+	["furnitureVault"] = {
+		[LF_FURNITURE_VAULT_WITHDRAW] = true,
+		[LF_FURNITURE_VAULT_DEPOSIT] = true,
 	},
 }
 mapping.validFilterTypesOfPanel = validFilterTypesOfPanel
@@ -1371,7 +1416,7 @@ local LF_ConstantToAdditionalFilterSpecialHook = {
 }
 mapping.LF_ConstantToAdditionalFilterSpecialHook = LF_ConstantToAdditionalFilterSpecialHook
 
---[Mapping GamePad/Keyboard control/scene/fragment/userdate/etc. .additionalFilter entry to the LF_* constant]
+--[Mapping GamePad/Keyboard control/scene/fragment/userdata/etc. .additionalFilter entry to the LF_* constant]
 -->This table contains the mapping between GamePad and Keyboard mode, and the LibFilters constant LF_* to
 -->the control/scene/fragment/userdata/inventory to use to store the .additionalFilter function to.
 -->The controls/... can be many. Each entry in the value table will be applying .additionalFilter
@@ -1442,6 +1487,8 @@ local filterTypeToReference = {
 		[LF_ALCHEMY_CREATION]         = { alchemyScene },
 		[LF_RETRAIT]                  = { retrait },
 
+		[LF_FURNITURE_VAULT_WITHDRAW] = { invFurnitureVaultWithdraw },
+		[LF_FURNITURE_VAULT_DEPOSIT]  = { invFurnitureVaultDeposit },
 
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
 		-->Currently disalbed as the Gamepad mode Scenes for enchatning create/extract are used to store the filters in
@@ -1489,6 +1536,7 @@ local filterTypeToReference = {
 		[LF_MAIL_SEND]                = {}, --custom created gamepad fragment gamepadLibFiltersMailSendFragment
 		[LF_TRADE]                    = {}, --custom created gamepad fragment gamepadLibFiltersPlayerTradeFragment
 		[LF_INVENTORY_QUEST]          = {}, --custom created gamepad fragment gamepadLibFiltersInventoryQuestFragment
+		[LF_FURNITURE_VAULT_DEPOSIT]  = {}, --custom created gamepad fragment gamepadLibFiltersInventoryQuestFragment
 
 
 		--Shared with keyboard mode -> See entry with LF_* at [false] (using keyboardConstants) above
@@ -1510,6 +1558,7 @@ local filterTypeToReference = {
 		[LF_JEWELRY_RESEARCH]         = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_ALCHEMY_CREATION]         = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_RETRAIT]                  = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		[LF_FURNITURE_VAULT_WITHDRAW] = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 
 
 		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
@@ -1841,6 +1890,10 @@ filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+		--TO TEST: 2025-06-03
+		[LF_FURNITURE_VAULT_WITHDRAW]  = { ["control"] = invFurnitureVaultWithdraw, 			["scene"] = furnitureVaultScene, 			["fragment"] = furnitureVaultWithdrawFragment, },
+		--TO TEST: 2025-06-03
+		[LF_FURNITURE_VAULT_DEPOSIT]   = { ["control"] = invFurnitureVaultDeposit, 				["scene"] = furnitureVaultScene, 			["fragment"] = inventoryFragment, }, --todo 20250603 test if this is the correct fragment?
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1997,9 +2050,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
-												  ["funcOrAttribute"] = "IsHouseBankShown",
+												  ["funcOrAttribute"] = "IsNormalBankShown",
 												  ["params"]          = { _G[GlobalLibName] },
-												  ["expectedResults"] = { false },
+												  ["expectedResults"] = { true },
 											  }
 										  }
 		},
@@ -2047,9 +2100,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
-												  ["funcOrAttribute"] = "IsHouseBankShown",
+												  ["funcOrAttribute"] = "IsNormalBankShown",
 												  ["params"]          = { _G[GlobalLibName] },
-												  ["expectedResults"] = { false },
+												  ["expectedResults"] = { true },
 											  }
 										  }
 		},
@@ -2247,6 +2300,30 @@ filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
+
+
+		--To test, 2025-06-04
+		[LF_FURNITURE_VAULT_DEPOSIT]  = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsFurnitureVaultShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { false },
+											  }
+										  }
+		},
+		--To test, 2025-06-04
+		[LF_FURNITURE_VAULT_WITHDRAW] = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsFurnitureVaultShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { false },
+											  }
+										  }
+		},
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHidden = filterTypeToCheckIfReferenceIsHidden
@@ -2306,6 +2383,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FURNITURE_VAULT_WITHDRAW,	checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FURNITURE_VAULT_DEPOSIT,	checkTypes = { "scene", "fragment", "control" } },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2351,6 +2430,8 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_FURNITURE_VAULT_DEPOSIT, 	checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FURNITURE_VAULT_WITHDRAW,   checkTypes = { "scene", "fragment", "control" } },
 	}
 }
 mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes
@@ -2397,7 +2478,8 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_RETRAIT]					= "RETRAIT",
 	 [LF_HOUSE_BANK_WITHDRAW]		= "HOUSE_BANK_WITHDRAW",
 	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
-	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION"
+	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
+	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
 }
 mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
@@ -2414,6 +2496,7 @@ local filterTypeToUpdaterNameDynamic = {
 		  [LF_FENCE_SELL]=true,
 		  [LF_FENCE_LAUNDER]=true,
 		  [LF_HOUSE_BANK_DEPOSIT]=true,
+		  [LF_FURNITURE_VAULT_DEPOSIT]=true,
 	 },
 	 ["SMITHING_REFINE"] = {
 		  [LF_SMITHING_REFINE]=true,
@@ -2494,7 +2577,7 @@ callbacks.sceneStatesSupportedForCallbacks = sceneStatesSupportedForCallbacks
 --[fragment] = { LF_* filterTypeConstant, LF_* filterTypeConstant, ... } -> Will be checked in this order
 --0 means no dedicated LF_* constant can be used and the filterType will be determined automatically via function
 --detectShownReferenceNow(), using table mapping.LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup
--->0 should be added as last entry if an automated check should be done at the end!
+--->0 should be added as last entry if an automated check should be done at the end!
 --Example:
 --[fragmentVariable] = { LF_INVENTORY, 0}
 local callbacksUsingFragments = {
@@ -2505,7 +2588,7 @@ local callbacksUsingFragments = {
 		--LF_GUILDBANK_DEPOSIT
 		--LF_HOUSE_BANK_DEPOSIT
 		--LF_VENDOR_SELL
-		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL, LF_GUILDSTORE_SELL },
+		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL, LF_GUILDSTORE_SELL, LF_FURNITURE_VAULT_DEPOSIT },
 
 		--Dedicated fragments
 		[invQuestFragment] 				= { LF_INVENTORY_QUEST },
@@ -2524,6 +2607,7 @@ local callbacksUsingFragments = {
 		[player2playerTradeFragment]   	= { LF_TRADE },
 		[retraitFragment]              	= { LF_RETRAIT },
 		[companionEquipmentFragment]   	= { LF_INVENTORY_COMPANION },
+		[furnitureVaultWithdrawFragment]= { LF_FURNITURE_VAULT_WITHDRAW },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

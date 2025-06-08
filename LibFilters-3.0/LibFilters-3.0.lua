@@ -3,13 +3,12 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.4 - Last updated: 2025-04-27, Baertram
+--Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-06-03, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				10
 --Feature requests total: 	0
 
 --[Bugs]
--- #10) 2025-04-27, Baertram: Gamepad, alchemy throws error
 
 
 --[Feature requests]
@@ -128,6 +127,7 @@ local invTypeBank =					inventoryTypes["bank"]
 local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
+local invTypeFurnitureVault = 		inventoryTypes["furnitureVault"]
 
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
@@ -225,6 +225,7 @@ local store_componentsGP        = 	store_GP.components
 --local storeBuyBack_GP           = 	gpc.vendorBuyBack_GP
 --local storeRepair_GP            =	gpc.vendorRepair_GP
 --local fence_GP                  =	gpc.fence_GP
+local invFurnitureVault_GP		=   gpc.invFurnitureVaultWithdraw_GP
 
 --local playerInvCtrl_GP         = 	gpc.playerInvCtrl_GP
 local companionEquipment_GP 	=   gpc.companionEquipment_GP
@@ -1335,6 +1336,13 @@ local inventoryUpdaters           = {
 			updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "withdrawList")
 		else
 			updateKeyboardPlayerInventoryType(invTypeHouseBank)
+		end
+	end,
+	FURNITURE_VAULT_WITHDRAW = function()
+		if IsGamepad() then
+			updateFunction_GP_ZO_GamepadInventoryList(invFurnitureVault_GP, "withdrawList")
+		else
+			updateKeyboardPlayerInventoryType(invTypeFurnitureVault)
 		end
 	end,
 	VENDOR_BUY = function()
@@ -2638,6 +2646,7 @@ function libFilters:IsBankShown()
 	end
 	return isBankShown
 end
+local libFilters_IsBankShown = libFilters.IsBankShown
 
 
 --Is the guild bank shown
@@ -2665,6 +2674,37 @@ function libFilters:IsHouseBankShown()
 	end
 	return isHouseBankShown
 end
+local libFilters_IsHouseBankShown = libFilters.IsHouseBankShown
+
+
+--Is the furniture vault shown
+--returns boolean isShown
+function libFilters:IsFurnitureVaultShown()
+	 --HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
+	local isFurnitureBagShown = IsFurnitureVault(GetBankingBag())
+	if not isFurnitureBagShown then return false end
+	if IsGamepad() then
+		isFurnitureBagShown = gpc.furnitureVaultScene_GP:IsShowing()
+	else
+		isFurnitureBagShown = kbc.furnitureVaultScene:IsShowing()
+	end
+	return isFurnitureBagShown
+end
+local libFilters_IsFurnitureVaultShown = libFilters.IsFurnitureVaultShown
+
+
+--Is the normal bank shown (no house bank and no furniture vault)
+--returns boolean IsNormalBankShown
+function libFilters:IsNormalBankShown()
+	if libFilters_IsHouseBankShown(libFilters) then
+		return false
+	end
+	if libFilters_IsFurnitureVaultShown(libFilters) then
+		return false
+	end
+	return libFilters_IsBankShown(libFilters)
+end
+
 
 
 --Check if the store (vendor) panel is shown
