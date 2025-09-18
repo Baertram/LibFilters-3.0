@@ -2610,6 +2610,28 @@ function libFilters:IsCompanionInventoryShown()
     return (IsGamepad() and not companionEquipmentCtrl_GP:IsHidden()) or not companionEquipmentCtrl:IsHidden()
 end
 
+--Is the Vengeance Inventory shown
+--returns boolean isShown
+function libFilters:IsVengeanceInventoryShown()
+	local lReferencesToFilterType, lFilterTypeDetected
+	local inputType = IsGamepad()
+	if inputType == true then
+		if invBackpack_GP.vengeanceCategoryList ~= nil then
+			if isDebugEnabled then dd("IsVengeanceInventoryShown> active: %s, actionMode: %s, currentListType: %s",
+					tos(invBackpack_GP.vengeanceCategoryList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
+			if invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.actionMode == 4 or invBackpack_GP.currentListType == "vengeanceCategoryList" then
+				lFilterTypeDetected = 		LF_INVENTORY_VENGEANCE
+				lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_INVENTORY_VENGEANCE]
+			end
+		end
+	else
+		lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_INVENTORY_VENGEANCE, nil, false, true)
+	end
+	local vengeanceInventoryShown = ((lFilterTypeDetected ~= nil and lFilterTypeDetected == LF_INVENTORY_VENGEANCE and lReferencesToFilterType ~= nil) and true) or false
+	if isDebugEnabled then dd("IsVengeanceInventoryShown: %s", tos(vengeanceInventoryShown)) end
+	return vengeanceInventoryShown
+end
+
 
 
 --Is the character control shown

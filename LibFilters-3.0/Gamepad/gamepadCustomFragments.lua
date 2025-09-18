@@ -78,6 +78,7 @@ local gamepadLibFiltersMailSendFragment
 local gamepadLibFiltersPlayerTradeFragment
 local gamepadLibFiltersInventoryQuestFragment
 local gamepadLibFiltersFurnitureVaultDepositFragment
+local gamepadLibFiltersInventoryVengeanceFragment
 
 local fragmentsHooked = {}
 local craftBagList_GP, craftBagFragment_GP
@@ -339,7 +340,7 @@ function LibFilters_InventoryLayoutFragment:Show()
 end
 function LibFilters_InventoryLayoutFragment:Hide()
 	self:OnHidden()
-	self:ApplyInventoryLayout(gamepadLibFiltersInventoryFragment.layoutData)
+	self:ApplyInventoryLayout(gamepadLibFiltersInventoryFragment.layoutData) --apply the normal Player Inventory layout upon hide
 end
 
 --Use the same layoutData as within Keyboard mode. If the fragments are shown the layoutData, which contains the
@@ -439,46 +440,67 @@ local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, p_com
 	end
 end
 
-local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
+local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, identifierTab)
 	local debugEnabled = libFilters.debug
 	local isInvQuest = false
 	local isInvQuickslots = false
 	local isCurrencies = isInvCategory(1) --Currencies
-	if selectedGPInvFilter ~= nil then
-		if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
-			isInvQuest = true
+	local isVengeance = false
 
-		elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
-			isInvQuickslots = true
-		end
+	if type(identifierTab) == "table" then
+		isVengeance = identifierTab.vengeance or false
 	end
 
-	if debugEnabled then dd(">>onGamepadInventoryShownFragmentsUpdate - isInvQuest: %s, isInvQuickslots: %s", tos(isInvQuest), tos(isInvQuickslots)) end
-	if not isInvQuickslots then
-		updateSceneManagerAndHideFragment(quickslotFragment_GP)
-	end
-	if not isInvQuest then
-		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
-		invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
-	end
-	if not isCurrencies and not isInvQuickslots and not isInvQuest then
-		if not invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) and not gamepadLibFiltersInventoryFragment:IsShowing() then
-			if debugEnabled then dd("-> Inventory - Added CUSTOM inventory fragment, and SHOW") end
-			invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
-			gamepadLibFiltersInventoryFragment:Show()
+	--Cyrodiil vengeance inventory
+	if isVengeance == true then
+		if not invRootScene:HasFragment(gamepadLibFiltersInventoryVengeanceFragment) and not gamepadLibFiltersInventoryVengeanceFragment:IsShowing() then
+			if debugEnabled then dd("-> Vengeance Inventory - Added CUSTOM inventory fragment, and SHOW") end
+			invRootScene:AddFragment(gamepadLibFiltersInventoryVengeanceFragment)
+			gamepadLibFiltersInventoryVengeanceFragment:Show()
 		else
-			if debugEnabled then dd("<- Inventory - CUSTOM inventory fragment already added and/or SHOWN") end
+			if debugEnabled then dd("<- Vengeance Inventory - CUSTOM inventory fragment already added and/or SHOWN") end
+		end
+
+	else
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
+
+		--Normal inventories
+		if selectedGPInvFilter ~= nil then
+			if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
+				isInvQuest = true
+
+			elseif selectedGPInvFilter == ITEMFILTERTYPE_QUEST_QUICKSLOT then
+				isInvQuickslots = true
+			end
+		end
+
+		if debugEnabled then dd(">>onGamepadInventoryShownFragmentsUpdate - isInvQuest: %s, isInvQuickslots: %s", tos(isInvQuest), tos(isInvQuickslots)) end
+		if not isInvQuickslots then
+			updateSceneManagerAndHideFragment(quickslotFragment_GP)
+		end
+		if not isInvQuest then
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+		end
+		if not isCurrencies and not isInvQuickslots and not isInvQuest then
+			if not invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) and not gamepadLibFiltersInventoryFragment:IsShowing() then
+				if debugEnabled then dd("-> Inventory - Added CUSTOM inventory fragment, and SHOW") end
+				invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
+				gamepadLibFiltersInventoryFragment:Show()
+			else
+				if debugEnabled then dd("<- Inventory - CUSTOM inventory fragment already added and/or SHOWN") end
+			end
 		end
 	end
 end
 
-local function raiseGamepadInventoryFragmentSHOWNDelayed(delay, selectedGPInvFilter)
+local function raiseGamepadInventoryFragmentSHOWNDelayed(delay, ...)
 	--Call delayed with 50ms to let the LF_CRAFTBAG fragment HIDDEN state fire properly before LF_INVENTORY will be shown again!
 	delay = delay or 50
 	if libFilters.debug then dd(">raiseGamepadInventoryFragmentSHOWNDelayed - delay: %s", tos(delay)) end
 	zo_callLater(function()
 		if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
-		onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
+		onGamepadInventoryShownFragmentsUpdate(...)
 	end, delay)
 end
 
@@ -502,7 +524,16 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter)
 			end
 
-			--Still at CraftBag list
+		--At Cyrodiil vengeance inventory categoryList?
+		elseif libFilters:IsVengeanceInventoryShown() then
+			if comingFromCraftBagList == false then
+				if libFilters.debug then dd(">Gamepad Vengeance Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
+				onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, { vengeance = true })
+			else
+				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter, { vengeance = true })
+			end
+
+		--Still at CraftBag list
 		elseif libFilters:IsVanillaCraftBagShown() then
 			--Switching back to inventory categoryList?
 			if comingFromCraftBagList == true then
@@ -708,6 +739,14 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 		if libFilters.debug then dd("GAMEPAD CUSTOM Inventory FRAGMENT - State: " ..tos(newState)) end
 	end)
 
+	--Cyrodiil Vengeance inventory
+	gamepadLibFiltersInventoryVengeanceFragment     = ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+	gamepadLibFiltersInventoryVengeanceFragment._name 		= getCustomLibFiltersFragmentName(LF_INVENTORY_VENGEANCE)
+	_G[gamepadLibFiltersInventoryVengeanceFragment._name]	= gamepadLibFiltersInventoryVengeanceFragment
+
+	gamepadLibFiltersInventoryVengeanceFragment:RegisterCallback("StateChange", function(oldState, newState)
+		if libFilters.debug then dd("GAMEPAD CUSTOM Cyrodiil Vengeance Inventory FRAGMENT - State: " ..tos(newState)) end
+	end)
 
 	SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
 		if libFilters.debug then dd("?? GAMEPAD inventory:SetCurrentList") end
@@ -717,10 +756,12 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 		if list == invBackpack_GP.craftBagList then
 			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
 			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
 			updateSceneManagerAndHideFragment(quickslotFragment_GP)
 			if libFilters.debug then dd("-> CraftBag - Removed CUSTOM inventory fragment") end
 			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryVengeanceFragment)
 
 		else
 			--Coming from CraftBag?
@@ -816,6 +857,9 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 		return gpInvNoCraftBagShowing()
 	end)
 
+	gamepadLibFiltersInventoryVengeanceFragment:SetConditional(function()
+		return IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true and gpInvNoCraftBagShowing()
+	end)
 
 	------------------------------------------------------------------------------------------------------------------------
 	-- Add the created fragments to the LibFilters gamepad fragment constants so they are not nil anymore in
@@ -833,6 +877,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	customFragmentsUpdateRef[LF_TRADE].fragment                         			= 	gamepadLibFiltersPlayerTradeFragment
 	customFragmentsUpdateRef[LF_INVENTORY_QUEST].fragment 							=   gamepadLibFiltersInventoryQuestFragment
 	customFragmentsUpdateRef[LF_FURNITURE_VAULT_DEPOSIT].fragment      				= 	gamepadLibFiltersFurnitureVaultDepositFragment
+	customFragmentsUpdateRef[LF_INVENTORY_VENGEANCE].fragment          				= 	gamepadLibFiltersInventoryVengeanceFragment
 
 	--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 	-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
@@ -845,6 +890,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	LF_FilterTypeToReference[true][LF_TRADE]                                      	= 	{ gamepadLibFiltersPlayerTradeFragment }
 	LF_FilterTypeToReference[true][LF_INVENTORY_QUEST] 								=   { gamepadLibFiltersInventoryQuestFragment }
 	LF_FilterTypeToReference[true][LF_FURNITURE_VAULT_DEPOSIT]      				= 	{ gamepadLibFiltersFurnitureVaultDepositFragment }
+	LF_FilterTypeToReference[true][LF_INVENTORY_VENGEANCE]          				= 	{ gamepadLibFiltersInventoryVengeanceFragment }
 
 
 	-->Update the references to the fragments so one is able to use them within the "isShown" routines
@@ -857,6 +903,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_TRADE]["fragment"]           	= 	gamepadLibFiltersPlayerTradeFragment
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_QUEST]["fragment"]	=   gamepadLibFiltersInventoryQuestFragment
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_DEPOSIT]["fragment"] =	gamepadLibFiltersFurnitureVaultDepositFragment
+	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_VENGEANCE]["fragment"] =	gamepadLibFiltersInventoryVengeanceFragment
 
 	-->Update the new created custom fragments to the callback-by-fragment-StateChange lookup table
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 				= { LF_INVENTORY }
@@ -868,6 +915,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 			= { LF_TRADE }
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryQuestFragment] 			= { LF_INVENTORY_QUEST }
 	callbacksUsingFragments[true][gamepadLibFiltersFurnitureVaultDepositFragment] 	= { LF_FURNITURE_VAULT_DEPOSIT }
+	callbacksUsingFragments[true][gamepadLibFiltersInventoryVengeanceFragment] 		= { LF_INVENTORY_VENGEANCE }
 	--Update the callback invoker fragments
 	filterTypeToCallbackRef[true][LF_INVENTORY] = 			{ ref = gamepadLibFiltersInventoryFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_BANK_DEPOSIT] = 		{ ref = gamepadLibFiltersBankDepositFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
@@ -878,6 +926,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	filterTypeToCallbackRef[true][LF_TRADE] = 				{ ref = gamepadLibFiltersPlayerTradeFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_INVENTORY_QUEST] = 	{ ref = gamepadLibFiltersInventoryQuestFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_FURNITURE_VAULT_DEPOSIT] =	{ ref = gamepadLibFiltersFurnitureVaultDepositFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+	filterTypeToCallbackRef[true][LF_INVENTORY_VENGEANCE] = { ref = gamepadLibFiltersInventoryVengeanceFragment, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 
 	------------------------------------------------------------------------------------------------------------------------
 	-- Gamepad Scenes: Add new custom fragments to the scenes so they show and hide properly
