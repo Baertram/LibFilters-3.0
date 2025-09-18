@@ -503,7 +503,7 @@ constants.inventoryTypes["guild_bank"] 	=	invTypeGuildBank
 constants.inventoryTypes["house_bank"] 	= 	invTypeHouseBank
 constants.inventoryTypes["craftbag"] 	=	invTypeCraftBag
 constants.inventoryTypes["furnitureVault"]=	invTypeFurnitureVault
-constants.inventoryTypes["inventoryVengeance"] =	invTypeVengeance
+constants.inventoryTypes["vengeance"] =	invTypeVengeance
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1232,7 +1232,7 @@ local validFilterTypesOfPanel = {
 		[LF_FURNITURE_VAULT_WITHDRAW] = true,
 		[LF_FURNITURE_VAULT_DEPOSIT] = true,
 	},
-	["inventoryVengeance"]	= {
+	["vengeance"]	= {
 		[LF_INVENTORY_VENGEANCE] = true,
 	},
 }
@@ -2520,6 +2520,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
 	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
+	 [LF_INVENTORY_VENGEANCE]		= "INVENTORY_VENGEANCE",
 }
 mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
@@ -2527,7 +2528,6 @@ mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 local filterTypeToUpdaterNameDynamic = {
 	 ["INVENTORY"] = {
 		  [LF_INVENTORY]=true,
-		  [LF_INVENTORY_VENGEANCE]=true,
 		  [LF_BANK_DEPOSIT]=true,
 		  [LF_GUILDBANK_DEPOSIT]=true,
 		  [LF_VENDOR_SELL]=true,

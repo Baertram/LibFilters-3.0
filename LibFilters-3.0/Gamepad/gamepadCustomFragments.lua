@@ -498,9 +498,10 @@ local function raiseGamepadInventoryFragmentSHOWNDelayed(delay, ...)
 	--Call delayed with 50ms to let the LF_CRAFTBAG fragment HIDDEN state fire properly before LF_INVENTORY will be shown again!
 	delay = delay or 50
 	if libFilters.debug then dd(">raiseGamepadInventoryFragmentSHOWNDelayed - delay: %s", tos(delay)) end
+	local varArgs = {...}
 	zo_callLater(function()
 		if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
-		onGamepadInventoryShownFragmentsUpdate(...)
+		onGamepadInventoryShownFragmentsUpdate(unpack(varArgs))
 	end, delay)
 end
 

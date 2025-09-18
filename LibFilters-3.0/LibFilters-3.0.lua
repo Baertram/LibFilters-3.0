@@ -128,6 +128,7 @@ local invTypeGuildBank =			inventoryTypes["guild_bank"]
 local invTypeHouseBank =			inventoryTypes["house_bank"]
 local invTypeCraftBag =				inventoryTypes["craftbag"]
 local invTypeFurnitureVault = 		inventoryTypes["furnitureVault"]
+local invTypeVengeance = 			inventoryTypes["vengeance"]
 
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
@@ -1266,7 +1267,10 @@ gpc.InventoryUpdateFunctions      = {
 	end,
 	[LF_FENCE_LAUNDER] = function()
 		updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
-	end
+	end,
+	[LF_INVENTORY_VENGEANCE] = function()
+	  updateFunction_GP_ItemList(invBackpack_GP) --todo 2025-09-19 Correct or use any other?
+	end,
 }
 local InventoryUpdateFunctions_GP = gpc.InventoryUpdateFunctions
 
@@ -1315,6 +1319,13 @@ local inventoryUpdaters           = {
 	--		SafeUpdateList(quickslots_GP) --TODO quickslots GP are not supported yet
 		else
 			SafeUpdateList(quickslots)
+		end
+	end,
+	INVENTORY_VENGEANCE = function(filterType)
+		if IsGamepad() then
+			InventoryUpdateFunctions_GP[filterType]()
+		else
+			updateKeyboardPlayerInventoryType(invTypeVengeance)
 		end
 	end,
 	BANK_WITHDRAW = function()
