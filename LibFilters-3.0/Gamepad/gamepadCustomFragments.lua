@@ -472,6 +472,7 @@ end
 
 local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, identifierTab)
 	local debugEnabled = libFilters.debug
+	if debugEnabled then dd("?> onGamepadInventoryShownFragmentsUpdate - selectedGPInvFilter: " .. tos(selectedGPInvFilter) .. ", identifierTab: " .. tos(identifierTab)) end
 	local isInvQuest = false
 	local isInvQuickslots = false
 	local isCurrencies = isCurrencyEntrySelected()
@@ -486,6 +487,13 @@ local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, ident
 
 	--Cyrodiil vengeance inventory
 	if isVengeance == true then
+		--Raise the inventory hidden callback
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+		updateSceneManagerAndHideFragment(quickslotFragment_GP)
+
 		if not invRootScene:HasFragment(gamepadLibFiltersInventoryVengeanceFragment) and not gamepadLibFiltersInventoryVengeanceFragment:IsShowing() then
 			if debugEnabled then dd("-> Vengeance Inventory - Added CUSTOM inventory fragment, and SHOW") end
 			invRootScene:AddFragment(gamepadLibFiltersInventoryVengeanceFragment)
@@ -507,6 +515,7 @@ local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, ident
 		if debugEnabled then dd(">>onGamepadInventoryShownFragmentsUpdate - isInvQuest: %s, isInvQuickslots: %s", tos(isInvQuest), tos(isInvQuickslots)) end
 
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryVengeanceFragment)
 
 		if not isInvQuickslots then
 			updateSceneManagerAndHideFragment(quickslotFragment_GP)
@@ -622,6 +631,67 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 				end --hidden
 		)
 	end)
+
+	--Only start the SetCurrentList checks after Init of the Gamepad inventory
+	local wasGPInventoryListSetBefore = false
+	SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
+		if libFilters.debug then dd("?? GAMEPAD inventory:SetCurrentList") end
+		if not libFilters.isInitialized then return end
+
+		comingFromCraftBagList = false
+		if list == invBackpack_GP.craftBagList then
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
+			updateSceneManagerAndHideFragment(quickslotFragment_GP)
+			if libFilters.debug then dd("-> CraftBag - Removed CUSTOM inventory fragment") end
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryVengeanceFragment)
+
+		else
+			--Coming from CraftBag?
+			if craftBagFragment_GP ~= nil and self.previousListType == "craftBagList" then
+				if libFilters.debug then dd("-> Coming from CraftBag - Hiding the fragment") end
+				--If the normal custom inventory fragment is given at the gamepad inventory root scene the craftbag fragment SCENE_HIDDEN state will not raise
+				--before the inventory fragment SHOWN raises. So we need to delay the SHOWN fragment stateChange of the normal LF_INVENTORY a bit here, else the error message
+				--"<<fragmentOfLastFilterType not valid" in libFilters:RaiseCallback will prevent the SCENE_HIDDEN of LF_CRAFTBAG
+				--Variable comingFromCraftBagList will be checked and used in GAMEPAD_INVENTORY.categoryList:SetOnSelectedDataChangedCallback() hook, which is called after
+				--the categoryList was shown (as we come back from the craftbag)
+				comingFromCraftBagList = true
+			end
+
+			--At Cyrodiil vengeance inventory categoryList?
+			if libFilters:IsVengeanceInventoryShown() then
+				if comingFromCraftBagList == false then
+					onGamepadInventoryShownFragmentsUpdate(nil, { vengeance = true })
+				end
+
+
+			else
+				--todo 2025-09-19 What if we are in AvA region and vengeanace is active and we open the inventory the first time?
+				--todo seems the normal invList is selected and then the vengeane list is selected directly. Which makes the invList
+				--todo callback trigger too and we need to suppress it then once
+				if not wasGPInventoryListSetBefore then
+					if IsInCampaign() and IsCurrentCampaignVengeanceRuleset() then
+						wasGPInventoryListSetBefore = true
+						return
+					end
+				end
+
+				--Check for non-inventory selected entries in the categorylist, like "quests" or "quickslots" and remove the custom inv. fragment then
+				if libFilters:IsInventoryShown() then
+					if comingFromCraftBagList == false then
+						onGamepadInventoryShownFragmentsUpdate()
+					end
+				else
+					local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
+					gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
+				end
+			end
+		end
+		wasGPInventoryListSetBefore = true
+	end)
 end)
 
 
@@ -645,7 +715,11 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP,
 			"deposit", "InitializeLists",
 			gamepadLibFiltersBankDepositFragment,
-			function() return GetBankingBag() == BAG_BANK end, true)
+			function()
+				local bankingBag = GetBankingBag()
+				return not IsHouseBankBag(bankingBag) and not IsFurnitureVault(bankingBag)
+						and ( bankingBag == BAG_BANK or bankingBag == BAG_SUBSCRIBER_BANK )
+			end, true)
 
 
 	--House bank deposit
@@ -655,7 +729,10 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	hookFragmentStateByPostHookListInitFunction("depositHouseBank", invBankScene_GP, invBank_GP,
 			"deposit", "InitializeLists",
 			gamepadLibFiltersHouseBankDepositFragment,
-			function() return IsHouseBankBag(GetBankingBag()) end, true)
+			function()
+				local bankingBag = GetBankingBag()
+				return IsHouseBankBag(bankingBag) and not IsFurnitureVault(bankingBag)
+			end, true)
 
 	-- Gamepad bank and house bank: Used for switching the gamepad bank's fragment depending if house bank or not
 	--[[
@@ -680,7 +757,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	hookFragmentStateByPostHookListInitFunction("depositFurnitureVault", invBankScene_GP, invBank_GP,
 			"deposit", "InitializeLists",
 			gamepadLibFiltersFurnitureVaultDepositFragment,
-			function() return GetBankingBag() == BAG_FURNITURE_VAULT end, true)
+			function() return IsFurnitureVault(GetBankingBag()) end, true) --BAG_FURNITURE_VAULT
 
 	--Guild bank deposit
 	gamepadLibFiltersGuildBankDepositFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
@@ -783,52 +860,6 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 		if libFilters.debug then dd("GAMEPAD CUSTOM Cyrodiil Vengeance Inventory FRAGMENT - State: " ..tos(newState)) end
 	end)
 
-	SecurePostHook(invBackpack_GP, "SetCurrentList", function(self, list)
-		if libFilters.debug then dd("?? GAMEPAD inventory:SetCurrentList") end
-		if not libFilters.isInitialized then return end
-
-		comingFromCraftBagList = false
-		if list == invBackpack_GP.craftBagList then
-			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
-			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
-			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
-			updateSceneManagerAndHideFragment(quickslotFragment_GP)
-			if libFilters.debug then dd("-> CraftBag - Removed CUSTOM inventory fragment") end
-			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
-			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
-			invRootScene:RemoveFragment(gamepadLibFiltersInventoryVengeanceFragment)
-
-		else
-			--Coming from CraftBag?
-			if craftBagFragment_GP ~= nil and self.previousListType == "craftBagList" then
-				if libFilters.debug then dd("-> Coming from CraftBag - Hiding the fragment") end
-				--If the normal custom inventory fragment is given at the gamepad inventory root scene the craftbag fragment SCENE_HIDDEN state will not raise
-				--before the inventory fragment SHOWN raises. So we need to delay the SHOWN fragment stateChange of the normal LF_INVENTORY a bit here, else the error message
-				--"<<fragmentOfLastFilterType not valid" in libFilters:RaiseCallback will prevent the SCENE_HIDDEN of LF_CRAFTBAG
-				--Variable comingFromCraftBagList will be checked and used in GAMEPAD_INVENTORY.categoryList:SetOnSelectedDataChangedCallback() hook, which is called after
-				--the categoryList was shown (as we come back from the craftbag)
-				comingFromCraftBagList = true
-			end
-
-			--At Cyrodiil vengeance inventory categoryList?
-			if libFilters:IsVengeanceInventoryShown() then
-				if comingFromCraftBagList == false then
-					onGamepadInventoryShownFragmentsUpdate(nil, { vengeance = true })
-				end
-			else
-				--Check for non-inventory selected entries in the categorylist, like "quests" or "quickslots" and remove the custom inv. fragment then
-				if libFilters:IsInventoryShown() then
-					if comingFromCraftBagList == false then
-						onGamepadInventoryShownFragmentsUpdate()
-					end
-				else
-					local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
-					gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
-				end
-			end
-		end
-	end)
-
 	--Quickslots -> Updating custom inventory fragment's shown state
 	-->Should not be needed anymore due to invBackpack_GP.itemList._fragment StateChange above
 	--[[
@@ -885,24 +916,34 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	end)
 	]]
 
+	local function isVengeanceCampaign()
+		if IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true then
+			return invBackpack_GP.vengeanceCategoryList:IsActive()
+		end
+		return false
+	end
+
 	local function gpInvNoCraftBagShowing()
 		return invRootScene:IsShowing() and (invBackpack_GP.craftBagList == nil
 				or (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive() == false))
 	end
 
+	local function checkIfInvAndNotVengeanceCampaign()
+		return gpInvNoCraftBagShowing() and not isVengeanceCampaign()
+	end
+
+
 	gamepadLibFiltersInventoryQuestFragment:SetConditional(function()
-		return gpInvNoCraftBagShowing() and invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST
+		return checkIfInvAndNotVengeanceCampaign() and invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST
 
 	end)
 
 	gamepadLibFiltersInventoryFragment:SetConditional(function()
-		return gpInvNoCraftBagShowing()
+		return checkIfInvAndNotVengeanceCampaign()
 	end)
 
 	gamepadLibFiltersInventoryVengeanceFragment:SetConditional(function()
-		return IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true
-				and invBackpack_GP.vengeanceCategoryList:IsActive()
-				and gpInvNoCraftBagShowing()
+		return gpInvNoCraftBagShowing() and isVengeanceCampaign()
 	end)
 
 

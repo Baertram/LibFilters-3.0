@@ -1017,9 +1017,6 @@ gpc.furnitureVaultWithdrawFragment_GP       	= FURNITURE_VAULT_FRAGMENT
 local furnitureVaultWithdrawFragment_GP 		= gpc.furnitureVaultWithdrawFragment
 furnitureVaultWithdrawFragment_GP._name = "FURNITURE_VAULT_FRAGMENT"
 ]]
-gpc.furnitureVaultScene_GP = getScene(SM, "gamepad_furnitureVault")
-local furnitureVaultScene_GP					= gpc.furnitureVaultScene_GP
-
 
 ------------------------------------------------------------------------------------------------------------------------
 --Custom created fragments -> See file /Gamepad/gamepadCustomFragments.lua
@@ -1037,16 +1034,16 @@ local furnitureVaultScene_GP					= gpc.furnitureVaultScene_GP
 -->Their name will get a prefix at creation! See function libFilters.GetCustomLibFiltersFragmentName, and variable
 -->gamepadConstants.customFragmentPrefix
 gpc.customFragments             = {
-	[LF_INVENTORY] 		= 		{name = "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", 			fragment=nil},
-	[LF_BANK_DEPOSIT] 	= 		{name = "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", 		fragment=nil},
-	[LF_HOUSE_BANK_DEPOSIT] = 	{name = "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT",	fragment=nil},
-	[LF_GUILDBANK_DEPOSIT] = 	{name = "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_GUILDSTORE_SELL] = 		{name = "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_MAIL_SEND] = 			{name = "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 			fragment=nil},
-	[LF_TRADE] = 				{name = "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 		fragment=nil},
-	[LF_INVENTORY_QUEST] =		{name = "BACKPACK_INVENTORY_QUEST_GAMEPAD_FRAGMENT", 	fragment=nil},
-	[LF_FURNITURE_VAULT_DEPOSIT]= {name = "BACKPACK_FURNITURE_VAULT_DEPOSIT_GAMEPAD_FRAGMENT", fragment=nil},
-	[LF_INVENTORY_VENGEANCE] = 	{name = "BACKPACK_INVENTORY_VENGEANCE_GAMEPAD_FRAGMENT", fragment=nil},
+	[LF_INVENTORY] 		= 			{name = "BACKPACK_INVENTORY_GAMEPAD_FRAGMENT", 				sfragment=nil},
+	[LF_BANK_DEPOSIT] 	= 			{name = "BACKPACK_BANK_DEPOSIT_GAMEPAD_FRAGMENT", 			fragment=nil},
+	[LF_HOUSE_BANK_DEPOSIT] = 		{name = "BACKPACK_HOUSE_BANK_DEPOSIT_GAMEPAD_FRAGMENT",		fragment=nil},
+	[LF_GUILDBANK_DEPOSIT] = 		{name = "BACKPACK_GUILD_BANK_DEPOSIT_GAMEPAD_FRAGMENT", 	fragment=nil},
+	[LF_GUILDSTORE_SELL] = 			{name = "BACKPACK_TRADING_HOUSE_SELL_GAMEPAD_FRAGMENT", 	fragment=nil},
+	[LF_MAIL_SEND] = 				{name = "BACKPACK_MAIL_SEND_GAMEPAD_FRAGMENT", 				fragment=nil},
+	[LF_TRADE] = 					{name = "BACKPACK_PLAYER_TRADE_GAMEPAD_FRAGMENT", 			fragment=nil},
+	[LF_INVENTORY_QUEST] =			{name = "BACKPACK_INVENTORY_QUEST_GAMEPAD_FRAGMENT", 		fragment=nil},
+	[LF_FURNITURE_VAULT_DEPOSIT]= 	{name = "BACKPACK_FURNITURE_VAULT_DEPOSIT_GAMEPAD_FRAGMENT",fragment=nil},
+	[LF_INVENTORY_VENGEANCE] = 		{name = "BACKPACK_INVENTORY_VENGEANCE_GAMEPAD_FRAGMENT", 	fragment=nil},
 }
 
 
@@ -2105,14 +2102,14 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
-		--Works, 2021-12-18
+		--To be tested, 2025-09-19 API101048
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
 													["funcOrAttribute"] = "IsHouseBankShown",
 													["params"] = {_G[GlobalLibName]},
-													["expectedResults"] = {true},
+													["expectedResults"] = { true },
 												}
 											}
 		},
@@ -2155,7 +2152,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
-		--Works, 2021-12-18
+		--Todo test, 2025-09-19
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2356,7 +2353,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsFurnitureVaultShown",
 												  ["params"]          = { _G[GlobalLibName] },
-												  ["expectedResults"] = { false },
+												  ["expectedResults"] = { true },
 											  }
 										  }
 		},
@@ -2367,7 +2364,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsFurnitureVaultShown",
 												  ["params"]          = { _G[GlobalLibName] },
-												  ["expectedResults"] = { false },
+												  ["expectedResults"] = { true },
 											  }
 										  }
 		},
@@ -2467,7 +2464,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_ALCHEMY_CREATION, 			checkTypes = { "scene", "control", "special" } },
 		{ filterType=LF_PROVISIONING_COOK, 			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_PROVISIONING_BREW, 			checkTypes = { "scene", "fragment", "control", "special" } },
-		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_BANK_WITHDRAW, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_HOUSE_BANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_RETRAIT, 					checkTypes = { "scene", "fragment", "control" } },
@@ -2478,7 +2475,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_FURNITURE_VAULT_DEPOSIT, 	checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_FURNITURE_VAULT_WITHDRAW,   checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FURNITURE_VAULT_WITHDRAW,   checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY_VENGEANCE,		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control", "special" } },
 	}
@@ -2633,15 +2630,9 @@ callbacks.sceneStatesSupportedForCallbacks = sceneStatesSupportedForCallbacks
 local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
-		--LF_INVENTORY
-		--LF_BANK_DEPOSIT
-		--LF_GUILDBANK_DEPOSIT
-		--LF_HOUSE_BANK_DEPOSIT
-		--LF_VENDOR_SELL
-		--LF_GUILDSTORE_SELL
-		--LF_FURNITURE_VAULT_DEPOSIT
-		--LF_INVENTORY_VENGEANCE
-		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT, LF_VENDOR_SELL, LF_GUILDSTORE_SELL, LF_FURNITURE_VAULT_DEPOSIT, LF_INVENTORY_VENGEANCE },
+		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT,
+										   	LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
+										    LF_FURNITURE_VAULT_DEPOSIT, LF_INVENTORY_VENGEANCE },
 
 		--Dedicated fragments
 		[invQuestFragment] 				= { LF_INVENTORY_QUEST },

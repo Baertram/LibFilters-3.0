@@ -5,10 +5,12 @@
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-09-19, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				13
+--Bugs total: 				14
 --Feature requests total: 	0
 
 --[Bugs]
+--#14 2025-09-19 Furniture valut deposit/house bank deposit/bank deposit callbacks do only work for the firt opened of the 3. Every enxt won't fire the
+--    deposit callback anymore
 
 
 --[Feature requests]
@@ -2633,7 +2635,7 @@ function libFilters:IsVengeanceInventoryShown()
 		if invBackpack_GP.vengeanceCategoryList ~= nil then
 			if libFilters.debug then dd("IsVengeanceInventoryShown> active: %s, actionMode: %s, currentListType: %s",
 					tos(invBackpack_GP.vengeanceCategoryList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
-			if invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.actionMode == 4 or invBackpack_GP.currentListType == "vengeanceCategoryList" then
+			if invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.currentListType == "vengeanceCategoryList" then
 				lFilterTypeDetected = 		LF_INVENTORY_VENGEANCE
 				lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_INVENTORY_VENGEANCE]
 			end
@@ -2674,7 +2676,8 @@ end
 --Is the bank shown
 --returns boolean isShown
 function libFilters:IsBankShown()
-	local isBankShown = false
+	local bankingBag = GetBankingBag()
+	local isBankShown = not IsHouseBankBag(bankingBag) and not IsFurnitureVault(bankingBag)
 	if IsGamepad() then
 		isBankShown = gpc.invBankScene_GP:IsShowing()
 	else
@@ -2701,7 +2704,8 @@ end
 --Is the house bank shown
 --returns boolean isShown
 function libFilters:IsHouseBankShown()
-	local isHouseBankShown = IsHouseBankBag(GetBankingBag())
+	local bankingBag = GetBankingBag()
+	local isHouseBankShown = IsHouseBankBag(bankingBag) and not IsFurnitureVault(bankingBag)
 	if not isHouseBankShown then return false end
 	if IsGamepad() then
 		isHouseBankShown = gpc.invBankScene_GP:IsShowing()
@@ -2720,7 +2724,7 @@ function libFilters:IsFurnitureVaultShown()
 	local isFurnitureBagShown = IsFurnitureVault(GetBankingBag())
 	if not isFurnitureBagShown then return false end
 	if IsGamepad() then
-		isFurnitureBagShown = gpc.furnitureVaultScene_GP:IsShowing()
+		isFurnitureBagShown = gpc.invBankScene_GP:IsShowing()
 	else
 		isFurnitureBagShown = kbc.furnitureVaultScene:IsShowing()
 	end
@@ -3531,7 +3535,7 @@ function libFilters:IsVanillaCraftBagShown()
 			--If craftbag was not opened before the craftBagList:IsActive might return false, so we need to check for other parameters then
 			if libFilters.debug then dd("IsVanillaCraftBagShown> active: %s, actionMode: %s, currentListType: %s",
 					tos(invBackpack_GP.craftBagList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
-			if invBackpack_GP.craftBagList:IsActive() or invBackpack_GP.actionMode == 3 or invBackpack_GP.currentListType == "craftBagList" then
+			if invBackpack_GP.craftBagList:IsActive() or invBackpack_GP.currentListType == "craftBagList" then
 				lFilterTypeDetected = 		LF_CRAFTBAG
 				lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_CRAFTBAG]
 			end
@@ -3762,7 +3766,7 @@ end
 		--Makes: "LibFilters3-shown-1"
 
 		--The callbackFunction you register to it needs to provide the following parameters:
-		--number filterType is the LF_* constantfor the panel currently shown/hidden
+		--number filterType is the LF_* constant for the panel currently shown/hidden
 		--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
 		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
 		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
@@ -3820,12 +3824,12 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	local checkIfHidden = false
 
 	if libFilters.debug then
-		dv("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s, specialPanelControlFunc: %s, isUniversalDecon: %s",
+		dd("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s, specialPanelControlFunc: %s, isUniversalDecon: %s",
 				tos(stateStr), tos(#filterTypes), tos(typeOfRef), tos(specialPanelControlFunc), tos(universalDeconData.isShown)
 		)
 		if #filterTypes > 0 then
 			for filterTypeIdx, filterTypePassedIn in ipairs(filterTypes) do
-				dv(">passedInFilterType %s: %s", tos(filterTypeIdx), tos(filterTypePassedIn))
+				dd(">passedInFilterType %s: %s", tos(filterTypeIdx), tos(filterTypePassedIn))
 			end
 		end
 	end
@@ -3950,7 +3954,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		for idx, filterTypeInLoop in ipairs(filterTypes) do
 			if filterType == nil and lReferencesToFilterType == nil then
 				local skipCheck = false
-				--is the filterType set to 0 (automatically detection based on some code,
+				--is the filterType set to 0 (automatically detection based on some code),
 				--e.g. at re-used fragments like BACKPACK_LAYOUT_FRAGMENT at inventory, bank deposit, guild bank deposit, trading house sell, mail, trade, ...)
 				if filterTypeInLoop == 0 then
 					--If the entry is not the last entry in the table "dynamically move it there"
@@ -3966,7 +3970,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 					--Get the reference variables and filterType currently shown
 					lReferencesToFilterType, filterType, universalDeconSelectedTabNow = detectShownReferenceNow(filterTypeInLoop, isInGamepadMode, checkIfHidden, false)
 					if filterType ~= nil and lReferencesToFilterType ~= nil then
-						if libFilters.debug then dv("<<filterType was found in loop: %s", tos(filterType)) end
+						if libFilters.debug then dd("<<filterType was found in loop: %s", tos(filterType)) end
 						break -- leave the loop if filterType and reference were found
 					end
 				end
