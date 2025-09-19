@@ -25,7 +25,9 @@ local libFilters = {}
 
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
+------------------------------------------------------------------------------------------------------------------------
 _G[GlobalLibName] 			= libFilters --global table LibFilters3
+------------------------------------------------------------------------------------------------------------------------
 libFilters.name	            = MAJOR
 libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
@@ -128,14 +130,21 @@ local function dfe(...)
 end
 debugFunctions.dfe = dfe
 
-
 --Debugging slash commands
 local function debugSlashToggle(args)
 	libFilters.debug = not libFilters.debug
+	isDebugEnabled = libFilters.debug
 	df("Debugging %s", (not libFilters.debug and "disabled") or "enabled")
-	libFilters.UpdateIsDebugEnabled()
 end
 debugFunctions.debugSlashToggle = debugSlashToggle
+
+--/////////////////////////////////////////////////////////////////////////////////
+--/////////////////////////////////////////////////////////////////////////////////
+--/////////////////////////////////////////////////////////////////////////////////
+debugSlashToggle() --todo remove again after testing 2025-09-19
+--/////////////////////////////////////////////////////////////////////////////////
+--/////////////////////////////////////////////////////////////////////////////////
+--/////////////////////////////////////////////////////////////////////////////////
 
 
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
@@ -2594,7 +2603,7 @@ mapping.updaterNameToFilterType = updaterNameToFilterType
 
 --Will be filled within file LibFilters-3.0.lua with the above strings and their related updater function (divived by
 --keyboard and gamepad mode)
-mapping.inventoryUpdaters = { }
+mapping.inventoryUpdaters = {}
 
 
 --[Mapping for the callbacks as filterType panels are shown/hidden]
@@ -2970,6 +2979,7 @@ callbacks.special = {
 	},
 }
 
+
+
+------------------------------------------------------------------------------------------------------------------------
 if libFilters.debug then dd("LIBRARY CONSTANTS FILE - END") end
-
-

@@ -246,6 +246,11 @@ function libFilters:IsInventoryShown()
 function libFilters:IsCompanionInventoryShown()
 
 
+--Is the Vengeance Inventory shown
+--returns boolean isShown
+function libFilters:IsVengeanceInventoryShown()
+
+
 --Is the character control shown
 --returns boolean isShown
 function libFilters:IsCharacterShown()
@@ -269,6 +274,11 @@ function libFilters:IsGuildBankShown()
 --Is the house bank shown
 --returns boolean isShown
 function libFilters:IsHouseBankShown()
+
+
+--Is the furniture vault shown
+--returns boolean isShown
+function libFilters:IsFurnitureVaultShown()
 
 
 --Check if the store (vendor) panel is shown

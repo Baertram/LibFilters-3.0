@@ -1,5 +1,5 @@
 --[[
-	Version:	1.0
+	Version:	3.0
 	Idea:		IsJustAGhost
 	Code by:	IsJustAGhost & Baertram
 
@@ -48,6 +48,9 @@ local playerInventory = 						kbc.playerInv
 local gpc                         	= 			constants.gamepad
 local invRootScene                	= 			gpc.invRootScene_GP
 local invBackpack_GP 				= 			gpc.invBackpack_GP
+--local mundusInvCategory_GP = 1 --Mundus index in the Gamepad Inventory categoryList as of - 2025-09-19
+--local currencyInvCategory_GP = 2 --Currencies index in the Gamepad Inventory categoryList as of - 2025-09-19
+
 local invFragment_GP 				= 			gpc.invFragment_GP
 local invBank_GP                  	= 			gpc.invBank_GP
 local invBankScene_GP      			=			gpc.invBankScene_GP
@@ -382,22 +385,42 @@ end)
 
 local function isInvCategory(categoryIndex)
 	if categoryIndex ~= nil and invBackpack_GP.categoryList then
-		local selectedIndex = invBackpack_GP.categoryList.selectedIndex
-		if selectedIndex ~= nil then
-			if selectedIndex == categoryIndex then --Currencies
-				return true
+		if invBackpack_GP.categoryList:IsActive() then
+			local selectedIndex = invBackpack_GP.categoryList.selectedIndex
+			if selectedIndex ~= nil then
+				if selectedIndex == categoryIndex then
+					return true
+				end
 			end
 		end
 	end
 	return false
 end
 
+local function isCurrencyEntrySelected()
+	local isCurrencyEntryCurrentlySelected = (invBackpack_GP.currentlySelectedData ~= nil and invBackpack_GP.currentlySelectedData.isCurrencyEntry) or false
+	--if not isCurrencyEntryCurrentlySelected then isCurrencyEntryCurrentlySelected = isInvCategory(currencyInvCategory_GP) end
+	return isCurrencyEntryCurrentlySelected
+end
+
+local function isMundusEntrySelected()
+	local isMundusEntryCurrentlySelected = (invBackpack_GP.currentlySelectedData ~= nil and invBackpack_GP.currentlySelectedData.isMundusEntry) or false
+	--if not isMundusEntryCurrentlySelected then isMundusEntryCurrentlySelected = isInvCategory(mundusInvCategory_GP) end
+	return isMundusEntryCurrentlySelected
+end
+
 local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, p_comingFromCraftBagList)
+	if libFilters.debug then dd("[ ]gamepadInventorySelectedCategoryChecks - selectedGPInvFilter: " .. tos(selectedGPInvFilter) .. ", comingFromCraftBagList: " .. tos(p_comingFromCraftBagList) ) end
+
 	--Get the currently selected gamepad inventory category
 	if selectedGPInvFilter ~= nil then
+		--Raise the vengeance inventory hidden callback
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
 		--Raise the inventory hidden callback
 		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+
 		if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
+		invRootScene:RemoveFragment(gamepadLibFiltersInventoryVengeanceFragment)
 		invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 
 		if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
@@ -427,15 +450,22 @@ local function gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, p_com
 			quickslotFragment_GP:Show()
 		end
 	else
-		--No selected filterType, do checks via other parameters (e.g. currencies)
-		if isInvCategory(1) then --Currencies
+		--No selected filterType, do checks via other parameters (e.g. currencies, mundus)
+		if isCurrencyEntrySelected() or isMundusEntrySelected() then
+			--Raise the inventory hidden callback
 			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryFragment)
+			--Raise the vengeance inventory hidden callback
+			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
+
 			if libFilters.debug then dd("-> No-inventory - Removed CUSTOM inventory fragment") end
+			invRootScene:RemoveFragment(gamepadLibFiltersInventoryVengeanceFragment)
 			invRootScene:RemoveFragment(gamepadLibFiltersInventoryFragment)
 
 			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
 			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
 			updateSceneManagerAndHideFragment(quickslotFragment_GP)
+		else
+
 		end
 	end
 end
@@ -444,11 +474,14 @@ local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, ident
 	local debugEnabled = libFilters.debug
 	local isInvQuest = false
 	local isInvQuickslots = false
-	local isCurrencies = isInvCategory(1) --Currencies
+	local isCurrencies = isCurrencyEntrySelected()
+	local isMundus = isMundusEntrySelected()
 	local isVengeance = false
 
 	if type(identifierTab) == "table" then
 		isVengeance = identifierTab.vengeance or false
+	else
+		isVengeance = libFilters:IsVengeanceInventoryShown()
 	end
 
 	--Cyrodiil vengeance inventory
@@ -462,8 +495,6 @@ local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, ident
 		end
 
 	else
-		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
-
 		--Normal inventories
 		if selectedGPInvFilter ~= nil then
 			if selectedGPInvFilter == ITEMFILTERTYPE_QUEST then
@@ -473,8 +504,10 @@ local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, ident
 				isInvQuickslots = true
 			end
 		end
-
 		if debugEnabled then dd(">>onGamepadInventoryShownFragmentsUpdate - isInvQuest: %s, isInvQuickslots: %s", tos(isInvQuest), tos(isInvQuickslots)) end
+
+		updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryVengeanceFragment)
+
 		if not isInvQuickslots then
 			updateSceneManagerAndHideFragment(quickslotFragment_GP)
 		end
@@ -482,7 +515,7 @@ local function onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, ident
 			updateSceneManagerAndHideFragment(gamepadLibFiltersInventoryQuestFragment)
 			invRootScene:RemoveFragment(gamepadLibFiltersInventoryQuestFragment)
 		end
-		if not isCurrencies and not isInvQuickslots and not isInvQuest then
+		if not isCurrencies and not isInvQuickslots and not isInvQuest and not isMundus then
 			if not invRootScene:HasFragment(gamepadLibFiltersInventoryFragment) and not gamepadLibFiltersInventoryFragment:IsShowing() then
 				if debugEnabled then dd("-> Inventory - Added CUSTOM inventory fragment, and SHOW") end
 				invRootScene:AddFragment(gamepadLibFiltersInventoryFragment)
@@ -512,26 +545,26 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	--Match the tooltip to the selected data because it looks nicer
 	local function OnSelectedCategoryChangedLibFilters(list, selectedData)
 		local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
-		if libFilters.debug then dd("?? GAMEPAD inventory:OnSelectedDataChanged: %s [%s], comingFromCB: %s", tos(selectedData.text), tos(selectedGPInvFilter), tos(comingFromCraftBagList)) end
+		if libFilters.debug then dd("???? GAMEPAD inventory:OnSelectedDataChanged: %s [%s], comingFromCB: %s", tos(selectedData.text), tos(selectedGPInvFilter), tos(comingFromCraftBagList)) end
 
 		if not libFilters.isInitialized then return end
 
-		--At normal inventory categoryList?
-		if libFilters:IsInventoryShown()  then
-			if comingFromCraftBagList == false then
-				if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
-				onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
-			else
-				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter)
-			end
-
 		--At Cyrodiil vengeance inventory categoryList?
-		elseif libFilters:IsVengeanceInventoryShown() then
+		if libFilters:IsVengeanceInventoryShown() then
 			if comingFromCraftBagList == false then
 				if libFilters.debug then dd(">Gamepad Vengeance Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
 				onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter, { vengeance = true })
 			else
 				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter, { vengeance = true })
+			end
+
+		--At normal inventory categoryList?
+		elseif libFilters:IsInventoryShown()  then
+			if comingFromCraftBagList == false then
+				if libFilters.debug then dd(">Gamepad Inventory is shown, fire SHOWN callback of fragment - comingFromCraftBagList: %s", tos(comingFromCraftBagList)) end
+				onGamepadInventoryShownFragmentsUpdate(selectedGPInvFilter)
+			else
+				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter)
 			end
 
 		--Still at CraftBag list
@@ -541,6 +574,7 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 				raiseGamepadInventoryFragmentSHOWNDelayed(50, selectedGPInvFilter)
 			end
 
+		--Others
 		else
 			gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
 		end
@@ -776,14 +810,21 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 				comingFromCraftBagList = true
 			end
 
-			--Check for non-inventory selected entries in the categorylist, like "quests" or "quickslots" and remove the custom inv. fragment then
-			if libFilters:IsInventoryShown() then
+			--At Cyrodiil vengeance inventory categoryList?
+			if libFilters:IsVengeanceInventoryShown() then
 				if comingFromCraftBagList == false then
-					onGamepadInventoryShownFragmentsUpdate()
+					onGamepadInventoryShownFragmentsUpdate(nil, { vengeance = true })
 				end
 			else
-				local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
-				gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
+				--Check for non-inventory selected entries in the categorylist, like "quests" or "quickslots" and remove the custom inv. fragment then
+				if libFilters:IsInventoryShown() then
+					if comingFromCraftBagList == false then
+						onGamepadInventoryShownFragmentsUpdate()
+					end
+				else
+					local selectedGPInvFilter = invBackpack_GP.selectedItemFilterType
+					gamepadInventorySelectedCategoryChecks(selectedGPInvFilter, comingFromCraftBagList)
+				end
 			end
 		end
 	end)
@@ -859,8 +900,11 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	end)
 
 	gamepadLibFiltersInventoryVengeanceFragment:SetConditional(function()
-		return IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true and gpInvNoCraftBagShowing()
+		return IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true
+				and invBackpack_GP.vengeanceCategoryList:IsActive()
+				and gpInvNoCraftBagShowing()
 	end)
+
 
 	------------------------------------------------------------------------------------------------------------------------
 	-- Add the created fragments to the LibFilters gamepad fragment constants so they are not nil anymore in

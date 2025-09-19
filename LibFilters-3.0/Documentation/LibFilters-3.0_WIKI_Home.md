@@ -1,7 +1,7 @@
 # LibFilters
 **An Elder Scrolls Online library to filter your items at the different inventories**
 
-Current version: 3, last updated: 2022-11-11
+Current version: 3, last updated: 2025-09-19
 
 This library is used to filter inventory items (show/hide) at the different panels/inventories -> LibFilters uses the
 term "filterType" for the different inventories (also called filterPanels).
@@ -96,7 +96,7 @@ Filter function with bagId and slotIndex (most of them are crafting related ones
  libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 2
 
 ## Test
-Uncomment (remove the ##) the 2 files in the LibFilters-x.x.xt file to enable testing ingame:
+Uncomment (remove the ##) the 2 files in the LibFilters-x.x.txt file to enable testing ingame:
 ```
 ## test/test.lua
 ## test/test.xml
