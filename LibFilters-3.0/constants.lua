@@ -1694,7 +1694,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment, 			["scene"] = "companionCharacterKeyboard", ["fragment"] = companionEquipmentFragment, },
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = quickslots, 					["scene"] = "inventory",			["fragment"] = quickslotsFragment, },
-		--To be tested: 2025-09-18 API101048
+		--Works: 2025-09-20
 		[LF_INVENTORY_VENGEANCE]	  = { ["control"] = invVengeance, 					["scene"] = "inventory", 			["fragment"] = invVengeanceFragment },
 
 		--Works: 2021-12-13
@@ -2076,7 +2076,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 
-		--To be tested, 2025-09-18 API101048
+		--Works: 2025-09-20
 		[LF_INVENTORY_VENGEANCE]      = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created.
 										  ["special"] = {
 											  [1] = {
@@ -2102,7 +2102,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
-		--To be tested, 2025-09-19 API101048
+		--todo: To be tested, 2025-09-19 API101048
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2152,7 +2152,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
-		--Todo test, 2025-09-19
+		--todo: To be tested, 2025-09-19 API101048
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2346,7 +2346,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 
 
-		--To test, 2025-06-04
+		--todo: To be tested, 2025-09-19 API101048
 		[LF_FURNITURE_VAULT_DEPOSIT]  = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -2357,7 +2357,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--To test, 2025-06-04
+		--todo: To be tested, 2025-09-19 API101048
 		[LF_FURNITURE_VAULT_WITHDRAW] = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {

@@ -98,6 +98,21 @@ if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - START") end
 ------------------------------------------------------------------------------------------------------------------------
 -- Local helper functions
 ------------------------------------------------------------------------------------------------------------------------
+local function isVengeanceCampaign()
+	if IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true then
+		return invBackpack_GP.vengeanceCategoryList:IsActive()
+	end
+	return false
+end
+
+local function gpInvNoCraftBagShowing()
+	return invRootScene:IsShowing() and (invBackpack_GP.craftBagList == nil
+			or (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive() == false))
+end
+
+local function checkIfInvAndNotVengeanceCampaign()
+	return gpInvNoCraftBagShowing() and not isVengeanceCampaign()
+end
 
 
 --Add the fragment prefix and return the fragment
@@ -610,13 +625,26 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 				function(p_sourceFragment, p_targetFragment) return end, --showing
 				function(p_sourceFragment, p_targetFragment)
 					if invRootScene:HasFragment(p_targetFragment) then
-						if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT - show: " ..tos(p_targetFragment)) end
-						p_targetFragment:Show()
-					else
-						if libFilters:IsInventoryShown() then
-							if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT > ADDED - show: " ..tos(p_targetFragment)) end
-							invRootScene:AddFragment(p_targetFragment)
+						--20205-09-19 Do not show if the current gamepad inventory list should show the Cyrodiil vengeance inventory
+						if isVengeanceCampaign() then
+							if libFilters.debug then dd("<GAMEPAD CUSTOM inventory FRAGMENT - HIDING NOW due to Vengeance inventory showing: " ..tos(p_targetFragment)) end
+							p_targetFragment:Hide()
+						else
+							if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT - show: " ..tos(p_targetFragment)) end
 							p_targetFragment:Show()
+						end
+					else
+						--20205-09-19 Do not show if the current gamepad inventory list should show the Cyrodiil vengeance inventory
+						if isVengeanceCampaign() then
+							if libFilters.debug then dd("<<GAMEPAD CUSTOM inventory FRAGMENT - HIDING NOW due to Vengeance inventory showing: " ..tos(p_targetFragment)) end
+							p_targetFragment:Hide()
+						else
+							if libFilters:IsInventoryShown() then
+								if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT > ADDED - show: " ..tos(p_targetFragment)) end
+								invRootScene:AddFragment(p_targetFragment)
+								p_targetFragment:Show()
+							end
+
 						end
 					end
 					return
@@ -915,22 +943,6 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 				or (ZO_TradingHouse_GamepadMaskContainerSell ~= nil and not ZO_TradingHouse_GamepadMaskContainerSell:IsHidden()))
 	end)
 	]]
-
-	local function isVengeanceCampaign()
-		if IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true then
-			return invBackpack_GP.vengeanceCategoryList:IsActive()
-		end
-		return false
-	end
-
-	local function gpInvNoCraftBagShowing()
-		return invRootScene:IsShowing() and (invBackpack_GP.craftBagList == nil
-				or (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive() == false))
-	end
-
-	local function checkIfInvAndNotVengeanceCampaign()
-		return gpInvNoCraftBagShowing() and not isVengeanceCampaign()
-	end
 
 
 	gamepadLibFiltersInventoryQuestFragment:SetConditional(function()
