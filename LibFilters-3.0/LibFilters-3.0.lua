@@ -9,8 +9,6 @@
 --Feature requests total: 	0
 
 --[Bugs]
---#14 2025-09-19 Furniture valut deposit/house bank deposit/bank deposit callbacks do only work for the firt opened of the 3. Every enxt won't fire the
---    deposit callback anymore
 
 
 --[Feature requests]

@@ -23,6 +23,11 @@ local getScene = SM.GetScene
 --Local library variable
 local libFilters = {}
 
+-- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
+-- after EVENT_ADD_ON_LOADED
+libFilters.isInitialized = false
+
+
 ------------------------------------------------------------------------------------------------------------------------
 --Create global library constant LibFilters3
 ------------------------------------------------------------------------------------------------------------------------
@@ -33,6 +38,17 @@ libFilters.version          = MINOR
 libFilters.globalLibName    = GlobalLibName
 ------------------------------------------------------------------------------------------------------------------------
 
+--Classes (OO code for e.g. custom fragments in gamepad mode)
+libFilters.classes = {} --custom created classes
+
+--Fragments
+libFilters.fragments = {}
+libFilters.fragments[false] = {} --keyboard
+libFilters.fragments[true] = {} --gamepad
+------------------------------------------------------------------------------------------------------------------------
+
+
+--The registered filters
 libFilters.filters = {}
 local filters = libFilters.filters
 
@@ -40,10 +56,6 @@ local filters = libFilters.filters
 libFilters.horizontalScrollBarFilters = {}
 local horizontalScrollBarFilters = libFilters.horizontalScrollBarFilters
 horizontalScrollBarFilters["craftingResearch"] = {}
-
--- Initialization will be done via function "libFilters:InitializeLibFilters()" which should be called in addons once,
--- after EVENT_ADD_ON_LOADED
-libFilters.isInitialized = false
 
 --Use the LF_FILTER_ALL registered filters as fallback filterFunctions for all panels -> see file LibFilters-3.0.lua,
 --function runFilters, and API function libFilters:SetFilterAllState(boolean newState)
@@ -141,7 +153,7 @@ debugFunctions.debugSlashToggle = debugSlashToggle
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
-debugSlashToggle() --todo remove again after testing 2025-09-19
+--debugSlashToggle() --todo remove again after testing 2025-09-21
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
@@ -775,7 +787,7 @@ local retraitFragment 			  = kbc.retraitFragment
 retraitFragment._name = "RETRAIT_STATION_RETRAIT_FRAGMENT"
 
 --Reconstruction
-kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD --todo not used yet
+kbc.reconstruct                   =	ZO_RECONSTRUCT_KEYBOARD
 
 --Universal Deconstruction
 local universalDeconstructPanel
@@ -824,6 +836,9 @@ local invRootScene_GP 			= gpc.invRootScene_GP
 gpc.invFragment_GP				= GAMEPAD_INVENTORY_FRAGMENT
 local invFragment_GP = gpc.invFragment_GP
 
+local gamepadLibFiltersInventoryFragment = { layoutData = {} } --custom created inventory fragment of LibFilters, for gamepad inventory. Will be updated properly via file /Gamepad/ganepadCustomFragments.lua
+libFilters.fragments[true].CustomInventoryFragment = gamepadLibFiltersInventoryFragment
+
 --Cyrodiil vengeance inventory
 --custom created gamepad fragment "gamepadLibFiltersInventoryVengeanceFragment"
 
@@ -832,13 +847,13 @@ local invFragment_GP = gpc.invFragment_GP
 
 
 --Craftbag
---gamepadConstants.invCraftbag_GP =	inventories[invTypeCraftBag] --TODO: test if GP craftbag still works. Else uncomment and re-add to filterTypeToReference[true] again
+--gamepadConstants.invCraftbag_GP =	inventories[invTypeCraftBag]
 
 --Quest items
 --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 
 --Quickslots
-gpc.quickslots_GP 				= GAMEPAD_QUICKSLOT					--TODO: remove? Quickslots for gamepad are handled differently
+gpc.quickslots_GP 				= GAMEPAD_QUICKSLOT
 gpc.quickslotScene_GP 			= getScene(SM, "gamepad_quickslot")
 gpc.quickslotFragment_GP		= GAMEPAD_QUICKSLOT_FRAGMENT
 local quickslotFragment_GP 		= gpc.quickslotFragment_GP
@@ -919,7 +934,7 @@ local companionEquipment_GP 	= gpc.companionEquipment_GP
 gpc.companionEquipmentScene_GP	= COMPANION_EQUIPMENT_GAMEPAD_SCENE
 gpc.companionEquipmentFragment_GP = COMPANION_EQUIPMENT_GAMEPAD_FRAGMENT
 local companionEquipmentFragment_GP = gpc.companionEquipmentFragment_GP
-gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel		--TODO is this the correct for gamepad mode of companion character?
+gpc.companionCharacterCtrl_GP   = ZO_Companion_Gamepad_TopLevel
 
 
 --[Crafting]
@@ -1549,8 +1564,7 @@ local filterTypeToReference = {
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { researchChooseItemDialog_GP }, --duplicate needed compared to LF_SMITHING_RESEARCH_DIALOG ?
 
 
-		--Not given in gamepad mode
-		[LF_QUICKSLOT]                = { quickslotFragment_GP }, --not in gamepad mode -> quickslots are added directly from type lists. collections>mementos, collections>mounts, inventory>consumables, ... / We will just add the fragment here where the .additionalFilter function should be stored, maybe for future implementations
+		[LF_QUICKSLOT]                = { quickslotFragment_GP }, --not in gamepad mode -> quickslots are added directly from lists in inventory e.g. via the "Assign" button. collections>mementos, collections>mounts, inventory>consumables, ... / We will just add the fragment here where the .additionalFilter function should be stored, maybe for future implementations
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
@@ -1571,11 +1585,11 @@ local filterTypeToReference = {
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter() later on checks for the current gamepad
 		--> or keyboard mode, and only hooks the currently active one -> Which will fail to load these ones here later on,
 		--> as they need to be loaded via the keyboard hooks!).
-		[LF_CRAFTBAG]                 = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages --todo: test if this works, or add "gamepadConstants.invCraftbag_GP" again above!
+		[LF_CRAFTBAG]                 = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_BANK_WITHDRAW]            = {},	--implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_GUILDBANK_WITHDRAW]       = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_HOUSE_BANK_WITHDRAW]      = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_REFINE]          = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages --todo: test if this works, or add "gamepadConstants.refinementPanel_GP" again above!
+		[LF_SMITHING_REFINE]          = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_DECONSTRUCT]     = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_IMPROVEMENT]     = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
 		[LF_SMITHING_RESEARCH]        = {}, --implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
@@ -1920,10 +1934,10 @@ filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--TO TEST: 2025-06-03
+		--Works: 2025-09-21
 		[LF_FURNITURE_VAULT_WITHDRAW]  = { ["control"] = invFurnitureVaultWithdraw, 			["scene"] = furnitureVaultScene, 			["fragment"] = furnitureVaultWithdrawFragment, },
-		--TO TEST: 2025-06-03
-		[LF_FURNITURE_VAULT_DEPOSIT]   = { ["control"] = invFurnitureVaultDeposit, 				["scene"] = furnitureVaultScene, 			["fragment"] = inventoryFragment, }, --todo 20250603 test if this is the correct fragment?
+		--Works: 2025-09-21
+		[LF_FURNITURE_VAULT_DEPOSIT]   = { ["control"] = invFurnitureVaultDeposit, 				["scene"] = furnitureVaultScene, 			["fragment"] = inventoryFragment, },
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2048,9 +2062,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 
 
-		--Not given in gamepad mode
-		--Works, 2021-12-21
-		[LF_QUICKSLOT]                = { ["control"] = ZO_GamepadQuickslotToplevel, 	["scene"] = gpc.quickslotScene_GP, 		["fragment"] = quickslotFragment_GP,		--uses inventory fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
+		--Works, 2025-09-21
+		[LF_QUICKSLOT]                = { ["control"] = ZO_Quickslot_Gamepad_TopLevel, 	["scene"] = gpc.quickslotScene_GP, 		["fragment"] = quickslotFragment_GP,		--uses inventory fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 										  ["special"] = {
 											  [1] = {
 												  ["control"]         = invBackpack_GP,
@@ -2102,7 +2115,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
-		--todo: To be tested, 2025-09-19 API101048
+		--Works: 2025-09-21
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2152,7 +2165,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
-		--todo: To be tested, 2025-09-19 API101048
+		--Works: 2025-09-21
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2346,7 +2359,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 
 
-		--todo: To be tested, 2025-09-19 API101048
+		--Works: 2025-09-21
 		[LF_FURNITURE_VAULT_DEPOSIT]  = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -2357,7 +2370,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--todo: To be tested, 2025-09-19 API101048
+		--Works: 2025-09-21
 		[LF_FURNITURE_VAULT_WITHDRAW] = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -2469,12 +2482,12 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_GUILDBANK_WITHDRAW, 		checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_RETRAIT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_INVENTORY_COMPANION, 		checkTypes = { "fragment", "scene", "control" } },
-		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_BANK_DEPOSIT, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_GUILDBANK_DEPOSIT, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_HOUSE_BANK_DEPOSIT, 		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY_QUEST,			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control", "special" } },
-		{ filterType=LF_FURNITURE_VAULT_DEPOSIT, 	checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_FURNITURE_VAULT_DEPOSIT, 	checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_FURNITURE_VAULT_WITHDRAW,   checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY_VENGEANCE,		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control", "special" } },
@@ -2714,6 +2727,9 @@ local callbackFragmentsBlockedMapping = {
 	--Gamepad
 	[true] = {
 		[SCENE_SHOWN] = {
+			--20205-09-21 Test if that works, else use the special code checks in gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "SetCurrentList"
+			--	if not wasGPInventoryListSetBefore then
+			[invFragment_GP] = { LF_INVENTORY_VENGEANCE }, --Will not raise a callback for gamepad inventoryFragment if current filterType is LF_INVENTORY_VENGEANCE
 		},
 		[SCENE_HIDDEN] = {
 		}
