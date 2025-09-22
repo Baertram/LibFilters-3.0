@@ -1,7 +1,7 @@
 # LibFilters
 **An Elder Scrolls Online library to filter your items at the different inventories**
 
-Current version: 3, last updated: 2025-09-19
+Current version: 3, last updated: 2025-09-21
 
 This library is used to filter inventory items (show/hide) at the different panels/inventories -> LibFilters uses the
 term "filterType" for the different inventories (also called filterPanels).

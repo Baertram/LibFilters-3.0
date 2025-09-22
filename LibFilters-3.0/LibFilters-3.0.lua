@@ -3563,7 +3563,12 @@ libFilters_IsCraftBagShown = libFilters.IsCraftBagShown
 --**********************************************************************************************************************
 -- Callback API
 --**********************************************************************************************************************
---Create the callbackname for a libFilters filterPanel shown/hidden callback
+local function getAddonCallbackName(yourAddonName, isShown, filterType, universalDeconActiveTab)
+	universalDeconActiveTab = universalDeconActiveTab or ""
+	return strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+end
+
+--Create the callback name for a libFilters filterPanel shown/hidden callback
 ----It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
 ----number filterType needs to be a valid LF_* filterType constant
 ----boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
@@ -3594,7 +3599,8 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 	end
 
 	--Build the unique callback Name
-	local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+	--local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
@@ -3627,7 +3633,7 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 end
 
 
---Remove an added callbackname for a libFilters filterPanel shown/hidden callback again
+--Remove an added callback name for a libFilters filterPanel shown/hidden callback again
 --It will remove the entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
 --number filterType needs to be a valid LF_* filterType constant
 --boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
@@ -3651,7 +3657,8 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 	end
 
 	--Build the unique callback Name
-	local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+	--local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
@@ -3741,31 +3748,45 @@ end
 --**********************************************************************************************************************
 -- CALLBACKS
 --**********************************************************************************************************************
+function libFilters:CreateCallbackName(filterType, isShown, universalDeconSelectedTabNow)
+	universalDeconSelectedTabNow = universalDeconSelectedTabNow or ""
+	return strfor(callbackBaseLibPattern, (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconSelectedTabNow))
+end
+local libFilters_CreateCallbackName = libFilters.CreateCallbackName
+
+
 --Create callbacks one can register to as the filterType panels show and hide
 --e.g. for LF_SMITHING_REFINE as the panel opens or closes, the signature would be
 --name: LibFilters3-<shown or hidden defined via SCENE_SHOWN and SCENE_HIDDEN constants>-<filterType>
 --variables passed as parameters:
---filterType,
---shownState,
---isGamepadModeCallback,
+--filterTypes table,
 --fragment/scene/control that was used to raise the callback,
+--shownState,
+--isGamepadMode,
 --referenceObjects (from table filterTypeToCheckIfReferenceIsHidden),
---additionalParameters ...
+--doNotUpdateCurrentAndLastFilterTypes
+--specialPanelControlFunc
+--universalDeconData
+--
 --e.g. showing LF_SMITHING_REFINE
 --[[
 		--The library provides callbacks for the filterTypes to get noticed as the filterTypes are shown/hidden.
 		--The callback name is build by the library prefix "LibFilters3-" (constant provided is LibFilters3.globalLibName) followed by the state of the
 		--filterPanel as the callback fires (can be either the constant SCENE_SHOWN = "shown" or SCENE_HIDDEN = "hidden"), followed by "-" and the suffix
 		--is the filterType constant number of the panel.
-		--The library provides the API function libfilters:CreateCallbackName(filterType, isShown) to generate the callback name for you. isShown is a boolean.
+		--The library provides the API function libfilters:CreateCallbackName(filterType, isShown, universalDeconstructionSelectedTab) to generate the
+		--callback name of "LibFilters internal callbacks" (which always fire if that panel is shown/hidden) for you.
+		--Important: All addon added custom callbacks must be registered via libFilters:RegisterCallbackName!!!
+		--isShown is a boolean.
 		--if true SCENE_SHOWN will be used, if false SCENE_HIDDEN will be used.
 		--e.g. for LF_INVENTORY shown it would be
-		local callbackNameInvShown = libfilters:CreateCallbackName(LF_INVENTORY, true)
+		local callbackNameInvShown = libfilters:CreateCallbackName(LF_INVENTORY, true, universalDeconSelectedTabNow)
 		--Makes: "LibFilters3-shown-1"
 
-		--The callbackFunction you register to it needs to provide the following parameters:
+		--The callbackFunction you register to it needs to provide the following parameters (signature):
+		--string callbackName Concatenated callback name
 		--number filterType is the LF_* constant for the panel currently shown/hidden
-		--string stateStr will be SCENE_SHOWN ("shown") if shon or SCENE_HIDDEN ("hidden") if hidden callback was fired
+		--string stateStr will be SCENE_SHOWN ("shown") if shown, or SCENE_HIDDEN ("hidden") if hidden callback was fired
 		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
 		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
@@ -4084,7 +4105,8 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	if universalDeconSelectedTabNowForCallbackName == nil then
 		universalDeconSelectedTabNowForCallbackName = ""
 	end
-	local callbackName = strfor(callbackBaseLibPattern, (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconSelectedTabNowForCallbackName))
+	--local callbackName = strfor(callbackBaseLibPattern, (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconSelectedTabNowForCallbackName))
+	local callbackName = libFilters_CreateCallbackName(libFilters, filterType, isShown, universalDeconSelectedTabNowForCallbackName)
 
 	local callbackRaisePrefixStr = ""
 	local callbackRaiseSuffixStr = ""
@@ -4124,6 +4146,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	libFilters._lastCallbackState = stateStr
 	--Raise the library internal callback
 	CM:FireCallbacks(callbackName,
+			-->Signature of the callback function (parameters)
 			callbackName,
 			filterType,
 			stateStr,

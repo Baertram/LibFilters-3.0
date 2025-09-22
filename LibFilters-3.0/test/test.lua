@@ -94,7 +94,8 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 
 	noUpdate = noUpdate or false
 	local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
-	local filterFunc = (filterTypeToFilterFunctionType[filterType] == LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT and filterFuncForInventories) or filterFuncForCrafting
+	local filterFunc = (filterTypeToFilterFunctionType[filterType] == LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT and filterFuncForInventories)
+						or filterFuncForCrafting
 
 	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
 		libFilters_UnregisterFilter(libFilters, filterTag, filterType)
@@ -116,11 +117,11 @@ local helpUIInstructionsParts = {
 	"Use /lftestfilters without any parameters to open/close the test UI. Click the small 'x' button at the top-right edge to close the UI and clear all filters.",
 	"Select any number of LF_* filterTypes in the top list. Clicking them will select them. Clicking them again will deselct them.",
 	"Use \'"..GetString(SI_APPLY).."\' button to register the selected filters and populate the registered LF_* filterTypes to the bottom list.", --"Apply" button
-	"At any time, LF_* filterTypes can be added or removed by selecting/deselcting the button in the top list, and pressing the button \'" .. GetString(SI_APPLY) .. "\'.",
+	"At any time, LF_* filterTypes can be added or removed by selecting/deselecting the button in the top list, and pressing the button \'" .. GetString(SI_APPLY) .. "\'.",
 	"The \'".. GetString(SI_GAMEPAD_BANK_FILTER_HEADER) .."\' button enables/disables filtering of the registered filters.", --"Filter" button
 	"If you click the buttons of the LF_* filterTypes at the bottom list it will refresh/update the clicked filterType panel (if it's currently shown).",
 	"Means: With a fragment/scene containing a filterable inventory, enable/disable filtering (middle button) and press the according LF_* button in the bottom",
-	"list. Chat output will show you some information about the filtered items then. A default filterFunction is used but can be chanegd for each filterType -> See filterFunction editbox.",
+	"list. Chat output will show you some information about the filtered items then. A default filterFunction is used but can be changed for each filterType -> See filterFunction editbox.",
 	"The \'".. GetString(SI_BUFFS_OPTIONS_ALL_ENABLED) .."\' button will move down/move up all LF_* filterTypes at once.", --"All" button
 }
 local helpUIInstructions = gTab.concat(helpUIInstructionsParts, "\n")
@@ -147,6 +148,10 @@ local filterTypesToCategory = {
 		['category'] = 'Inventory',
 	},
 	{
+		['filterType'] = LF_INVENTORY_VENGEANCE,
+		['category'] = 'Inventory',
+	},
+	{
 		['filterType'] = LF_CRAFTBAG,
 		['category'] = 'Inventory',
 	},
@@ -164,6 +169,14 @@ local filterTypesToCategory = {
 	},
 	{
 		['filterType'] = LF_BANK_DEPOSIT,
+		['category'] = 'Banking',
+	},
+	{
+		['filterType'] = LF_FURNITURE_VAULT_DEPOSIT,
+		['category'] = 'Banking',
+	},
+	{
+		['filterType'] = LF_FURNITURE_VAULT_WITHDRAW,
 		['category'] = 'Banking',
 	},
 	{
@@ -834,7 +847,15 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 80, setupEnableRowWithHeader)
 end
 
-local function callbackFunctionForPanelShowOrHide(filterTypeName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType)
+--The callbackFunction you register to it needs to provide the following parameters:
+		--string callbackName Concatenated callback name
+		--number filterType is the LF_* constant for the panel currently shown/hidden
+		--string stateStr will be SCENE_SHOWN ("shown") if shown, or SCENE_HIDDEN ("hidden") if hidden callback was fired
+		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
+		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
+		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
+local function callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, bla)
+	--d(">filterTypeName: " .. tos(filterTypeName) .. "; filterType: " .. tos(filterType) .. ", stateStr: " .. tos(stateStr) .. "; isInGamepadMode: " .. tos(isInGamepadMode) .. "; fragmentOrSceneOrControl: " .. tos(fragmentOrSceneOrControl) .. "; lReferencesToFilterType: " .. tos(lReferencesToFilterType) .. "; bla: " .. tos(bla))
 	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
 	d(prefixBr .. "callback - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
 	updateCurrentFilterPanelLabel(stateStr)
@@ -842,7 +863,7 @@ end
 
 local function enableFilterTypeCallbacks()
 	local libFiltersFilterConstants = libFilters.constants.filterTypes
-	--For each filterType register a stateChange for show/hidestate change
+	--For each filterType register a stateChange for show/hide states
 	for filterType, filterTypeName in ipairs(libFiltersFilterConstants) do
 		--Shown callbacks
 		local callbackName = libFilters_CreateCallbackName(libFilters, filterType, true)
