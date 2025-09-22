@@ -5,10 +5,11 @@
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-09-19, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				14
+--Bugs total: 				15
 --Feature requests total: 	0
 
 --[Bugs]
+--#15 lF_INVENTORY_VENGEANCE keyboard callback SHOWN is not firing properly -> in LF test UI
 
 
 --[Feature requests]

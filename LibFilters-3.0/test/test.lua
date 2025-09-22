@@ -560,13 +560,15 @@ local function allButtonToggle()
 end
 
 local function updateCurrentFilterPanelLabel(stateStr)
-d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
+local currentFilterType = libFilters_GetCurrrentFilterType(libFilters) or "n/a"
+	--d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr) .. ", _currentFilterType: " .. tos(libFilters._currentFilterType) .. ", currentFilterType: " .. tos(currentFilterType))
 	if currentFilterPanelLabel == nil then return end
 	local currentFilterPanelName
 	if stateStr == SCENE_SHOWN then
 		local currentFilterPanel = libFilters._currentFilterType or libFilters_GetCurrrentFilterType(libFilters)
 		if (currentFilterPanel == nil or currentFilterPanel == 0) then return end
 		currentFilterPanelName = libFilters_GetFilterTypeName(libFilters, currentFilterPanel)
+--d(">filterTypeName: " .. tos(currentFilterPanelName))
 		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" end
 	else
 		currentFilterPanelName = ""
