@@ -524,7 +524,7 @@ constants.inventoryTypes["guild_bank"] 	=	invTypeGuildBank
 constants.inventoryTypes["house_bank"] 	= 	invTypeHouseBank
 constants.inventoryTypes["craftbag"] 	=	invTypeCraftBag
 constants.inventoryTypes["furnitureVault"]=	invTypeFurnitureVault
-constants.inventoryTypes["vengeance"] =	invTypeVengeance
+constants.inventoryTypes["vengeance"] 	=	invTypeVengeance
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1708,7 +1708,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment, 			["scene"] = "companionCharacterKeyboard", ["fragment"] = companionEquipmentFragment, },
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = quickslots, 					["scene"] = "inventory",			["fragment"] = quickslotsFragment, },
-		--Works: 2025-09-20
+		--Works: 2025-09-23
 		[LF_INVENTORY_VENGEANCE]	  = { ["control"] = invVengeance, 					["scene"] = "inventory", 			["fragment"] = invVengeanceFragment },
 
 		--Works: 2021-12-13

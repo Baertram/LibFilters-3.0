@@ -27,6 +27,7 @@ local gqil = 	GetQuestItemLink
 local zigbai = 	ZO_Inventory_GetBagAndIndex
 
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
+local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 local libFilters_RegisterFilter = libFilters.RegisterFilter
 local libFilters_UnregisterFilter = libFilters.UnregisterFilter
@@ -559,11 +560,11 @@ local function allButtonToggle()
 end
 
 local function updateCurrentFilterPanelLabel(stateStr)
---d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
+d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
 	if currentFilterPanelLabel == nil then return end
 	local currentFilterPanelName
 	if stateStr == SCENE_SHOWN then
-		local currentFilterPanel = libFilters._currentFilterType
+		local currentFilterPanel = libFilters._currentFilterType or libFilters_GetCurrrentFilterType(libFilters)
 		if (currentFilterPanel == nil or currentFilterPanel == 0) then return end
 		currentFilterPanelName = libFilters_GetFilterTypeName(libFilters, currentFilterPanel)
 		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" end
