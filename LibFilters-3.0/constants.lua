@@ -1220,6 +1220,7 @@ local validFilterTypesOfPanel = {
 		[LF_CRAFTBAG] = true,
 		[LF_INVENTORY_QUEST] = true,
 		[LF_QUICKSLOT] = true,
+		[LF_INVENTORY_VENGEANCE] = true,
 	},
 	["jewelryCrafting"]	= {
 		[LF_JEWELRY_REFINE] = true,
@@ -1262,9 +1263,6 @@ local validFilterTypesOfPanel = {
 	["furnitureVault"] = {
 		[LF_FURNITURE_VAULT_WITHDRAW] = true,
 		[LF_FURNITURE_VAULT_DEPOSIT] = true,
-	},
-	["vengeance"]	= {
-		[LF_INVENTORY_VENGEANCE] = true,
 	},
 }
 mapping.validFilterTypesOfPanel = validFilterTypesOfPanel
@@ -1512,7 +1510,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { store },
 		[LF_VENDOR_SELL]              = { vendorSell },
-		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell },
+		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell }, --todo: test 20251001
 		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
 		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSellFragment },
@@ -1566,7 +1564,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gpc.vendorSell_GP },
-		[LF_VENDOR_SELL_VENGEANCE]	  = { gpc.vendorSellVengeance_GP },
+		[LF_VENDOR_SELL_VENGEANCE]	  = { gpc.vendorSellVengeance_GP }, --todo: test 20251001
 		[LF_VENDOR_BUYBACK]           = { gpc.vendorBuyBack_GP },
 		[LF_VENDOR_REPAIR]            = { gpc.vendorRepair_GP },
 		[LF_FENCE_SELL]               = { gpc.invFenceSell_GP },
@@ -1720,7 +1718,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment, 			["scene"] = "companionCharacterKeyboard", ["fragment"] = companionEquipmentFragment, },
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = quickslots, 					["scene"] = "inventory",			["fragment"] = quickslotsFragment, },
-		--To be tested: 2025-01-01
+		--todo: To test: 2025-01-01
 		[LF_INVENTORY_VENGEANCE]	  = { ["control"] = invVengeance, 					["scene"] = "inventory", 			["fragment"] = invVengeanceFragment,
 										  ["special"] = {
 											  [1] = {
@@ -2586,7 +2584,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
 	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
 	 [LF_INVENTORY_VENGEANCE]		= "INVENTORY_VENGEANCE",
-	 [LF_VENDOR_SELL_VENGEANCE]		= "VENDOR_SELL_VENGEANCE",
+	 --[LF_VENDOR_SELL_VENGEANCE]		= "VENDOR_SELL_VENGEANCE", --todo: test if unique uodater name is needed 20251001
 }
 mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
@@ -2597,6 +2595,7 @@ local filterTypeToUpdaterNameDynamic = {
 		  [LF_BANK_DEPOSIT]=true,
 		  [LF_GUILDBANK_DEPOSIT]=true,
 		  [LF_VENDOR_SELL]=true,
+		  [LF_VENDOR_SELL_VENGEANCE]=true,
 		  [LF_GUILDSTORE_SELL]=true,
 		  [LF_MAIL_SEND]=true,
 		  [LF_TRADE]=true,
@@ -2691,8 +2690,8 @@ local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
 		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT,
-										   	LF_VENDOR_SELL, LF_VENDOR_SELL_VENGEANCE, LF_GUILDSTORE_SELL,
-										    LF_FURNITURE_VAULT_DEPOSIT, LF_INVENTORY_VENGEANCE },
+										   	LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
+										    LF_FURNITURE_VAULT_DEPOSIT },
 
 		--Dedicated fragments
 		[invQuestFragment] 				= { LF_INVENTORY_QUEST },
@@ -2712,6 +2711,8 @@ local callbacksUsingFragments = {
 		[retraitFragment]              	= { LF_RETRAIT },
 		[companionEquipmentFragment]   	= { LF_INVENTORY_COMPANION },
 		[furnitureVaultWithdrawFragment]= { LF_FURNITURE_VAULT_WITHDRAW },
+
+		[invVengeanceFragment] 			= { LF_INVENTORY_VENGEANCE, LF_VENDOR_SELL_VENGEANCE } -- todo: test 20251001
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
