@@ -58,6 +58,8 @@ local fragmentStateToSceneState = {
 	[SCENE_FRAGMENT_HIDDEN] 	= SCENE_HIDDEN,
 }
 
+local libFilters_IsStoreShown
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL LIBRARY SPEED UP VARIABLES & REFERENCES
@@ -2628,25 +2630,50 @@ end
 --Is the Vengeance Inventory shown
 --returns boolean isShown
 function libFilters:IsVengeanceInventoryShown()
-	local lReferencesToFilterType, lFilterTypeDetected
-	local inputType = IsGamepad()
-	if inputType == true then
-		if invBackpack_GP.vengeanceCategoryList ~= nil then
-			if libFilters.debug then dd("IsVengeanceInventoryShown> active: %s, actionMode: %s, currentListType: %s",
-					tos(invBackpack_GP.vengeanceCategoryList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
-			if invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.currentListType == "vengeanceCategoryList" then
-				lFilterTypeDetected = 		LF_INVENTORY_VENGEANCE
-				lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_INVENTORY_VENGEANCE]
+	if IsCurrentCampaignVengeanceRuleset() then
+		local lReferencesToFilterType, lFilterTypeDetected
+		local inputType = IsGamepad()
+		if inputType == true then
+			if invBackpack_GP.vengeanceCategoryList ~= nil then
+				if libFilters.debug then dd("IsVengeanceInventoryShown> active: %s, actionMode: %s, currentListType: %s",
+						tos(invBackpack_GP.vengeanceCategoryList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
+				if invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.currentListType == "vengeanceCategoryList" then
+					lFilterTypeDetected = 		LF_INVENTORY_VENGEANCE
+					lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_INVENTORY_VENGEANCE]
+				end
 			end
+		else
+			lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_INVENTORY_VENGEANCE, nil, false, true)
 		end
-	else
-		lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_INVENTORY_VENGEANCE, nil, false, true)
+		local vengeanceInventoryShown = ((lFilterTypeDetected ~= nil and lFilterTypeDetected == LF_INVENTORY_VENGEANCE and lReferencesToFilterType ~= nil) and true) or false
+		if libFilters.debug then dd("IsVengeanceInventoryShown: %s", tos(vengeanceInventoryShown)) end
+		return vengeanceInventoryShown
 	end
-	local vengeanceInventoryShown = ((lFilterTypeDetected ~= nil and lFilterTypeDetected == LF_INVENTORY_VENGEANCE and lReferencesToFilterType ~= nil) and true) or false
-	if libFilters.debug then dd("IsVengeanceInventoryShown: %s", tos(vengeanceInventoryShown)) end
-	return vengeanceInventoryShown
+	return false
 end
 
+--Is the Vengeance Store shown
+--returns boolean isShown
+function libFilters:IsVengeanceStoreShown()
+	if IsCurrentCampaignVengeanceRuleset() and ZO_VENGEANCE_BAG_SELL_ENABLED then
+		local lReferencesToFilterType, lFilterTypeDetected
+		local inputType = IsGamepad()
+		if inputType == true then
+			libFilters_IsStoreShown = libFilters_IsStoreShown or libFilters.IsStoreShown
+			if libFilters_IsStoreShown(libFilters, ZO_MODE_STORE_SELL_VENGEANCE) then
+				if libFilters.debug then dd("IsVengeanceStoreShown: true") end
+				lFilterTypeDetected = 		LF_VENDOR_SELL_VENGEANCE
+				lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_VENDOR_SELL_VENGEANCE]
+			end
+		else
+			lReferencesToFilterType, lFilterTypeDetected = detectShownReferenceNow(LF_VENDOR_SELL_VENGEANCE, nil, false, true)
+		end
+		local vengeanceStoreShown = ((lFilterTypeDetected ~= nil and lFilterTypeDetected == LF_VENDOR_SELL_VENGEANCE and lReferencesToFilterType ~= nil) and true) or false
+		if libFilters.debug then dd("IsVengeanceStoreShown: %s", tos(vengeanceStoreShown)) end
+		return vengeanceStoreShown
+	end
+	return false
+end
 
 
 --Is the character control shown
@@ -2745,7 +2772,7 @@ end
 
 --Check if the store (vendor) panel is shown
 --If OPTIONAL parameter number storeMode (either ZO_MODE_STORE_BUY, ZO_MODE_STORE_BUY_BACK, ZO_MODE_STORE_SELL,
---ZO_MODE_STORE_REPAIR, ZO_MODE_STORE_SELL_STOLEN, ZO_MODE_STORE_LAUNDER, ZO_MODE_STORE_STABLE) is provided the store
+--ZO_MODE_STORE_REPAIR, ZO_MODE_STORE_SELL_STOLEN, ZO_MODE_STORE_LAUNDER, ZO_MODE_STORE_STABLE, ZO_MODE_STORE_SELL_VENGEANCE) is provided the store
 --mode mode must be set at the store panel, if it is shown, to return true
 --return boolean isShown, number storeMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
 function libFilters:IsStoreShown(storeMode)
@@ -2783,6 +2810,7 @@ function libFilters:IsStoreShown(storeMode)
 	end
 	return false, storeMode, nil
 end
+libFilters_IsStoreShown = libFilters.IsStoreShown
 
 
 --Is a list dialog currently shown?

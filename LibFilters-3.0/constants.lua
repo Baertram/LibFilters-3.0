@@ -153,7 +153,13 @@ debugFunctions.debugSlashToggle = debugSlashToggle
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
---debugSlashToggle() --todo remove again after testing 2025-09-21
+debugSlashToggle() --todo remove again after testing 2025-09-21
+
+function IsCurrentCampaignVengeanceRuleset()
+	if not IsInCampaign() then return false end
+	return true
+end
+ZO_VENGEANCE_BAG_SELL_ENABLED = true
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
@@ -220,6 +226,7 @@ local libFiltersFilterConstants = {
 	 [40]  	= "LF_FURNITURE_VAULT_WITHDRAW",
 	 [41]  	= "LF_FURNITURE_VAULT_DEPOSIT",
 	 [42]   = "LF_INVENTORY_VENGEANCE",
+	 [43]	= "LF_VENDOR_SELL_VENGEANCE"
 	 --Add new lines here and make sure you also take care of the control of the inventory needed in tables "LibFilters.filters",
 	 --the updater name in table "filterTypeToUpdaterName*" and updaterFunction in table "inventoryUpdaters",
 	 --as well as the way to hook to the inventory.additionalFilter in function "HookAdditionalFilters",
@@ -890,6 +897,8 @@ gpc.vendorBuy_GP                = ZO_GamepadStoreBuy 			--store_GP.components[ZO
 local storeComponents = gpc.store_GP.components
 ---Sell
 gpc.vendorSell_GP               = ZO_GamepadStoreSell 			--store_GP.components[ZO_MODE_STORE_SELL].list
+---Sell Vengeance
+gpc.vendorSellVengeance_GP      = ZO_GamepadStoreSellVengeance	--store_GP.components[ZO_MODE_STORE_SELL_VENGEANCE].list
 ---Buy back
 gpc.vendorBuyBack_GP            = ZO_GamepadStoreBuyback 		--store_GP.components[ZO_MODE_STORE_BUY_BACK].list
 ---Repair
@@ -1248,6 +1257,7 @@ local validFilterTypesOfPanel = {
 		[LF_VENDOR_REPAIR] = true,
 		[LF_SMITHING_RESEARCH] = true,
 		[LF_SMITHING_RESEARCH_DIALOG] = true,
+		[LF_VENDOR_SELL_VENGEANCE] = true,
 	},
 	["furnitureVault"] = {
 		[LF_FURNITURE_VAULT_WITHDRAW] = true,
@@ -1502,6 +1512,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { store },
 		[LF_VENDOR_SELL]              = { vendorSell },
+		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell },
 		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
 		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSellFragment },
@@ -1555,6 +1566,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gpc.vendorSell_GP },
+		[LF_VENDOR_SELL_VENGEANCE]	  = { gpc.vendorSellVengeance_GP },
 		[LF_VENDOR_BUYBACK]           = { gpc.vendorBuyBack_GP },
 		[LF_VENDOR_REPAIR]            = { gpc.vendorRepair_GP },
 		[LF_FENCE_SELL]               = { gpc.invFenceSell_GP },
@@ -1708,8 +1720,18 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment, 			["scene"] = "companionCharacterKeyboard", ["fragment"] = companionEquipmentFragment, },
 		--Works: 2021-12-13
 		[LF_QUICKSLOT]                = { ["control"] = quickslots, 					["scene"] = "inventory",			["fragment"] = quickslotsFragment, },
-		--Works: 2025-09-23
-		[LF_INVENTORY_VENGEANCE]	  = { ["control"] = invVengeance, 					["scene"] = "inventory", 			["fragment"] = invVengeanceFragment },
+		--To be tested: 2025-01-01
+		[LF_INVENTORY_VENGEANCE]	  = { ["control"] = invVengeance, 					["scene"] = "inventory", 			["fragment"] = invVengeanceFragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsVengeanceInventoryShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil },
+											  }
+										  }
+		},
 
 		--Works: 2021-12-13
 		[LF_BANK_WITHDRAW]            = { ["control"] = invBankWithdraw, 				["scene"] = invBankScene, 			["fragment"] = bankWithdrawFragment, },
@@ -1727,6 +1749,16 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_VENDOR_BUY]               = { ["control"] = store, 							["scene"] = "store", 				["fragment"] = vendorBuyFragment, },
 		--Works: 2021-12-13
 		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = inventoryFragment, },
+		--todo: to test 2025-10-01
+		[LF_VENDOR_SELL_VENGEANCE]    = { ["control"] = invVengeance, 					["scene"] = "store", 				["fragment"] = invVengeanceFragment,
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsVengeanceStoreShown",
+												  ["params"]          = { _G[GlobalLibName] },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil },
+											  }
+		},
 		--Works: 2021-12-13
 		[LF_VENDOR_BUYBACK]           = { ["control"] = vendorBuyBack,					["scene"] = "store", 				["fragment"] = vendorBuyBackFragment, },
 		--Works: 2021-12-13
@@ -1985,6 +2017,18 @@ filterTypeToCheckIfReferenceIsHidden = {
 												  ["control"]         = _G[GlobalLibName],
 												  ["funcOrAttribute"] = "IsStoreShown",
 												  ["params"]          = { _G[GlobalLibName], ZO_MODE_STORE_SELL },
+												  ["expectedResults"] = { true },
+												  ["expectedResultsMap"] = { true, nil, nil },
+											  }
+										  }
+		},
+		--todo, to test 2025-10-01
+		[LF_VENDOR_SELL_VENGEANCE]	  = { ["control"] = storeComponents[ZO_MODE_STORE_SELL_VENGEANCE].list, 	["scene"] = storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_SELL_VENGEANCE].list._fragment,
+										  ["special"] = {
+											  [1] = {
+												  ["control"]         = _G[GlobalLibName],
+												  ["funcOrAttribute"] = "IsVengeanceStoreShown",
+												  ["params"]          = { _G[GlobalLibName] },
 												  ["expectedResults"] = { true },
 												  ["expectedResultsMap"] = { true, nil, nil },
 											  }
@@ -2406,6 +2450,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_TRADE, 						checkTypes = { "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_VENDOR_SELL_VENGEANCE,		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control"} },
@@ -2441,7 +2486,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_QUICKSLOT, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FURNITURE_VAULT_WITHDRAW,	checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_FURNITURE_VAULT_DEPOSIT,	checkTypes = { "scene", "fragment", "control" } },
-		{ filterType=LF_INVENTORY_VENGEANCE,		checkTypes = { "scene", "fragment", "control" } },
+		{ filterType=LF_INVENTORY_VENGEANCE,		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_INVENTORY, 					checkTypes = { "scene", "fragment", "control" } },
 	},
 
@@ -2454,6 +2499,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 		{ filterType=LF_TRADE, 						checkTypes = { "scene", "fragment", "control" }, },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_VENDOR_SELL_VENGEANCE,		checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_BUYBACK, 			checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_REPAIR, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_FENCE_SELL, 				checkTypes = { "scene", "fragment", "control" } },
@@ -2540,6 +2586,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
 	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
 	 [LF_INVENTORY_VENGEANCE]		= "INVENTORY_VENGEANCE",
+	 [LF_VENDOR_SELL_VENGEANCE]		= "VENDOR_SELL_VENGEANCE",
 }
 mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
@@ -2644,7 +2691,7 @@ local callbacksUsingFragments = {
 	--Keyboard
 	[false] = {
 		[inventoryFragment] 			= { LF_INVENTORY, LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT, LF_HOUSE_BANK_DEPOSIT,
-										   	LF_VENDOR_SELL, LF_GUILDSTORE_SELL,
+										   	LF_VENDOR_SELL, LF_VENDOR_SELL_VENGEANCE, LF_GUILDSTORE_SELL,
 										    LF_FURNITURE_VAULT_DEPOSIT, LF_INVENTORY_VENGEANCE },
 
 		--Dedicated fragments
@@ -2675,6 +2722,7 @@ local callbacksUsingFragments = {
 		--Dedicated fragments
 		[storeComponents[ZO_MODE_STORE_BUY].list._fragment] 		= { LF_VENDOR_BUY },
 		[storeComponents[ZO_MODE_STORE_SELL].list._fragment] 		= { LF_VENDOR_SELL },
+		[storeComponents[ZO_MODE_STORE_SELL_VENGEANCE].list._fragment] = { LF_VENDOR_SELL_VENGEANCE },
 		[storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment] 	= { LF_VENDOR_BUYBACK },
 		[storeComponents[ZO_MODE_STORE_REPAIR].list._fragment] 		= { LF_VENDOR_REPAIR },
 		[storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment] = { LF_FENCE_SELL },
