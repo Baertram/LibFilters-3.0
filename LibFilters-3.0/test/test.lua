@@ -26,6 +26,10 @@ local gil = 	GetItemLink
 local gqil = 	GetQuestItemLink
 local zigbai = 	ZO_Inventory_GetBagAndIndex
 
+local mapping = libFilters.mapping
+local universalDeconLibFiltersFilterTypeSupported = mapping.universalDeconLibFiltersFilterTypeSupported
+local universalDeconTabKeyToLibFiltersFilterType = mapping.universalDeconTabKeyToLibFiltersFilterType
+
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
@@ -38,6 +42,22 @@ local function checkIfInitDone()
 	if libFilters.isInitialized then return end
 	libFilters:InitializeLibFilters()
 end
+
+local filterTypeToControlsChange = {
+	--Keyboard
+	[false] = {
+		["OnShow"] = {
+			[LF_QUICKSLOT] = { ZO_QuickSlot_Keyboard_TopLevelQuickSlotCircleUnderlay } --hide the modal underlay of the quickslot so we can do anything!
+		},
+		--[[
+		["OnHide"] = {
+			[LF_QUICKSLOT] = { ZO_QuickSlot_Keyboard_TopLevelQuickSlotCircleUnderlay } --show the modal underlay of the quickslot so we can do anything!
+		}
+		]]
+	},
+	--Gamepad
+	[true] = {},
+}
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LIBRARY VARIABLES
@@ -56,6 +76,7 @@ local tos = tostring
 local strgm = string.gmatch
 local gTab = table
 local tins = gTab.insert
+local tsort = gTab.sort
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
@@ -206,6 +227,10 @@ local filterTypesToCategory = {
 	},
 	{
 		['filterType'] = LF_VENDOR_SELL,
+		['category'] = 'Vendor',
+	},
+	{
+		['filterType'] = LF_VENDOR_SELL_VENGEANCE,
 		['category'] = 'Vendor',
 	},
 	{
@@ -439,7 +464,20 @@ local function updateCustomFilterFunction(filterTypes, filterFunction, filterFun
 	end
 end
 
+local function sortFuncFilterTypesEnabledList(a, b)
+	if a.name and b.name then
+d("a.name: " ..tos(a.name))
+		return a.name < b.name
+	elseif a.filterType and b.filterType then
+		return a.filterType < b.filterType
+	end
+	return false
+end
+
 local function refresh(dataList)
+	local wasAdded = false
+	local masterListUnsorted = {}
+
 	for _, filterData in pairs(filterTypesToCategory) do
 		local filterType = filterData.filterType
 		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
@@ -451,7 +489,9 @@ local function refresh(dataList)
 				['name'] 		= filterTypeName,
 				['customFilterFunctionName'] = customFilterFunctionName
 			}
-			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
+			--tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
+			tins(masterListUnsorted, data)
+			wasAdded = true
 
 			if not isRegistered then
 				registerFilter(filterType, filterTypeName)
@@ -462,6 +502,15 @@ local function refresh(dataList)
 			libFilters_UnregisterFilter(libFilters, filterTag, filterType)
 		end
 	end
+
+	if wasAdded == true and #masterListUnsorted > 0 then
+		tsort(masterListUnsorted, sortFuncFilterTypesEnabledList)
+		for _, filterData in ipairs(masterListUnsorted) do
+			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, filterData))
+		end
+	end
+
+	return wasAdded
 end
 
 local function refreshUpdateList()
@@ -559,21 +608,73 @@ local function allButtonToggle()
 	end
 end
 
-local function updateCurrentFilterPanelLabel(stateStr)
-local currentFilterType = libFilters_GetCurrrentFilterType(libFilters) or "n/a"
-	--d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr) .. ", _currentFilterType: " .. tos(libFilters._currentFilterType) .. ", currentFilterType: " .. tos(currentFilterType))
+local lastFilterPanelId
+local function checkIfPanelControlsNeedChange(filterPanelId, panelIsShown)
+	panelIsShown = panelIsShown or false
+	local gamepadMode = IsInGamepadPreferredMode()
+--d("[LibFilters]checkIfPanelControlsNeedChange - filterPanelId: " ..tos(filterPanelId) ..", panelIsShown: " ..tos(panelIsShown) ..", gamepadMode: " .. tos(gamepadMode))
+	--Panel was hidden, check the last opened if we need to show any controls there again
+	if filterPanelId == nil and not panelIsShown then
+		if lastFilterPanelId ~= nil then
+			--Show any controls again?
+			local filterPanelControls = filterTypeToControlsChange[gamepadMode]["OnHide"]
+			if filterPanelControls and filterPanelControls[lastFilterPanelId] then
+				for _, ctrlToChange in ipairs(filterPanelControls[lastFilterPanelId]) do
+					if ctrlToChange ~= nil and ctrlToChange.SetHidden then
+						ctrlToChange:SetHidden(false)
+					end
+				end
+			end
+			return true
+		end
+	elseif filterPanelId ~= nil and panelIsShown == true then
+		--Panel is shown, check if we need to hide any controls there
+		local filterPanelControls = filterTypeToControlsChange[gamepadMode]["OnShow"]
+		if filterPanelControls and filterPanelControls[filterPanelId] then
+			for _, ctrlToChange in ipairs(filterPanelControls[filterPanelId]) do
+				if ctrlToChange ~= nil and ctrlToChange.SetHidden then
+					ctrlToChange:SetHidden(true)
+				end
+			end
+		end
+		return true
+	end
+	return false
+end
+
+local function updateCurrentFilterPanelLabel(stateStr, universalDeconSelectedTabNow)
+	local currentFilterType, universalDeconSelectedTabKey = libFilters_GetCurrrentFilterType(libFilters) or "n/a"
+	--libFilters:IsUniversalDeconstructionPanelShown()
+	--Universal deconstruction open/close!
+	if universalDeconSelectedTabNow == nil and universalDeconSelectedTabKey ~= nil and currentFilterType == nil then
+		currentFilterType = universalDeconTabKeyToLibFiltersFilterType[universalDeconSelectedTabKey]
+	end
+	if universalDeconSelectedTabKey ~= nil and universalDeconSelectedTabNow == nil then
+		universalDeconSelectedTabNow = universalDeconSelectedTabKey
+	end
+
+
+--d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr) .. ", _currentFilterType: " .. tos(libFilters._currentFilterType) .. ", currentFilterType: " .. tos(currentFilterType) .. ", universalDeconSelectedTabKey: " .. tos(universalDeconSelectedTabNow))
 	if currentFilterPanelLabel == nil then return end
-	local currentFilterPanelName
+	local currentFilterPanel, currentFilterPanelName
 	if stateStr == SCENE_SHOWN then
-		local currentFilterPanel = libFilters._currentFilterType or libFilters_GetCurrrentFilterType(libFilters)
+		currentFilterPanel = libFilters._currentFilterType or libFilters_GetCurrrentFilterType(libFilters)
 		if (currentFilterPanel == nil or currentFilterPanel == 0) then return end
 		currentFilterPanelName = libFilters_GetFilterTypeName(libFilters, currentFilterPanel)
+
+		if universalDeconSelectedTabNow ~= nil then
+			currentFilterPanelName = currentFilterPanelName .. " - UD: " .. tos(universalDeconSelectedTabNow)
+		end
 --d(">filterTypeName: " .. tos(currentFilterPanelName))
-		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" end
+		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" else
+			lastFilterPanelId = currentFilterPanel
+		end
 	else
 		currentFilterPanelName = ""
 	end
 	currentFilterPanelLabel:SetText("Current panel: " .. tos(currentFilterPanelName))
+
+	checkIfPanelControlsNeedChange(currentFilterPanel, currentFilterPanelName ~= "")
 end
 
 local helpWasNotShownYet = true
@@ -812,6 +913,7 @@ local function setupRow(rowControl, data, onMouseUp)
 	rowButton:SetHandler("OnMouseExit", 	ZO_Options_OnMouseExit)
 end
 
+
 local function addFilterUIListDataTypes()
 	local function onMouseUpOnRow(rowControl, data)
 		local filterType = data.filterType
@@ -857,21 +959,69 @@ end
 		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
 		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
-local function callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, bla)
+local function callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
 	--d(">filterTypeName: " .. tos(filterTypeName) .. "; filterType: " .. tos(filterType) .. ", stateStr: " .. tos(stateStr) .. "; isInGamepadMode: " .. tos(isInGamepadMode) .. "; fragmentOrSceneOrControl: " .. tos(fragmentOrSceneOrControl) .. "; lReferencesToFilterType: " .. tos(lReferencesToFilterType) .. "; bla: " .. tos(bla))
 	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
 	d(prefixBr .. "callback - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
-	updateCurrentFilterPanelLabel(stateStr)
+	updateCurrentFilterPanelLabel(stateStr, universalDeconSelectedTabNow)
 end
 
 local function enableFilterTypeCallbacks()
 	local libFiltersFilterConstants = libFilters.constants.filterTypes
 	--For each filterType register a stateChange for show/hide states
 	for filterType, filterTypeName in ipairs(libFiltersFilterConstants) do
-		--Shown callbacks
+		--Additional callback needed for universal deconstruction open/close!
+		if universalDeconLibFiltersFilterTypeSupported[filterType] then
+			--todo 20251031
+			--======== UNIVERSAL DECONSTRUCTION ===========================================================
+			--[[
+				callbackName,
+				filterType,
+				stateStr,
+				isInGamepadMode,
+				fragmentOrSceneOrControl,
+				lReferencesToFilterType,
+				universalDeconSelectedTabNow
+			]]
+			local addonName = "LibFilters3_TEST_UI_UniversalDecon"
+			local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+--d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
+				callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+				--The un-/register of the filter callback function and the update of the filters is done via libFilters:RequestUpdate(filterType_LF_constant) internall in that FCOCraftFilter function
+			end
+
+			--#2025_01
+			--todo 20251031 Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected?
+			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
+			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
+			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
+
+			local callbackNameUniversalDeconDeconAllShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "all")
+			local callbackNameUniversalDeconDeconAllHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "all")
+			CM:RegisterCallback(callbackNameUniversalDeconDeconAllShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconDeconAllHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconDeconArmorShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "armor")
+			local callbackNameUniversalDeconDeconArmorHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "armor")
+			CM:RegisterCallback(callbackNameUniversalDeconDeconArmorShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconDeconArmorHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconDeconWeaponsShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "weapons")
+			local callbackNameUniversalDeconDeconWeaponsHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "weapons")
+			CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconJewelryDeconShown = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, true, nil, "jewelry")
+			local callbackNameUniversalDeconJewelryDeconHidden = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, false, nil, "jewelry")
+			CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconEnchantingShown = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, true, nil, "enchantments")
+			local callbackNameUniversalDeconEnchantingHidden = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, false, nil, "enchantments")
+			CM:RegisterCallback(callbackNameUniversalDeconEnchantingShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconEnchantingHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+		end
+
+		--Shown callbacks, fired by CALLBACK_MANAGER of LibFilters automatically --> Why isn't UniversalDeconstruction firing any default callbacks?
 		local callbackName = libFilters_CreateCallbackName(libFilters, filterType, true)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
-		--Hidden callbacks
+		--Hidden callbacks, fired by CALLBACK_MANAGER of LibFilters automatically --> Why isn't UniversalDeconstruction firing any default callbacks?
 		callbackName = libFilters_CreateCallbackName(libFilters, filterType, false)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
 	end

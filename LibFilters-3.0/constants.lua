@@ -1,3 +1,23 @@
+--[[
+
+ Todo and bugs list - Last updated: 	2025-10-31
+ Total Bugs:							2025_02
+
+ -BUGS-
+ #2025_01   --todo 20251031 in KB mode (maybe GP too): Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected? See test UI
+			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
+			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
+			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
+
+ #2025_02	Test the new Cyrodiil Vengeance inventory and vendor, if filter functions work properly and callbacks get raised properly (kb + gp mode)
+
+
+ -FEATURES-
+
+]]
+
+
+
 ------------------------------------------------------------------------------------------------------------------------
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
@@ -153,7 +173,7 @@ debugFunctions.debugSlashToggle = debugSlashToggle
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
---debugSlashToggle() --todo remove again after testing 2025-09-21
+--debugSlashToggle() --todo remove again after testing 2025-10-31
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
 --/////////////////////////////////////////////////////////////////////////////////
@@ -2578,7 +2598,7 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
 	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
 	 [LF_INVENTORY_VENGEANCE]		= "INVENTORY_VENGEANCE",
-	 --[LF_VENDOR_SELL_VENGEANCE]		= "VENDOR_SELL_VENGEANCE", --todo: test if unique uodater name is needed 20251001
+	 --[LF_VENDOR_SELL_VENGEANCE]		= "VENDOR_SELL_VENGEANCE", --todo: test if unique updater name is needed 20251001
 }
 mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 
