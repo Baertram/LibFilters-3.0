@@ -702,8 +702,8 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	hookFragmentStateByPostHookListInitFunction("depositBank", invBankScene_GP, invBank_GP, "deposit", "InitializeLists",
 			gamepadLibFiltersBankDepositFragment,
 			nil, --the checkFunc here checks if the fragment should be hooked as the OnDeferredInitialization happens,
-				 --so we cannot check for anything specific about the bagId to differ the normal, houseBank or furniturea vault here!
-				 --These kind of chekcs needs to be added to the fragment's conditional checks (see below at gamepadLibFiltersBankDepositFragment:SetConditional)
+	--so we cannot check for anything specific about the bagId to differ the normal, houseBank or furniturea vault here!
+	--These kind of chekcs needs to be added to the fragment's conditional checks (see below at gamepadLibFiltersBankDepositFragment:SetConditional)
 			nil, --preShowCheckFunc
 			nil, --preHideCheckFunc
 			true)
@@ -788,6 +788,8 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	gamepadLibFiltersMailSendFragment._name 		= getCustomLibFiltersFragmentName(LF_MAIL_SEND)
 	_G[gamepadLibFiltersMailSendFragment._name]		= gamepadLibFiltersMailSendFragment
 	--Hide/Show with GAMEPAD_MAIL_SEND_FRAGMENT -> via function SwitchToFragment
+	--> 2025-11-01 This is too early! Will add our fragment as gamepad mail send panel shows but the inventory list is still hidden there!
+	--[[
 	ZO_PreHook(invMailSend_GP, 'SwitchToFragment', function(self, fragment)
 		if not libFilters.isInitialized then return end
 
@@ -800,7 +802,29 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 			invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
 		end
 	end)
+	]]
+	SecurePostHook(invMailSend_GP.send, "PerformDeferredInitialization", function(self)
+		--Update the reference table with the existing control now:
+		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND].control = gpc.invMailSend_GP.send.inventoryListControl
 
+		ZO_PreHook(invMailSend_GP.send.inventoryList, "Activate", function()
+d("[LibFilters]Gamepad mail inv list - Activate")
+			if not libFilters.isInitialized then return end
+			if not invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
+				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Adding custom mail send fragment") end
+				invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
+			end
+		end)
+		ZO_PreHook(invMailSend_GP.send.inventoryList, "Deactivate", function()
+d("[LibFilters]Gamepad mail inv list - Deactivate")
+			if not libFilters.isInitialized then return end
+			if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
+				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Removing custom mail send fragment") end
+				updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
+				invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
+			end
+		end)
+	end)
 
 	--Player to player trade
 	gamepadLibFiltersPlayerTradeFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
@@ -959,7 +983,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 
 	--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 	-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
-	--> todo: At this reference variable the .additionalFilter function will be searched later?
+	---> At this reference variable the subtable layoutData and in it the .additionalFilter function will be searched later
 	LF_FilterTypeToReference[true][LF_INVENTORY]          							= 	{ gamepadLibFiltersInventoryFragment }
 	LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       							= 	{ gamepadLibFiltersBankDepositFragment }
 	LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  							= 	{ gamepadLibFiltersGuildBankDepositFragment }
@@ -1036,6 +1060,15 @@ function libFilters.IsFilterTypeUsingCustomGamepadFragment(filterType)
 		return true, customFragmentsGPData.fragment
 	end
 	return false, nil
+end
+
+function libFilters.GetCustomGamepadFragmentOfFilterType(filterType)
+	if filterType == nil then return false, nil end
+	local customFragmentsGPData = customFragments_GP[filterType]
+	if customFragmentsGPData ~= nil and customFragmentsGPData.fragment ~= nil then
+		return customFragmentsGPData.fragment
+	end
+	return nil
 end
 
 if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - END") end

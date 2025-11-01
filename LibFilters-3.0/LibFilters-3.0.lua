@@ -135,6 +135,8 @@ local invTypeFurnitureVault = 		inventoryTypes["furnitureVault"]
 local invTypeVengeance = 			inventoryTypes["vengeance"]
 
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
+local defaultSubTableWhereFilterFunctionsCouldBe = constants.defaultSubTableWhereFilterFunctionsCouldBe -- "layoutData"
+
 local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttributesToGetOriginalFilterFunctions
 local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
 local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters --"LibFilters3_HorizontalScrollbarFilters"
@@ -1504,8 +1506,8 @@ libFilters.mapping.inventoryUpdaters = inventoryUpdaters
 ------------------------------------------------------------------------------------------------------------------------
 --RUN THE FILTERS
 ------------------------------------------------------------------------------------------------------------------------
---Run the applied filters at a LibFilters filterType (LF_*) now, using the ... parameters
---(e.g. 1st parameter inventorySlot, or at e.g. carfting tables 1st parameter bagId & 2nd parameter slotIndex)
+--Run the applied filters' filterFunctions at a LibFilters filterType (LF_*) now, using the ... parameters
+--(e.g. 1st parameter inventorySlot, or at e.g. crafting tables 1st parameter bagId & 2nd parameter slotIndex)
 --If libFilters:SetFilterAllState(boolean newState) is set to true (libFilters.useFilterAllFallback == true)
 --If the filterType got no registered filterTags with filterFunctions, the LF_FILTER_ALL "fallback" will be
 --checked (if existing) and run!
@@ -3152,7 +3154,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 					dv(">Hooking into %q, type: %s", tos(typeOfRefName), tos(typeOfRefStr))
 				end
 
-				local layoutData = filterTypeRefToHook.layoutData or filterTypeRefToHook
+				local layoutData = filterTypeRefToHook[defaultSubTableWhereFilterFunctionsCouldBe] or filterTypeRefToHook --used <object>.layoutData or <object> to store the .additionalFilter functions
 				--Get the default attribute .additionalFilter of the inventory/layoutData to determine original filter value/filterFunction
 				local originalFilter = layoutData[defaultOriginalFilterAttributeAtLayoutData] --.additionalFilter
 
@@ -3276,6 +3278,9 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		--Gamepad
 		if not hookSpecialFunctionDataOfLFConstant then
 			inventoriesToHookForLFConstant = LF_FilterTypeToReference[true][filterType]
+d("[LibFilters]HookAdditionalFilter - Gamepad - filterType: " ..tos(filterType))
+libFilters._debugHookAdditionalFilter = libFilters._debugHookAdditionalFilter or {}
+libFilters._debugHookAdditionalFilter[filterType] = inventoriesToHookForLFConstant
 			hookNow(inventoriesToHookForLFConstant, true)
 		end
 	else
@@ -5096,6 +5101,11 @@ function libFilters:InitializeLibFilters()
 	--Install the helpers, which override ZOs vanilla code -> See file helpers.lua
 	installHelpers()
 
+	--Create the custom gamepad fragments and their needed hooks
+	-->First create the customFragments, else function applyAdditionalFilterHooks beklow will only find an empty table
+	-->constants.filterTypeToReference[true][filterType] and the .additionalFilters will never be applied properly!
+	createCustomGamepadFragmentsAndNeededHooks()
+
 	--Hook into the scenes/fragments/controls to apply the filter function "runFilters" to the existing .additionalFilter
 	--and other existing filters, and to add the libFilters filterType to the .LibFilters3_filterType tag (to identify the
 	--inventory/control/fragment again)
@@ -5103,9 +5113,6 @@ function libFilters:InitializeLibFilters()
 
 	--Apply the late fixes if not already done
 	applyFixesLate()
-
-	--Create the custom gamepad fragments and their needed hooks
-	createCustomGamepadFragmentsAndNeededHooks()
 
 	--Create the callbacks if not already done
 	createCallbacks()

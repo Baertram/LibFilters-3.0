@@ -305,6 +305,8 @@ constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = defau
 -- Please search below for "local otherOriginalFilterAttributesAtLayoutData_Table = {"
 local defaultOriginalFilterAttributeAtLayoutData = "additionalFilter"
 constants.defaultAttributeToAddFilterFunctions = defaultOriginalFilterAttributeAtLayoutData
+constants.defaultSubTableWhereFilterFunctionsCouldBe = "layoutData"
+
 
 
 --The prefix for the updater name used in libFilters:RequestUpdate()
@@ -953,7 +955,7 @@ local invGuildStoreSellScene_GP = gpc.invGuildStoreSellScene_GP
 
 --[Mail]
 gpc.invMailSendScene_GP         = getScene(SM, "mailGamepad") or getScene(SM, "mailManagerGamepad")
-gpc.invMailSend_GP              = MAIL_MANAGER_GAMEPAD
+gpc.invMailSend_GP              = MAIL_GAMEPAD
 gpc.invMailSendFragment_GP 		= GAMEPAD_MAIL_SEND_FRAGMENT
 
 
@@ -1567,12 +1569,13 @@ local filterTypeToReference = {
 		[LF_FURNITURE_VAULT_WITHDRAW] = { invFurnitureVaultWithdraw },
 		[LF_FURNITURE_VAULT_DEPOSIT]  = { invFurnitureVaultDeposit },
 
+
 		--Special entries, see table LF_ConstantToAdditionalFilterSpecialHook above!
 		-->Currently disalbed as the Gamepad mode Scenes for enchatning create/extract are used to store the filters in
 		-->.additionalFilter and the helper function ZO_Enchanting_DoesEnchantingItemPassFilter will be used to read the
 		-->scenes for both, keyboard AND gamepad mode
-		[LF_ENCHANTING_CREATION]	  = {},	--implemented special, leave empty (not NIL!) to prevent error messages
-		[LF_ENCHANTING_EXTRACTION]    = {},	--implemented special, leave empty (not NIL!) to prevent error messages
+		-->Dynamically added below with loop: for filterType, _ in pairs(filterTypesToReferenceImplementedSpecial) do
+		--[LF_ENCHANTING_CREATION]	  = {},	--implemented special, leave empty (not NIL!) to prevent error messages
 
 
 		--Not implemented yet
@@ -1604,6 +1607,14 @@ local filterTypeToReference = {
 		[LF_QUICKSLOT]                = { quickslotFragment_GP }, --not in gamepad mode -> quickslots are added directly from lists in inventory e.g. via the "Assign" button. collections>mementos, collections>mounts, inventory>consumables, ... / We will just add the fragment here where the .additionalFilter function should be stored, maybe for future implementations
 
 
+		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
+		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
+		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
+		-->Used for gamepad AND keyboard mode with these entries here !!!
+		[LF_ENCHANTING_CREATION]	  = { enchantingCreateScene_GP },
+		[LF_ENCHANTING_EXTRACTION]    = { enchantingExtractScene_GP },
+
+
 		--Updated with correct custom created LibFilters fragment in file /gamepad/gamepadCustomFragments.lua, as the fragments are created
 		--[LF_INVENTORY]                = {}, --custom created gamepad fragment gamepadLibFiltersInventoryFragment
 		--...
@@ -1615,29 +1626,8 @@ local filterTypeToReference = {
 		-->once as this library is loaded. Calling libFilters:HookAdditinalFilter() later on checks for the current gamepad
 		--> or keyboard mode, and only hooks the currently active one -> Which will fail to load these ones here later on,
 		--> as they need to be loaded via the keyboard hooks!).
-		[LF_CRAFTBAG]                 = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_BANK_WITHDRAW]            = {},	--See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_GUILDBANK_WITHDRAW]       = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_HOUSE_BANK_WITHDRAW]      = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_REFINE]          = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_DECONSTRUCT]     = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_IMPROVEMENT]     = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_SMITHING_RESEARCH]        = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_REFINE]           = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_DECONSTRUCT]      = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_IMPROVEMENT]      = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_JEWELRY_RESEARCH]         = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_ALCHEMY_CREATION]         = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_RETRAIT]                  = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-		[LF_FURNITURE_VAULT_WITHDRAW] = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
-
-
-		--Normally these are special hooks in table LF_ConstantToAdditionalFilterSpecialHook.
-		--But currently they are changed to be normal entries using HookAdditionalFilter for now, to hook the scenes
-		--and add .additionalFilter, used in helpers ZO_Enchanting_DoesEnchantingItemPassFilter
-		-->Used for gamepad AND keyboard mode with these entries here !!!
-		[LF_ENCHANTING_CREATION]	  = { enchantingCreateScene_GP },
-		[LF_ENCHANTING_EXTRACTION]    = { enchantingExtractScene_GP },
+		--[LF_BANK_WITHDRAW]                 = {}, --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+		-->Dynamically added below with loop: for filterType, _ in pairs(filterTypesGamepadFallbackToKeyboard) do
 
 
 		--Not implemented yet
@@ -1650,27 +1640,12 @@ local filterTypeToReference = {
 }
 
 --Add custom LibFilters gamepad Fragments dynamically to above table filterTypeToReference
+-->Real values of the empty table will be filled from file gamepadCustomFragments later as the fragment's get created!
 for filterType, _ in pairs(gpc.customFragments) do
 	if filterTypeToReference[true][filterType] == nil then
 		filterTypeToReference[true][filterType] = {} --custom created gamepad fragment (e.g. gamepadLibFiltersInventoryFragment), and others in gpc.customFragments
 	end
 end
-mapping.LF_FilterTypeToReference = filterTypeToReference
-
---FilterTypes that do not return a reference variable above at "filterTypeToReference" directly as they are implemented special,
---will return these variables here
-local filterTypesToReferenceImplementedSpecial = {
-	--KEYBOARD
-	[false] = {
-		[LF_ENCHANTING_CREATION]   = { enchanting },
-		[LF_ENCHANTING_EXTRACTION] = { enchanting },
-	},
-	--GAMEPAD
-	[true] = {
-
-	},
-}
-mapping.LF_FilterTypesToReferenceImplementedSpecial = filterTypesToReferenceImplementedSpecial
 
 --The following filterTypes fallback to keyboard reference variables, as gamepad re-uses the same
 --> If filterType was added here with tru that filtertype will use above table filterTypeToReference[false][filtertype]
@@ -1689,8 +1664,40 @@ local filterTypesGamepadFallbackToKeyboard = {
 		[LF_JEWELRY_RESEARCH]         = true,
 		[LF_ALCHEMY_CREATION]         = true,
 		[LF_RETRAIT]                  = true,
+		[LF_FURNITURE_VAULT_WITHDRAW] = true,
 }
 mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard = filterTypesGamepadFallbackToKeyboard
+--Add custom LibFilters gamepad filterTypes which use the same reference objects like the keybaord mode does
+for filterType, _ in pairs(filterTypesGamepadFallbackToKeyboard) do
+	if filterTypeToReference[true][filterType] == nil then
+		filterTypeToReference[true][filterType] = {} --See filterTypesGamepadFallbackToKeyboard below: implemented in keyboard mode (see above at [false]), leave empty (not NIL!) to prevent error messages
+	end
+end
+
+--FilterTypes that do not return a reference variable above at "filterTypeToReference" directly as they are implemented special,
+--will return these variables here
+local filterTypesToReferenceImplementedSpecial = {
+	--KEYBOARD
+	[false] = {
+		[LF_ENCHANTING_CREATION]   = { enchanting },
+		[LF_ENCHANTING_EXTRACTION] = { enchanting },
+	},
+	--GAMEPAD
+	[true] = {
+
+	},
+}
+mapping.LF_FilterTypesToReferenceImplementedSpecial = filterTypesToReferenceImplementedSpecial
+for isGamepad, filterTypeData in pairs(filterTypesToReferenceImplementedSpecial) do
+	for filterType, _ in pairs(filterTypeData) do
+		if filterTypeToReference[isGamepad][filterType] == nil then
+			filterTypeToReference[isGamepad][filterType] = {} --implemented special, leave empty (not NIL!) to prevent error messages
+		end
+	end
+end
+
+--Update the mapping variable with the filterTypeToReference table
+mapping.LF_FilterTypeToReference = filterTypeToReference
 
 
 --The mapping table containing the "lookup" data of control or scene/fragment to us for "is hidden" checks
@@ -2175,9 +2182,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 
-		--TODO: NOT WORKING, 2025-11-01
-		--todo: callback Works but filters do not work?, 2025-11-01
-		--GAMEPAD_BANKING.depositList.RefreshList() is called but somehow the filter functions aren't executed?
+		--Works: 2025-11-01
 		[LF_BANK_DEPOSIT]             = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP,		["fragment"] = nil,  	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -2188,9 +2193,10 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-18
+		---Works: 2025-11-01
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
-		--Works: 2025-09-21
+		--TODO: NOT WORKING, 2025-11-01
+		--todo: callback Works but filters do not work?, 2025-11-01
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2201,10 +2207,10 @@ filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--Works, 2021-12-18
+		--Works: 2025-11-01
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 		--todo: Shows too early! Mail send should show only if the attachments at the mail send panel are opened!
-		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.sendControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil,
+		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.inventoryListControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 										   ["special"] = {
 												[1] = {
 													["control"]  =  _G[GlobalLibName],
@@ -2213,8 +2219,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 													["expectedResults"] = { true, gpc.invMailSend_GP.send },
 												}
 											}
-		}, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		--Worsk 201-12-18
+		},
+		--Works 2021-12-18
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
 
 		--Works, 2021-12-19

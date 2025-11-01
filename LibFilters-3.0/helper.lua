@@ -69,6 +69,7 @@ local helpers = {}
 --local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --.LibFilters3_filterType
 local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters --"LibFilters3_HorizontalScrollbarFilters"
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --.additionalFilter
+local defaultSubTableWhereFilterFunctionsCouldBe = constants.defaultSubTableWhereFilterFunctionsCouldBe --.layoutData
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -79,11 +80,23 @@ local function doesAdditionalFilterFuncExist(objectVar)
     return (objectVar and objectVar[defaultOriginalFilterAttributeAtLayoutData] and type(objectVar[defaultOriginalFilterAttributeAtLayoutData]) == "function") or false
 end
 
---Check for .additionalFilter in an object and run it on the slotItem now
+local function checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
+    local additionalFilterFuncExists = doesAdditionalFilterFuncExist(objectVar)
+    if not additionalFilterFuncExists then
+        additionalFilterFuncExists = doesAdditionalFilterFuncExist(objectVar[defaultSubTableWhereFilterFunctionsCouldBe])
+        if additionalFilterFuncExists == true then
+            return additionalFilterFuncExists, objectVar[defaultSubTableWhereFilterFunctionsCouldBe]
+        end
+    end
+    return additionalFilterFuncExists, objectVar
+end
+
+--Check for .additionalFilter in an object, or within object.layoutData, and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
     if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
-
-    if doesAdditionalFilterFuncExist(objectVar) then
+    local additionalFilterFuncExists = false
+    additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
+    if additionalFilterFuncExists == true then
         if resultIfNoAdditionalFilter then
             resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
         end
@@ -94,8 +107,9 @@ end
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
 local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
 	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
-
-    if doesAdditionalFilterFuncExist(objectVar) then
+    local additionalFilterFuncExists = false
+    additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
+    if additionalFilterFuncExists == true then
 		if resultIfNoAdditionalFilter then
 			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](bagId, slotIndex)
 		end
@@ -1346,7 +1360,7 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
 --LF_FURNITURE_VAULT_DEPOSIT/LF_FURNITURE_VAULT_WITHDRAW for gamepad mode
 --> See \esoui\ingame\inventory\gamepad\inventorylist_gamepad.lua
 helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {
             LF_BANK_WITHDRAW, LF_BANK_DEPOSIT,
@@ -1371,20 +1385,22 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
             local slotData = SHINV:GenerateSingleSlotData(inventoryType, slotIndex)
             if slotData then
                 local result = (not itemFilterFunction) or itemFilterFunction(slotData)
-
-                --todo 2025-11-01 Gamepad bank deposit uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
-                --todo to have the filterfunction there -> But we check PLAYER_INVENTORY.inventories[INVENTORY_BANK] here for it?
-                local additionalFilterRef
+                --2025-11-01 Gamepad bank deposit uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
+                --to have the filterfunction there at the layoutData -> But we check same like keyboard & mouse mode's
+                --PLAYER_INVENTORY.inventories[INVENTORY_BANK] here for it? -> Only as fallback now
                 local isUsingCustomGPFragment, customGPFragment = libFilters_IsFilterTypeUsingCustomGamepadFragment(libFilters_GetCurrentFilterType(libFilters))
-                additionalFilterRef = (isUsingCustomGPFragment == true and customGPFragment) or bagIdToInventory[inventoryType]
+                local additionalFilterRef = (isUsingCustomGPFragment == true and customGPFragment) or bagIdToInventory[inventoryType]
+                local additionalFiltersResult = checkAndRundAdditionalFilters(additionalFilterRef, slotData, result)
                 --Original result was determined, so add the LibFilters filterFunctions now
-                if checkAndRundAdditionalFilters(additionalFilterRef, slotData, result) == true then
+                if additionalFiltersResult == true then
                     -- itemData is shared in several places and can write their own value of bestItemCategoryName.
                     -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
                     slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
 
                     table.insert(slotsTable, slotData)
                 end
+d(">" .. GetItemLink(slotData.bagId, slotData.slotIndex) .. " = " .. tos(result) .. "/" .. tos(additionalFiltersResult))
+
             end
 		end
     },

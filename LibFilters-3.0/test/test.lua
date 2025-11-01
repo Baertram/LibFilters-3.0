@@ -372,15 +372,6 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
-	--todo remove again after testing 2025-11-01
-	if libFilters_GetCurrrentFilterType(libFilters_GetCurrrentFilterType) == LF_BANK_DEPOSIT then
-		if quality < ITEM_FUNCTIONAL_QUALITY_ARCANE then
-			d("Quality < Arcane")
-		end
-		return false
-	end
-
-
 	if itemType == ITEMTYPE_ENCHANTING_RUNE_ASPECT then
 		return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
 	elseif itemType == ITEMTYPE_BLACKSMITHING_BOOSTER then
@@ -496,7 +487,7 @@ local function refresh(dataList)
 	local wasAdded = false
 	local masterListUnsorted = {}
 
-	for _, filterData in pairs(filterTypesToCategory) do
+	for _, filterData in ipairs(filterTypesToCategory) do
 		local filterType = filterData.filterType
 		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
@@ -542,7 +533,7 @@ local function refreshEnableList()
 	
 	ZO_ScrollList_Clear(enableList)
 	local dataList = ZO_ScrollList_GetDataList(enableList)
-	for _, filterData in pairs(filterTypesToCategory) do
+	for _, filterData in ipairs(filterTypesToCategory) do
 		local listType = LIST_TYPE
 		local filterType = filterData.filterType
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
@@ -766,8 +757,8 @@ local function intializeFilterUI()
 	local buttons = CreateControl("$(parent)Buttons", tlw, CT_CONTROL)
 	buttons:SetDimensions(340, 80)
 	buttons:SetAnchor(TOP, enableList, BOTTOM, 3, 15)
-	local buttonshBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
-	buttonshBackdrop:SetAnchorFill()
+	local buttonsBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
+	buttonsBackdrop:SetAnchorFill()
 
 	-- create All button
 	-- enable all filters if any are not enabled, else disables all filters
@@ -776,7 +767,8 @@ local function intializeFilterUI()
 	btnAll:SetText(GetString(SI_BUFFS_OPTIONS_ALL_ENABLED))
 	btnAll:SetDimensions(100, 40)
 	btnAll:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
-	btnAll:SetHandler("OnMouseUp", function(btn)
+	btnAll:SetHandler("OnMouseUp", function(btn, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		allButtonToggle()
 	end)
 
@@ -788,7 +780,8 @@ local function intializeFilterUI()
 	btnFilter:SetDimensions(100, 40)
 	btnFilter:SetAnchor(TOP, buttons, TOP, -20, 8)
 	setButtonToggleColor(btnFilter, useFilter)
-	btnFilter:SetHandler("OnMouseUp", function(btn)
+	btnFilter:SetHandler("OnMouseUp", function(btn, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		useFilter = not useFilter
 		setButtonToggleColor(btnFilter, useFilter)
 	end)
@@ -800,7 +793,8 @@ local function intializeFilterUI()
 	btnRefresh:SetText(GetString(SI_APPLY))
 	btnRefresh:SetDimensions(150, 40)
 	btnRefresh:SetAnchor(TOPRIGHT, buttons, TOPRIGHT, 0, 8)
-	btnRefresh:SetHandler("OnMouseUp", function(btn)
+	btnRefresh:SetHandler("OnMouseUp", function(btn, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		refreshUpdateList()
 	end)
 
@@ -904,6 +898,7 @@ local function intializeFilterUI()
 end
 
 local function setupRow(rowControl, data, onMouseUp)
+
 	rowControl.data = data
 	local filterType = data.filterType
 	local rowButton  = rowControl:GetNamedChild("Button")
@@ -920,7 +915,9 @@ local function setupRow(rowControl, data, onMouseUp)
 	rowControl:SetHidden(false)
 	setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
 
-	rowButton:SetHandler("OnMouseUp", 	onMouseUp)
+	if onMouseUp ~= nil then
+		rowButton:SetHandler("OnMouseUp", 	onMouseUp)
+	end
 	rowButton:SetHandler("OnMouseEnter", function(rowBtnCtrl)
 		if rowControl.data and rowControl.data.tooltipText then
 			ZO_Options_OnMouseEnter(rowControl)
@@ -933,7 +930,8 @@ end
 
 
 local function addFilterUIListDataTypes()
-	local function onMouseUpOnRow(rowControl, data)
+	local function onMouseUpOnRow(rowControl, data, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		local filterType = data.filterType
 		enabledFilters[filterType] = not enabledFilters[filterType]
 		setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
@@ -942,18 +940,21 @@ local function addFilterUIListDataTypes()
 		local header = rowControl:GetNamedChild('Header')
 		header:SetText(data.header)
 		header:SetHidden(false)
-		setupRow(rowControl, data, function(btn)
-			onMouseUpOnRow(rowControl, data)
+		rowControl:SetMouseEnabled(true)
+		setupRow(rowControl, data, function(btn, mouseButton, upInside)
+			onMouseUpOnRow(rowControl, data, mouseButton, upInside)
 		end)
 	end
 	local function setupEnableRow(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
-		setupRow(rowControl, data, function(btn)
-			onMouseUpOnRow(rowControl, data)
+		setupRow(rowControl, data, function(btn, mouseButton, upInside)
+			if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
+			onMouseUpOnRow(rowControl, data, mouseButton, upInside)
 		end)
 	end
 
  	local function setupUpdateRow(rowControl, data)
-		setupRow(rowControl, data, function(btn)
+		setupRow(rowControl, data, function(btn, mouseButton, upInside)
+			if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 			local filterType = data.filterType
 			local customFilterFunctionName = data.customFilterFunctionName
 			local customFilterFunctionSuffix = ""
@@ -1268,3 +1269,32 @@ SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
 	toggleFilterForFilterType(LF_HOUSE_BANK_WITHDRAW)
 end
 ]]
+
+
+--Custom global filter function you can change and use in the test UI's customFilterFunction editbox
+-->uses bagId and slotIndex (for most crafting tables)
+--Hides all items, except at bank deposit if quality is above arcane
+function LibFilters3_TestFilter_BagId(bagId, slotIndex)
+	if libFilters_GetCurrrentFilterType(libFilters) == LF_BANK_DEPOSIT then
+		local quality = GetItemQuality(bagId, slotIndex)
+		if quality > ITEM_FUNCTIONAL_QUALITY_ARCANE then
+			d("Quality < Arcane")
+			return true
+		end
+	end
+	return false
+end
+
+--Custom global filter function you can change and use in the test UI's customFilterFunction editbox
+-->uses the slot (for all others)
+--Hides all items, except at bank deposit, if quality is above arcane
+function LibFilters3_TestFilter(slot)
+	if libFilters_GetCurrrentFilterType(libFilters) == LF_BANK_DEPOSIT then
+		local quality = GetItemQuality(slot.bagId, slot.slotIndex)
+		if quality > ITEM_FUNCTIONAL_QUALITY_ARCANE then
+			d("Quality < Arcane")
+			return true
+		end
+	end
+	return false
+end
