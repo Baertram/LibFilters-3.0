@@ -326,6 +326,7 @@ local dfe 	= debugFunctions.dfe
 local debugSlashToggle = debugFunctions.debugSlashToggle
 SLASH_COMMANDS["/libfiltersdebug"] = 	debugSlashToggle
 SLASH_COMMANDS["/lfdebug"] = 			debugSlashToggle
+SLASH_COMMANDS["/lfverboseasdebug"] =	debugFunctions.debugVerboseAsDebugMessage
 
 if libFilters.debug then dd("LIBRARY MAIN FILE - START") end
 
@@ -700,9 +701,13 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 											loopResult = false
 											if libFilters.debug then checkAborted = strfor(">>>numResults [%s] ~= #expectedResults [%s]", tos(numResults), tos(#expectedResults)) end
 										end
-									elseif numResults == 1 then
-										loopResult = results[1] == expectedResults[1]
-										if not loopResult then if libFilters.debug then checkAborted = ">>>results[1]: "..tos(results[1]) .." ~= expectedResults[1]: " ..tos(expectedResults[1]) end end
+									else
+										if numResults == 1 then
+											loopResult = results[1] == expectedResults[1]
+											if not loopResult then if libFilters.debug then checkAborted = ">>>results[1]: "..tos(results[1]) .." ~= expectedResults[1]: " ..tos(expectedResults[1]) end end
+										elseif numResults > 1 then
+											loopResult = true
+										end
 									end
 									if loopResult == true then
 										for resultIndex, resultOfResults in ipairs(results) do
@@ -1178,7 +1183,7 @@ local function updateCraftingInventoryDirty(craftingInventory)
 	craftingInventory.inventory:HandleDirtyEvent()
 end
 
--- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW
+-- update for LF_BANK_DEPOSIT/LF_GUILDBANK_DEPOSIT/LF_HOUSE_BANK_DEPOSIT/LF_FURNITURE_VAULT_DEPOSIT/LF_MAIL_SEND/LF_TRADE/LF_BANK_WITHDRAW/LF_GUILDBANK_WITHDRAW/LF_HOUSE_BANK_WITHDRAW/LF_FURNITURE_VAULT_WITHDRAW
 local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbackFunc)
 	if libFilters.debug then dv("[U]updateFunction_GP_ZO_GamepadInventoryList - gpInvVar: %s, list: %s, callbackFunc: %s", tos(gpInvVar), tos(list), tos(callbackFunc)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
@@ -1228,6 +1233,7 @@ end
 local function updateFunction_GP_CraftingInventory(craftingInventory)
 	if libFilters.debug then dv("[U]updateFunction_GP_CraftingInventory - craftingInventory: %s", tos(craftingInventory)) end
 	if not craftingInventory then return end
+libFilters._debugCraftingInventory = craftingInventory
 	craftingInventory:PerformFullRefresh()
 end
 
@@ -1449,11 +1455,11 @@ local inventoryUpdaters           = {
 	end,
 	ENCHANTING = function()
 		local isInGamepadMode = IsGamepad()
-		local enchantingCraftVarTpUpdate = getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode)
+		local enchantingCraftVarToUpdate = getDeconstructOrExtractCraftingVarToUpdate(LF_ENCHANTING_EXTRACTION, isInGamepadMode)
 		if isInGamepadMode then
-			updateFunction_GP_CraftingInventory(enchantingCraftVarTpUpdate)
+			updateFunction_GP_CraftingInventory(enchantingCraftVarToUpdate.inventory)
 		else
-			updateCraftingInventoryDirty(enchantingCraftVarTpUpdate)
+			updateCraftingInventoryDirty(enchantingCraftVarToUpdate)
 		end
 	end,
 	PROVISIONING_COOK = function()
@@ -1807,10 +1813,10 @@ local function applyAdditionalFilterHooks()
 
 	--For each LF constant hook the filters now to add the .additionalFilter entry
 	-->Keyboard and gamepad mode are both hooked here via 2nd param = true
-	for value, _ in ipairs(libFiltersFilterConstants) do
+	for filterTypeId, _ in ipairs(libFiltersFilterConstants) do
 		-->HookAdditionalFilterSpecial will be done automatically in HookAdditionalFilter, via the table
 		-->LF_ConstantToAdditionalFilterSpecialHook
-		libFilters_hookAdditionalFilter(libFilters, value, true) --value = the same as _G[filterConstantName], eg. LF_INVENTORY
+		libFilters_hookAdditionalFilter(libFilters, filterTypeId, true) --filterTypeId = the same as _G[filterConstantName], eg. LF_INVENTORY
 	end
 end
 
@@ -2768,7 +2774,22 @@ function libFilters:IsNormalBankShown()
 	return libFilters_IsBankShown(libFilters)
 end
 
-
+--Check if the mail send panel is shown.
+--return boolean isShown, control mailSendPanel
+function libFilters:IsMailSendShown()
+	if IsGamepad() then
+		if gpc.invMailSendFragment_GP:IsShowing() and invMailSend_GP ~= nil then
+			if invMailSend_GP.send.inventoryList and invMailSend_GP.send.inventoryList:IsActive() then
+				return true, invMailSend_GP.send
+			end
+		end
+	else
+		if kbc.mailSendFragment ~= nil and kbc.mailSendFragment:IsShowing() then
+			return true, kbc.mailSendFragment.control
+		end
+	end
+	return false, nil
+end
 
 --Check if the store (vendor) panel is shown
 --If OPTIONAL parameter number storeMode (either ZO_MODE_STORE_BUY, ZO_MODE_STORE_BUY_BACK, ZO_MODE_STORE_SELL,
@@ -3030,6 +3051,39 @@ function libFilters:IsAlchemyShown(alchemyMode)
 	return false, alchemyMode, nil
 end
 
+--Check if the Provisioner panel is shown
+--If OPTIONAL parameter number provisionerMode (either PROVISIONER_MODE_ROOT, PROVISIONER_MODE_CREATION, PROVISIONER_MODE_FILLET is provided this
+-- provisioner mode must be set at the provisioner panel, if it is shown, to return true
+--return boolean isShown, number provisionerMode, provisionerFilterType, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
+function libFilters:IsProvisionerShown(provisionerMode)
+	if IsGamepad() then
+		if provisioner_GP ~= nil and provisioner_GP.control ~= nil and not provisioner_GP.control:IsHidden() then
+			local lProvisionerMode = provisioner_GP.mode
+			local provisionerFilterType = provisioner_GP.filterType
+			if provisionerMode ~= nil then
+				if lProvisionerMode and lProvisionerMode == provisionerMode then
+					return true, provisionerMode, provisionerFilterType, provisioner_GP
+				end
+			else
+				return true, lProvisionerMode, provisionerFilterType, provisioner_GP
+			end
+		end
+	else
+		if provisioner ~= nil and not provisioner:IsHidden() then
+			local lProvisionerMode = provisioner.mode
+			local provisionerFilterType = provisioner.filterType
+			if provisionerMode ~= nil then
+				if lProvisionerMode and lProvisionerMode == provisionerMode then
+					return true, provisionerMode, provisionerFilterType, provisioner
+				end
+			else
+				return true, lProvisionerMode, provisionerFilterType, provisioner
+			end
+		end
+	end
+	return false, provisionerMode, nil, nil
+end
+
 --Check if the Universal Deconstruction panel is shown
 --returns boolean isShown
 --sceneReference UniversalDeconstructionScene (gamepad or keyboard mode)
@@ -3181,6 +3235,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		end --for _, inventory in ipairs(inventoriesToHookForLFConstant_Table) do
 	end
 	------------------------------------------------------------------------------------------------------------------------
+
 	--Should the LF constant be hooked by any special function of LibFilters?
 	--e.g. run LibFilters:HookAdditionalFilterSpecial("enchanting")
 	local inventoriesToHookForLFConstant
@@ -3205,12 +3260,13 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 		end
 	end
 	inventoriesToHookForLFConstant = nil
+	------------------------------------------------------------------------------------------------------------------------
 
 	--If the special hook was found it maybe that only one of the two, keyboard or gamepad was hooked special.
 	--e.g. "enchanting" -> LF_ENCHANTING_CREATION only applies to keyboard mode. Gamepad needs to hook normally to add
-	--the .additionalFilter to the correct gamepad enchanting inventory
+	--the .additionalFilter to the correct gamepad enchanting inventory.
 	--So try to run the same LF_ constant as normal hook as well (if it exists)
-	--Hook normal via the given control/scene/fragment etc. -> See table LF_FilterTypeToReference
+	--Hook normal via the given control/scene/fragment/userdata etc. -> See table LF_FilterTypeToReference
 	if hookKeyboardAndGamepadMode == true then
 		--Keyboard
 		if not hookSpecialFunctionDataOfLFConstant then
@@ -4637,14 +4693,16 @@ local function provisionerSpecialCallback(selfProvisioner, provFilterType, overr
 	--Only fire if current scene is the provisioner scene (as PROVISIONER:OnTabFilterChanged also fires if enchanting scene is shown...)
 	local currentFilterType = libFilters._currentFilterType
 	local isInGamepadMode = IsGamepad()
+--d("[LibFilters]provisionerSpecialCallback - provFilterType: " ..tos(provFilterType) .. ", currentFilterType: " .. tos(currentFilterType) .. ", isInGamepadMode: " .. tos(isInGamepadMode))
 	if (isInGamepadMode and not provisionerScene_GP:IsShowing()) or (not isInGamepadMode and not provisionerScene:IsShowing()) then
+--d("<abort")
 		return
 	end
 	local currentProvFilterType = (isInGamepadMode == true and provFilterType) or selfProvisioner.filterType
 	local filterType = provisionerIngredientTypeToFilterType[currentProvFilterType]
 	local doShow = (filterType ~= nil and true) or false
 
-
+--d(">currentProvFilterType: " ..tos(currentProvFilterType) .. ", filterType: " ..tos(filterType) .. ", doShow: " .. tos(doShow))
 	local hideOldProvFilterType = (filterType ~= nil and currentFilterType ~= nil and currentFilterType ~= filterType and true)  or false
 
 	if overrideDoShow ~= nil then
@@ -4657,9 +4715,11 @@ local function provisionerSpecialCallback(selfProvisioner, provFilterType, overr
 
 	if libFilters.debug then dd("~%s:OnTabFilterChanged: %s, filterType: %s, doShow: %s, hideOldProvFilterType: %s", tos(provCallbackName), tos(currentProvFilterType), tos(filterType), tos(doShow), tos(hideOldProvFilterType)) end
 	if hideOldProvFilterType == true then
+--d(">hide old")
 		onControlHiddenStateChange(false, { currentFilterType }, provisionerControl, isInGamepadMode)
 	end
 	if doShow == false or (doShow == true and filterType ~= nil) then
+--d(">hide/show new")
 		onControlHiddenStateChange(doShow, { filterType }, provisionerControl, isInGamepadMode)
 	end
 end
@@ -4844,8 +4904,6 @@ local function createSpecialCallbacks()
 
 		provisionerSpecialCallback(selfProvisioner, filterType, nil)
 	end)
-
-
 end
 
 local function createCallbacks()

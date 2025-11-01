@@ -58,6 +58,8 @@ local companionEquipment_GP =               gpc.companionEquipment_GP
 --local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 --local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
 --local getCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeForInventory
+local libFilters_IsFilterTypeUsingCustomGamepadFragment = libFilters.IsFilterTypeUsingCustomGamepadFragment
+local libFilters_GetCurrentFilterType = libFilters.GetCurrentFilterType
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1368,9 +1370,15 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
             local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
             local slotData = SHINV:GenerateSingleSlotData(inventoryType, slotIndex)
             if slotData then
-                local result = (not itemFilterFunction and true) or itemFilterFunction(slotData)
+                local result = (not itemFilterFunction) or itemFilterFunction(slotData)
+
+                --todo 2025-11-01 Gamepad bank deposit uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
+                --todo to have the filterfunction there -> But we check PLAYER_INVENTORY.inventories[INVENTORY_BANK] here for it?
+                local additionalFilterRef
+                local isUsingCustomGPFragment, customGPFragment = libFilters_IsFilterTypeUsingCustomGamepadFragment(libFilters_GetCurrentFilterType(libFilters))
+                additionalFilterRef = (isUsingCustomGPFragment == true and customGPFragment) or bagIdToInventory[inventoryType]
                 --Original result was determined, so add the LibFilters filterFunctions now
-                if checkAndRundAdditionalFilters(bagIdToInventory[inventoryType], slotData, result) == true then
+                if checkAndRundAdditionalFilters(additionalFilterRef, slotData, result) == true then
                     -- itemData is shared in several places and can write their own value of bestItemCategoryName.
                     -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
                     slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)

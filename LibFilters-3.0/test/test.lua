@@ -47,7 +47,9 @@ local filterTypeToControlsChange = {
 	--Keyboard
 	[false] = {
 		["OnShow"] = {
-			[LF_QUICKSLOT] = { ZO_QuickSlot_Keyboard_TopLevelQuickSlotCircleUnderlay } --hide the modal underlay of the quickslot so we can do anything!
+			[LF_QUICKSLOT] = { ZO_QuickSlot_Keyboard_TopLevelQuickSlotCircleUnderlay }, --hide the modal underlay of the quickslot so we can do anything!
+			[LF_SMITHING_RESEARCH_DIALOG] = { ZO_ListDialog1ModalUnderlay },
+			[LF_JEWELRY_RESEARCH_DIALOG] = { ZO_ListDialog1ModalUnderlay },
 		},
 		--[[
 		["OnHide"] = {
@@ -170,56 +172,56 @@ local filterTypesToCategory = {
 		['category'] = 'Inventory',
 	},
 	{
-		['filterType'] = LF_INVENTORY_VENGEANCE,
-		['category'] = 'Inventory',
-	},
-	{
-		['filterType'] = LF_CRAFTBAG,
-		['category'] = 'Inventory',
-	},
-	{
-		['filterType'] = LF_INVENTORY_COMPANION,
-		['category'] = 'Inventory',
-	},
-	{
 		['filterType'] = LF_QUICKSLOT,
 		['category'] = 'Inventory',
 	},
 	{
+		['filterType'] = LF_INVENTORY_VENGEANCE,
+		['category'] = 'Cyrodiil - Inventory',
+	},
+	{
+		['filterType'] = LF_CRAFTBAG,
+		['category'] = 'CraftBag',
+	},
+	{
+		['filterType'] = LF_INVENTORY_COMPANION,
+		['category'] = 'Companion - Inventory',
+	},
+	{
 		['filterType'] = LF_BANK_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'Player Bank',
 	},
 	{
 		['filterType'] = LF_BANK_DEPOSIT,
-		['category'] = 'Banking',
-	},
-	{
-		['filterType'] = LF_FURNITURE_VAULT_DEPOSIT,
-		['category'] = 'Banking',
-	},
-	{
-		['filterType'] = LF_FURNITURE_VAULT_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'Player Bank',
 	},
 	{
 		['filterType'] = LF_GUILDBANK_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'Guild Bank',
 	},
 	{
 		['filterType'] = LF_GUILDBANK_DEPOSIT,
-		['category'] = 'Banking',
+		['category'] = 'Guild Bank',
 	},
 	{
 		['filterType'] = LF_HOUSE_BANK_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'House Bank',
 	},
 	{
 		['filterType'] = LF_HOUSE_BANK_DEPOSIT,
-		['category'] = 'Banking',
+		['category'] = 'House Bank',
+	},
+	{
+		['filterType'] = LF_FURNITURE_VAULT_DEPOSIT,
+		['category'] = 'House Furniture Bank',
+	},
+	{
+		['filterType'] = LF_FURNITURE_VAULT_WITHDRAW,
+		['category'] = 'House Furniture Bank',
 	},
 	{
 		['filterType'] = LF_GUILDSTORE_SELL,
-		['category'] = 'Banking',
+		['category'] = 'Guild Store/Trader',
 	},
 	{
 		['filterType'] = LF_VENDOR_BUY,
@@ -227,10 +229,6 @@ local filterTypesToCategory = {
 	},
 	{
 		['filterType'] = LF_VENDOR_SELL,
-		['category'] = 'Vendor',
-	},
-	{
-		['filterType'] = LF_VENDOR_SELL_VENGEANCE,
 		['category'] = 'Vendor',
 	},
 	{
@@ -242,85 +240,97 @@ local filterTypesToCategory = {
 		['category'] = 'Vendor',
 	},
 	{
+		['filterType'] = LF_VENDOR_SELL_VENGEANCE,
+		['category'] = 'Cyrodiil - Vendor',
+	},
+	{
 		['filterType'] = LF_FENCE_SELL,
-		['category'] = 'Vendor',
+		['category'] = 'Fence',
 	},
 	{
 		['filterType'] = LF_FENCE_LAUNDER,
-		['category'] = 'Vendor',
+		['category'] = 'Fence',
 	},
 	{
 		['filterType'] = LF_MAIL_SEND,
-		['category'] = 'Trade',
+		['category'] = 'Mail',
 	},
 	{
 		['filterType'] = LF_TRADE,
-		['category'] = 'Trade',
+		['category'] = 'Player 2 Player Trade',
 	},
 	{
 		['filterType'] = LF_ALCHEMY_CREATION,
-		['category'] = 'Crafting',
+		['category'] = 'Crafting - Alchemy',
 	},
 	{
 		['filterType'] = LF_ENCHANTING_CREATION,
-		['category'] = 'Crafting',
+		['category'] = 'Crafting - Enchanting',
 	},
 	{
 		['filterType'] = LF_ENCHANTING_EXTRACTION,
-		['category'] = 'Crafting',
+		['category'] = 'Crafting - Enchanting',
 	},
 	{
-		['filterType'] = LF_RETRAIT,
-		['category'] = 'Crafting',
+		['filterType'] = LF_PROVISIONING_COOK,
+		['category'] = 'Crafting - Provisioner',
+	},
+	{
+		['filterType'] = LF_PROVISIONING_BREW,
+		['category'] = 'Crafting - Provisioner',
 	},
 	{
 		['filterType'] = LF_SMITHING_REFINE,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_CREATION,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_DECONSTRUCT,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_IMPROVEMENT,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_RESEARCH,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_RESEARCH_DIALOG,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_JEWELRY_REFINE,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_CREATION,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_DECONSTRUCT,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_IMPROVEMENT,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_RESEARCH,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_RESEARCH_DIALOG,
-		['category'] = 'Jewelery',
-	}
+		['category'] = 'Crafting - Jewelery',
+	},
+	{
+		['filterType'] = LF_RETRAIT,
+		['category'] = 'Reconstruct / Retrait',
+	},
 }
 
 local enabledFilters = {}
@@ -361,6 +371,15 @@ end
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
+
+	--todo remove again after testing 2025-11-01
+	if libFilters_GetCurrrentFilterType(libFilters_GetCurrrentFilterType) == LF_BANK_DEPOSIT then
+		if quality < ITEM_FUNCTIONAL_QUALITY_ARCANE then
+			d("Quality < Arcane")
+		end
+		return false
+	end
+
 
 	if itemType == ITEMTYPE_ENCHANTING_RUNE_ASPECT then
 		return quality < ITEM_FUNCTIONAL_QUALITY_ARCANE
@@ -466,7 +485,6 @@ end
 
 local function sortFuncFilterTypesEnabledList(a, b)
 	if a.name and b.name then
-d("a.name: " ..tos(a.name))
 		return a.name < b.name
 	elseif a.filterType and b.filterType then
 		return a.filterType < b.filterType

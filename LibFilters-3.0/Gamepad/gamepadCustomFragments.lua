@@ -959,6 +959,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 
 	--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 	-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
+	--> todo: At this reference variable the .additionalFilter function will be searched later?
 	LF_FilterTypeToReference[true][LF_INVENTORY]          							= 	{ gamepadLibFiltersInventoryFragment }
 	LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       							= 	{ gamepadLibFiltersBankDepositFragment }
 	LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  							= 	{ gamepadLibFiltersGuildBankDepositFragment }
@@ -1025,5 +1026,16 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	if libFilters.debug then dd(">Custom GAMEPAD fragments were created") end
 end
 libFilters.CreateCustomGamepadFragmentsAndNeededHooks = createCustomGamepadFragmentsAndNeededHooks
+
+
+--Used for helper functions to determine if a custom GP fragment exists and if that stores the .additionalFilter functions in it
+function libFilters.IsFilterTypeUsingCustomGamepadFragment(filterType)
+	if filterType == nil then return false, nil end
+	local customFragmentsGPData = customFragments_GP[filterType]
+	if customFragmentsGPData ~= nil and customFragmentsGPData.fragment ~= nil then
+		return true, customFragmentsGPData.fragment
+	end
+	return false, nil
+end
 
 if libFilters.debug then dd("LIBRARY GAMEPAD CUSTOM FRAGMENTS FILE - END") end
