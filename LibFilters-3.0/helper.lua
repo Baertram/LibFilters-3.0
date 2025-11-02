@@ -29,7 +29,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
 --Keyboard
---local inventories =                         kbc.inventories
+local inventories =                         kbc.inventories
 local playerInv =                           kbc.playerInv
 local store =                               kbc.store
 local vendorBuyBack =                       kbc.vendorBuyBack
@@ -93,6 +93,7 @@ end
 
 --Check for .additionalFilter in an object, or within object.layoutData, and run it on the slotItem now
 local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAdditionalFilter)
+    if objectVar == nil then return resultIfNoAdditionalFilter end
     if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
     local additionalFilterFuncExists = false
     additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
@@ -106,7 +107,8 @@ end
 
 --Check for .additionalFilter in an object and run it on the bagId and slotIndex now
 local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, resultIfNoAdditionalFilter)
-	if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
+    if objectVar == nil then return resultIfNoAdditionalFilter end
+    if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
     local additionalFilterFuncExists = false
     additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
     if additionalFilterFuncExists == true then
@@ -1379,27 +1381,41 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
     helper = {
         funcName = "AddSlotDataToTable",
         func = function(self, slotsTable, inventoryType, slotIndex)
---d( 'ZO_GamepadInventoryList:AddSlotDataToTable')
             local itemFilterFunction = self.itemFilterFunction
             local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
             local slotData = SHINV:GenerateSingleSlotData(inventoryType, slotIndex)
             if slotData then
                 local result = (not itemFilterFunction) or itemFilterFunction(slotData)
-                --2025-11-01 Gamepad bank deposit uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
-                --to have the filterfunction there at the layoutData -> But we check same like keyboard & mouse mode's
-                --PLAYER_INVENTORY.inventories[INVENTORY_BANK] here for it? -> Only as fallback now
-                local isUsingCustomGPFragment, customGPFragment = libFilters_IsFilterTypeUsingCustomGamepadFragment(libFilters_GetCurrentFilterType(libFilters))
-                local additionalFilterRef = (isUsingCustomGPFragment == true and customGPFragment) or bagIdToInventory[inventoryType]
-                local additionalFiltersResult = checkAndRundAdditionalFilters(additionalFilterRef, slotData, result)
+                --2025-11-01 Gamepad bank deposit (and other filterTypes used here) uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
+                --to have the filterfunction there at the layoutData!
+                local filterType = libFilters_GetCurrentFilterType(libFilters) or libFilters._currentFilterType
+                local isUsingCustomGPFragment, gpFragmentOrOtherRef = libFilters_IsFilterTypeUsingCustomGamepadFragment(filterType)
+                --Not using a custom LibFilters gamepad fragment: Search in default PLAYER_INVENTORY.inventories for the inventoryType
+                if not isUsingCustomGPFragment then
+                    gpFragmentOrOtherRef = bagIdToInventory[inventoryType]
+                end
+d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
                 --Original result was determined, so add the LibFilters filterFunctions now
-                if additionalFiltersResult == true then
+                if checkAndRundAdditionalFilters(gpFragmentOrOtherRef, slotData, result) == true then
                     -- itemData is shared in several places and can write their own value of bestItemCategoryName.
                     -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
                     slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
 
                     table.insert(slotsTable, slotData)
                 end
-d(">" .. GetItemLink(slotData.bagId, slotData.slotIndex) .. " = " .. tos(result) .. "/" .. tos(additionalFiltersResult))
+
+libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable = libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable or {}
+libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable[slotData.slotIndex] = {
+    self = self,
+    slotsTable = slotsTable,
+    inventoryType = inventoryType,
+    filterType = filterType,
+    isUsingCustomGPFragment = isUsingCustomGPFragment,
+    customGPFragment        = customGPFragment,
+    itemLink                = GetItemLink(slotData.bagId, slotData.slotIndex),
+    result = result,
+    additionalFilter = checkAndRundAdditionalFilters(customGPFragment, slotData, result),
+}
 
             end
 		end

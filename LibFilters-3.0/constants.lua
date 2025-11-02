@@ -1775,9 +1775,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = invGuildBankWithdraw, 			["scene"] = invGuildBankScene,		["fragment"] = guildBankWithdrawFragment, },
 		--Works: 2021-12-13
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = invGuildBankDeposit, 			["scene"] = invGuildBankScene, 		["fragment"] = inventoryFragment, },
-		--Works: 2021-12-13
+		--Works: 2025-11-02
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = invHouseBankWithdraw, 			["scene"] = invHouseBankScene ,		["fragment"] = houseBankWithdrawFragment, },
-		--Works: 2021-12-13
+		--Works: 2025-11-02
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = invHouseBankDeposit, 			["scene"] = invHouseBankScene , 	["fragment"] = inventoryFragment, },
 		--Works: 2025-10-31
 		[LF_VENDOR_BUY]               = { ["control"] = store, 							["scene"] = "store", 				["fragment"] = vendorBuyFragment, },
@@ -1952,9 +1952,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works: 2025-10-31
 		[LF_RETRAIT]                  = { ["control"] = retrait, 						["scene"] = "retrait_keyboard_root",["fragment"] = retraitFragment, },
-		--Works: 2025-09-21
+		--Works: 2025-11-02
 		[LF_FURNITURE_VAULT_WITHDRAW]  = { ["control"] = invFurnitureVaultWithdraw, 			["scene"] = furnitureVaultScene, 			["fragment"] = furnitureVaultWithdrawFragment, },
-		--Works: 2025-09-21
+		--Works: 2025-11-02
 		[LF_FURNITURE_VAULT_DEPOSIT]   = { ["control"] = invFurnitureVaultDeposit, 				["scene"] = furnitureVaultScene, 			["fragment"] = inventoryFragment, },
 
 
@@ -2209,17 +2209,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works: 2025-11-01
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		--todo: Shows too early! Mail send should show only if the attachments at the mail send panel are opened!
-		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.inventoryListControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-										   ["special"] = {
-												[1] = {
-													["control"]  =  _G[GlobalLibName],
-													["funcOrAttribute"] = "IsMailSendShown",
-													["params"] = {_G[GlobalLibName]},
-													["expectedResults"] = { true, gpc.invMailSend_GP.send },
-												}
-											}
-		},
+		--TODO: 2025-11-02
+		--Callback works, but filterFunction does not apply. Check helpers.lua and custom gamepad fragment!
+		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.inventoryListControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, },  --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created,
 		--Works 2021-12-18
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
 
@@ -2255,7 +2247,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works, 2021-12-18
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
-		--Works: 2025-09-21
+		--TODO: NOT WORKING, 2025-11-01
+		--todo: callback Works but filters do not work?, 2025-11-01
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2542,7 +2535,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 	--Gamepad mode
 	[true] = {
 		{ filterType=LF_CRAFTBAG, 					checkTypes = { "scene", "fragment", "control", "special" } },
-		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "scene", "fragment", "control" }, },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control", "special" } },
 		{ filterType=LF_VENDOR_SELL, 				checkTypes = { "scene", "fragment", "control", "special" } },

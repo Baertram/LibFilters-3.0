@@ -94,6 +94,8 @@ local getFragmentControlName = 	libFilters.GetFragmentControlName
 local craftBagList_GP, craftBagFragment_GP
 local comingFromCraftBagList = false
 
+local updateLastAndCurrentFilterType, detectShownReferenceNow
+
 
 local fragmentsHooked = {}
 
@@ -803,27 +805,67 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 		end
 	end)
 	]]
+
 	SecurePostHook(invMailSend_GP.send, "PerformDeferredInitialization", function(self)
 		--Update the reference table with the existing control now:
 		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND].control = gpc.invMailSend_GP.send.inventoryListControl
 
+		--[[
 		ZO_PreHook(invMailSend_GP.send.inventoryList, "Activate", function()
 d("[LibFilters]Gamepad mail inv list - Activate")
 			if not libFilters.isInitialized then return end
+			--Needed to "early set" the filterType for the Gamepad mail send panel detection at filter function -> See helpers.lua, ZO_GamepadInventoryList:AddSlotDataToTable
+			updateLastAndCurrentFilterType = updateLastAndCurrentFilterType or libFilters.UpdateLastAndCurrentFilterType
+			detectShownReferenceNow = detectShownReferenceNow or libFilters.DetectShownReferenceNow
+			local LF_FilterTypeMailSend = LF_MAIL_SEND
+			local lReferencesToFilterTyp = detectShownReferenceNow(LF_FilterTypeMailSend, true, false, true) --Skip special checks, only control shown check needed e.g.
+			updateLastAndCurrentFilterType(LF_FilterTypeMailSend, lReferencesToFilterTyp, nil, false)
+
 			if not invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
 				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Adding custom mail send fragment") end
 				invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
 			end
 		end)
-		ZO_PreHook(invMailSend_GP.send.inventoryList, "Deactivate", function()
+		ZO_PostHook(invMailSend_GP.send.inventoryList, "Deactivate", function()
 d("[LibFilters]Gamepad mail inv list - Deactivate")
 			if not libFilters.isInitialized then return end
+
 			if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
 				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Removing custom mail send fragment") end
 				updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
 				invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
 			end
 		end)
+		]]
+
+		ZO_PreHookHandler(invMailSend_GP.send.inventoryListControl, "OnEffectivelyShown", function()
+d("[LibFilters]Gamepad mail inv list - OnEffectivelyShown")
+			if not libFilters.isInitialized then return end
+			--Needed to "early set" the filterType for the Gamepad mail send panel detection at filter function -> See helpers.lua, ZO_GamepadInventoryList:AddSlotDataToTable
+			updateLastAndCurrentFilterType = updateLastAndCurrentFilterType or libFilters.UpdateLastAndCurrentFilterType
+			detectShownReferenceNow = detectShownReferenceNow or libFilters.DetectShownReferenceNow
+			--[[
+				local LF_FilterTypeMailSend = LF_MAIL_SEND
+				local lReferencesToFilterTyp = detectShownReferenceNow(LF_FilterTypeMailSend, true, false, true) --Skip special checks, only control shown check needed e.g.
+				updateLastAndCurrentFilterType(LF_FilterTypeMailSend, lReferencesToFilterTyp, nil, false)
+				libFilters.preventCallbackUpdateLastVars = true --for function callbackRaiseCheck in LibFilters-3.0.lua -> Prevent resetting updateLastAndCurrentFilterType once
+			]]
+			if not invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
+				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Adding custom mail send fragment") end
+				invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
+			end
+		end)
+		ZO_PostHookHandler(invMailSend_GP.send.inventoryListControl, "OnEffectivelyHidden", function()
+d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
+			if not libFilters.isInitialized then return end
+
+			if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
+				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Removing custom mail send fragment") end
+				updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
+				invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
+			end
+		end)
+
 	end)
 
 	--Player to player trade
