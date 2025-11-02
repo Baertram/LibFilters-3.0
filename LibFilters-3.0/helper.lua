@@ -1394,7 +1394,7 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
                 if not isUsingCustomGPFragment then
                     gpFragmentOrOtherRef = bagIdToInventory[inventoryType]
                 end
-d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
+--d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
                 --Original result was determined, so add the LibFilters filterFunctions now
                 if checkAndRundAdditionalFilters(gpFragmentOrOtherRef, slotData, result) == true then
                     -- itemData is shared in several places and can write their own value of bestItemCategoryName.
