@@ -1,5 +1,5 @@
 --[[
-	Version:	3.0
+	Version:	5.0
 	Idea:		IsJustAGhost
 	Code by:	IsJustAGhost & Baertram
 
@@ -132,6 +132,7 @@ local gamepadLibFiltersPlayerTradeFragment
 local gamepadLibFiltersInventoryQuestFragment
 local gamepadLibFiltersFurnitureVaultDepositFragment
 local gamepadLibFiltersInventoryVengeanceFragment
+local gamepadLibFiltersCraftBagFragment
 --======================================================================================================================
 
 
@@ -159,6 +160,10 @@ end
 local function gpInvNoCraftBagShowing()
 	return invRootScene_GP:IsShowing() and (invBackpack_GP.craftBagList == nil
 			or (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive() == false))
+end
+
+local function gpInvCraftBagShowing()
+	return invRootScene_GP:IsShowing() and (invBackpack_GP.craftBagList ~= nil and invBackpack_GP.craftBagList:IsActive())
 end
 
 local function checkIfInvAndNotVengeanceCampaign()
@@ -557,11 +562,23 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	craftBagFragment_GP = craftBagList_GP._fragment
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = craftBagFragment_GP.control  --ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
+	--Custom Craftbag Fragment "gamepadLibFiltersCraftBagFragment" Show/Hide
+
+	ZO_PreHookHandler(craftBagList_GP.control, "OnEffectivelyShown", function()
+--d("[LibFilters]CraftBagList - OnEffectivelyShown")
+		invRootScene_GP:AddFragment(gamepadLibFiltersCraftBagFragment)
+	end)
+	ZO_PreHookHandler(craftBagList_GP.control, "OnEffectivelyHidden", function()
+--d("[LibFilters]CraftBagList - OnEffectivelyHidden")
+		updateSceneManagerAndHideFragment(gamepadLibFiltersCraftBagFragment)
+		invRootScene_GP:RemoveFragment(gamepadLibFiltersCraftBagFragment)
+	end)
+
 	--Not needed anymore as specialFunction changed to libFilters internally LibFilters3:IsVanillaCraftBagShown()
 	--libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList_GP
 	--libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList_GP
-	libFilters.mapping.callbacks.usingFragments[true][craftBagFragment_GP] = { LF_CRAFTBAG }
-	libFilters.CreateFragmentCallback(craftBagFragment_GP, { LF_CRAFTBAG }, true)
+	--libFilters.mapping.callbacks.usingFragments[true][craftBagFragment_GP] = { LF_CRAFTBAG }
+	--libFilters.CreateFragmentCallback(craftBagFragment_GP, { LF_CRAFTBAG }, true)
 
 
 	--Add StateChange callback to GAMEPAD_INVENTORY_FRAGMENT and show/hide the custom inventory fragment of LibFilters with this vanilla fragment
@@ -764,6 +781,27 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 			false)
 
 
+	--CraftBag
+	gamepadLibFiltersCraftBagFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
+	gamepadLibFiltersCraftBagFragment._name 	= getCustomLibFiltersFragmentName(LF_CRAFTBAG)
+	_G[gamepadLibFiltersCraftBagFragment._name]	= gamepadLibFiltersCraftBagFragment
+
+--[[ 20251102 This fires the hidden callback twice unfortunately and filter function works on normal inventory, but not the CraftBag?
+	local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
+	local CRAFT_BAG_ACTION_MODE = 3
+	SecurePostHook(invBackpack_GP, "SwitchActiveList", function(selfVar, listDescriptor, selectDefaultEntry)
+d("[LibFilters]GP inventory - SwitchActiveList")
+		if listDescriptor == INVENTORY_CRAFT_BAG_LIST or selfVar.actionMode == CRAFT_BAG_ACTION_MODE then
+d(">CraftBag List")
+			invRootScene_GP:AddFragment(gamepadLibFiltersCraftBagFragment)
+		else
+d(">Other List")
+			updateSceneManagerAndHideFragment(gamepadLibFiltersCraftBagFragment)
+			invRootScene_GP:RemoveFragment(gamepadLibFiltersCraftBagFragment)
+		end
+	end)
+]]
+
 	--Trading house = Guild store sell
 	gamepadLibFiltersGuildStoreSellFragment 					= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 	gamepadLibFiltersGuildStoreSellFragment._name 				= getCustomLibFiltersFragmentName(LF_GUILDSTORE_SELL)
@@ -783,6 +821,7 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 			invGuildStoreSellScene_GP:RemoveFragment(gamepadLibFiltersGuildStoreSellFragment)
 		end
 	end)
+
 
 
 	--Mail send
@@ -839,7 +878,7 @@ d("[LibFilters]Gamepad mail inv list - Deactivate")
 		]]
 
 		ZO_PreHookHandler(invMailSend_GP.send.inventoryListControl, "OnEffectivelyShown", function()
-d("[LibFilters]Gamepad mail inv list - OnEffectivelyShown")
+--d("[LibFilters]Gamepad mail inv list - OnEffectivelyShown")
 			if not libFilters.isInitialized then return end
 			--Needed to "early set" the filterType for the Gamepad mail send panel detection at filter function -> See helpers.lua, ZO_GamepadInventoryList:AddSlotDataToTable
 			updateLastAndCurrentFilterType = updateLastAndCurrentFilterType or libFilters.UpdateLastAndCurrentFilterType
@@ -856,7 +895,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyShown")
 			end
 		end)
 		ZO_PostHookHandler(invMailSend_GP.send.inventoryListControl, "OnEffectivelyHidden", function()
-d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
+--d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 			if not libFilters.isInitialized then return end
 
 			if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
@@ -931,6 +970,15 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 		local retVar = checkIfInvAndNotVengeanceCampaign() and invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST
 		if libFilters.debug then
 			dd("GAMEPAD CUSTOM inventory quest FRAGMENT - Condition: " ..tos(retVar))
+		end
+		return retVar
+	end)
+
+	--CraftBag
+	gamepadLibFiltersCraftBagFragment:SetConditional(function()
+		local retVar = gpInvCraftBagShowing
+		if libFilters.debug then
+			dd("GAMEPAD CUSTOM craftbag FRAGMENT - Condition: " ..tos(retVar))
 		end
 		return retVar
 	end)
@@ -1022,6 +1070,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 	customFragmentsUpdateRef[LF_INVENTORY_QUEST].fragment 							=   gamepadLibFiltersInventoryQuestFragment
 	customFragmentsUpdateRef[LF_FURNITURE_VAULT_DEPOSIT].fragment      				= 	gamepadLibFiltersFurnitureVaultDepositFragment
 	customFragmentsUpdateRef[LF_INVENTORY_VENGEANCE].fragment          				= 	gamepadLibFiltersInventoryVengeanceFragment
+	customFragmentsUpdateRef[LF_CRAFTBAG] 											=   gamepadLibFiltersCraftBagFragment
 
 	--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 	-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
@@ -1036,6 +1085,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 	LF_FilterTypeToReference[true][LF_INVENTORY_QUEST] 								=   { gamepadLibFiltersInventoryQuestFragment }
 	LF_FilterTypeToReference[true][LF_FURNITURE_VAULT_DEPOSIT]      				= 	{ gamepadLibFiltersFurnitureVaultDepositFragment }
 	LF_FilterTypeToReference[true][LF_INVENTORY_VENGEANCE]          				= 	{ gamepadLibFiltersInventoryVengeanceFragment }
+	LF_FilterTypeToReference[true][LF_CRAFTBAG]          							= 	{ gamepadLibFiltersCraftBagFragment }
 
 
 	-->Update the references to the fragments so one is able to use them within the "isShown" routines
@@ -1049,6 +1099,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_QUEST]["fragment"]	=   gamepadLibFiltersInventoryQuestFragment
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_FURNITURE_VAULT_DEPOSIT]["fragment"] =	gamepadLibFiltersFurnitureVaultDepositFragment
 	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_INVENTORY_VENGEANCE]["fragment"] =	gamepadLibFiltersInventoryVengeanceFragment
+	LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["fragment"] 			=	gamepadLibFiltersCraftBagFragment
 
 	-->Update the new created custom fragments to the callback-by-fragment-StateChange lookup table
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 				= { LF_INVENTORY }
@@ -1061,6 +1112,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryQuestFragment] 			= { LF_INVENTORY_QUEST }
 	callbacksUsingFragments[true][gamepadLibFiltersFurnitureVaultDepositFragment] 	= { LF_FURNITURE_VAULT_DEPOSIT }
 	callbacksUsingFragments[true][gamepadLibFiltersInventoryVengeanceFragment] 		= { LF_INVENTORY_VENGEANCE }
+	callbacksUsingFragments[true][gamepadLibFiltersCraftBagFragment] 				= { LF_CRAFTBAG }
 
 	--Update the callback invoker fragments
 	filterTypeToCallbackRef[true][LF_INVENTORY] = 			{ ref = gamepadLibFiltersInventoryFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
@@ -1073,6 +1125,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 	filterTypeToCallbackRef[true][LF_INVENTORY_QUEST] = 	{ ref = gamepadLibFiltersInventoryQuestFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_FURNITURE_VAULT_DEPOSIT] =	{ ref = gamepadLibFiltersFurnitureVaultDepositFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_INVENTORY_VENGEANCE] = { ref = gamepadLibFiltersInventoryVengeanceFragment, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+	filterTypeToCallbackRef[true][LF_CRAFTBAG] 			  = { ref = gamepadLibFiltersCraftBagFragment, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 
 
 	--Update the custom Gamepad fragments to the LibFilters.fragments[true] table
@@ -1085,6 +1138,7 @@ d("[LibFilters]Gamepad mail inv list - OnEffectivelyHidden")
 	gpFragments.CustomPlayerTradeFragment = 			gamepadLibFiltersPlayerTradeFragment
 	gpFragments.CustomInventoryQuestFragment = 			gamepadLibFiltersInventoryQuestFragment
 	gpFragments.CustomInventoryVengeanceFragment = 		gamepadLibFiltersInventoryVengeanceFragment
+	gpFragments.CustomCraftBagFragment = 				gamepadLibFiltersCraftBagFragment
 
 	------------------------------------------------------------------------------------------------------------------------
 	------------------------------------------------------------------------------------------------------------------------

@@ -1097,6 +1097,7 @@ gpc.customFragments             = {
 	[LF_INVENTORY_QUEST] =			{name = "BACKPACK_INVENTORY_QUEST_GAMEPAD_FRAGMENT", 		fragment=nil},
 	[LF_FURNITURE_VAULT_DEPOSIT]= 	{name = "BACKPACK_FURNITURE_VAULT_DEPOSIT_GAMEPAD_FRAGMENT",fragment=nil},
 	[LF_INVENTORY_VENGEANCE] = 		{name = "BACKPACK_INVENTORY_VENGEANCE_GAMEPAD_FRAGMENT", 	fragment=nil},
+	[LF_CRAFTBAG] = 				{name = "BACKPACK_CRAFTBAG_GAMEPAD_FRAGMENT", 				fragment=nil},
 }
 
 
@@ -1105,7 +1106,7 @@ gpc.customFragments             = {
 -----------------------------------------------------------------------------------------------------------------------
 --Other attributes at an inventory/layoutData table where ZOs or other addons could have already added filter functions to
 --> See LibFilters-3.0.lua, function HookAdditionalFilters
--->Example is: .additionalCraftBagFilter at the CraftBag as PLAYER_INVENTRY:ApplyBackpackLayout will always overwrite
+-->Example is: .additionalCraftBagFilter at the CraftBag, because PLAYER_INVENTRY:ApplyBackpackLayout will always overwrite
 -->PLAYER_INVENTORY.appliedLayout.additionalFilter. Since ESOUI v7.0.5 the filterFunctions overwriting the CraftBag will
 -->be read from the attribute layoutData.additionalCraftBagFilter
 -->So we need to write the LibFilters filterFunctions of LF_CRAFTBAG to exactly this attribute
@@ -1519,7 +1520,7 @@ local filterTypeToReference = {
 		--as ZO_InventoryManager:ApplyBackpackLayout(layoutData) is called.
 		--Attention: As LF_INVENTORY and LF_CRAFTBAG both get hooked via fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT it needs to be applied a
 		--fix at ZO_InventoryManager:ApplyBackpackLayout in order to update layoutData.LibFilters3_filterType with the correct filterType
-		--LF_INVENTORY or LF_CRAFTBAG! See file LibFilters-3.0.lua, function ApplyFixesEarly() -> SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
+		--LF_INVENTORY or LF_CRAFTBAG! See file LibFilters-3.0.lua, function hookNow
 		--Else the last hooked one (LF_CRAFTBAG) will be kept as layoutData.LibFilters3_filterType all the time and filtering at other addons wont
 		--work properly!
 		[LF_CRAFTBAG]                 = { invCraftbag }, --, kbc.invBackpackFragment
@@ -1617,6 +1618,7 @@ local filterTypeToReference = {
 
 		--Updated with correct custom created LibFilters fragment in file /gamepad/gamepadCustomFragments.lua, as the fragments are created
 		--[LF_INVENTORY]                = {}, --custom created gamepad fragment gamepadLibFiltersInventoryFragment
+		--[LF_CRAFTAG]                  = {}, --custom created gamepad fragment gamepadLibFiltersCraftBagFragment
 		--...
 		-->Dynamically added below with loop: for filterType, _ in pairs(gpc.customFragments) do
 
@@ -1648,9 +1650,9 @@ for filterType, _ in pairs(gpc.customFragments) do
 end
 
 --The following filterTypes fallback to keyboard reference variables, as gamepad re-uses the same
---> If filterType was added here with tru that filtertype will use above table filterTypeToReference[false][filtertype]
+--> If filterType was added here with true, that filterType will use above table filterTypeToReference[false][filtertype] as reference variable
 local filterTypesGamepadFallbackToKeyboard = {
-		[LF_CRAFTBAG]                 = true,
+		--[LF_CRAFTBAG]                 = true, --20205-11-02 using a custom fragment now to circumvent PLAYER_INVENTORY.inventories not being initialized properly if gamepad mode was active as the game loads/reloadui!
 		[LF_BANK_WITHDRAW]            = true,
 		[LF_GUILDBANK_WITHDRAW]       = true,
 		[LF_HOUSE_BANK_WITHDRAW]      = true,
@@ -2225,8 +2227,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 		--Works 2025-11-02
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
 
-		--Todo 20251102: Callback works, but filter function does not apply. Check helpers.lua and custom gamepad fragment!
-		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP, --control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
+
+		--TODO 2025-11-02 Callback works now with customGamepadFragment, but filters do not apply to the customon fragment?
+		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. It will be populated to this table from there
 										  ["special"] = {
 											--[[
 											  [1] = {

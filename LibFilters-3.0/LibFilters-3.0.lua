@@ -1194,8 +1194,7 @@ local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbac
 	if libFilters.debug then dv("[U]updateFunction_GP_ZO_GamepadInventoryList - gpInvVar: %s, list: %s, callbackFunc: %s", tos(gpInvVar), tos(list), tos(callbackFunc)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
 	if not gpInvVar or not gpInvVar[list] then return end
-	local TRIGGER_CALLBACK = true
-	gpInvVar[list]:RefreshList(TRIGGER_CALLBACK)
+	gpInvVar[list]:RefreshList(true)  --trigger callback of vanilla ESO
 	if callbackFunc then callbackFunc() end
 end
 
@@ -1218,7 +1217,7 @@ end
 local function updateFunction_GP_ItemList(gpInvVar)
 --d("[LibFilters]updateFunction_GP_ItemList - gpInvVar: " ..tos(gpInvVar))
 	if libFilters.debug then dv("[U]updateFunction_GP_ItemList - gpInvVar: %s", tos(gpInvVar)) end
-libFilters._debugGPInvVar = gpInvVar
+--libFilters._debugGPInvVar = gpInvVar
 	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then
 		--todo 20251102 If we are in companion inventory and apply a filter which hides all items, the itemList is missing here?
 		if gpInvVar.itemList and gpInvVar.itemList:IsEmpty() and gpInvVar.currentListType == "categoryList" then
@@ -1230,7 +1229,7 @@ libFilters._debugGPInvVar = gpInvVar
 	end
 	if gpInvVar.RefreshItemList then
 --d("<itemList refreshing ...")
-		gpInvVar:RefreshItemList()
+		gpInvVar:RefreshItemList(true) --trigger callback of vanilla ESO
 	end
 	if gpInvVar.itemList:IsEmpty() then
 --d(">itemList is empty!")
@@ -1246,7 +1245,7 @@ end
 local function updateFunction_GP_CraftBagList(gpInvVar)
 	if libFilters.debug then dv("[U]updateFunction_GP_CraftBagList - gpInvVar: %s", tos(gpInvVar)) end
 	if not gpInvVar.craftBagList then return end
-	gpInvVar:RefreshCraftBagList()
+	gpInvVar:RefreshCraftBagList(true)  --trigger callback of vanilla ESO
 	gpInvVar:RefreshItemActions()
 end
 
@@ -1254,7 +1253,7 @@ end
 local function updateFunction_GP_CraftingInventory(craftingInventory)
 	if libFilters.debug then dv("[U]updateFunction_GP_CraftingInventory - craftingInventory: %s", tos(craftingInventory)) end
 	if not craftingInventory then return end
-libFilters._debugCraftingInventory = craftingInventory
+--libFilters._debugCraftingInventory = craftingInventory
 	craftingInventory:PerformFullRefresh()
 end
 
