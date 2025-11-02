@@ -1396,7 +1396,8 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
                 end
 --d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
                 --Original result was determined, so add the LibFilters filterFunctions now
-                if checkAndRundAdditionalFilters(gpFragmentOrOtherRef, slotData, result) == true then
+                local resultAdditionalFilter = checkAndRundAdditionalFilters(gpFragmentOrOtherRef, slotData, result)
+                if resultAdditionalFilter == true then
                     -- itemData is shared in several places and can write their own value of bestItemCategoryName.
                     -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
                     slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
@@ -1411,10 +1412,10 @@ libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable[slotData.slotIndex] 
     inventoryType = inventoryType,
     filterType = filterType,
     isUsingCustomGPFragment = isUsingCustomGPFragment,
-    customGPFragment        = customGPFragment,
+    gpFragmentOrOtherRef        = gpFragmentOrOtherRef,
     itemLink                = GetItemLink(slotData.bagId, slotData.slotIndex),
     result = result,
-    additionalFilter = checkAndRundAdditionalFilters(customGPFragment, slotData, result),
+    additionalFilter = resultAdditionalFilter,
 }
 
             end
