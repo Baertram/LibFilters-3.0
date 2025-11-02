@@ -1276,7 +1276,7 @@ gpc.InventoryUpdateFunctions      = {
 		updateFunction_GP_ZO_GamepadInventoryList(invFurnitureVault_GP, "depositList")
 	end,
 	[LF_MAIL_SEND] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invMailSend_GP, "inventoryList")
+		updateFunction_GP_ZO_GamepadInventoryList(invMailSend_GP.send, "inventoryList")
 	end,
 	[LF_TRADE] = function()
 		updateFunction_GP_ZO_GamepadInventoryList(invPlayerTrade_GP, "inventoryList")

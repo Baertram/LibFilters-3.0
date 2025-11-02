@@ -369,6 +369,9 @@ end
 --and if weapons/armor also if it's locked by ZOs vanilla UI lock functionality and non companion items
 --and poisons or potions or reagents by their stackCount <= 100
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
+	return false
+
+	--[[
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
@@ -393,6 +396,7 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 		return false
 	end
 	return stackCount > 1
+	]]
 end
 
 local bagIdSlotIndexFilterTypeStr = "bagId/slotIndex: (%s/%s), filterType: (%s)"

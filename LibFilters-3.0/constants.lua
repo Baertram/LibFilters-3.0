@@ -2013,7 +2013,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 	--Gamepad mode
 	[true]  = {
 		--Callback works 2025-11-02
-		--Todo 2025-11-02 Filter function does not work, or rather it works and filters the normal inventory list and not only the quest items shown at the quest subFilter ?!
+		--2025-11-02 Filter function does not work, or rather it works and filters the normal inventory list and not only the quest items shown at the quest subFilter ?!
 		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,		["fragment"] = nil, --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 										  ["special"] = {
 											  [1] = {
@@ -2025,8 +2025,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--Works, 2025-11-02
-		--todo: A refresh does not update the companion inventory directly? You need to e.g. select a subfilter like "1st hand" and then apply the filters, and then it will affecct all items in the inventory
-		--todo: Or you have to leave the "Items" list and come back to refresh it
+		--A refresh does not update the companion inventory directly? You need to e.g. select a subfilter like "1st hand" and then apply the filters, and then it will affecct all items in the inventory
+		--Or you have to leave the "Items" list and come back to refresh it
 		-->if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then -> As the itemList is not visible if you have selected the subfilter, it does not update here
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment_GP, 						["scene"] = gpc.companionEquipmentScene_GP,	["fragment"] = companionEquipmentFragment_GP,
 										  ["special"] = {
@@ -2151,8 +2151,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Works, 20251102 For non-accesibility quickslot wheel from inventory
-		--todo 20251102 Does not fire callbacks from inventory -> usable items -> assign -> Showing scene "gamepadAccessibleAssignableUtilityWheel" (if accessibility quickslot wheel is enabled!!!)
-		-- But there currently is not possibility to circuvent this as we do not see if it's a quickslot or some other accesibility wheel from collections e.g.!
+		--20251102 (if accessibility quickslot wheel is enabled!!!) Does not fire callbacks from inventory -> usable items -> assign -> Showing scene "gamepadAccessibleAssignableUtilityWheel"
+		--> But there currently is not possibility to circumvent this as we do not see if it's a quickslot or some other accesibility wheel from collections e.g.!
 		[LF_QUICKSLOT]                = { ["control"] = ZO_Quickslot_Gamepad_TopLevel, 	["scene"] = gpc.quickslotScene_GP, 		["fragment"] = quickslotFragment_GP,		--uses inventory fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 										  ["special"] = {
 											  [1] = {
@@ -2166,7 +2166,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 
 
 		--Updated with correct fragment in file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_INVENTORY]                = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = invFragment_GP, --uses GAMEPAD_INVENTORY_FRAGMENT instead of custom gamepadLibFiltersInventoryFragment now for detection as this' shown state get's updated properly after quickslot wheel was closed again
 										  ["special"] = {
 											  [1] = {
@@ -2179,7 +2179,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 
-		--Works: 2025-09-20
+		--todo test: 2025-11-02
 		[LF_INVENTORY_VENGEANCE]      = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created.
 										  ["special"] = {
 											  [1] = {
@@ -2218,10 +2218,13 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works: 2025-11-01
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		--TODO: 20251102 Callback works, but filterFunction does not apply. Check helpers.lua and custom gamepad fragment!
+
+		--Works: 2025-11-02
 		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.inventoryListControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, },  --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created,
+
 		--Works 2025-11-02
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
+
 		--Todo 20251102: Callback works, but filter function does not apply. Check helpers.lua and custom gamepad fragment!
 		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP, --control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
 										  ["special"] = {
