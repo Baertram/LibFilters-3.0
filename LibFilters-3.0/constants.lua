@@ -2012,7 +2012,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 
 	--Gamepad mode
 	[true]  = {
-		--Works, 2021-12-20
+		--Callback works 2025-11-02
+		--Todo 2025-11-02 Filter function does not work, or rather it works and filters the normal inventory list and not only the quest items shown at the quest subFilter ?!
 		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,		["fragment"] = nil, --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 										  ["special"] = {
 											  [1] = {
@@ -2023,7 +2024,10 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2022-01-02
+		--Works, 2025-11-02
+		--todo: A refresh does not update the companion inventory directly? You need to e.g. select a subfilter like "1st hand" and then apply the filters, and then it will affecct all items in the inventory
+		--todo: Or you have to leave the "Items" list and come back to refresh it
+		-->if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then -> As the itemList is not visible if you have selected the subfilter, it does not update here
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment_GP, 						["scene"] = gpc.companionEquipmentScene_GP,	["fragment"] = companionEquipmentFragment_GP,
 										  ["special"] = {
 											  [1] = {
@@ -2034,7 +2038,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_VENDOR_BUY]               = { ["control"] = storeComponents[ZO_MODE_STORE_BUY].list,	["scene"] = storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_BUY].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2046,7 +2050,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_VENDOR_SELL]              = { ["control"] = storeComponents[ZO_MODE_STORE_SELL].list, 	["scene"] = storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_SELL].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2070,7 +2074,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_VENDOR_BUYBACK]           = { ["control"] = storeComponents[ZO_MODE_STORE_BUY_BACK].list,	["scene"] = storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_BUY_BACK].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2082,7 +2086,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_VENDOR_REPAIR]            = { ["control"] = storeComponents[ZO_MODE_STORE_REPAIR].list, 	["scene"] = storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_REPAIR].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2094,7 +2098,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_FENCE_SELL]               = { ["control"] = storeComponents[ZO_MODE_STORE_SELL_STOLEN].list, 	["scene"] = storeScene_GP,	["fragment"] = storeComponents[ZO_MODE_STORE_SELL_STOLEN].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2106,7 +2110,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-19
+		--Works, 2025-11-02
 		[LF_FENCE_LAUNDER]            = { ["control"] = storeComponents[ZO_MODE_STORE_LAUNDER].list, 		["scene"] = storeScene_GP, 	["fragment"] = storeComponents[ZO_MODE_STORE_LAUNDER].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2119,6 +2123,8 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 		--Works, 2021-12-21
+		--IMPORTANT: 20251102 The refresh function of Smithing Research Dialog also refreshes to Jewerly research dialog, and vice versa.
+		--One must make sure to remove the fiters of the other properly as the dialog closes, as the dialog is the same!
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = researchChooseItemDialog_GP,	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -2129,7 +2135,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 												}
 											}
 		},
-		--Works, 2021-12-21
+		--Works, 2025-11-02
+		--IMPORTANT: 20251102 The refresh function of Smithing Research Dialog also refreshes to Jewerly research dialog, and vice versa.
+		--One must make sure to remove the fiters of the other properly as the dialog closes, as the dialog is the same!
 		[LF_JEWELRY_RESEARCH_DIALOG]  = { ["control"] = nil, 							["scene"] = researchChooseItemDialog_GP,	["fragment"] = nil,
 										   ["special"] = {
 												[1] = {
@@ -2142,7 +2150,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 
 
-		--Works, 2025-09-21
+		--Works, 20251102 For non-accesibility quickslot wheel from inventory
+		--todo 20251102 Does not fire callbacks from inventory -> usable items -> assign -> Showing scene "gamepadAccessibleAssignableUtilityWheel" (if accessibility quickslot wheel is enabled!!!)
+		-- But there currently is not possibility to circuvent this as we do not see if it's a quickslot or some other accesibility wheel from collections e.g.!
 		[LF_QUICKSLOT]                = { ["control"] = ZO_Quickslot_Gamepad_TopLevel, 	["scene"] = gpc.quickslotScene_GP, 		["fragment"] = quickslotFragment_GP,		--uses inventory fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
 										  ["special"] = {
 											  [1] = {
@@ -2195,8 +2205,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		---Works: 2025-11-01
 		[LF_GUILDBANK_DEPOSIT]        = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerdeposit, 	["scene"] = invGuildBankScene_GP, 	["fragment"] = nil, }, 	--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as guild bank lists get initialized
-		--TODO: NOT WORKING, 2025-11-01
-		--todo: callback Works but filters do not work?, 2025-11-01
+		--Works, 2025-11-02
 		[LF_HOUSE_BANK_DEPOSIT]       = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP, 		["fragment"] = nil,		--uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2209,13 +2218,11 @@ filterTypeToCheckIfReferenceIsHidden = {
 		},
 		--Works: 2025-11-01
 		[LF_GUILDSTORE_SELL]          = { ["control"] = ZO_TradingHouse_GamepadMaskContainerSell,	["scene"] = invGuildStoreSellScene_GP, 	["fragment"] = nil, }, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created
-		--TODO: 2025-11-02
-		--Callback works, but filterFunction does not apply. Check helpers.lua and custom gamepad fragment!
+		--TODO: 20251102 Callback works, but filterFunction does not apply. Check helpers.lua and custom gamepad fragment!
 		[LF_MAIL_SEND]                = { ["control"] = gpc.invMailSend_GP.send.inventoryListControl,	["scene"] = gpc.invMailSendScene_GP,		["fragment"] = nil, },  --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created,
-		--Works 2021-12-18
+		--Works 2025-11-02
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
-
-		--Works, 2021-12-19
+		--Todo 20251102: Callback works, but filter function does not apply. Check helpers.lua and custom gamepad fragment!
 		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = invFragment_GP, --control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
 										  ["special"] = {
 											--[[
@@ -2245,10 +2252,9 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-18
+		--todo: Worked, 2021-12-18
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
-		--TODO: NOT WORKING, 2025-11-01
-		--todo: callback Works but filters do not work?, 2025-11-01
+		--Works, 2025-11-02
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
 										   ["special"] = {
 												[1] = {
@@ -2390,7 +2396,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		--Works, 2025-11-01
 		[LF_RETRAIT]                  = { ["control"] = gpc.retrait_GP, ["scene"] = gpc.retraitScene_GP, ["fragment"] = retraitFragment_GP, },
 
-		--Works: 2025-09-21
+		--Todo: To be tested: Worked on 2025-09-21
 		[LF_FURNITURE_VAULT_DEPOSIT]  = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -2401,7 +2407,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works: 2025-09-21
+		--Todo 20251102: Callback works, but filter function does not apply.
 		[LF_FURNITURE_VAULT_WITHDRAW] = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {

@@ -349,7 +349,7 @@ libFilters.IsUniversalDeconstructionSupportedFilterType = isUniversalDeconstruct
 --Copy the current filterType to lastFilterType (same for the referenceVariables table) if the filterType / refVariables
 --table needs an update, and for the UniversalDeconstruction panel's selected tab
 local function updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterTyp, universalDeconTab, doNotUpdateLast)
-d(">updateLastAndCurrentFilterType - lFilterTypeDetected: " ..tos(lFilterTypeDetected))
+--Sd(">updateLastAndCurrentFilterType - lFilterTypeDetected: " ..tos(lFilterTypeDetected))
 	if libFilters.debug then dd("!°!updateLastAndCurrentFilterType - filterType: %s, universalDeconTab: %s, doNotUpdateLast: %s, current: %s, last: %s, lastUniversalDeconTab: %s",
 		tos(lFilterTypeDetected), tos(universalDeconTab), tos(doNotUpdateLast), tos(libFilters._currentFilterType),
 			tos(libFilters._lastFilterType), tos(libFilters._lastFilterTypeUniversalDeconTab))
@@ -1216,12 +1216,27 @@ end
 
 -- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST gamepad
 local function updateFunction_GP_ItemList(gpInvVar)
+--d("[LibFilters]updateFunction_GP_ItemList - gpInvVar: " ..tos(gpInvVar))
 	if libFilters.debug then dv("[U]updateFunction_GP_ItemList - gpInvVar: %s", tos(gpInvVar)) end
-	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then return end
-	gpInvVar:RefreshItemList()
+libFilters._debugGPInvVar = gpInvVar
+	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then
+		--todo 20251102 If we are in companion inventory and apply a filter which hides all items, the itemList is missing here?
+		if gpInvVar.itemList and gpInvVar.itemList:IsEmpty() and gpInvVar.currentListType == "categoryList" then
+--d(">itemList is empty, categoryList shows (filtered all items?!)")
+		else
+--d("<abort due to missing itemList")
+			return
+		end
+	end
+	if gpInvVar.RefreshItemList then
+--d("<itemList refreshing ...")
+		gpInvVar:RefreshItemList()
+	end
 	if gpInvVar.itemList:IsEmpty() then
+--d(">itemList is empty!")
 		gpInvVar:SwitchActiveList("categoryList")
 	else
+--d(">itemList NOT empty, updating RightTooltip and itemActions!")
 		gpInvVar:UpdateRightTooltip()
 		gpInvVar:RefreshItemActions()
 	end

@@ -1272,6 +1272,13 @@ end
 
 
 --Custom global filter function you can change and use in the test UI's customFilterFunction editbox
+-->uses the slot (for all others)
+--Hides all items!
+function LibFilters3_TestFilterAll(slotOrBagId, slotIndex)
+	return false
+end
+
+--Custom global filter function you can change and use in the test UI's customFilterFunction editbox
 -->uses bagId and slotIndex (for most crafting tables)
 --Hides all items, except at bank deposit if quality is above arcane
 function LibFilters3_TestFilter_BagId(bagId, slotIndex)
