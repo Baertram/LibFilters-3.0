@@ -1395,7 +1395,7 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
                     gpFragmentOrOtherRef = bagIdToInventory[inventoryType]
                 end
 
-    d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
+--    d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
                 --Original result was determined, so add the LibFilters filterFunctions now
                 local resultAdditionalFilter = checkAndRundAdditionalFilters(gpFragmentOrOtherRef, slotData, result)
                 if resultAdditionalFilter == true then
@@ -1405,11 +1405,11 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
 
                     table.insert(slotsTable, slotData)
                 end
-
+--[[
 libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable = libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable or {}
 libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable[slotData.slotIndex] = {
-    self = self,
-    slotsTable = slotsTable,
+    --self = self,
+    --slotsTable = slotsTable,
     inventoryType = inventoryType,
     filterType = filterType,
     isUsingCustomGPFragment = isUsingCustomGPFragment,
@@ -1418,6 +1418,7 @@ libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable[slotData.slotIndex] 
     result = result,
     additionalFilter = resultAdditionalFilter,
 }
+]]
 
             end
 		end

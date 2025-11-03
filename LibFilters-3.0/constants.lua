@@ -365,10 +365,10 @@ local subControlsToLoop = {
 	}
 constants.subControlsToLoop = subControlsToLoop
 
-local function checkIfControlSceneFragmentOrOther(refVar)
+local function checkIfControlSceneFragmentOrOther(refVar, filterType, isGamepad)
 	local retVar
 	--Scene or fragment
-	if refVar.sceneManager or refVar.state or refVar._state then
+	if refVar.sceneManager or refVar.state or refVar._state or refVar.callbackRegistry or refVar.conditional then
 		if refVar.name ~= nil or refVar.fragments ~= nil then
 			retVar = LIBFILTERS_CON_TYPEOFREF_SCENE -- Scene
 		else
@@ -2228,17 +2228,10 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
 
 
-		--TODO 2025-11-02 Callback works now with customGamepadFragment, but filters do not apply to the customon fragment?
+		--2025-11-02, Works (with new custom gamepad fragment now)
 		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. It will be populated to this table from there
+										  --[[
 										  ["special"] = {
-											--[[
-											  [1] = {
-												  ["control"]         = invBackpack_GP.craftBagList,		--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
-												  ["funcOrAttribute"] = "IsActive",							--On first open of the gamepad CraftBag list this function will return false...
-												  ["params"]          = { invBackpack_GP.craftBagList },	--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
-												  ["expectedResults"] = { true },
-											  }
-											  ]]
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],		--will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. So it will be populated to this table here there
 												  ["funcOrAttribute"] = "IsVanillaCraftBagShown", --On first open of the gamepad CraftBag list this function will return false...
@@ -2246,6 +2239,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 												  ["expectedResults"] = { true },
 											  }
 										  }
+										  ]]
 		},
 		--Works, 2025-11-01
 		[LF_BANK_WITHDRAW]            = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
@@ -2546,7 +2540,7 @@ local filterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes = {
 
 	--Gamepad mode
 	[true] = {
-		{ filterType=LF_CRAFTBAG, 					checkTypes = { "scene", "fragment", "control", "special" } },
+		{ filterType=LF_CRAFTBAG, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_MAIL_SEND, 					checkTypes = { "scene", "fragment", "control" } },
 		{ filterType=LF_TRADE, 						checkTypes = { "scene", "fragment", "control" }, },
 		{ filterType=LF_VENDOR_BUY, 				checkTypes = { "scene", "fragment", "control", "special" } },
@@ -2789,21 +2783,6 @@ local callbacksUsingFragments = {
 
 		-->Custom fragments will be updated from file /Gamepad/gamepadCustomFragments.lua
 		--The fragments will be updated as inv/bank lists get initialized
-		--callbacksUsingFragments[true][gamepadLibFiltersInventoryFragment] 		= { LF_INVENTORY }
-		--callbacksUsingFragments[true][gamepadLibFiltersBankDepositFragment] 		= { LF_BANK_DEPOSIT }
-		--callbacksUsingFragments[true][gamepadLibFiltersGuildBankDepositFragment] 	= { LF_GUILDBANK_DEPOSIT }
-		--callbacksUsingFragments[true][gamepadLibFiltersHouseBankDepositFragment] 	= { LF_HOUSE_BANK_DEPOSIT }
-		--[tradingHouseBrowse_GP.fragment] 											= { LF_GUILDSTORE_BROWSE }
-		--callbacksUsingFragments[true][gamepadLibFiltersGuildStoreSellFragment] 	= { LF_GUILDSTORE_SELL }
-		--callbacksUsingFragments[true][gamepadLibFiltersMailSendFragment] 			= { LF_MAIL_SEND }
-		--callbacksUsingFragments[true][gamepadLibFiltersPlayerTradeFragment] 		= { LF_TRADE }
-		--callbacksUsingFragments[true][gamepadLibFiltersInventoryQuestFragment] 	= { LF_INVENTORY_QUEST }
-		--callbacksUsingFragments[true][gamepadLibFiltersFurnitureVaultDepositFragment] = { LF_FURNITURE_VAULT_DEPOSIT }
-		--callbacksUsingFragments[true][gamepadLibFiltersInventoryVengeanceFragment] 		= { LF_INVENTORY_VENGEANCE }
-		--[1] = { LF_BANK_WITHDRAW },
-		--[1] = { LF_GUILDBANK_WITHDRAW },
-		--[1] = { LF_HOUSE_BANK_WITHDRAW },
-		--[invBackpack_GP.craftBagList._fragment] = { LF_CRAFTBAG }, --Will be updated in file /Gamepad/gamepadCustomFragments.lua, function SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	}
 }
 callbacks.usingFragments = callbacksUsingFragments

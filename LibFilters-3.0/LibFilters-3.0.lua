@@ -3,7 +3,7 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-09-19, Baertram
+--Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-11-03, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				15
 --Feature requests total: 	0
@@ -13,9 +13,7 @@
 
 
 --[Feature requests]
--- #f1) Add furniture vault gamepad
--- #f2) Add cyrodiil vengeance inventory keyboard
--- #f3) Add cyrodiil vengeance inventory gamepad
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
@@ -175,7 +173,6 @@ local kbc                      	= 	constants.keyboard
 local playerInv                	= 	kbc.playerInv
 local inventories              	= 	kbc.inventories
 --local craftBagFragment 		   = 	kbc.craftBagFragment
---local craftBagKBLayoutDataAttribute = otherOriginalFilterAttributesAtLayoutData_Table[false][LF_CRAFTBAG]["attributeRead"]
 local quickslots               	=    kbc.quickslots
 local store                    	= 	kbc.store
 --local storeBuy                 = 	kbc.vendorBuy
@@ -3188,7 +3185,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 
 		for _, filterTypeRefToHook in ipairs(inventoriesToHookForLFConstant_Table) do
 			if filterTypeRefToHook ~= nil then
-				local typeOfRef = checkIfControlSceneFragmentOrOther(filterTypeRefToHook)
+				local typeOfRef = checkIfControlSceneFragmentOrOther(filterTypeRefToHook, filterType, isInGamepadMode)
 				local typeOfRefStr = typeOfRefToName[typeOfRef]
 				if libFilters.debug then
 					local typeOfRefName = getTypeOfRefName(typeOfRef, filterTypeRefToHook)

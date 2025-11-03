@@ -15,7 +15,6 @@ local playerInventory = 						kbc.playerInv
 
 local gamepadLibFiltersInventoryFragment =      libFilters.fragments[true].CustomInventoryFragment
 
-
 --~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- Custom added Gamepad inventory type fragment's sub-class
 --  These fragments will be used to automatically transfer the .additionalFilter via their layoutData and function
@@ -37,6 +36,7 @@ function LibFilters_InventoryLayoutFragment_Class:Initialize(layoutData)
     else
         self.layoutData = {}
     end
+    self.state = SCENE_FRAGMENT_HIDDEN --to make function constants.lua -> checkIfControlSceneFragmentOrOther detect it as a fragment, as libFilters:HookAdditionalFilters is called
 end
 function LibFilters_InventoryLayoutFragment_Class:Show()
 	self:ApplyInventoryLayout(self.layoutData)

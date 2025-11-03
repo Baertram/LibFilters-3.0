@@ -1,5 +1,5 @@
 --[[
-	Version:	5.0
+	Version:	6.0
 	Idea:		IsJustAGhost
 	Code by:	IsJustAGhost & Baertram
 
@@ -562,21 +562,24 @@ SecurePostHook(invBackpack_GP, "OnDeferredInitialize", function(self)
 	craftBagFragment_GP = craftBagList_GP._fragment
 	libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["control"] = craftBagFragment_GP.control  --ZO_GamepadInventoryTopLevelMaskContainerCraftBag
 
-	--Custom Craftbag Fragment "gamepadLibFiltersCraftBagFragment" Show/Hide
-
+	--Custom Craftbag Fragment "gamepadLibFiltersCraftBagFragment"  - On Show/Hide add/remove the craftbag fragment to the inventory gamepad scene
 	ZO_PreHookHandler(craftBagList_GP.control, "OnEffectivelyShown", function()
 --d("[LibFilters]CraftBagList - OnEffectivelyShown")
 		invRootScene_GP:AddFragment(gamepadLibFiltersCraftBagFragment)
 	end)
-	ZO_PreHookHandler(craftBagList_GP.control, "OnEffectivelyHidden", function()
+	ZO_PostHookHandler(craftBagList_GP.control, "OnEffectivelyHidden", function()
 --d("[LibFilters]CraftBagList - OnEffectivelyHidden")
 		updateSceneManagerAndHideFragment(gamepadLibFiltersCraftBagFragment)
 		invRootScene_GP:RemoveFragment(gamepadLibFiltersCraftBagFragment)
 	end)
+	--todo 20251102 Why aren't the CraftBag filterFunctions added to the fragment properly?
 
-	--Not needed anymore as specialFunction changed to libFilters internally LibFilters3:IsVanillaCraftBagShown()
+
+	--2024 someday: Not needed anymore as specialFunction changed to libFilters internally LibFilters3:IsVanillaCraftBagShown()
 	--libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["control"] 		= craftBagList_GP
 	--libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_CRAFTBAG]["special"][1]["params"][1]	= craftBagList_GP
+
+	--20251102: Not needed anymore as custom gamepad fragment is used now
 	--libFilters.mapping.callbacks.usingFragments[true][craftBagFragment_GP] = { LF_CRAFTBAG }
 	--libFilters.CreateFragmentCallback(craftBagFragment_GP, { LF_CRAFTBAG }, true)
 
@@ -785,22 +788,8 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	gamepadLibFiltersCraftBagFragment 			= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
 	gamepadLibFiltersCraftBagFragment._name 	= getCustomLibFiltersFragmentName(LF_CRAFTBAG)
 	_G[gamepadLibFiltersCraftBagFragment._name]	= gamepadLibFiltersCraftBagFragment
+	--> Will be added/removed as gamepad inventory initializes and the craftBagList is shown/hidden
 
---[[ 20251102 This fires the hidden callback twice unfortunately and filter function works on normal inventory, but not the CraftBag?
-	local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
-	local CRAFT_BAG_ACTION_MODE = 3
-	SecurePostHook(invBackpack_GP, "SwitchActiveList", function(selfVar, listDescriptor, selectDefaultEntry)
-d("[LibFilters]GP inventory - SwitchActiveList")
-		if listDescriptor == INVENTORY_CRAFT_BAG_LIST or selfVar.actionMode == CRAFT_BAG_ACTION_MODE then
-d(">CraftBag List")
-			invRootScene_GP:AddFragment(gamepadLibFiltersCraftBagFragment)
-		else
-d(">Other List")
-			updateSceneManagerAndHideFragment(gamepadLibFiltersCraftBagFragment)
-			invRootScene_GP:RemoveFragment(gamepadLibFiltersCraftBagFragment)
-		end
-	end)
-]]
 
 	--Trading house = Guild store sell
 	gamepadLibFiltersGuildStoreSellFragment 					= ZO_DeepTableCopy(gamepadLibFiltersDefaultFragment)
@@ -829,53 +818,11 @@ d(">Other List")
 	gamepadLibFiltersMailSendFragment._name 		= getCustomLibFiltersFragmentName(LF_MAIL_SEND)
 	_G[gamepadLibFiltersMailSendFragment._name]		= gamepadLibFiltersMailSendFragment
 	--Hide/Show with GAMEPAD_MAIL_SEND_FRAGMENT -> via function SwitchToFragment
-	--> 2025-11-01 This is too early! Will add our fragment as gamepad mail send panel shows but the inventory list is still hidden there!
-	--[[
-	ZO_PreHook(invMailSend_GP, 'SwitchToFragment', function(self, fragment)
-		if not libFilters.isInitialized then return end
-
-		if fragment == invMailSendFragment_GP then
-			if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Adding custom mail send fragment") end
-			invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
-		else
-			updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
-			if libFilters.debug then dd("Gamepad Mail Send Scene:SwitchToFragment - Removing custom mail send fragment") end
-			invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
-		end
-	end)
-	]]
+	--> 2025-11-01 Adding it to the scene is too early: It will add our fragment as gamepad mail send panel shows but the inventory list (attachments) is still hidden there!
 
 	SecurePostHook(invMailSend_GP.send, "PerformDeferredInitialization", function(self)
 		--Update the reference table with the existing control now:
 		libFilters.mapping.LF_FilterTypeToCheckIfReferenceIsHidden[true][LF_MAIL_SEND].control = gpc.invMailSend_GP.send.inventoryListControl
-
-		--[[
-		ZO_PreHook(invMailSend_GP.send.inventoryList, "Activate", function()
-d("[LibFilters]Gamepad mail inv list - Activate")
-			if not libFilters.isInitialized then return end
-			--Needed to "early set" the filterType for the Gamepad mail send panel detection at filter function -> See helpers.lua, ZO_GamepadInventoryList:AddSlotDataToTable
-			updateLastAndCurrentFilterType = updateLastAndCurrentFilterType or libFilters.UpdateLastAndCurrentFilterType
-			detectShownReferenceNow = detectShownReferenceNow or libFilters.DetectShownReferenceNow
-			local LF_FilterTypeMailSend = LF_MAIL_SEND
-			local lReferencesToFilterTyp = detectShownReferenceNow(LF_FilterTypeMailSend, true, false, true) --Skip special checks, only control shown check needed e.g.
-			updateLastAndCurrentFilterType(LF_FilterTypeMailSend, lReferencesToFilterTyp, nil, false)
-
-			if not invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
-				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Adding custom mail send fragment") end
-				invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
-			end
-		end)
-		ZO_PostHook(invMailSend_GP.send.inventoryList, "Deactivate", function()
-d("[LibFilters]Gamepad mail inv list - Deactivate")
-			if not libFilters.isInitialized then return end
-
-			if invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
-				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Removing custom mail send fragment") end
-				updateSceneManagerAndHideFragment(gamepadLibFiltersMailSendFragment)
-				invMailSendScene_GP:RemoveFragment(gamepadLibFiltersMailSendFragment)
-			end
-		end)
-		]]
 
 		ZO_PreHookHandler(invMailSend_GP.send.inventoryListControl, "OnEffectivelyShown", function()
 --d("[LibFilters]Gamepad mail inv list - OnEffectivelyShown")
@@ -883,12 +830,6 @@ d("[LibFilters]Gamepad mail inv list - Deactivate")
 			--Needed to "early set" the filterType for the Gamepad mail send panel detection at filter function -> See helpers.lua, ZO_GamepadInventoryList:AddSlotDataToTable
 			updateLastAndCurrentFilterType = updateLastAndCurrentFilterType or libFilters.UpdateLastAndCurrentFilterType
 			detectShownReferenceNow = detectShownReferenceNow or libFilters.DetectShownReferenceNow
-			--[[
-				local LF_FilterTypeMailSend = LF_MAIL_SEND
-				local lReferencesToFilterTyp = detectShownReferenceNow(LF_FilterTypeMailSend, true, false, true) --Skip special checks, only control shown check needed e.g.
-				updateLastAndCurrentFilterType(LF_FilterTypeMailSend, lReferencesToFilterTyp, nil, false)
-				libFilters.preventCallbackUpdateLastVars = true --for function callbackRaiseCheck in LibFilters-3.0.lua -> Prevent resetting updateLastAndCurrentFilterType once
-			]]
 			if not invMailSendScene_GP:HasFragment(gamepadLibFiltersMailSendFragment) then
 				if libFilters.debug then dd("Gamepad Mail Send Inventory:Activate - Adding custom mail send fragment") end
 				invMailSendScene_GP:AddFragment(gamepadLibFiltersMailSendFragment)
@@ -1038,7 +979,8 @@ d("[LibFilters]Gamepad mail inv list - Deactivate")
 	--gamepadLibFiltersInventoryFragment 		--will be added/removed dynamically via functions invBackpack_GP.categoryList:SetOnSelectedDataChangedCallback and invBackpack_GP:SetCurrentList, and hookFragmentStateByPostHookListInitFunction above
 	--gamepadLibFiltersGuildBankDepositFragment --will be added/removed dynamically via function hookFragmentStateByPostHookListInitFunction above
 	--gamepadLibFiltersGuildStoreSellFragment 	--will be added/removed dynamically via function GAMEPAD_TRADING_HOUSE:SetCurrentMode() above
-	--gamepadLibFiltersMailSendFragment 		--will be added/removed dynamically via function mailManagerGamepadScene:SwitchToFragment() above
+	--gamepadLibFiltersMailSendFragment 		--will be added/removed dynamically as the Mail gamepad .send control is shown/hidden
+	--gamepadLibFiltersCraftBagFragment			--will be added/removed dynamically at Gamepad Inventory DeferredInitialization, as the craftBagList control is shown/hidden
 
 	--Actually adding fragments to gamepad scenes:
 	invPlayerTradeScene_GP:AddFragment(gamepadLibFiltersPlayerTradeFragment)
@@ -1059,6 +1001,7 @@ d("[LibFilters]Gamepad mail inv list - Deactivate")
 	--  See constants.lua -> table gamepadConstants.customFragments with the pre-defined placeholders
 	--> [LF_*] = {name="...", fragment=nil},
 	------------------------------------------------------------------------------------------------------------------------
+	--Attention: Only update the .fragment variable! DO NOT overwrite the total entry
 	local customFragmentsUpdateRef                           						= 	libFilters.constants.gamepad.customFragments
 	customFragmentsUpdateRef[LF_INVENTORY].fragment          						= 	gamepadLibFiltersInventoryFragment
 	customFragmentsUpdateRef[LF_BANK_DEPOSIT].fragment      						= 	gamepadLibFiltersBankDepositFragment
@@ -1070,11 +1013,11 @@ d("[LibFilters]Gamepad mail inv list - Deactivate")
 	customFragmentsUpdateRef[LF_INVENTORY_QUEST].fragment 							=   gamepadLibFiltersInventoryQuestFragment
 	customFragmentsUpdateRef[LF_FURNITURE_VAULT_DEPOSIT].fragment      				= 	gamepadLibFiltersFurnitureVaultDepositFragment
 	customFragmentsUpdateRef[LF_INVENTORY_VENGEANCE].fragment          				= 	gamepadLibFiltersInventoryVengeanceFragment
-	customFragmentsUpdateRef[LF_CRAFTBAG] 											=   gamepadLibFiltersCraftBagFragment
+	customFragmentsUpdateRef[LF_CRAFTBAG].fragment									=   gamepadLibFiltersCraftBagFragment
 
 	--Update the table libFilters.LF_FilterTypeToReference for the gamepad mode fragments
 	-->THIS TABLE IS USED TO GET THE FRAGMENT's REFERENCE OF GAMEPAD filterTypes WITHIN LibFilters-3.0.lua, function ApplyAdditionalFilterHooks()!
-	---> At this reference variable the subtable layoutData and in it the .additionalFilter function will be searched later
+	---> At this reference variable the subtable layoutData, and in it the .additionalFilter function, will be searched later
 	LF_FilterTypeToReference[true][LF_INVENTORY]          							= 	{ gamepadLibFiltersInventoryFragment }
 	LF_FilterTypeToReference[true][LF_BANK_DEPOSIT]       							= 	{ gamepadLibFiltersBankDepositFragment }
 	LF_FilterTypeToReference[true][LF_GUILDBANK_DEPOSIT]  							= 	{ gamepadLibFiltersGuildBankDepositFragment }
@@ -1124,8 +1067,8 @@ d("[LibFilters]Gamepad mail inv list - Deactivate")
 	filterTypeToCallbackRef[true][LF_TRADE] = 				{ ref = gamepadLibFiltersPlayerTradeFragment, 		refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_INVENTORY_QUEST] = 	{ ref = gamepadLibFiltersInventoryQuestFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 	filterTypeToCallbackRef[true][LF_FURNITURE_VAULT_DEPOSIT] =	{ ref = gamepadLibFiltersFurnitureVaultDepositFragment,	refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
-	filterTypeToCallbackRef[true][LF_INVENTORY_VENGEANCE] = { ref = gamepadLibFiltersInventoryVengeanceFragment, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
-	filterTypeToCallbackRef[true][LF_CRAFTBAG] 			  = { ref = gamepadLibFiltersCraftBagFragment, refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+	filterTypeToCallbackRef[true][LF_INVENTORY_VENGEANCE] = { ref = gamepadLibFiltersInventoryVengeanceFragment,refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
+	filterTypeToCallbackRef[true][LF_CRAFTBAG] 			  = { ref = gamepadLibFiltersCraftBagFragment, 			refType = LIBFILTERS_CON_TYPEOFREF_FRAGMENT }
 
 
 	--Update the custom Gamepad fragments to the LibFilters.fragments[true] table
