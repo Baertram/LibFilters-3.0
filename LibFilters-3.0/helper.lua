@@ -76,19 +76,38 @@ local defaultSubTableWhereFilterFunctionsCouldBe = constants.defaultSubTableWher
 --Local functions for the helpers
 ------------------------------------------------------------------------------------------------------------------------
 --Locals for .additionalFilters checks
-local function doesAdditionalFilterFuncExist(objectVar)
-    return (objectVar and objectVar[defaultOriginalFilterAttributeAtLayoutData] and type(objectVar[defaultOriginalFilterAttributeAtLayoutData]) == "function") or false
+local function doesAdditionalFilterFuncExist(gpFragmentOrOtherRef)
+    return (gpFragmentOrOtherRef and type(gpFragmentOrOtherRef[defaultOriginalFilterAttributeAtLayoutData]) == "function") or false
 end
 
-local function checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
-    local additionalFilterFuncExists = doesAdditionalFilterFuncExist(objectVar)
-    if not additionalFilterFuncExists then
-        additionalFilterFuncExists = doesAdditionalFilterFuncExist(objectVar[defaultSubTableWhereFilterFunctionsCouldBe])
-        if additionalFilterFuncExists == true then
-            return additionalFilterFuncExists, objectVar[defaultSubTableWhereFilterFunctionsCouldBe]
+local function checkIfFiltertypeUsesCustomGamepadFragment(objectVar)
+    local isUsingCustomGPFragment = false
+    local gpFragmentOrOtherRef = objectVar
+    --Gamepad mode?
+    if iigpm() then
+        --2025-11-01 Gamepad bank deposit (and other filterTypes used) uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
+        --to have the filterfunction there at the layoutData!
+        local filterType = libFilters_GetCurrentFilterType(libFilters) or libFilters._currentFilterType
+        isUsingCustomGPFragment, gpFragmentOrOtherRef = libFilters_IsFilterTypeUsingCustomGamepadFragment(filterType)
+        if not isUsingCustomGPFragment then
+            gpFragmentOrOtherRef = objectVar
         end
     end
-    return additionalFilterFuncExists, objectVar
+    return isUsingCustomGPFragment, gpFragmentOrOtherRef
+end
+
+local function checkAdditionalFiltersAtObjectOrObjectsLayoutData(objectVar)
+    --Are we using a custom gamepad fragment and thus do not use the originally passed in objectVar as reference for the .layoutData.additionalFilter function?
+    local isUsingCustomGPFragment, gpFragmentOrOtherRef = checkIfFiltertypeUsesCustomGamepadFragment(objectVar)
+
+    local additionalFilterFuncExists = doesAdditionalFilterFuncExist(gpFragmentOrOtherRef)
+    if not additionalFilterFuncExists then
+        additionalFilterFuncExists = doesAdditionalFilterFuncExist(gpFragmentOrOtherRef[defaultSubTableWhereFilterFunctionsCouldBe])
+        if additionalFilterFuncExists == true then
+            return additionalFilterFuncExists, gpFragmentOrOtherRef[defaultSubTableWhereFilterFunctionsCouldBe]
+        end
+    end
+    return additionalFilterFuncExists, gpFragmentOrOtherRef
 end
 
 --Check for .additionalFilter in an object, or within object.layoutData, and run it on the slotItem now
@@ -96,7 +115,7 @@ local function checkAndRundAdditionalFilters(objectVar, slotItem, resultIfNoAddi
     if objectVar == nil then return resultIfNoAdditionalFilter end
     if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
     local additionalFilterFuncExists = false
-    additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
+    additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObjectsLayoutData(objectVar)
     if additionalFilterFuncExists == true then
         if resultIfNoAdditionalFilter then
             resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](slotItem)
@@ -110,7 +129,7 @@ local function checkAndRundAdditionalFiltersBag(objectVar, bagId, slotIndex, res
     if objectVar == nil then return resultIfNoAdditionalFilter end
     if resultIfNoAdditionalFilter == nil then resultIfNoAdditionalFilter = true end
     local additionalFilterFuncExists = false
-    additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObkjectsLayoutData(objectVar)
+    additionalFilterFuncExists, objectVar = checkAdditionalFiltersAtObjectOrObjectsLayoutData(objectVar)
     if additionalFilterFuncExists == true then
 		if resultIfNoAdditionalFilter then
 			resultIfNoAdditionalFilter = objectVar[defaultOriginalFilterAttributeAtLayoutData](bagId, slotIndex)
@@ -208,7 +227,7 @@ end
 -- Our filter function to insert LibFilter filter callback function (.additionalFilter at SMITHING.researchPanel.inventory)
 local function smithingResearchPredicate(bagId, slotIndex)
     local result = DoesNotBlockResearch(bagId, slotIndex)
-    return checkAndRundAdditionalFiltersBag(smithingResearchPanel, bagId, slotIndex, result)
+    return checkAndRundAdditionalFiltersBag(smithingResearchPanel, bagId, slotIndex, result) -- Added by LibFilters
 end
 
 --Smithing research dialog - LF_SMITHING_RESEARCH_DIALOG
@@ -412,7 +431,7 @@ helpers["STORE_WINDOW:ShouldAddItemToList"] = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
             --Original result was not build yet, we assume it is true, so add the LibFilters filterFunctions now
-            local result = checkAndRundAdditionalFilters(self, itemData, true)
+            local result = checkAndRundAdditionalFilters(self, itemData, true) -- Added by LibFilters
 
             if self.currentFilter == ITEMFILTERTYPE_ALL then return result and true end
 
@@ -469,7 +488,7 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
                                 stackBuyPrice = stack * price,
                             }
                             --Original result was true, so add the LibFilters filterFunctions now
-                            local result = checkAndRundAdditionalFilters(self, buybackData, true)
+                            local result = checkAndRundAdditionalFilters(self, buybackData, true) -- Added by LibFilters
                             if result == true then
                                 scrollData[#scrollData + 1] = ZO_ScrollList_CreateDataEntry(DATA_TYPE_BUY_BACK_ITEM, buybackData)
                             end
@@ -637,7 +656,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
 			if filterType == ENCHANTING_EXTRACTION_FILTER then
 				local result = craftingSubItemType == ITEMTYPE_GLYPH_WEAPON or craftingSubItemType == ITEMTYPE_GLYPH_ARMOR or craftingSubItemType == ITEMTYPE_GLYPH_JEWELRY
                 --Original result was determined, so add the LibFilters filterFunctions now
-				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_EXTRACTION_SCENE, bagId, slotIndex, result)
+				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_EXTRACTION_SCENE, bagId, slotIndex, result) -- Added by LibFilters
 			elseif filterType == ENCHANTING_NO_FILTER or filterType == runeType then
                 local result = true
                 if questFilterChecked then
@@ -651,7 +670,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
                     result = runeType == ENCHANTING_RUNE_ASPECT or runeType == ENCHANTING_RUNE_ESSENCE or runeType == ENCHANTING_RUNE_POTENCY
                 end
                 --Original result was determined, so add the LibFilters filterFunctions now
-                return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_CREATION_SCENE, bagId, slotIndex, result)
+                return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_CREATION_SCENE, bagId, slotIndex, result) -- Added by LibFilters
 			end
 			return false
         end,
@@ -699,7 +718,7 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
             end
 
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFiltersBag(ALCHEMY_SCENE, bagId, slotIndex, result)
+            return checkAndRundAdditionalFiltersBag(ALCHEMY_SCENE, bagId, slotIndex, result) -- Added by LibFilters
         end,
     }
 }
@@ -891,7 +910,7 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
 --d("[LibFilters3]IsResearchableItem: " ..GetItemLink(bagId, slotIndex))
 			local result = doesItemPassResearchDialogFilter(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFiltersBag(researchChooseItemDialog, bagId, slotIndex, result)  --SMITHING_RESEARCH_SELECT
+            return checkAndRundAdditionalFiltersBag(researchChooseItemDialog, bagId, slotIndex, result)  -- Added by LibFilters SMITHING_RESEARCH_SELECT
         end,
     }
 }
@@ -913,7 +932,7 @@ helpers["ZO_RetraitStation_DoesItemPassFilter"] = {
         func = function(bagId, slotIndex, filterType)
 			local result = doesRetraitItemItemPassFilterOriginal(bagId, slotIndex, filterType)
             --Original result was determined, so add the LibFilters filterFunctions now
-			return checkAndRundAdditionalFiltersBag(retrait, bagId, slotIndex, result)  --ZO_RETRAIT_KEYBOARD
+			return checkAndRundAdditionalFiltersBag(retrait, bagId, slotIndex, result)  -- Added by LibFilters ZO_RETRAIT_KEYBOARD
         end,
     }
 }
@@ -941,7 +960,7 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
 
 			local result = doesSmithingItemPassFilterOriginal(bagId, slotIndex, filterType)
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result) --SMITHING.refinementPanel or SMITHING.deconstructionPanel
+            return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result) -- Added by LibFilters SMITHING.refinementPanel or SMITHING.deconstructionPanel
         end,
     }
 }
@@ -962,7 +981,7 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
         func = function(bagId, slotIndex, filterType)
 			local result = doesImprovementItemPassFilterOriginal(bagId, slotIndex, filterType)
             --Original result was determined, so add the LibFilters filterFunctions now
-			return checkAndRundAdditionalFiltersBag(smithing.improvementPanel, bagId, slotIndex, result) -- SMITHING.improvementPanel
+			return checkAndRundAdditionalFiltersBag(smithing.improvementPanel, bagId, slotIndex, result) -- Added by LibFilters SMITHING.improvementPanel
         end,
     }
 }
@@ -1003,7 +1022,7 @@ helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
                 -->!!!Re-uses existing deconstruction or enchanting references as there does not exist any LF_UNIVERSAL_DECONSTRUCTION constant!!!
                 local base = filterTypeToFilterBase[libFiltersFilterType]
                 if base then
-                    return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result)
+                    return checkAndRundAdditionalFiltersBag(base, bagId, slotIndex, result) -- Added by LibFilters
                 end
             end
             return result
@@ -1165,7 +1184,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc
 						buybackData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(buybackData)
 
                         --Original result was true, so add the LibFilters filterFunctions now
-						if checkAndRundAdditionalFilters(vendorBuyBack_GP, buybackData, true) == true then
+						if checkAndRundAdditionalFilters(vendorBuyBack_GP, buybackData, true) == true then -- Added by LibFilters
 							table.insert(items, buybackData)
 						end
 					end
@@ -1220,7 +1239,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
 			local function TextSearchFilterFunction(itemData)
 				local result = IsStolenItemSellable(itemData) and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
                 --Original result was determined, so add the LibFilters filterFunctions now
-                return checkAndRundAdditionalFilters(fenceSell_GP, itemData, result)
+                return checkAndRundAdditionalFilters(fenceSell_GP, itemData, result) -- Added by LibFilters
 			end
 			-- can't sell stolen things from BAG_WORN so just check BACKPACK
 			return GetStolenItems(TextSearchFilterFunction, BAG_BACKPACK)
@@ -1248,7 +1267,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 			local function TextSearchFilterFunction(itemData)
                 local result = searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
                 --Original result was determined, so add the LibFilters filterFunctions now
-				return checkAndRundAdditionalFilters(fenceLaunder_GP, itemData, result)
+				return checkAndRundAdditionalFilters(fenceLaunder_GP, itemData, result) -- Added by LibFilters
 			end
 			return GetStolenItems(TextSearchFilterFunction, BAG_WORN, BAG_BACKPACK)
 		end
@@ -1259,7 +1278,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
 --enable LF_INVENTORY_COMPANION for gamepad mode
 --> See \esoui_src\live\esoui\ingame\companion\gamepad\companionequipment_gamepad.lua
 helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not tested
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_INVENTORY_COMPANION},
         [false]={}
@@ -1275,12 +1294,13 @@ helpers["COMPANION_EQUIPMENT_GAMEPAD:GetItemDataFilterComparator"] = { -- not te
                 if itemData.actorCategory ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
                     return false
                 end
-                if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                --if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                if not self:IsDataInSearchTextResults(itemData.bagId, itemData.slotIndex) then
                     return false
                 end
 
                 --Original result was true so far, so add the LibFilters filterFunctions now
-                if not checkAndRundAdditionalFilters(self, itemData, true) then return false end
+                if not checkAndRundAdditionalFilters(self, itemData, true) then return false end -- Added by LibFilters
 
                 if filteredEquipSlot then
                     return ZO_Character_DoesEquipSlotUseEquipType(filteredEquipSlot, itemData.equipType)
@@ -1308,9 +1328,10 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
             --d( 'GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator')
             local slotData = {bagId = ZO_QUEST_ITEMS_FILTER_BAG, slotIndex = questItemId}
             --Original result was true so far, so add the LibFilters filterFunctions now
-            if not checkAndRundAdditionalFilters(self.scene, slotData, true) then return false end
+            if not checkAndRundAdditionalFilters(self.scene, slotData, true) then return false end -- Added by LibFilters
 
-            return self:IsSlotInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
+            --return self:IsSlotInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
+            return self:IsDataInSearchTextResults(ZO_QUEST_ITEMS_FILTER_BAG, questItemId)
         end
     },
 }
@@ -1332,12 +1353,13 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
         func = function(self, filteredEquipSlot, nonEquipableFilterType)
 --d( 'GAMEPAD_INVENTORY:GetItemDataFilterComparator')
             return function(itemData)
-                if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                --if not self:IsSlotInSearchTextResults(itemData.bagId, itemData.slotIndex) then
+                if not self:IsDataInSearchTextResults(itemData.bagId, itemData.slotIndex) then
                     return false
                 end
 
                 --Original result was true so far, so add the LibFilters filterFunctions now
-				if not checkAndRundAdditionalFilters(bagIdToInventory[BAG_BACKPACK], itemData, true) then return false end
+				if not checkAndRundAdditionalFilters(bagIdToInventory[BAG_BACKPACK], itemData, true) then return false end -- Added by LibFilters
 
                 if itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
                     return nonEquipableFilterType == ITEMFILTERTYPE_COMPANION
@@ -1386,40 +1408,15 @@ helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
             local slotData = SHINV:GenerateSingleSlotData(inventoryType, slotIndex)
             if slotData then
                 local result = (not itemFilterFunction) or itemFilterFunction(slotData)
-                --2025-11-01 Gamepad bank deposit (and other filterTypes used here) uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
-                --to have the filterfunction there at the layoutData!
-                local filterType = libFilters_GetCurrentFilterType(libFilters) or libFilters._currentFilterType
-                local isUsingCustomGPFragment, gpFragmentOrOtherRef = libFilters_IsFilterTypeUsingCustomGamepadFragment(filterType)
-                --Not using a custom LibFilters gamepad fragment: Search in default PLAYER_INVENTORY.inventories for the inventoryType
-                if not isUsingCustomGPFragment then
-                    gpFragmentOrOtherRef = bagIdToInventory[inventoryType]
-                end
-
 --    d( 'ZO_GamepadInventoryList:AddSlotDataToTable - filtertype: ' .. tos(filterType))
                 --Original result was determined, so add the LibFilters filterFunctions now
-                local resultAdditionalFilter = checkAndRundAdditionalFilters(gpFragmentOrOtherRef, slotData, result)
-                if resultAdditionalFilter == true then
+                if checkAndRundAdditionalFilters(bagIdToInventory[inventoryType], slotData, result) == true then -- Added by LibFilters
                     -- itemData is shared in several places and can write their own value of bestItemCategoryName.
                     -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
                     slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
 
                     table.insert(slotsTable, slotData)
                 end
---[[
-libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable = libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable or {}
-libFilters._debugZO_GamepadInventoryList_AddSlotDataToTable[slotData.slotIndex] = {
-    --self = self,
-    --slotsTable = slotsTable,
-    inventoryType = inventoryType,
-    filterType = filterType,
-    isUsingCustomGPFragment = isUsingCustomGPFragment,
-    gpFragmentOrOtherRef        = gpFragmentOrOtherRef,
-    itemLink                = GetItemLink(slotData.bagId, slotData.slotIndex),
-    result = result,
-    additionalFilter = resultAdditionalFilter,
-}
-]]
-
             end
 		end
     },

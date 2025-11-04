@@ -2015,7 +2015,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 	--Gamepad mode
 	[true]  = {
 		--Callback works 2025-11-02
-		--2025-11-02 Filter function does not work, or rather it works and filters the normal inventory list and not only the quest items shown at the quest subFilter ?!
+		--todo 2025-11-02 Filter function does not work, or rather it works and filters the normal inventory list and not only the quest items shown at the quest subFilter ?!
 		[LF_INVENTORY_QUEST]          = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,		["fragment"] = nil, --custom created gamepad fragment "gamepadLibFiltersInventoryQuestFragment"
 										  ["special"] = {
 											  [1] = {
@@ -2124,7 +2124,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Works, 2021-12-21
+		--Works, 2025-11-02
 		--IMPORTANT: 20251102 The refresh function of Smithing Research Dialog also refreshes to Jewerly research dialog, and vice versa.
 		--One must make sure to remove the fiters of the other properly as the dialog closes, as the dialog is the same!
 		[LF_SMITHING_RESEARCH_DIALOG] = { ["control"] = nil, 							["scene"] = researchChooseItemDialog_GP,	["fragment"] = nil,
@@ -2228,7 +2228,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_TRADE]                    = { ["control"] = gpc.invPlayerTrade_GP, 					["scene"] = gpc.invPlayerTradeScene_GP, 	["fragment"] = invPlayerTradeFragment_GP, },
 
 
-		--2025-11-02, Works (with new custom gamepad fragment now)
+		--Works, 2025-11-02 (with new custom gamepad fragment now)
 		[LF_CRAFTBAG]                 = { ["control"] = ZO_GamepadInventoryTopLevelMaskContainerCraftBag, 	["scene"] = invRootScene_GP, 	["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Control will be nil here, and initialized in GAMEPAD_INVENTORY:OnDeferredInitialize. It will be populated to this table from there
 										  --[[
 										  ["special"] = {
