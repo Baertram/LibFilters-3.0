@@ -3,7 +3,7 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-11-03, Baertram
+--Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-11-04, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				15
 --Feature requests total: 	0
@@ -1063,9 +1063,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 				--Check if still shown
 				lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
 				if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
-					if libFilters.debug then
-						dd("<<< found PASSED IN FILTERTYPE %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))
-					end
+					if libFilters.debug then dd("<<< found PASSED IN FILTERTYPE %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))	end
 					--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 				end
 			end
@@ -1076,9 +1074,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 			for _, filterTypeControlAndOtherChecks in ipairs(LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode]) do
 				lReferencesToFilterType, lFilterTypeDetected = checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode, checkIfHidden, skipSpecialChecks)
 				if lFilterTypeDetected ~= nil and lReferencesToFilterType ~= nil and #lReferencesToFilterType > 0 then
-					if libFilters.debug then
-						dd("<<< FOR .. in checkTypes LOOP, found filterType: %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected))
-					end
+					if libFilters.debug then dd("<<< FOR .. in checkTypes LOOP, found filterType: %q <<<<<<<<<<<<<<<<<<<<<<<<", tos(lFilterTypeDetected)) end
 					--updateLastAndCurrentFilterType(lFilterTypeDetected, lReferencesToFilterType, false)
 					--Abort the for ... do loop now as data was found
 					return lReferencesToFilterType, lFilterTypeDetected, nil
@@ -2894,8 +2890,7 @@ function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if dialogOwnerControlToCheck == nil then
 		dialogOwnerControlToCheck = getDialogOwner(filterType, craftType)
 	end
-	if libFilters.debug then
-		dd("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
+	if libFilters.debug then dd("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
 				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)) --tos(filterTypeMappedByCraftingType)
 	end
 	if dialogOwnerControlToCheck == nil then return false end
@@ -3947,8 +3942,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	local lastFilterTypeBeforeReset                  	= lastFilterTypeBefore
 	local lastFilterTypeUniversalDeconTabBeforeReset 	= lastFilterTypeUniversalDeconTabBefore
 	local lastFilterTypeRefBeforeReset               	= lastFilterTypeRefBefore
-	if libFilters.debug then
-		dd("[CallbackRaise]state: %s, currentBefore: %s, lastBefore: %s, currentUniversalDeconTab: %s, lastUniversalDeconTab: %s, doNotUpdate: %s",
+	if libFilters.debug then dd("[CallbackRaise]state: %s, currentBefore: %s, lastBefore: %s, currentUniversalDeconTab: %s, lastUniversalDeconTab: %s, doNotUpdate: %s",
 				tos(stateStr), tos(currentFilterTypeBeforeReset), tos(lastFilterTypeBeforeReset), tos(currentFilterTypeUniversalDeconTab),
 				tos(lastFilterTypeUniversalDeconTabBeforeReset), tos(doNotUpdateCurrentAndLastFilterTypes))
 	end
@@ -3967,8 +3961,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 	--local checkIfHidden = (stateStr == SCENE_HIDDEN and true) or false
 	local checkIfHidden = false
 
-	if libFilters.debug then
-		dd("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s, specialPanelControlFunc: %s, isUniversalDecon: %s",
+	if libFilters.debug then dd("![CB]callbackRaise - state %s, #filterTypes: %s, refType: %s, specialPanelControlFunc: %s, isUniversalDecon: %s",
 				tos(stateStr), tos(#filterTypes), tos(typeOfRef), tos(specialPanelControlFunc), tos(universalDeconData.isShown)
 		)
 		if #filterTypes > 0 then
@@ -4192,8 +4185,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		libFilters._lastFilterType                  	= lastKnownFilterType
 		libFilters._lastFilterTypeUniversalDeconTab 	= lastFilterTypeUniversalDeconTab
 		libFilters._lastFilterTypeReferences        	= lastKnownRefVars
-		if libFilters.debug then
-			dd("<CALLBACK ABORTED - filterType: %s and state %s currently already active! currentNow: %s, lastNow: %s, universalDeconTabNow: %s, universalDeconTabLast: %s",
+		if libFilters.debug then dd("<CALLBACK ABORTED - filterType: %s and state %s currently already active! currentNow: %s, lastNow: %s, universalDeconTabNow: %s, universalDeconTabLast: %s",
 					tos(filterType), tos(stateStr),
 					tos(libFilters._currentFilterType), tos(libFilters._lastFilterType),
 					tos(libFilters._currentFilterTypeUniversalDeconTab), tos(libFilters._lastFilterTypeUniversalDeconTab)
@@ -4212,11 +4204,11 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			elseif universalDeconData.lastTab ~= nil then
 				--If currentTab cannot be used try the last activetab before to at least send some info, that the universalDecon panel was closed
 				--and not any normal decon, jewelry decon or enchanting extarction panel!
-				dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab is NIL! Using last tab: %q", tos(universalDeconData.lastTab))
+				if libFilters.debug then dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab is NIL! Using last tab: %q", tos(universalDeconData.lastTab)) end
 				universalDeconSelectedTabNow = universalDeconData.lastTab
 			else
 				--If currentTab AND lastTab cannot be used just pass in the "all" tab...
-				dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab AND lastTab are NIL! Using last tab: %q", "all")
+				if libFilters.debug then dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab AND lastTab are NIL! Using last tab: %q", "all") end
 				universalDeconSelectedTabNow = "all"
 			end
 		end
@@ -4509,16 +4501,13 @@ local function isFragmentBlockedByAlreadyDeterminedFilterType(fragment, stateStr
 	local callbackFragmentBlockedFilterTypesBase = callbackFragmentsBlockedMapping[inputType][stateStr]
 	local callbackFragmentBlockedFilterTypes = (callbackFragmentBlockedFilterTypesBase ~= nil and callbackFragmentBlockedFilterTypesBase[fragment]) or nil
 	if callbackFragmentBlockedFilterTypes ~= nil and #callbackFragmentBlockedFilterTypes > 0 then
-		if libFilters.debug then
-			dd(">isFragmentBlockedByAlreadyDeterminedFilterType: %q - stateStr: %s - currentFilterType: %s",
+		if libFilters.debug then dd(">isFragmentBlockedByAlreadyDeterminedFilterType: %q - stateStr: %s - currentFilterType: %s",
 					tos(fragmentName), tos(stateStr), tos(currentFilterType))
 		end
 
 		for _, filterTypeBlocked in ipairs(callbackFragmentBlockedFilterTypes) do
 			if filterTypeBlocked == currentFilterType then
-				if libFilters.debug then
-					dd(">>>>> YES, filterType %s is blocked!", tos(filterTypeBlocked))
-				end
+				if libFilters.debug then dd(">>>>> YES, filterType %s is blocked!", tos(filterTypeBlocked))	end
 				return true
 			end
 		end
@@ -4530,8 +4519,7 @@ end
 local function onFragmentStateChange(oldState, newState, filterTypes, fragment, inputType)
 	local fragmentName
 	if libFilters.debug then
-		fragmentName = getFragmentControlName(fragment)
-		dd("~~~ FRAGMENT STATE CHANGE ~~~")
+		fragmentName = getFragmentControlName(fragment) dd("~~~ FRAGMENT STATE CHANGE ~~~")
 		dd("onFragmentStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(fragmentName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
 	end
 	local stateStr = fragmentStateToSceneState[newState]
@@ -4547,8 +4535,7 @@ end
 function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 	local sceneName
 	if libFilters.debug then
-		sceneName = getSceneName(scene)
-		dd("~~~ SCENE STATE CHANGE ~~~")
+		sceneName = getSceneName(scene)	dd("~~~ SCENE STATE CHANGE ~~~")
 		dd("onSceneStateChange: %q - oldState: %s > newState: %q - #filterTypes: %s, isGamePad: %s", tos(sceneName), tos(oldState), tos(newState), #filterTypes, tos(inputType))
 	end
 	callbackRaiseCheck(filterTypes, scene, newState, inputType, LIBFILTERS_CON_TYPEOFREF_SCENE, sceneName)
@@ -4559,8 +4546,7 @@ function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, sp
 	local ctrlName
 	if libFilters.debug then
 		ctrlName = getCtrlName(ctrlRef)
-		dd("~~~ CONTROL HIDDEN STATE CHANGE ~~~")
-		dd("ControlHiddenStateChange: %q  - hidden: %s - #filterTypes: %s, isGamePad: %s", tos(ctrlName), tos(not isShown), #filterTypes, tos(inputType))
+		dd("~~~ CONTROL HIDDEN STATE CHANGE ~~~") dd("ControlHiddenStateChange: %q  - hidden: %s - #filterTypes: %s, isGamePad: %s", tos(ctrlName), tos(not isShown), #filterTypes, tos(inputType))
 	end
 	local stateStr = (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN --using the SCENE_* constants to unify the callback name for fragments, scenes and controls
 	if isShown == true then
@@ -5048,9 +5034,7 @@ local function applyFixesLatest()
 	if CraftBagExtended ~= nil then
 		SecurePostHook(playerInv, "ApplyBackpackLayout", function(layoutData)
 			local crafBagIsHidden = kbc.craftBagClass:IsHidden()
-			if libFilters.debug then
-				dd("ApplyBackpackLayout-CraftBag hidden: %s", tos(crafBagIsHidden))
-			end
+			if libFilters.debug then dd("ApplyBackpackLayout-CraftBag hidden: %s", tos(crafBagIsHidden)) end
 			if crafBagIsHidden == true or inventories[invTypeCraftBag].additionalFilter ~= nil then return end
 			local additionalCraftBagFilter = kbc.invBackpackFragment.layoutData.additionalCraftBagFilter
 			if additionalCraftBagFilter == nil then return end
@@ -5085,6 +5069,7 @@ local function eventAddonLoadedCallback(eventId, addonNameLoaded)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
+--[[
 local function doTestStuff()
 libFilters._callbackData = {}
 libFilters._callbackData[LF_INVENTORY] = {}
@@ -5130,6 +5115,7 @@ libFilters._callbackData[LF_INVENTORY][stateStr] = {
 	d("Callback created: " ..callbackNameInvHidden)
 	CALLBACK_MANAGER:RegisterCallback(callbackNameInvHidden, callbackFunctionForInvHidden)
 end
+]]
 
 --**********************************************************************************************************************
 -- LIBRARY LOADING / INITIALIZATION

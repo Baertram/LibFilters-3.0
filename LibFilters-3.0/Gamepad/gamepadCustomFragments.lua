@@ -900,72 +900,56 @@ local function createCustomGamepadFragmentsAndNeededHooks()
 	--Inventory
 	gamepadLibFiltersInventoryFragment:SetConditional(function()
 		local retVar = checkIfInvAndNotVengeanceCampaign()
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM inventory FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM inventory FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 
 	--Inventory quest
 	gamepadLibFiltersInventoryQuestFragment:SetConditional(function()
 		local retVar = checkIfInvAndNotVengeanceCampaign() and invBackpack_GP.selectedItemFilterType == ITEMFILTERTYPE_QUEST
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM inventory quest FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM inventory quest FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 
 	--CraftBag
 	gamepadLibFiltersCraftBagFragment:SetConditional(function()
 		local retVar = gpInvCraftBagShowing
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM craftbag FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM craftbag FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 
 	--Inventory vengeance (Cyrodiil)
 	gamepadLibFiltersInventoryVengeanceFragment:SetConditional(function()
 		local retVar = gpInvNoCraftBagShowing() and isVengeanceCampaign()
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM inventory vengeance FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM inventory vengeance FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 
 	--Bank deposit
 	gamepadLibFiltersBankDepositFragment:SetConditional(function()
 		local retVar = isGamepadBankDepositShowing() and playerBankBagIds[GetBankingBag()]
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM bank deposit FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM bank deposit FRAGMENT - Condition: " ..tos(retVar))	end
 		return retVar
 	end)
 
 	--House Bank deposit
 	gamepadLibFiltersHouseBankDepositFragment:SetConditional(function()
 		local retVar = isGamepadBankDepositShowing() and IsHouseBankBag(GetBankingBag()) and not isFurnitureVaultShowing()
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM house bank deposit FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM house bank deposit FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 
 	--Furniture vault (bank) deposit
 	gamepadLibFiltersFurnitureVaultDepositFragment:SetConditional(function()
 		local retVar = isGamepadBankDepositShowing() and isFurnitureVaultShowing()
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM furniture vault deposit FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM furniture vault deposit FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 
 	--Guild bank deposit
 	gamepadLibFiltersGuildBankDepositFragment:SetConditional(function()
 		local retVar = invGuildBankScene_GP:IsShowing() and invGuildBank_GP:IsInDepositMode()
-		if libFilters.debug then
-			dd("GAMEPAD CUSTOM guild bank deposit FRAGMENT - Condition: " ..tos(retVar))
-		end
+		if libFilters.debug then dd("GAMEPAD CUSTOM guild bank deposit FRAGMENT - Condition: " ..tos(retVar)) end
 		return retVar
 	end)
 

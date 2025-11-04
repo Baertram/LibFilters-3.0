@@ -2252,7 +2252,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--todo: Worked, 2021-12-18
+		--Works: 2025-11-04
 		[LF_GUILDBANK_WITHDRAW]       = { ["control"] = ZO_GuildBankTopLevel_GamepadMaskContainerwithdraw, 	["scene"] = invGuildBankScene_GP,	["fragment"] = nil, },  -- fragment will be updated as guild bank lists get initialized
 		--Works, 2025-11-02
 		[LF_HOUSE_BANK_WITHDRAW]      = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP,		["fragment"] = nil,		--fragment will be updated as bank lists get initialized
@@ -2396,7 +2396,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		--Works, 2025-11-01
 		[LF_RETRAIT]                  = { ["control"] = gpc.retrait_GP, ["scene"] = gpc.retraitScene_GP, ["fragment"] = retraitFragment_GP, },
 
-		--Todo: To be tested: Worked on 2025-09-21
+		--Works, 2025-11-04
 		[LF_FURNITURE_VAULT_DEPOSIT]  = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerdeposit,		["scene"] = invBankScene_GP,		["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created. Fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
@@ -2407,7 +2407,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--Todo 20251102: Callback works, but filter function does not apply.
+		--Works, 2025-11-04
 		[LF_FURNITURE_VAULT_WITHDRAW] = { ["control"] = ZO_GamepadBankingTopLevelMaskContainerwithdraw, 	["scene"] = invBankScene_GP, 		["fragment"] = nil, --fragment will be updated as bank lists get initialized
 										  ["special"] = {
 											  [1] = {
