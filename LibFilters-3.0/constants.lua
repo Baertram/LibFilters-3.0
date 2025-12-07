@@ -1562,7 +1562,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { store },
 		[LF_VENDOR_SELL]              = { vendorSell },
-		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell }, --todo: test 20251207 LibFilters3_filterType is applied but the filters aren't working.
+		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell },
 		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
 		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSellFragment },
@@ -1807,7 +1807,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_VENDOR_BUY]               = { ["control"] = store, 							["scene"] = "store", 				["fragment"] = vendorBuyFragment, },
 		--Works: 2025-10-31
 		[LF_VENDOR_SELL]              = { ["control"] = invBackpack, 					["scene"] = "store", 				["fragment"] = inventoryFragment, },
-		--todo: to test 2025-10-01
+		--Works, 2025-12-07
 		[LF_VENDOR_SELL_VENGEANCE]    = { ["control"] = invVengeance, 					["scene"] = "store", 				["fragment"] = invVengeanceFragment,
 											  [1] = {
 												  ["control"]         = _G[GlobalLibName],
@@ -2781,7 +2781,7 @@ local callbacksUsingFragments = {
 		[companionEquipmentFragment]   	= { LF_INVENTORY_COMPANION },
 		[furnitureVaultWithdrawFragment]= { LF_FURNITURE_VAULT_WITHDRAW },
 
-		[invVengeanceFragment] 			= { LF_INVENTORY_VENGEANCE, LF_VENDOR_SELL_VENGEANCE } -- todo: test 20251001
+		[invVengeanceFragment] 			= { LF_INVENTORY_VENGEANCE, LF_VENDOR_SELL_VENGEANCE }
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
