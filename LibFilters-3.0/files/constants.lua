@@ -536,6 +536,27 @@ local function isControlShown(filterType, isInGamepadMode)
 end
 libFilters.IsControlShown = isControlShown
 
+--Function to return the above paremetric scrolllist names for items and/or category
+--as the Gamepad updaterFunctions run
+local filterTypeToUpdaterListName_GP
+local cachedListNames = {}
+local emptyListStr = 		""
+local emptyListReturn = {nil,nil}
+local function getUpdaterCategoryAndItemListNamesByFilterPanelId(filterPanelId)
+	if filterPanelId == nil then return nil, nil end
+	if cachedListNames[filterPanelId] == nil then
+		local categoryAndItemListNames = filterTypeToUpdaterListName_GP[filterPanelId]
+		if ZO_IsTableEmpty(categoryAndItemListNames) or categoryAndItemListNames.item == nil then
+			cachedListNames[filterPanelId] = emptyListReturn
+			return nil, nil
+		end
+		cachedListNames[filterPanelId] = {categoryAndItemListNames.item, categoryAndItemListNames.category or emptyListStr}
+	end
+	return unpack(cachedListNames[filterPanelId])
+end
+libFilters.GetUpdaterCategoryAndItemListNamesByFilterPanelId = getUpdaterCategoryAndItemListNamesByFilterPanelId
+
+
 ------------------------------------------------------------------------------------------------------------------------
 -- Variables: Inventory
 ------------------------------------------------------------------------------------------------------------------------
@@ -2632,11 +2653,28 @@ mapping.filterTypeToFilterTypeRespectingCraftType = {
 	}
 }
 
+--The updater function's gamepad item and category parametric scrollList names (for items and/or parent's category)
+--> Used in functions updateFunction_GP_ItemOrCategoryList or updateFunction_GP_ZO_GamepadInventoryList
+local categoryListStr = 	"categoryList"
+local itemListStr = 		"itemList"
+local depositListStr = 		"depositList"
+local inventoryListStr = 	"inventoryList"
+filterTypeToUpdaterListName_GP = {
+	[LF_INVENTORY] = 				{ category = categoryListStr, 			item = itemListStr },
+	[LF_INVENTORY_VENGEANCE] = 		{ category = "vengeanceCategoryList", 	item = "vengeanceItemList" },
+	[LF_BANK_DEPOSIT] = 			{ category = emptyListStr, 				item = depositListStr },
+	[LF_GUILDBANK_DEPOSIT] = 		{ category = emptyListStr, 				item = depositListStr },
+	[LF_HOUSE_BANK_DEPOSIT] = 		{ category = emptyListStr, 				item = depositListStr },
+	[LF_FURNITURE_VAULT_DEPOSIT] = 	{ category = emptyListStr, 				item = depositListStr },
+	[LF_MAIL_SEND] = 				{ category = emptyListStr, 				item = inventoryListStr },
+	[LF_TRADE] = 					{ category = emptyListStr, 				item = inventoryListStr },
+}
+mapping.filterTypeToUpdaterListName_GP = filterTypeToUpdaterListName_GP
 
 --[Mapping for update of inventories]
 --The fixed updater names for the LibFilters unique updater string -> See table inventoryUpdaters below -> The key is
 --the value of this table here, e.g. BANK_WITHDRAW
-local filterTypeToUpdaterNameFixed = {
+local filterTypeToUpdaterNameStatic  = {
 	 [LF_BANK_WITHDRAW]				= "BANK_WITHDRAW",
 	 [LF_GUILDBANK_WITHDRAW]		= "GUILDBANK_WITHDRAW",
 	 [LF_VENDOR_BUY]				= "VENDOR_BUY",
@@ -2654,9 +2692,11 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
 	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
 }
-mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
+mapping.filterTypeToUpdaterNameStatic = filterTypeToUpdaterNameStatic
 
---The updater names which are shared with others
+--The updater names which are shared with others.
+--> "INVENTORY" entry will be read dynamically and added to constants.keyboard.InventoryUpdateFunctions later
+--Both, updater name static and dynamic will be added to mapping.filterTypeToUpdaterName
 local filterTypeToUpdaterNameDynamic = {
 	 ["INVENTORY"] = {
 		  [LF_INVENTORY]=true,
@@ -2708,7 +2748,7 @@ mapping.filterTypeToUpdaterNameDynamic = filterTypeToUpdaterNameDynamic
 local filterTypeToUpdaterName = {}
 local updaterNameToFilterType = {}
 --Add the fixed updaterNames of the filtertypes
-filterTypeToUpdaterName = filterTypeToUpdaterNameFixed
+filterTypeToUpdaterName              = filterTypeToUpdaterNameStatic
 --Then dynamically add the other updaterNames from the above table filterTypeToUpdaterNameDynamic
 for updaterName, filterTypesTableForUpdater in pairs(filterTypeToUpdaterNameDynamic) do
 	 if updaterName ~= "" then
@@ -2820,9 +2860,7 @@ local callbackFragmentsBlockedMapping = {
 			[inventoryFragment] = { LF_MAIL_SEND }, --Will not raise a callback for inventoryFragment if current filterType is LF_MAIL_SEND
 
 		},
-		[SCENE_HIDDEN] = {
-
-		}
+		[SCENE_HIDDEN] = {} --None atm 2025-12
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2834,8 +2872,7 @@ local callbackFragmentsBlockedMapping = {
 			--	if not wasGPInventoryListSetBefore then
 			[invFragment_GP] = { LF_INVENTORY_VENGEANCE }, --Will not raise a callback for gamepad inventoryFragment if current filterType is LF_INVENTORY_VENGEANCE
 		},
-		[SCENE_HIDDEN] = {
-		}
+		[SCENE_HIDDEN] = {} --None atm 2025-12
 	}
 }
 callbacks.callbackFragmentsBlockedMapping = callbackFragmentsBlockedMapping
@@ -2850,6 +2887,7 @@ local callbacksUsingScenes = {
 	--Keyboard
 	[false] = {
 		--Dedicated scenes
+		--None atm 2025-12
 	},
 
 --000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -3088,7 +3126,6 @@ callbacks.special = {
 		end,
 	},
 }
-
 
 
 ------------------------------------------------------------------------------------------------------------------------

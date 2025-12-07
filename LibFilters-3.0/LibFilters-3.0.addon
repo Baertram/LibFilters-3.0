@@ -8,7 +8,10 @@
 ## SavedVariables: LIBFILTERS_SV_TEST
 
 ## Constants
-constants.lua
+files/constants.lua
+
+## Helper functions, internally
+files/functions.lua
 
 ## Classes
 files/classes/Gamepad/gamepadCustomFragment_class.lua

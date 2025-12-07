@@ -3,13 +3,12 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.6 - Last updated: 2025-11-04, Baertram
+--Bugs/Todo List for version: 3.0 r4.7 - Last updated: 2025-12-06, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				15
 --Feature requests total: 	0
 
 --[Bugs]
---#15 lF_INVENTORY_VENGEANCE keyboard callback SHOWN is not firing properly -> in LF test UI
 
 
 --[Feature requests]
@@ -144,8 +143,10 @@ local otherOriginalFilterAttributesAtLayoutData_Table = constants.otherAttribute
 local defaultLibFiltersAttributeToStoreTheFilterType = constants.defaultAttributeToStoreTheFilterType --"LibFilters3_filterType"
 local defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters = constants.defaultLibFiltersAttributeToStoreTheHorizontalScrollbarFilters --"LibFilters3_HorizontalScrollbarFilters"
 
-
 local updaterNamePrefix = libFilters.constants.updaterNamePrefix
+local updaterNameToFilterType =	mapping.updaterNameToFilterType
+local filterTypeToUpdaterNameDynamicINVENTORY = mapping.filterTypeToUpdaterNameDynamic["INVENTORY"]
+local getUpdaterCategoryAndItemListNamesByFilterPanelId = libFilters.GetUpdaterCategoryAndItemListNamesByFilterPanelId
 
 local filterTypesUsingBagIdAndSlotIndexFilterFunction = 			mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
 local filterTypesUsingInventorySlotFilterFunction = 				mapping.filterTypesUsingInventorySlotFilterFunction
@@ -154,11 +155,9 @@ local LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX = 			constants.LIBFILTER
 
 local filterTypeToFilterTypeRespectingCraftType = 					mapping.filterTypeToFilterTypeRespectingCraftType
 local filterTypeToUpdaterName = 									mapping.filterTypeToUpdaterName
-local updaterNameToFilterType = 									mapping.updaterNameToFilterType
 local LF_FilterTypeToReference = 									mapping.LF_FilterTypeToReference
 local LF_FilterTypesToReferenceImplementedSpecial = 			    mapping.LF_FilterTypesToReferenceImplementedSpecial
 local LF_FilterTypeToReferenceGamepadFallbackToKeyboard =  			mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard
-
 
 local LF_FilterTypeToCheckIfReferenceIsHidden = 					mapping.LF_FilterTypeToCheckIfReferenceIsHidden
 local LF_ConstantToAdditionalFilterSpecialHook = 					mapping.LF_ConstantToAdditionalFilterSpecialHook
@@ -263,9 +262,6 @@ local reconstruct_GP 			= 	gpc.reconstruct_GP
 local universalDeconstruct_GP   =   gpc.universalDeconstruct_GP
 local universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
 local universalDeconstructScene_GP = gpc.universalDeconstructScene_GP
-
-local filterTypeToUpdaterNameDynamic = mapping.filterTypeToUpdaterNameDynamic
-
 
 --Other addons
 local cbeSupportedFilterPanels  = constants.cbeSupportedFilterPanels
@@ -1333,9 +1329,8 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --Update functions for the keyboard inventory
 local function fallbackInventoryUpdaterKeyboard() updateKeyboardPlayerInventoryType(invTypeBackpack) end
-
 local InventoryUpdateFunctions_KB = {
-	["fallback"] = fallbackInventoryUpdaterKeyboard, 
+	["fallback"] = fallbackInventoryUpdaterKeyboard, --Fallback entry for all that aren't added here
 	--[[
 	Dynamically added below:
 	[LF_INVENTORY] = function()
@@ -1350,10 +1345,14 @@ local InventoryUpdateFunctions_KB = {
 	...
 	]]
 }
---Dynamically add all INVENTORY updaters to the table above
-for filterTypeOfUpdaterName, isEnabled in pairs(filterTypeToUpdaterNameDynamic["INVENTORY"]) do
+local inventoryUpdateFunction_KB_fallback = InventoryUpdateFunctions_KB["fallback"]
+--Dynamically add all INVENTORY updaters to the table InventoryUpdateFunctions_KB above
+-->so the updater functions get created per LibFilters filterPanelId, which use constants like INVENTORY_BACKPACK or INVENTORY_BANK etc.
+for filterTypeOfUpdaterName, isEnabled in pairs(filterTypeToUpdaterNameDynamicINVENTORY) do
 	if isEnabled then
-		InventoryUpdateFunctions_KB[filterTypeOfUpdaterName] = function() updateKeyboardPlayerInventoryType(libFiltersFilterType2InventoryType[filterTypeOfUpdaterName] or invTypeBackpack) end
+		InventoryUpdateFunctions_KB[filterTypeOfUpdaterName] = function()
+			updateKeyboardPlayerInventoryType(libFiltersFilterType2InventoryType[filterTypeOfUpdaterName] or invTypeBackpack) --fallback to INVENTORY_BACKPACK if no dedicated entry was found
+		end
 	end
 end
 libFilters.constants.keyboard.InventoryUpdateFunctions = InventoryUpdateFunctions_KB
@@ -1363,30 +1362,28 @@ libFilters.constants.keyboard.InventoryUpdateFunctions = InventoryUpdateFunction
 --Update functions for the gamepad inventory
 local InventoryUpdateFunctions_GP      = {
 	[LF_INVENTORY] = function()
-	  --updateFunction_GP_ItemList(invBackpack_GP)
-		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, "itemList", "categoryList")
+		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, 			getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_INVENTORY))
 	end,
 	[LF_INVENTORY_VENGEANCE] = function()
-	  --updateFunction_GP_VengeanceItemList(invBackpack_GP)
-		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, "vengeanceItemList", "vengeanceCategoryList")
+		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, 			getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_INVENTORY_VENGEANCE))
 	end,
 	[LF_BANK_DEPOSIT] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, 			getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_BANK_DEPOSIT))
 	end,
 	[LF_GUILDBANK_DEPOSIT]  = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invGuildBank_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invGuildBank_GP, 		getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_GUILDBANK_DEPOSIT))
 	end,
 	[LF_HOUSE_BANK_DEPOSIT] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, 			getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_HOUSE_BANK_DEPOSIT))
 	end,
 	[LF_FURNITURE_VAULT_DEPOSIT] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invFurnitureVault_GP, "depositList")
+		updateFunction_GP_ZO_GamepadInventoryList(invFurnitureVault_GP, getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_FURNITURE_VAULT_DEPOSIT))
 	end,
 	[LF_MAIL_SEND] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invMailSend_GP.send, "inventoryList")
+		updateFunction_GP_ZO_GamepadInventoryList(invMailSend_GP.send, 	getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_MAIL_SEND))
 	end,
 	[LF_TRADE] = function()
-		updateFunction_GP_ZO_GamepadInventoryList(invPlayerTrade_GP, "inventoryList")
+		updateFunction_GP_ZO_GamepadInventoryList(invPlayerTrade_GP, 	getUpdaterCategoryAndItemListNamesByFilterPanelId(LF_TRADE))
 	end,
 	[LF_GUILDSTORE_SELL] = function()
 		if libFilters.debug and invGuildStoreSell_GP == nil then dv("[U]updateFunction LF_GUILDSTORE_SELL: Added reference to GAMEPAD_TRADING_HOUSE_SELL") end
@@ -1418,11 +1415,10 @@ libFilters.constants.gamepad.InventoryUpdateFunctions = InventoryUpdateFunctions
 local inventoryUpdaters = {
 	INVENTORY = function(filterType)
 		if filterType == nil then return end
-
 		if IsGamepad() then
 			InventoryUpdateFunctions_GP[filterType]()
 		else
-			local updFunc = InventoryUpdateFunctions_KB[filterType] or InventoryUpdateFunctions_KB["fallback"]
+			local updFunc = InventoryUpdateFunctions_KB[filterType] or inventoryUpdateFunction_KB_fallback
 			updFunc()
 		end
 	end,

@@ -60,5 +60,5 @@ local libFilters_GetCurrentFilterType = libFilters.GetCurrentFilterType
 
 
 ------------------------------------------------------------------------------------------------------------------------
---Hooks into ZOs vanilla code
+--Functions, internally for LibFilters
 ------------------------------------------------------------------------------------------------------------------------

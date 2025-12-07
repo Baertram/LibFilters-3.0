@@ -1,3 +1,80 @@
+------------------------------------------------------------------------------------------------------------------------
+--Name, global variable LibFilters3
+------------------------------------------------------------------------------------------------------------------------
+local libFilters = LibFilters3
+
+local strfor = string.format
+local tos = tostring
+local strgm = string.gmatch
+local gTab = table
+local tins = gTab.insert
+local tsort = gTab.sort
+
+
+--Helper variables of ESO
+local CM = CALLBACK_MANAGER
+
+local gilst = 	GetItemLinkStacks
+local gil = 	GetItemLink
+local gqil = 	GetQuestItemLink
+local zigbai = 	ZO_Inventory_GetBagAndIndex
+
+--Helper variables of the library
+local constants   =                         libFilters.constants
+local mapping = 							libFilters.mapping
+
+local kbc         =                         constants.keyboard
+local gpc         =                         constants.gamepad
+
+
+--Debugging
+local debugFunctions = libFilters.debugFunctions
+local dd = debugFunctions.dd
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Local LibFilters speed-up variables and references
+------------------------------------------------------------------------------------------------------------------------
+local svTest
+
+--Helper varibales for tests
+local prefix = libFilters.globalLibName
+local prefixBr = "[" .. prefix .. "] TEST "
+local testUItemplate = "LibFilters_Test_Template"
+
+local filterTag = prefix .."_TestFilters_"
+local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
+local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+
+local customFilterFunctionTag = " (C)"
+local allCustomFilterFunctionsDisabled = true
+
+--UI
+libFilters.test = {}
+local tlw
+local btnFilter
+
+
+
+local usingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
+
+
+local universalDeconLibFiltersFilterTypeSupported = mapping.universalDeconLibFiltersFilterTypeSupported
+local universalDeconTabKeyToLibFiltersFilterType = mapping.universalDeconTabKeyToLibFiltersFilterType
+
+local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
+local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
+local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
+local libFilters_RegisterFilter = libFilters.RegisterFilter
+local libFilters_UnregisterFilter = libFilters.UnregisterFilter
+local libFilters_RequestUpdate = libFilters.RequestUpdate
+local libFilters_CreateCallbackName = libFilters.CreateCallbackName
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Helper UI
+------------------------------------------------------------------------------------------------------------------------
+
 -- Use /lftestfilters to open testing UI
 -- To test a specific filter, you can specify a globally difined function
 
@@ -13,30 +90,6 @@
 
 -- /lftestfilters addon.test.testFilter
 
---Init the library, if not already done
-local libFilters = LibFilters3
-if not libFilters then return end
-
-local svTest
-
-local CM = CALLBACK_MANAGER
-
-local gilst = 	GetItemLinkStacks
-local gil = 	GetItemLink
-local gqil = 	GetQuestItemLink
-local zigbai = 	ZO_Inventory_GetBagAndIndex
-
-local mapping = libFilters.mapping
-local universalDeconLibFiltersFilterTypeSupported = mapping.universalDeconLibFiltersFilterTypeSupported
-local universalDeconTabKeyToLibFiltersFilterType = mapping.universalDeconTabKeyToLibFiltersFilterType
-
-local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
-local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
-local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
-local libFilters_RegisterFilter = libFilters.RegisterFilter
-local libFilters_UnregisterFilter = libFilters.UnregisterFilter
-local libFilters_RequestUpdate = libFilters.RequestUpdate
-local libFilters_CreateCallbackName = libFilters.CreateCallbackName
 
 local function checkIfInitDone()
 	if libFilters.isInitialized then return end
@@ -61,43 +114,11 @@ local filterTypeToControlsChange = {
 	[true] = {},
 }
 
-------------------------------------------------------------------------------------------------------------------------
--- LIBRARY VARIABLES
-------------------------------------------------------------------------------------------------------------------------
---local constants = libFilters.constants
-local mapping = libFilters.mapping
-local usingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
 
 
 ------------------------------------------------------------------------------------------------------------------------
 -- HELPER VARIABLES AND FUNCTIONS FOR TESTS
 ------------------------------------------------------------------------------------------------------------------------
---ZOs helpers
-local strfor = string.format
-local tos = tostring
-local strgm = string.gmatch
-local gTab = table
-local tins = gTab.insert
-local tsort = gTab.sort
-
---Helper varibales for tests
-local prefix = libFilters.globalLibName
-local prefixBr = "[" .. prefix .. "] TEST "
-local testUItemplate = "LibFilters_Test_Template"
-
-local filterTag = prefix .."_TestFilters_"
-local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
-local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-
-local customFilterFunctionTag = " (C)"
-local allCustomFilterFunctionsDisabled = true
-
---UI
-libFilters.test = {}
-local tlw
-local btnFilter
-
-
 
 --filter function for inventories
 local function filterFuncForInventories(inventorySlot)
@@ -404,14 +425,12 @@ local filterChatOutputPerItemDefaultStr = "--test: filtered %s stackCount: (%s),
 local filterChatOutputPerItemCustomStr = "--test: filtered %s " .. bagIdSlotIndexFilterTypeStr
 local function resultCheckFunc(p_result, p_filterTypeName, p_useDefaultFilterFunction, p_bagId, p_slotIndex, p_itemLink, p_stackCount)
 	if p_result == true then return end
-	--[[
 	if p_useDefaultFilterFunction then
 		-- can take a moment to display for research, has a low filter threshold
 		d(strfor(filterChatOutputPerItemDefaultStr, p_itemLink, tos(p_stackCount), tos(p_bagId), tos(p_slotIndex), p_filterTypeName))
 	else
 		d(strfor(filterChatOutputPerItemCustomStr, p_itemLink, tos(p_bagId), tos(p_slotIndex), p_filterTypeName))
 	end
-	]]
 end
 
 local function getCustomFilterFunctionInfo(filterType)
