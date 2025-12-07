@@ -69,7 +69,20 @@ libFilters.fragments[false] = {} --keyboard
 libFilters.fragments[true] = {} --gamepad
 ------------------------------------------------------------------------------------------------------------------------
 
+--Cashed current data (placeholders, currently nil)
+libFilters._currentFilterType                  = nil
+libFilters._currentFilterTypeUniversalDeconTab = nil
+libFilters._currentFilterTypeReferences        = nil
+--Cashed "last" data, before current (placeholders, currently nil)
+libFilters._lastFilterType                  = nil
+libFilters._lastFilterTypeUniversalDeconTab = nil
+libFilters._lastFilterTypeReferences        = nil
+--Cashes "last" callback state and "do not fire callback" variables
+libFilters._lastCallbackState			= nil
+libFilters._lastFilterTypeNoCallback	= false
 
+
+------------------------------------------------------------------------------------------------------------------------
 --The registered filters
 libFilters.filters = {}
 local filters = libFilters.filters
@@ -196,12 +209,33 @@ if libFilters.debug then dd("LIBRARY CONSTANTS FILE - START") end
 
 
 ------------------------------------------------------------------------------------------------------------------------
+--Constants of the library
 libFilters.constants = {}
 local constants = libFilters.constants
 
+--Mappings of the library
+libFilters.mapping = {}
+local mapping = libFilters.mapping
+
+--Helper functions of the library
+libFilters.functions = {}
+
+
+------------------------------------------------------------------------------------------------------------------------
+-- -[CONSTANTS]-
+------------------------------------------------------------------------------------------------------------------------
 --10 milliseconds delay before filter update routines run -> to combine same updaters and unstress the client/server
 constants.defaultFilterUpdaterDelay = 10
 
+--lua types
+constants.types = {
+	bool =	"boolean",
+	tab = 	"table",
+	num = 	"number",
+	str = 	"string",
+	ud = 	"userdata",
+	func = 	"function",
+}
 
 ------------------------------------------------------------------------------------------------------------------------
 --LF_* FILTER PANEL ID constants
@@ -1185,12 +1219,12 @@ constants.otherAttributesToGetOriginalFilterFunctions = otherOriginalFilterAttri
 gpc.InventoryUpdateFunctions    = {}
 
 
-------------------------------------------------------------------------------------------------------------------------
---MAPPING
-------------------------------------------------------------------------------------------------------------------------
-libFilters.mapping = {}
-local mapping = libFilters.mapping
 
+
+
+------------------------------------------------------------------------------------------------------------------------
+-- -[MAPPINGS]-
+------------------------------------------------------------------------------------------------------------------------
 --[Mapping for bagId to inventory types]
 mapping.bagIdToInventory = {
 	[BAG_BACKPACK]			= inventories[INVENTORY_BACKPACK],
@@ -2658,7 +2692,9 @@ mapping.filterTypeToFilterTypeRespectingCraftType = {
 local categoryListStr = 	"categoryList"
 local itemListStr = 		"itemList"
 local depositListStr = 		"depositList"
+local withdrawListStr = 	"withdrawList"
 local inventoryListStr = 	"inventoryList"
+local craftBagListStr = 	"craftBagList"
 filterTypeToUpdaterListName_GP = {
 	[LF_INVENTORY] = 				{ category = categoryListStr, 			item = itemListStr },
 	[LF_INVENTORY_VENGEANCE] = 		{ category = "vengeanceCategoryList", 	item = "vengeanceItemList" },
@@ -2668,6 +2704,13 @@ filterTypeToUpdaterListName_GP = {
 	[LF_FURNITURE_VAULT_DEPOSIT] = 	{ category = emptyListStr, 				item = depositListStr },
 	[LF_MAIL_SEND] = 				{ category = emptyListStr, 				item = inventoryListStr },
 	[LF_TRADE] = 					{ category = emptyListStr, 				item = inventoryListStr },
+	[LF_BANK_WITHDRAW] =			{ category = emptyListStr, 				item = withdrawListStr },
+	[LF_GUILDBANK_WITHDRAW] =		{ category = emptyListStr, 				item = withdrawListStr },
+	[LF_HOUSE_BANK_WITHDRAW] =		{ category = emptyListStr, 				item = withdrawListStr },
+	[LF_FURNITURE_VAULT_WITHDRAW] =	{ category = emptyListStr, 				item = withdrawListStr },
+	[LF_INVENTORY_QUEST] = 			{ category = categoryListStr, 			item = itemListStr },
+	[LF_INVENTORY_COMPANION] = 		{ category = categoryListStr, 			item = itemListStr },
+	[LF_CRAFTBAG] =					{ category = emptyListStr, 				item = craftBagListStr },
 }
 mapping.filterTypeToUpdaterListName_GP = filterTypeToUpdaterListName_GP
 

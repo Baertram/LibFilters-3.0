@@ -29,6 +29,7 @@ files/hooks/helper.lua
 
 ## API functions
 API.lua
+callbacks.lua
 
 ## Uncomment the 2 test/*.lua, *.xml lines below to enable the /lftestfilters <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex slash command to show the test UI -> See /test/test.lua for other slash commands
 test/test.lua
