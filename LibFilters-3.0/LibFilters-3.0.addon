@@ -1,21 +1,35 @@
 ## Title: LibFilters-3.0
 ## Author: Baertram, Randactyl, ingeniousclown, et al.
-## Version: 3.0r4.6
-## AddOnVersion: 346
+## Version: 3.0r4.7
+## AddOnVersion: 347
 ## APIVersion: 101048 101049
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=268
 ## SavedVariables: LIBFILTERS_SV_TEST
 
+## Constants
 constants.lua
-Gamepad/gamepadCustomFragment_class.lua
-Gamepad/gamepadCustomFragments.lua
+
+## Classes
+files/classes/Gamepad/gamepadCustomFragment_class.lua
+
+## library files
+files/fragments/Gamepad/gamepadCustomFragments.lua
+files/updaters.lua
+
+## Hooks and overwritten ZOs additionalFilter functions (helpers)
+files/hooks/hooks.lua
+
+## Loading the library
 LibFilters-3.0.lua
-helper.lua
+files/hooks/helper.lua
+
+## API functions
+API.lua
 
 ## Uncomment the 2 test/*.lua, *.xml lines below to enable the /lftestfilters <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex slash command to show the test UI -> See /test/test.lua for other slash commands
-## test/test.lua
-## test/test.xml
+test/test.lua
+test/test.xml
 
 
 # This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.

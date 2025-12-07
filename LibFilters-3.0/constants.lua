@@ -1,6 +1,6 @@
 --[[
 
- Todo and bugs list - Last updated: 	2025-10-31
+ Todo and bugs list - Last updated: 	2025-12-04
  Total Bugs:							2025_02
 
  -BUGS-
@@ -22,14 +22,14 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.6
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.7
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
 
 --Local library variable
 local libFilters = {}
-
+libFilters.helpers = {}
 
 --local lua speed-up variables
 local tos = tostring
@@ -388,17 +388,14 @@ libFilters.CheckIfControlSceneFragmentOrOther = checkIfControlSceneFragmentOrOth
 
 local function getCtrl(retCtrl)
 	local checkType = "retCtrl"
+	if retCtrl == nil then return nil, checkType end
 	local ctrlToCheck = retCtrl
-
-	if ctrlToCheck ~= nil then
-		if ctrlToCheck.IsHidden == nil then
-			for _, subControlName in ipairs(subControlsToLoop)do
-				if ctrlToCheck[subControlName] ~= nil and
-					ctrlToCheck[subControlName].IsHidden ~= nil then
-					ctrlToCheck = ctrlToCheck[subControlName]
-					checkType = "retCtrl." .. subControlName
-					break -- leave the loop
-				end
+	if ctrlToCheck.IsHidden == nil then
+		for _, subControlName in ipairs(subControlsToLoop)do
+			if ctrlToCheck[subControlName] ~= nil and ctrlToCheck[subControlName].IsHidden ~= nil then
+				ctrlToCheck = ctrlToCheck[subControlName]
+				checkType = "retCtrl." .. subControlName
+				return ctrlToCheck, checkType
 			end
 		end
 	end
@@ -407,7 +404,7 @@ end
 libFilters.GetCtrl = getCtrl
 
 local function checkIfRefVarIsShown(refVar)
-	if not refVar then return false, nil end
+	if not refVar then return false, nil, nil end
 	local refType = checkIfControlSceneFragmentOrOther(refVar)
 	--Control
 	local isShown = false
@@ -1166,7 +1163,8 @@ mapping.bagIdToInventory = {
 	[BAG_HOUSE_BANK_EIGHT]	= inventories[INVENTORY_HOUSE_BANK],
 	[BAG_HOUSE_BANK_NINE]	= inventories[INVENTORY_HOUSE_BANK],
 	[BAG_HOUSE_BANK_TEN]	= inventories[INVENTORY_HOUSE_BANK],
-	[BAG_FURNITURE_VAULT]   = inventories[INVENTORY_FURNITURE_VAULT]
+	[BAG_FURNITURE_VAULT]   = inventories[INVENTORY_FURNITURE_VAULT],
+	[BAG_VENGEANCE]         = inventories[INVENTORY_VENGEANCE],
 }
 
 --[Mapping for filter type to filter function type: inventorySlot or crafting with bagId, slotIndex]
@@ -1756,7 +1754,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 		[LF_INVENTORY_COMPANION]      = { ["control"] = companionEquipment, 			["scene"] = "companionCharacterKeyboard", ["fragment"] = companionEquipmentFragment, },
 		--Works: 2025-10-31
 		[LF_QUICKSLOT]                = { ["control"] = quickslots, 					["scene"] = "inventory",			["fragment"] = quickslotsFragment, },
-		--todo: To test: 2025-01-01
+		--Works: 2025-12-07
 		[LF_INVENTORY_VENGEANCE]	  = { ["control"] = invVengeance, 					["scene"] = "inventory", 			["fragment"] = invVengeanceFragment,
 										  ["special"] = {
 											  [1] = {
@@ -2181,7 +2179,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 										  }
 		},
 
-		--todo test: 2025-11-02
+		--todo test: 2025-12-07 (Detection works, Filters do not work!)
 		[LF_INVENTORY_VENGEANCE]      = { ["control"] = ZO_GamepadInventoryTopLevel,	["scene"] = invRootScene_GP,			["fragment"] = nil, --uses fragment -> See file /gamepad/gamepadCustomFragments.lua as the fragments are created.
 										  ["special"] = {
 											  [1] = {

@@ -404,12 +404,14 @@ local filterChatOutputPerItemDefaultStr = "--test: filtered %s stackCount: (%s),
 local filterChatOutputPerItemCustomStr = "--test: filtered %s " .. bagIdSlotIndexFilterTypeStr
 local function resultCheckFunc(p_result, p_filterTypeName, p_useDefaultFilterFunction, p_bagId, p_slotIndex, p_itemLink, p_stackCount)
 	if p_result == true then return end
+	--[[
 	if p_useDefaultFilterFunction then
 		-- can take a moment to display for research, has a low filter threshold
 		d(strfor(filterChatOutputPerItemDefaultStr, p_itemLink, tos(p_stackCount), tos(p_bagId), tos(p_slotIndex), p_filterTypeName))
 	else
 		d(strfor(filterChatOutputPerItemCustomStr, p_itemLink, tos(p_bagId), tos(p_slotIndex), p_filterTypeName))
 	end
+	]]
 end
 
 local function getCustomFilterFunctionInfo(filterType)

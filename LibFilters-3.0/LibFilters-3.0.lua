@@ -56,6 +56,8 @@ local fragmentStateToSceneState = {
 	[SCENE_FRAGMENT_HIDDEN] 	= SCENE_HIDDEN,
 }
 
+local isVengeanceCampaign = IsCurrentCampaignVengeanceRuleset
+
 local libFilters_IsStoreShown
 
 
@@ -527,10 +529,10 @@ end
 
 local function checkIfStoreCtrlOrFragmentShown(varToCheck, p_storeMode, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	varToCheck = (varToCheck or (isInGamepadMode and store_componentsGP[p_storeMode]) or storeWindows[p_storeMode])
+	varToCheck = (varToCheck or (p_storeMode ~= nil and ((isInGamepadMode and store_componentsGP[p_storeMode]) or (not isInGamepadMode and storeWindows[p_storeMode])))) or nil
 	if not varToCheck then return false end
-	local isShown, controlOrFragment, refType = checkIfRefVarIsShown(varToCheck)
-	return isShown, controlOrFragment, refType
+
+	return checkIfRefVarIsShown(varToCheck) --isShown, controlOrFragment, refType
 end
 
 
@@ -1191,7 +1193,7 @@ local function updateFunction_GP_ZO_GamepadInventoryList(gpInvVar, list, callbac
 	if callbackFunc then callbackFunc() end
 end
 
--- update for LF_GUILDSTORE_SELL/LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
+-- update for LF_GUILDSTORE_SELL/LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER/LF_VENDOR_SELL_VENGEANCE gamepad
 local function updateFunction_GP_UpdateList(gpInvVar)
 	if libFilters.debug then dv("[U]updateFunction_GP_UpdateList - gpInvVar: %s", tos(gpInvVar)) end
 	-- prevent UI errors for lists created OnDeferredInitialization
@@ -1199,18 +1201,51 @@ local function updateFunction_GP_UpdateList(gpInvVar)
 	gpInvVar:UpdateList()
 end
 
--- update function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER gamepad
+-- update function for LF_VENDOR_BUY/LF_VENDOR_BUYBACK/LF_VENDOR_REPAIR/LF_VENDOR_SELL/LF_FENCE_SELL/LF_FENCE_LAUNDER/LF_VENDOR_SELL_VENGEANCE gamepad
 local function updateFunction_GP_Vendor(storeMode)
 	if libFilters.debug then dv("[U]updateFunction_GP_Vendor - storeMode: %s", tos(storeMode)) end
 	if not store_componentsGP then return end
 	updateFunction_GP_UpdateList(store_componentsGP[storeMode].list)
 end
 
+--[[
+-- update for LF_INVENTORY_VENGEANCE gamepad
+local function updateFunction_GP_VengeanceItemList(gpInvVar)
+--d("[LibFilters]updateFunction_GP_VengeanceItemList - gpInvVar: " ..tos(gpInvVar))
+	if libFilters.debug then dv("[U]updateFunction_GP_VengeanceItemList - gpInvVar: %s", tos(gpInvVar)) end
+	if not gpInvVar.vengeanceItemList or gpInvVar.currentListType ~= "vengeanceItemList" then
+		if gpInvVar.vengeanceItemList and gpInvVar.vengeanceItemList:IsEmpty() and gpInvVar.currentListType == "vengeanceCategoryList" then
+--d(">itemList is empty, categoryList shows (filtered all items?!)")
+		else
+--d("<abort due to missing itemList")
+			return
+		end
+	end
+
+
+	if gpInvVar.RefreshActiveCategoryList and gpInvVar.vengeanceCategoryList:IsActive() then
+		--d("<itemList refreshing ...")
+		gpInvVar:RefreshActiveCategoryList(true) --trigger callback of vanilla ESO
+	elseif gpInvVar.RefreshActiveItemList and gpInvVar.vengeanceItemList:IsActive()  then
+		--d("<itemList refreshing ...")
+		gpInvVar:RefreshActiveItemList(true) --trigger callback of vanilla ESO
+		if gpInvVar.vengeanceItemList:IsEmpty() then
+	--d(">itemList is empty!")
+			gpInvVar:SwitchActiveList("vengeanceCategoryList")
+		else
+	--d(">itemList NOT empty, updating RightTooltip and itemActions!")
+			gpInvVar:UpdateRightTooltip()
+			gpInvVar:RefreshItemActions()
+		end
+	end
+end
+
 -- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST gamepad
+-->--todo 20251207 With vengeance cyrodiil inventory enabled: if we are at normal inventory itemList (e.g. material)
+--> todo and all items are filtered it automatically jumps back to the category list and selects currencies -> Error
 local function updateFunction_GP_ItemList(gpInvVar)
---d("[LibFilters]updateFunction_GP_ItemList - gpInvVar: " ..tos(gpInvVar))
+--d("[LibFilters]updateFunction_GP_ItemListInventory - gpInvVar: " ..tos(gpInvVar))
 	if libFilters.debug then dv("[U]updateFunction_GP_ItemList - gpInvVar: %s", tos(gpInvVar)) end
---libFilters._debugGPInvVar = gpInvVar
 	if not gpInvVar.itemList or gpInvVar.currentListType ~= "itemList" then
 		--todo 20251102 If we are in companion inventory and apply a filter which hides all items, the itemList is missing here?
 		if gpInvVar.itemList and gpInvVar.itemList:IsEmpty() and gpInvVar.currentListType == "categoryList" then
@@ -1220,19 +1255,58 @@ local function updateFunction_GP_ItemList(gpInvVar)
 			return
 		end
 	end
-	if gpInvVar.RefreshItemList then
---d("<itemList refreshing ...")
+	if gpInvVar.RefreshActiveCategoryList and gpInvVar.categoryList:IsActive() then
+		--d("<itemList refreshing ...")
+		gpInvVar:RefreshActiveCategoryList(true) --trigger callback of vanilla ESO
+	elseif gpInvVar.RefreshItemList and gpInvVar.itemList:IsActive() then
+		--d("<itemList refreshing ...")
 		gpInvVar:RefreshItemList(true) --trigger callback of vanilla ESO
-	end
-	if gpInvVar.itemList:IsEmpty() then
---d(">itemList is empty!")
-		gpInvVar:SwitchActiveList("categoryList")
-	else
---d(">itemList NOT empty, updating RightTooltip and itemActions!")
-		gpInvVar:UpdateRightTooltip()
-		gpInvVar:RefreshItemActions()
+		if gpInvVar.itemList:IsEmpty() then
+			gpInvVar:SwitchActiveList("categoryList")
+		else
+			--d(">itemList NOT empty, updating RightTooltip and itemActions!")
+			gpInvVar:UpdateRightTooltip()
+			gpInvVar:RefreshItemActions()
+		end
 	end
 end
+]]
+
+-- update for LF_INVENTORY/LF_INVENTORY_COMPANION/LF_INVENTORY_QUEST/LF_INVENTORY_VENGEANCE gamepad
+local function updateFunction_GP_ItemOrCategoryList(gpInvVar, itemList, categoryList)
+--d("[LibFilters]updateFunction_GP_ItemList - gpInvVar: " ..tos(gpInvVar))
+	if libFilters.debug then dv("[U]updateFunction_GP_ItemOrCategoryList - gpInvVar: %s, itemList: %s, categoryList: %s", tos(gpInvVar), tos(itemList), tos(categoryList)) end
+	local itemListRef = gpInvVar[itemList]
+	local currentListType = gpInvVar.currentListType
+	if not itemListRef or currentListType ~= itemList then
+		--todo 20251102 If we are in companion inventory and apply a filter which hides all items, the itemList is missing here?
+		if itemListRef and itemListRef:IsEmpty() and currentListType == categoryList then
+--d(">itemList is empty, categoryList shows (filtered all items?!)")
+		else
+--d("<abort due to missing itemList")
+--d("<active itemList is missing -> Switching to category list...")
+			gpInvVar:SwitchActiveList(categoryList)
+		end
+	end
+	local categoryListRef = gpInvVar[categoryList]
+	if categoryListRef:IsActive() then
+		--d("<active category list refreshing ...")
+		gpInvVar:RefreshActiveCategoryList(true) --trigger callback of vanilla ESO
+	elseif itemListRef:IsActive() then
+		--d("<active itemList refreshing ...")
+		gpInvVar:RefreshActiveItemList(true) --trigger callback of vanilla ESO
+		if not itemListRef:IsEmpty() then
+			--d(">itemList NOT empty, updating RightTooltip and itemActions!")
+			gpInvVar:UpdateRightTooltip()
+			gpInvVar:RefreshItemActions()
+		--else
+			--d("<active itemList is empty -> Switching to category list...")
+			--gpInvVar:SwitchActiveList(categoryList)
+			--gpInvVar:RefreshActiveCategoryList(true) --todo: 20251207 This should be called automatically, right?
+		end
+	end
+end
+
 
 -- update for LF_CRAFTBAG gamepad
 local function updateFunction_GP_CraftBagList(gpInvVar)
@@ -1253,7 +1327,12 @@ end
 --Update functions for the gamepad inventory
 gpc.InventoryUpdateFunctions      = {
 	[LF_INVENTORY] = function()
-	  updateFunction_GP_ItemList(invBackpack_GP)
+	  --updateFunction_GP_ItemList(invBackpack_GP)
+		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, "itemList", "categoryList")
+	end,
+	[LF_INVENTORY_VENGEANCE] = function()
+	  --updateFunction_GP_VengeanceItemList(invBackpack_GP)
+		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, "vengeanceItemList", "vengeanceCategoryList")
 	end,
 	[LF_BANK_DEPOSIT] = function()
 		updateFunction_GP_ZO_GamepadInventoryList(invBank_GP, "depositList")
@@ -1287,8 +1366,8 @@ gpc.InventoryUpdateFunctions      = {
 	[LF_FENCE_LAUNDER] = function()
 		updateFunction_GP_Vendor(ZO_MODE_STORE_LAUNDER)
 	end,
-	[LF_INVENTORY_VENGEANCE] = function()
-	  updateFunction_GP_ItemList(invBackpack_GP) --todo 2025-09-19 Correct or use any other?
+	[LF_VENDOR_SELL_VENGEANCE] = function()
+		updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_VENGEANCE)
 	end,
 }
 local InventoryUpdateFunctions_GP = gpc.InventoryUpdateFunctions
@@ -1309,7 +1388,8 @@ local inventoryUpdaters           = {
 	end,
 	INVENTORY_COMPANION = function()
 		if IsGamepad() then
-			updateFunction_GP_ItemList(companionEquipment_GP)
+			--updateFunction_GP_ItemList(companionEquipment_GP)
+			updateFunction_GP_ItemOrCategoryList(companionEquipment_GP, "itemList", "categoryList")
 		else
 			SafeUpdateList(companionEquipment, nil)
 		end
@@ -1323,7 +1403,8 @@ local inventoryUpdaters           = {
 	end,
 	INVENTORY_QUEST = function()
 		if IsGamepad() then
-			updateFunction_GP_ItemList(invBackpack_GP)
+			--updateFunction_GP_ItemList(invBackpack_GP)
+			updateFunction_GP_ItemOrCategoryList(invBackpack_GP, "itemList", "categoryList")
 		else
 			updateKeyboardPlayerInventoryType(invTypeQuest)
 		end
@@ -2672,14 +2753,16 @@ end
 --Is the Vengeance Inventory shown
 --returns boolean isShown
 function libFilters:IsVengeanceInventoryShown()
-	if IsCurrentCampaignVengeanceRuleset() then
+	if isVengeanceCampaign() then
 		local lReferencesToFilterType, lFilterTypeDetected
 		local inputType = IsGamepad()
 		if inputType == true then
 			if invBackpack_GP.vengeanceCategoryList ~= nil then
+				local currentGPInvListType = invBackpack_GP.currentListType
 				if libFilters.debug then dd("IsVengeanceInventoryShown> active: %s, actionMode: %s, currentListType: %s",
-						tos(invBackpack_GP.vengeanceCategoryList:IsActive()), tos(invBackpack_GP.actionMode), tos(invBackpack_GP.currentListType)) end
-				if invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.currentListType == "vengeanceCategoryList" then
+						tos(invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.vengeanceItemList:IsActive()), tos(invBackpack_GP.actionMode), tos(currentGPInvListType)) end
+				if (invBackpack_GP.vengeanceCategoryList:IsActive() or currentGPInvListType == "vengeanceCategoryList")
+				   or (invBackpack_GP.vengeanceItemList:IsActive() or currentGPInvListType == "vengeanceItemList") then
 					lFilterTypeDetected = 		LF_INVENTORY_VENGEANCE
 					lReferencesToFilterType = 	LF_FilterTypeToReference[inputType][LF_INVENTORY_VENGEANCE]
 				end
@@ -2696,12 +2779,14 @@ end
 
 --Is the Vengeance Store shown
 --returns boolean isShown
+ZO_VENGEANCE_BAG_SELL_ENABLED = true --todo 20251207 Disable again after testing!
 function libFilters:IsVengeanceStoreShown()
-	if IsCurrentCampaignVengeanceRuleset() and ZO_VENGEANCE_BAG_SELL_ENABLED then
+	if isVengeanceCampaign() and ZO_VENGEANCE_BAG_SELL_ENABLED == true then
 		local lReferencesToFilterType, lFilterTypeDetected
 		local inputType = IsGamepad()
 		if inputType == true then
 			libFilters_IsStoreShown = libFilters_IsStoreShown or libFilters.IsStoreShown
+			--todo 2025-12-07 Not working, always returns true!
 			if libFilters_IsStoreShown(libFilters, ZO_MODE_STORE_SELL_VENGEANCE) then
 				if libFilters.debug then dd("IsVengeanceStoreShown: true") end
 				lFilterTypeDetected = 		LF_VENDOR_SELL_VENGEANCE
@@ -2830,31 +2915,36 @@ end
 --Check if the store (vendor) panel is shown
 --If OPTIONAL parameter number storeMode (either ZO_MODE_STORE_BUY, ZO_MODE_STORE_BUY_BACK, ZO_MODE_STORE_SELL,
 --ZO_MODE_STORE_REPAIR, ZO_MODE_STORE_SELL_STOLEN, ZO_MODE_STORE_LAUNDER, ZO_MODE_STORE_STABLE, ZO_MODE_STORE_SELL_VENGEANCE) is provided the store
---mode mode must be set at the store panel, if it is shown, to return true
+--mode must be set at the store panel, if it is shown, to return true
 --return boolean isShown, number storeMode, userdata/control/scene/fragment whatHasBeenDetectedToBeShown
 function libFilters:IsStoreShown(storeMode)
-	if not ZO_Store_IsShopping() or (storeMode and storeMode == 0) then return false, storeMode, nil end
+	if not ZO_Store_IsShopping() or (storeMode and storeMode < 1) then return false, storeMode, nil end
 	if IsGamepad() then
-		local currentStoreMode = (store_GP.GetCurrentMode ~= nil and store_GP:GetCurrentMode()) or 0
-		if currentStoreMode == 0 then
-			for lStoreMode, storeComponentCtrl in pairs(store_componentsGP) do
-				if checkIfStoreCtrlOrFragmentShown(storeComponentCtrl, lStoreMode) == true then
+		local currentStoreMode = store_GP:GetCurrentMode()
+		if currentStoreMode == nil then
+			--Is any component of the store shown (only loop the active components!)
+			for lStoreMode, storeComponentCtrl in pairs(store_componentsActiveGP) do
+				if checkIfStoreCtrlOrFragmentShown(storeComponentCtrl, lStoreMode, true) == true then
 					return true, lStoreMode, storeComponentCtrl
 				end
 			end
 		else
+			local storeActiveComponent = store_GP:GetActiveComponent()
+			--Compare passed in storeMode with the currently shown one
 			if storeMode ~= nil then
-				if not currentStoreMode == storeMode then
-					return false, currentStoreMode, nil
+				if currentStoreMode ~= storeMode then
+					return false, currentStoreMode, storeActiveComponent
+				else
+					return true, currentStoreMode, storeActiveComponent
 				end
 			end
-			local isStoreCtrlShown, storeCtrl, _ = checkIfStoreCtrlOrFragmentShown(nil, currentStoreMode)
+			local isStoreCtrlShown, storeCtrl, _ = checkIfStoreCtrlOrFragmentShown(storeActiveComponent, currentStoreMode, true)
 			return isStoreCtrlShown, currentStoreMode, storeCtrl
 		end
 	else
 		--local storeWindowMode = store:GetWindowMode() --returns if in stable mode -> ZO_STORE_WINDOW_MODE_STABLE
 		for lStoreMode, storeControlOrFragment in pairs(storeWindows) do
-			if checkIfStoreCtrlOrFragmentShown(storeControlOrFragment, lStoreMode) == true then
+			if checkIfStoreCtrlOrFragmentShown(storeControlOrFragment, lStoreMode, false) == true then
 				if storeMode ~= nil then
 					if storeMode == lStoreMode then
 						return true, storeMode, storeControlOrFragment
@@ -4965,7 +5055,6 @@ end
 -- the helpers may need to change as well!
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 --> See file helper.lua
-libFilters.helpers = {}
 local helpers      = libFilters.helpers
 
 --Install the helpers from table helpers now -> See file helper.lua, table "helpers"
