@@ -1332,7 +1332,10 @@ end
 
 ------------------------------------------------------------------------------------------------------------------------
 --Update functions for the keyboard inventory
+local function fallbackInventoryUpdaterKeyboard() updateKeyboardPlayerInventoryType(invTypeBackpack) end
+
 local InventoryUpdateFunctions_KB = {
+	["fallback"] = fallbackInventoryUpdaterKeyboard, 
 	--[[
 	Dynamically added below:
 	[LF_INVENTORY] = function()
@@ -1348,12 +1351,12 @@ local InventoryUpdateFunctions_KB = {
 	]]
 }
 --Dynamically add all INVENTORY updaters to the table above
-for filterTypeOfUpdaterName, isEnabled in pairs(filterTypeToUpdaterNameDynamic.INVENTORY) do
+for filterTypeOfUpdaterName, isEnabled in pairs(filterTypeToUpdaterNameDynamic["INVENTORY"]) do
 	if isEnabled then
-		InventoryUpdateFunctions_KB[filterTypeOfUpdaterName] = updateKeyboardPlayerInventoryType(libFiltersFilterType2InventoryType[filterTypeOfUpdaterName])
+		InventoryUpdateFunctions_KB[filterTypeOfUpdaterName] = function() updateKeyboardPlayerInventoryType(libFiltersFilterType2InventoryType[filterTypeOfUpdaterName] or invTypeBackpack) end
 	end
 end
-kbc.InventoryUpdateFunctions = InventoryUpdateFunctions_KB
+libFilters.constants.keyboard.InventoryUpdateFunctions = InventoryUpdateFunctions_KB
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1403,7 +1406,7 @@ local InventoryUpdateFunctions_GP      = {
 		updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_VENGEANCE)
 	end,
 }
-gpc.InventoryUpdateFunctions = InventoryUpdateFunctions_GP
+libFilters.constants.gamepad.InventoryUpdateFunctions = InventoryUpdateFunctions_GP
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -1412,12 +1415,15 @@ gpc.InventoryUpdateFunctions = InventoryUpdateFunctions_GP
 --The updater functions used within LibFilters:RequestUpdate() for the LF_* constants
 --Will call a refresh or update of the inventory lists, or scenes, or set a "isdirty" flag and update the crafting lists, etc.
 --> See file constants.lua, table filterTypeToUpdaterNameDynamic for all LF_* constants used for e.g. the dynamic updater name INVENTORY etc.
-local inventoryUpdaters           = {
+local inventoryUpdaters = {
 	INVENTORY = function(filterType)
+		if filterType == nil then return end
+
 		if IsGamepad() then
 			InventoryUpdateFunctions_GP[filterType]()
 		else
-			InventoryUpdateFunctions_KB[filterType]()
+			local updFunc = InventoryUpdateFunctions_KB[filterType] or InventoryUpdateFunctions_KB["fallback"]
+			updFunc()
 		end
 	end,
 	INVENTORY_COMPANION = function()
