@@ -29,7 +29,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
 --Keyboard
-local inventories =                         kbc.inventories
+--local inventories =                         kbc.inventories
 local playerInv =                           kbc.playerInv
 local store =                               kbc.store
 local vendorBuyBack =                       kbc.vendorBuyBack
@@ -49,6 +49,7 @@ local vendorSell_GP =                       gpc.vendorSell_GP
 local vendorBuyBack_GP =                    gpc.vendorBuyBack_GP
 local fenceSell_GP =                        gpc.invFenceSell_GP
 local fenceLaunder_GP =                     gpc.invFenceLaunder_GP
+local vendorSellVengeance_GP =              gpc.vendorSellVengeance_GP
 local storeWindowComponents_GP =            gpc.store_GP.components
 
 local smithing_GP =                         gpc.smithing_GP
@@ -395,9 +396,9 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --The helpers: Overwritten/changed ZOs vanilla code for the different LibFilters LF_* filterTypes. Most of them will
 --check for the existance of an entry .additionalFilter and run the filters together with vanilla code filters then.
---Some vanilla filters like the inventories of player, bank, guild bank deposits already use .additionalFilter them-
---selves in the ZOs code and we did just hook it to add our own functions in addition. See file LibFilters-3.0.lua,
---function libFilters:HookAdditionalFilter(LF_* constant) and runFilters()
+--Some vanilla filters (not mentioned in this file here) like the inventories of player, bank, guild bank deposits,
+--vendor sell already use .additionalFilter themselves in the ZOs code. We did just hook it to add our own functions in
+-- addition. See file LibFilters-3.0.lua, function libFilters:HookAdditionalFilter(LF_* constant) and runFilters()
 --
 -- version: The version of the helper. Used to check if another same helper is already installed and overwrite it with
 -- a newer version
@@ -1112,6 +1113,44 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 			for _, itemData in ipairs(items) do
 				if itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
                     if checkAndRundAdditionalFilters(vendorSell_GP, itemData, nil) == true then       --Added by LibFilters
+                        itemData.isEquipped = false
+                        itemData.meetsRequirementsToBuy = true
+                        itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
+                        itemData.storeGroup = GetItemStoreGroup(itemData)
+                        itemData.bestGamepadItemCategoryName = GetBestSellItemCategoryDescription(itemData)
+                        itemData.customSortOrder = itemData.sellInformationSortOrder
+                        table.insert(unequippedItems, itemData)
+                    end                                                                             --Added by LibFilters
+				end
+			end
+			return unequippedItems
+		end
+    },
+}
+
+--enable LF_VENDOR_SELL_VENGEANCE for gamepad mode
+--Calling local function GetSellVengeanceItems(searchContext)
+--> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_VENGEANCE].list:updateFunc"] = {
+    version = 1,
+    filterTypes = {
+        [true] = {LF_VENDOR_SELL_VENGEANCE},
+        [false]={}
+    },
+    locations = {
+        [1] = storeWindowComponents_GP[ZO_MODE_STORE_SELL_VENGEANCE].list,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc')
+		    -- original function GetSellVengeanceItems(searchContext)
+            local items = SHINV:GenerateFullSlotData(nil, BAG_VENGEANCE)
+			local unequippedItems = {}
+			--- Setup sort filter   < zos
+			for _, itemData in ipairs(items) do
+				if not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
+                    if checkAndRundAdditionalFilters(vendorSellVengeance_GP, itemData, nil) == true then       --Added by LibFilters
                         itemData.isEquipped = false
                         itemData.meetsRequirementsToBuy = true
                         itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
