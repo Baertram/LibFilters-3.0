@@ -559,6 +559,29 @@ constants.inventoryTypes["craftbag"] 	=	invTypeCraftBag
 constants.inventoryTypes["furnitureVault"]=	invTypeFurnitureVault
 constants.inventoryTypes["vengeance"] 	=	invTypeVengeance
 
+--[LibFilters filterTypes to ESO inventoryType]
+local libFiltersFilterType2InventoryType = {
+	[LF_INVENTORY] = 				invTypeBackpack,
+	[LF_INVENTORY_QUEST] = 			invTypeQuest,
+	[LF_BANK_DEPOSIT] = 			invTypeBackpack,
+	[LF_BANK_WITHDRAW] = 			invTypeBank,
+	[LF_GUILDBANK_DEPOSIT] = 		invTypeBackpack,
+	[LF_GUILDBANK_WITHDRAW] = 		invTypeGuildBank,
+	[LF_HOUSE_BANK_DEPOSIT] = 		invTypeBackpack,
+	[LF_HOUSE_BANK_WITHDRAW] = 		invTypeHouseBank,
+	[LF_CRAFTBAG] = 				invTypeCraftBag,
+	[LF_FURNITURE_VAULT_DEPOSIT] = 	invTypeBackpack,
+	[LF_FURNITURE_VAULT_WITHDRAW] = invTypeFurnitureVault,
+	[LF_INVENTORY_VENGEANCE] = 		invTypeVengeance,
+	[LF_VENDOR_SELL] = 				invTypeBackpack,
+	[LF_VENDOR_SELL_VENGEANCE] = 	invTypeVengeance,
+	[LF_MAIL_SEND] =				invTypeBackpack,
+	[LF_TRADE] =					invTypeBackpack,
+    [LF_FENCE_SELL] =				invTypeBackpack,
+    [LF_FENCE_LAUNDER] =			invTypeBackpack,
+}
+constants.LibFiltersFilterType2InventoryType = libFiltersFilterType2InventoryType
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --Other addons
@@ -1538,7 +1561,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { store },
 		[LF_VENDOR_SELL]              = { vendorSell },
-		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell }, --todo: test 20251001
+		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell }, --todo: test 20251207 LibFilters3_filterType is applied but the filters aren't working.
 		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
 		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSellFragment },
@@ -1593,7 +1616,7 @@ local filterTypeToReference = {
 
 		[LF_VENDOR_BUY]               = { gpc.vendorBuy_GP },
 		[LF_VENDOR_SELL]              = { gpc.vendorSell_GP },
-		[LF_VENDOR_SELL_VENGEANCE]	  = { gpc.vendorSellVengeance_GP }, --todo: test 20251001
+		[LF_VENDOR_SELL_VENGEANCE]	  = { gpc.vendorSellVengeance_GP },
 		[LF_VENDOR_BUYBACK]           = { gpc.vendorBuyBack_GP },
 		[LF_VENDOR_REPAIR]            = { gpc.vendorRepair_GP },
 		[LF_FENCE_SELL]               = { gpc.invFenceSell_GP },
@@ -2062,7 +2085,7 @@ filterTypeToCheckIfReferenceIsHidden = {
 											  }
 										  }
 		},
-		--todo, to test 2025-10-01
+		--Works, 2025-12-07
 		[LF_VENDOR_SELL_VENGEANCE]	  = { ["control"] = storeComponents[ZO_MODE_STORE_SELL_VENGEANCE].list, 	["scene"] = storeScene_GP,		["fragment"] = storeComponents[ZO_MODE_STORE_SELL_VENGEANCE].list._fragment,
 										  ["special"] = {
 											  [1] = {
@@ -2629,8 +2652,6 @@ local filterTypeToUpdaterNameFixed = {
 	 [LF_INVENTORY_QUEST]			= "INVENTORY_QUEST",
 	 [LF_INVENTORY_COMPANION]		= "INVENTORY_COMPANION",
 	 [LF_FURNITURE_VAULT_WITHDRAW]	= "FURNITURE_VAULT_WITHDRAW",
-	 [LF_INVENTORY_VENGEANCE]		= "INVENTORY_VENGEANCE",
-	 --[LF_VENDOR_SELL_VENGEANCE]		= "VENDOR_SELL_VENGEANCE", --todo: test if unique updater name is needed 20251001
 }
 mapping.filterTypeToUpdaterNameFixed = filterTypeToUpdaterNameFixed
 

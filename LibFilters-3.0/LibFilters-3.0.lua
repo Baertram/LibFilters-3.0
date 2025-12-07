@@ -135,6 +135,8 @@ local invTypeCraftBag =				inventoryTypes["craftbag"]
 local invTypeFurnitureVault = 		inventoryTypes["furnitureVault"]
 local invTypeVengeance = 			inventoryTypes["vengeance"]
 
+local libFiltersFilterType2InventoryType = constants.LibFiltersFilterType2InventoryType
+
 local defaultOriginalFilterAttributeAtLayoutData = constants.defaultAttributeToAddFilterFunctions --"additionalFilter"
 local defaultSubTableWhereFilterFunctionsCouldBe = constants.defaultSubTableWhereFilterFunctionsCouldBe -- "layoutData"
 
@@ -261,6 +263,9 @@ local reconstruct_GP 			= 	gpc.reconstruct_GP
 local universalDeconstruct_GP   =   gpc.universalDeconstruct_GP
 local universalDeconstructPanel_GP = gpc.universalDeconstructPanel_GP
 local universalDeconstructScene_GP = gpc.universalDeconstructScene_GP
+
+local filterTypeToUpdaterNameDynamic = mapping.filterTypeToUpdaterNameDynamic
+
 
 --Other addons
 local cbeSupportedFilterPanels  = constants.cbeSupportedFilterPanels
@@ -1324,8 +1329,36 @@ local function updateFunction_GP_CraftingInventory(craftingInventory)
 	craftingInventory:PerformFullRefresh()
 end
 
+
+------------------------------------------------------------------------------------------------------------------------
+--Update functions for the keyboard inventory
+local InventoryUpdateFunctions_KB = {
+	--[[
+	Dynamically added below:
+	[LF_INVENTORY] = function()
+		updateKeyboardPlayerInventoryType(invTypeBackpack)
+	end,
+	[LF_INVENTORY_VENGEANCE] = function()
+		updateKeyboardPlayerInventoryType(invTypeVengeance)
+	end,
+	[LF_VENDOR_SELL_VENGEANCE] = function()
+		updateKeyboardPlayerInventoryType(invTypeVengeance)
+	end,
+	...
+	]]
+}
+--Dynamically add all INVENTORY updaters to the table above
+for filterTypeOfUpdaterName, isEnabled in pairs(filterTypeToUpdaterNameDynamic.INVENTORY) do
+	if isEnabled then
+		InventoryUpdateFunctions_KB[filterTypeOfUpdaterName] = updateKeyboardPlayerInventoryType(libFiltersFilterType2InventoryType[filterTypeOfUpdaterName])
+	end
+end
+kbc.InventoryUpdateFunctions = InventoryUpdateFunctions_KB
+
+
+------------------------------------------------------------------------------------------------------------------------
 --Update functions for the gamepad inventory
-gpc.InventoryUpdateFunctions      = {
+local InventoryUpdateFunctions_GP      = {
 	[LF_INVENTORY] = function()
 	  --updateFunction_GP_ItemList(invBackpack_GP)
 		updateFunction_GP_ItemOrCategoryList(invBackpack_GP, "itemList", "categoryList")
@@ -1370,7 +1403,8 @@ gpc.InventoryUpdateFunctions      = {
 		updateFunction_GP_Vendor(ZO_MODE_STORE_SELL_VENGEANCE)
 	end,
 }
-local InventoryUpdateFunctions_GP = gpc.InventoryUpdateFunctions
+gpc.InventoryUpdateFunctions = InventoryUpdateFunctions_GP
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --KEYBOARD & GAMEPAD updater string to updater function
@@ -1383,7 +1417,7 @@ local inventoryUpdaters           = {
 		if IsGamepad() then
 			InventoryUpdateFunctions_GP[filterType]()
 		else
-			updateKeyboardPlayerInventoryType(invTypeBackpack)
+			InventoryUpdateFunctions_KB[filterType]()
 		end
 	end,
 	INVENTORY_COMPANION = function()
@@ -1420,13 +1454,6 @@ local inventoryUpdaters           = {
 	--		SafeUpdateList(quickslots_GP) --TODO quickslots GP are not supported yet
 		else
 			SafeUpdateList(quickslots)
-		end
-	end,
-	INVENTORY_VENGEANCE = function(filterType)
-		if IsGamepad() then
-			InventoryUpdateFunctions_GP[filterType]()
-		else
-			updateKeyboardPlayerInventoryType(invTypeVengeance)
 		end
 	end,
 	BANK_WITHDRAW = function()
@@ -2786,7 +2813,6 @@ function libFilters:IsVengeanceStoreShown()
 		local inputType = IsGamepad()
 		if inputType == true then
 			libFilters_IsStoreShown = libFilters_IsStoreShown or libFilters.IsStoreShown
-			--todo 2025-12-07 Not working, always returns true!
 			if libFilters_IsStoreShown(libFilters, ZO_MODE_STORE_SELL_VENGEANCE) then
 				if libFilters.debug then dd("IsVengeanceStoreShown: true") end
 				lFilterTypeDetected = 		LF_VENDOR_SELL_VENGEANCE
