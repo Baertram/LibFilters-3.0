@@ -81,10 +81,10 @@ local getTypeOfRefName = 		libFilters.GetTypeOfRefName
 
 --Functions without reference - will be updated inline below
 local libFilters_hookAdditionalFilter
-local updateCurrentAndLastUniversalDeconVariables
 local libFilters_CallbackRaise
-local onControlHiddenStateChange
 local libFilters_GetFilterTypeName
+local updateCurrentAndLastUniversalDeconVariables
+local onControlHiddenStateChange
 
 
 
@@ -289,6 +289,7 @@ local function applyUniversalDeconstructionHook()
 			-->2022-10-30: GAMEPAD: Universald Decon tab changes won't work properly anymore if removed so added a boolean to EVENT_CRAFTING_TABLE_INTERACT
 			--and if it's called the 2nd time skip the onControlHiddenStateChange(false) at gamepad mode here ONCE until next EVENT_CRAFTING_TABLE_INTERACT
 			--was called
+			onControlHiddenStateChange = onControlHiddenStateChange or libFilters.OnControlHiddenStateChange
 			if libFilters.wasUniversalDeconPanelShownBefore == true
 					and (not isInGamepadMode or (isInGamepadMode and not libFilters.wasUniversalDeconPanelGPEventCraftingBeginUsed) ) then
 				onControlHiddenStateChange(false, { filterTypeBefore }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHideCurrentTab)
@@ -333,6 +334,7 @@ local function applyUniversalDeconstructionHook()
 			end
 			--Update the last shown UniversalDecon tab and filterType
 			updateCurrentAndLastUniversalDeconVariables(universalDeconstructPanel.inventory:GetCurrentFilter(), false)
+			onControlHiddenStateChange = onControlHiddenStateChange or libFilters.OnControlHiddenStateChange
 			onControlHiddenStateChange(true, filterTypesOfUniversalDecon, ctrlRef, false, nil)
 		end)
 

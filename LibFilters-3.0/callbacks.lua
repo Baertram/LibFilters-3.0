@@ -824,7 +824,7 @@ function onSceneStateChange(oldState, newState, filterTypes, scene, inputType)
 	end
 	callbackRaiseCheck(filterTypes, scene, newState, inputType, LIBFILTERS_CON_TYPEOFREF_SCENE, sceneName)
 end
-
+libFilters.OnSceneStateChange = onSceneStateChange
 
 function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, specialPanelControlFunc, universalDeconData)
 	local ctrlName
@@ -845,7 +845,7 @@ function onControlHiddenStateChange(isShown, filterTypes, ctrlRef, inputType, sp
 		checkIfSpecialCallbackNeedsToBeAdded(ctrlRef, stateStr, inputType, LIBFILTERS_CON_TYPEOFREF_CONTROL, ctrlName, specialPanelControlFunc)
 	end
 end
-
+libFilters.OnControlHiddenStateChange = onControlHiddenStateChange
 
 local function createFragmentCallback(fragment, filterTypes, inputType)
 	if libFilters.debug then

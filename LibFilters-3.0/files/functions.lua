@@ -784,6 +784,7 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 	local lReferencesToFilterType = {}
 
 	--Special case "Universal Deconstruction" -> Own UI cotrols but re-use LF_SMITHING* etc. filterTypes!
+	libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
 	local isUniversalDeconPanelShown = libFilters_IsUniversalDeconstructionPanelShown()
 	local universalDeconSelectedTabKey
 
