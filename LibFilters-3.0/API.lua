@@ -1270,10 +1270,6 @@ function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if libFilters.debug then dd("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
 				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)) --tos(filterTypeMappedByCraftingType)
 	end
-
-	d(string.format("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
-				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)))
-
 	if dialogOwnerControlToCheck == nil then return false end
 	return isListDialogShown(dialogOwnerControlToCheck)
 end
