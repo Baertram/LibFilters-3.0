@@ -155,7 +155,7 @@ local craftBagExtendedCheckForCurrentModule = functions.craftBagExtendedCheckFor
 --Local pre-defined function names. Code will be added further down in this file. Only created here already to be re-used
 --in code prior to creation (functions using it won't be called before creation was done, but they are local and more
 --DOWN in the lua file than the actual fucntion's creation is done -> lua interpreter wouldn't find it).
-local libFilters_IsListDialogShown
+local isListDialogShown
 local libFilters_IsUniversalDeconstructionPanelShown
 local libFilters_GetCurrentFilterTypeForInventory
 local libFilters_GetCurrentFilterTypeReference
@@ -1253,7 +1253,7 @@ libFilters_IsStoreShown = libFilters.IsStoreShown
 --returns boolean isListDialogShown
 function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if filterType == nil and dialogOwnerControlToCheck == nil then return false end
-	libFilters_IsListDialogShown = libFilters_IsListDialogShown or libFilters.IsListDialogShown
+	isListDialogShown = isListDialogShown or functions.isListDialogShown
 	--[[
 	--Does the filterType passed in needs to be mapped to another one, depending on the craftType?
 	local filterTypeMappedByCraftingType, craftType
@@ -1270,11 +1270,13 @@ function libFilters:IsListDialogShown(filterType, dialogOwnerControlToCheck)
 	if libFilters.debug then dd("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
 				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)) --tos(filterTypeMappedByCraftingType)
 	end
-	if dialogOwnerControlToCheck == nil then return false end
-	return libFilters_IsListDialogShown(dialogOwnerControlToCheck)
-end
-libFilters_IsListDialogShown = libFilters.IsListDialogShown
 
+	d(string.format("IsListDialogShown-filterType: %q, craftType: %s, dialogOwnerControl: %s", --filterTypeMapped: %q
+				tos(filterType), tos(craftType), tos(dialogOwnerControlToCheck)))
+
+	if dialogOwnerControlToCheck == nil then return false end
+	return isListDialogShown(dialogOwnerControlToCheck)
+end
 
 --Is the retrait station curently shown
 --returns boolean isRetraitStation
