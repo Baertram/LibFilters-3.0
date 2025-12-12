@@ -1523,19 +1523,25 @@ local filterTypeToUniversalOrNormalDeconAndExtractVars = {
 }
 mapping.filterTypeToUniversalOrNormalDeconAndExtractVars = filterTypeToUniversalOrNormalDeconAndExtractVars
 
+--The possible names of the UniversalDeconstruction assistant UI
+local universalDeconstructionTabNames = {
+	"all", "armor", "weapons", "jewelry", "enchantments"
+}
+constants.universalDeconstructionTabNames = universalDeconstructionTabNames
+
 local universalDeconTabKeyToLibFiltersFilterType = {
-	["all"] =           LF_SMITHING_DECONSTRUCT,
-	["armor"] =         LF_SMITHING_DECONSTRUCT,
-	["weapons"] =       LF_SMITHING_DECONSTRUCT,
-	["jewelry"] =       LF_JEWELRY_DECONSTRUCT,
-	["enchantments"] =  LF_ENCHANTING_EXTRACTION,
+	[universalDeconstructionTabNames[1]] =  LF_SMITHING_DECONSTRUCT,
+	[universalDeconstructionTabNames[2]] =  LF_SMITHING_DECONSTRUCT,
+	[universalDeconstructionTabNames[3]] =  LF_SMITHING_DECONSTRUCT,
+	[universalDeconstructionTabNames[4]] =  LF_JEWELRY_DECONSTRUCT,
+	[universalDeconstructionTabNames[5]] =	LF_ENCHANTING_EXTRACTION,
 }
 mapping.universalDeconTabKeyToLibFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType
 
 local libFiltersFilterTypeToUniversalDeconTabKeys = {
-	[LF_SMITHING_DECONSTRUCT] = { "all", "armor", "weapons" },
-	[LF_JEWELRY_DECONSTRUCT] = { "jewelry" },
-	[LF_ENCHANTING_EXTRACTION] = { "enchantments" },
+	[LF_SMITHING_DECONSTRUCT] = { universalDeconstructionTabNames[1], universalDeconstructionTabNames[2], universalDeconstructionTabNames[3] },
+	[LF_JEWELRY_DECONSTRUCT] = { universalDeconstructionTabNames[4] },
+	[LF_ENCHANTING_EXTRACTION] = { universalDeconstructionTabNames[5] },
 }
 mapping.libFiltersFilterTypeToUniversalDeconTabKeys = libFiltersFilterTypeToUniversalDeconTabKeys
 

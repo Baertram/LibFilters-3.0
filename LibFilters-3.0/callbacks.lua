@@ -61,6 +61,10 @@ local provisionerIngredientTypeToFilterType = 						mapping.provisionerIngredien
 local alchemyModeToFilterType = 									mapping.alchemyModeToFilterType
 local craftbagRefsFragment = 										LF_FilterTypeToCheckIfReferenceIsHidden[false][LF_CRAFTBAG]["fragment"]
 
+local universalDeconstructionTabNames = constants.universalDeconstructionTabNames
+local universalDeconstructionTabNameAll = universalDeconstructionTabNames[1] --"all"
+
+
 --Mapping between fragment's and scene's stateChange states
 local fragmentStateToSceneState = {
 	[SCENE_FRAGMENT_SHOWING]	= SCENE_SHOWING,
@@ -459,7 +463,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		end
 	end
 
-	--Was the callback that should fire now the last activated one already?
+	--Was the callback, which should fire now, the last activated one itsself already?
 	local lastCallbackState = libFilters._lastCallbackState
 	if ( lastCallbackState ~= nil and lastCallbackState == stateStr
 			and (
@@ -501,7 +505,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 			else
 				--If currentTab AND lastTab cannot be used just pass in the "all" tab...
 				if libFilters.debug then dd("|UD> CallbackRaise-universal deconstruction CLOSED - currentTab AND lastTab are NIL! Using last tab: %q", "all") end
-				universalDeconSelectedTabNow = "all"
+				universalDeconSelectedTabNow = universalDeconstructionTabNameAll
 			end
 		end
 	end
@@ -710,6 +714,7 @@ end
 --Boolean doNotUpdateCurrentAndLastFilterTypes controls if the raise of the callback will save the now shown, and last shown, callbacks
 --filterTypes etc., or not.
 --Parameter universalDeconTab can be used to raise the callback for the universal deconstruction panels "all", "armor", "weapons", "jewelry" or "enchantments"
+--> See file constants.lua, table universalDeconstructionTabNames
 --IF the filterType constant LF* passed in matches the tab e.g. LF_SMITHING_DECONSTRUCT for all, armor, weapons, LF_JEWELRY_DECONSTRUCT for jewelry and
 --LF_ENCHANTING_EXTRACT for enchantments
 --returns nilable boolean true if the callback was raised, or false if not. nil will be returned if an error occured

@@ -347,8 +347,8 @@ libFilters_GetCurrentFilterTypeForInventory = libFilters.GetCurrentFilterTypeFor
 -- Get the actually used filterType via the shown control/scene/userdata information
 --Not implemented: If optional parameter table referencesTab (e.g. { [1] = controlRef } is passed in we will try to detect the filterType (if it cannot be detected via the usual way) directly from the reference
 -- returns number LF*_filterType
---		   String universalDeconSelectedTabKey e.g. "all", "weapons", "armor", "jewelry", "enchantments" if the universal deconstruction panel is currently active
--->		 (which re-usess LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACT)
+--		   String universalDeconSelectedTabKey e.g. "all", "weapons", "armor", "jewelry", "enchantments" (See file constants.lua, table universalDeconstructionTabNames)
+-->		   Only if the universal deconstruction panel is currently active (which re-usess LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACT)
 function libFilters:GetCurrentFilterType()
 	local noRefUpdate = true
 	local filterTypeReference, filterType, universalDeconSelectedTabKey = libFilters_GetCurrentFilterTypeReference(libFilters, nil, nil)
@@ -1826,6 +1826,7 @@ end
 ----boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
 ----boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
 ----nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+----> See file constants.lua, table universalDeconstructionTabNames
 ----nilable:String raiseBeforeOtherAddonsCallbackName If this callbackName (of another addon) is given the callback should be raised after this callback was raised. The callbackName provided here must match the
 ----> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
 ----Returns String callbackNameGenerated

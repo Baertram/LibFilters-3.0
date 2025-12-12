@@ -166,6 +166,7 @@ You need to use the API function **libFilters:RegisterCallbackName** to create s
 ----boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
 ----boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
 ----nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+----> See file constants.lua, table universalDeconstructionTabNames
 ----nilable:String raiseBeforeOtherAddonsCallbackName If this callbackName (of another addon) is given the callback should be raised after this callback was raised. The callbackName provided here must match the
 ----> other parameters like filterType, isShown, inputType, universalDeconActiveTab!
 ----Returns String callbackNameGenerated
@@ -180,6 +181,7 @@ You can unregister a registered callbackName again by using the function
 --boolean isShown true means SCENE_SHOWN will be used, and false means SCENE_HIDDEN will be used for the callbackname
 --boolean inputType true = Gamepad, false= keyboard callback, leave empty for both!
 --nilable:String universalDeconActiveTab The active tab at the universal deconstruction panel that this callback should be raised for, e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
+--> See file constants.lua, table universalDeconstructionTabNames
 --Returns boolean wasRemoved true/false
 LibFilters3:UnregisterCallbackName(yourAddonName, filterType, isShown, inputType, universalDeconActiveTab)
 </pre>
@@ -201,6 +203,7 @@ lReferencesToFilterType table: Table of reference controls/userdata/fragments/sc
 universalDeconPanelShownNow nilable:String: Will comtain the name of the universald deconstruction panel currently shown. If no universal decon callback was raised it will be nil!
 This is needed as the filterTypes LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACT are re-used at the Universal Deconstruction panel, and at the normal relating panels! At the UniversalDecon panel the value will be telling you the currently selected universal decon. tab e.g. "all", or "weapons", or "armor" or "jewelry" or "enchantments", at the normal crafting station panels it will be nil! That way you are able to distinguish the callback at the different panels
 as LF_SMITHING_DECONSTRUCT counts for normal smithing/clotier/woodworking and universal decon tabs "all"/"weapons"/"armor" for example.
+----> See file constants.lua, table universalDeconstructionTabNames
 </pre>
 
 
@@ -268,7 +271,7 @@ local callbackNameInvHidden = libfilters:RegisterCallbackName("MyUniqueAddonName
 --refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 --table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
 --nilable:String universalDeconSelectedTabNow e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
-
+----> See file constants.lua, table universalDeconstructionTabNames
 local function callbackFunctionForInvShown(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
   --Register your filterFunction here e.g. or do whatever is needed, like adding custom controls of your addon to the currently shown panel
   if not libFilters:IsFilterRegistered(myAddonUniqueFilterTag, LF_INVENTORY) then
@@ -327,7 +330,7 @@ local callbackNameInvHidden = libfilters:RegisterCallbackName("MyUniqueAddonName
 --refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
 --table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
 --nilable:String universalDeconSelectedTabNow e.g. "all", "armor", "weapons", "jewelry" or "enchanting"
-
+----> See file constants.lua, table universalDeconstructionTabNames
 local function callbackFunctionForSmithingDeconstructionShown(callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
   --As LF_SMITHING_DECONSTRUCT could be re-used for UniversalDeconstruction exclude the uniersal decon panels here!
   --Check if the param universalDeconSelectedTabNow is nil, else it's a String containing the UniversalDecon currently selected tab!
