@@ -1,6 +1,6 @@
 # API functions of LibFilters
 
-Last updated: 2023-01-02<br>
+Last updated: 2025-09-21<br>
 **The WIKI entries here might be outdated.**<br>
 **!!!Please ALWAYS have a look at the file LibFilters-3.0/LibFilters-3.0.lua and search for!!!**<br>
 ```
@@ -246,6 +246,11 @@ function libFilters:IsInventoryShown()
 function libFilters:IsCompanionInventoryShown()
 
 
+--Is the Vengeance Inventory shown
+--returns boolean isShown
+function libFilters:IsVengeanceInventoryShown()
+
+
 --Is the character control shown
 --returns boolean isShown
 function libFilters:IsCharacterShown()
@@ -269,6 +274,11 @@ function libFilters:IsGuildBankShown()
 --Is the house bank shown
 --returns boolean isShown
 function libFilters:IsHouseBankShown()
+
+
+--Is the furniture vault shown
+--returns boolean isShown
+function libFilters:IsFurnitureVaultShown()
 
 
 --Check if the store (vendor) panel is shown

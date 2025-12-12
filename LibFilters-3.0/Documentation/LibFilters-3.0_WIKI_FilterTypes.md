@@ -1,6 +1,6 @@
-Last updated: 2022-11-11
+Last updated: 2025-09-21
 ```
-         [1]	= "LF_INVENTORY",
+     [1]	= "LF_INVENTORY",
 	 [2]	= "LF_BANK_WITHDRAW",
 	 [3]	= "LF_BANK_DEPOSIT",
 	 [4]	= "LF_GUILDBANK_WITHDRAW",
@@ -39,6 +39,9 @@ Last updated: 2022-11-11
 	 [37]  	= "LF_JEWELRY_RESEARCH_DIALOG",
 	 [38]  	= "LF_INVENTORY_QUEST",
 	 [39]  	= "LF_INVENTORY_COMPANION",
+	 [40]  	= "LF_FURNITURE_VAULT_WITHDRAW",
+	 [41]  	= "LF_FURNITURE_VAULT_DEPOSIT",
+	 [42]   = "LF_INVENTORY_VENGEANCE",
 ```
 
 **Attention:**

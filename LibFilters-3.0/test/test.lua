@@ -26,7 +26,12 @@ local gil = 	GetItemLink
 local gqil = 	GetQuestItemLink
 local zigbai = 	ZO_Inventory_GetBagAndIndex
 
+local mapping = libFilters.mapping
+local universalDeconLibFiltersFilterTypeSupported = mapping.universalDeconLibFiltersFilterTypeSupported
+local universalDeconTabKeyToLibFiltersFilterType = mapping.universalDeconTabKeyToLibFiltersFilterType
+
 local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
+local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
 local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
 local libFilters_RegisterFilter = libFilters.RegisterFilter
 local libFilters_UnregisterFilter = libFilters.UnregisterFilter
@@ -37,6 +42,24 @@ local function checkIfInitDone()
 	if libFilters.isInitialized then return end
 	libFilters:InitializeLibFilters()
 end
+
+local filterTypeToControlsChange = {
+	--Keyboard
+	[false] = {
+		["OnShow"] = {
+			[LF_QUICKSLOT] = { ZO_QuickSlot_Keyboard_TopLevelQuickSlotCircleUnderlay }, --hide the modal underlay of the quickslot so we can do anything!
+			[LF_SMITHING_RESEARCH_DIALOG] = { ZO_ListDialog1ModalUnderlay },
+			[LF_JEWELRY_RESEARCH_DIALOG] = { ZO_ListDialog1ModalUnderlay },
+		},
+		--[[
+		["OnHide"] = {
+			[LF_QUICKSLOT] = { ZO_QuickSlot_Keyboard_TopLevelQuickSlotCircleUnderlay } --show the modal underlay of the quickslot so we can do anything!
+		}
+		]]
+	},
+	--Gamepad
+	[true] = {},
+}
 
 ------------------------------------------------------------------------------------------------------------------------
 -- LIBRARY VARIABLES
@@ -55,6 +78,7 @@ local tos = tostring
 local strgm = string.gmatch
 local gTab = table
 local tins = gTab.insert
+local tsort = gTab.sort
 
 --Helper varibales for tests
 local prefix = libFilters.globalLibName
@@ -94,7 +118,8 @@ local function toggleFilterForFilterType(filterType, noUpdate)
 
 	noUpdate = noUpdate or false
 	local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
-	local filterFunc = (filterTypeToFilterFunctionType[filterType] == LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT and filterFuncForInventories) or filterFuncForCrafting
+	local filterFunc = (filterTypeToFilterFunctionType[filterType] == LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT and filterFuncForInventories)
+						or filterFuncForCrafting
 
 	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
 		libFilters_UnregisterFilter(libFilters, filterTag, filterType)
@@ -116,11 +141,11 @@ local helpUIInstructionsParts = {
 	"Use /lftestfilters without any parameters to open/close the test UI. Click the small 'x' button at the top-right edge to close the UI and clear all filters.",
 	"Select any number of LF_* filterTypes in the top list. Clicking them will select them. Clicking them again will deselct them.",
 	"Use \'"..GetString(SI_APPLY).."\' button to register the selected filters and populate the registered LF_* filterTypes to the bottom list.", --"Apply" button
-	"At any time, LF_* filterTypes can be added or removed by selecting/deselcting the button in the top list, and pressing the button \'" .. GetString(SI_APPLY) .. "\'.",
+	"At any time, LF_* filterTypes can be added or removed by selecting/deselecting the button in the top list, and pressing the button \'" .. GetString(SI_APPLY) .. "\'.",
 	"The \'".. GetString(SI_GAMEPAD_BANK_FILTER_HEADER) .."\' button enables/disables filtering of the registered filters.", --"Filter" button
 	"If you click the buttons of the LF_* filterTypes at the bottom list it will refresh/update the clicked filterType panel (if it's currently shown).",
 	"Means: With a fragment/scene containing a filterable inventory, enable/disable filtering (middle button) and press the according LF_* button in the bottom",
-	"list. Chat output will show you some information about the filtered items then. A default filterFunction is used but can be chanegd for each filterType -> See filterFunction editbox.",
+	"list. Chat output will show you some information about the filtered items then. A default filterFunction is used but can be changed for each filterType -> See filterFunction editbox.",
 	"The \'".. GetString(SI_BUFFS_OPTIONS_ALL_ENABLED) .."\' button will move down/move up all LF_* filterTypes at once.", --"All" button
 }
 local helpUIInstructions = gTab.concat(helpUIInstructionsParts, "\n")
@@ -147,44 +172,56 @@ local filterTypesToCategory = {
 		['category'] = 'Inventory',
 	},
 	{
-		['filterType'] = LF_CRAFTBAG,
-		['category'] = 'Inventory',
-	},
-	{
-		['filterType'] = LF_INVENTORY_COMPANION,
-		['category'] = 'Inventory',
-	},
-	{
 		['filterType'] = LF_QUICKSLOT,
 		['category'] = 'Inventory',
 	},
 	{
+		['filterType'] = LF_INVENTORY_VENGEANCE,
+		['category'] = 'Cyrodiil - Inventory',
+	},
+	{
+		['filterType'] = LF_CRAFTBAG,
+		['category'] = 'CraftBag',
+	},
+	{
+		['filterType'] = LF_INVENTORY_COMPANION,
+		['category'] = 'Companion - Inventory',
+	},
+	{
 		['filterType'] = LF_BANK_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'Player Bank',
 	},
 	{
 		['filterType'] = LF_BANK_DEPOSIT,
-		['category'] = 'Banking',
+		['category'] = 'Player Bank',
 	},
 	{
 		['filterType'] = LF_GUILDBANK_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'Guild Bank',
 	},
 	{
 		['filterType'] = LF_GUILDBANK_DEPOSIT,
-		['category'] = 'Banking',
+		['category'] = 'Guild Bank',
 	},
 	{
 		['filterType'] = LF_HOUSE_BANK_WITHDRAW,
-		['category'] = 'Banking',
+		['category'] = 'House Bank',
 	},
 	{
 		['filterType'] = LF_HOUSE_BANK_DEPOSIT,
-		['category'] = 'Banking',
+		['category'] = 'House Bank',
+	},
+	{
+		['filterType'] = LF_FURNITURE_VAULT_DEPOSIT,
+		['category'] = 'House Furniture Bank',
+	},
+	{
+		['filterType'] = LF_FURNITURE_VAULT_WITHDRAW,
+		['category'] = 'House Furniture Bank',
 	},
 	{
 		['filterType'] = LF_GUILDSTORE_SELL,
-		['category'] = 'Banking',
+		['category'] = 'Guild Store/Trader',
 	},
 	{
 		['filterType'] = LF_VENDOR_BUY,
@@ -203,85 +240,97 @@ local filterTypesToCategory = {
 		['category'] = 'Vendor',
 	},
 	{
+		['filterType'] = LF_VENDOR_SELL_VENGEANCE,
+		['category'] = 'Cyrodiil - Vendor',
+	},
+	{
 		['filterType'] = LF_FENCE_SELL,
-		['category'] = 'Vendor',
+		['category'] = 'Fence',
 	},
 	{
 		['filterType'] = LF_FENCE_LAUNDER,
-		['category'] = 'Vendor',
+		['category'] = 'Fence',
 	},
 	{
 		['filterType'] = LF_MAIL_SEND,
-		['category'] = 'Trade',
+		['category'] = 'Mail',
 	},
 	{
 		['filterType'] = LF_TRADE,
-		['category'] = 'Trade',
+		['category'] = 'Player 2 Player Trade',
 	},
 	{
 		['filterType'] = LF_ALCHEMY_CREATION,
-		['category'] = 'Crafting',
+		['category'] = 'Crafting - Alchemy',
 	},
 	{
 		['filterType'] = LF_ENCHANTING_CREATION,
-		['category'] = 'Crafting',
+		['category'] = 'Crafting - Enchanting',
 	},
 	{
 		['filterType'] = LF_ENCHANTING_EXTRACTION,
-		['category'] = 'Crafting',
+		['category'] = 'Crafting - Enchanting',
 	},
 	{
-		['filterType'] = LF_RETRAIT,
-		['category'] = 'Crafting',
+		['filterType'] = LF_PROVISIONING_COOK,
+		['category'] = 'Crafting - Provisioner',
+	},
+	{
+		['filterType'] = LF_PROVISIONING_BREW,
+		['category'] = 'Crafting - Provisioner',
 	},
 	{
 		['filterType'] = LF_SMITHING_REFINE,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_CREATION,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_DECONSTRUCT,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_IMPROVEMENT,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_RESEARCH,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_SMITHING_RESEARCH_DIALOG,
-		['category'] = 'Smithing',
+		['category'] = 'Crafting - Smithing',
 	},
 	{
 		['filterType'] = LF_JEWELRY_REFINE,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_CREATION,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_DECONSTRUCT,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_IMPROVEMENT,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_RESEARCH,
-		['category'] = 'Jewelery',
+		['category'] = 'Crafting - Jewelery',
 	},
 	{
 		['filterType'] = LF_JEWELRY_RESEARCH_DIALOG,
-		['category'] = 'Jewelery',
-	}
+		['category'] = 'Crafting - Jewelery',
+	},
+	{
+		['filterType'] = LF_RETRAIT,
+		['category'] = 'Reconstruct / Retrait',
+	},
 }
 
 local enabledFilters = {}
@@ -320,6 +369,9 @@ end
 --and if weapons/armor also if it's locked by ZOs vanilla UI lock functionality and non companion items
 --and poisons or potions or reagents by their stackCount <= 100
 local function defaultFilterFunction(bagId, slotIndex, stackCount)
+	return false
+
+	--[[
 	local itemType, specializedItemType = GetItemType(bagId, slotIndex)
 	local quality = GetItemQuality(bagId, slotIndex)
 
@@ -344,6 +396,7 @@ local function defaultFilterFunction(bagId, slotIndex, stackCount)
 		return false
 	end
 	return stackCount > 1
+	]]
 end
 
 local bagIdSlotIndexFilterTypeStr = "bagId/slotIndex: (%s/%s), filterType: (%s)"
@@ -425,8 +478,20 @@ local function updateCustomFilterFunction(filterTypes, filterFunction, filterFun
 	end
 end
 
+local function sortFuncFilterTypesEnabledList(a, b)
+	if a.name and b.name then
+		return a.name < b.name
+	elseif a.filterType and b.filterType then
+		return a.filterType < b.filterType
+	end
+	return false
+end
+
 local function refresh(dataList)
-	for _, filterData in pairs(filterTypesToCategory) do
+	local wasAdded = false
+	local masterListUnsorted = {}
+
+	for _, filterData in ipairs(filterTypesToCategory) do
 		local filterType = filterData.filterType
 		local isRegistered = libFilters_IsFilterRegistered(libFilters, filterTag, filterType)
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
@@ -437,7 +502,9 @@ local function refresh(dataList)
 				['name'] 		= filterTypeName,
 				['customFilterFunctionName'] = customFilterFunctionName
 			}
-			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
+			--tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, data))
+			tins(masterListUnsorted, data)
+			wasAdded = true
 
 			if not isRegistered then
 				registerFilter(filterType, filterTypeName)
@@ -448,6 +515,15 @@ local function refresh(dataList)
 			libFilters_UnregisterFilter(libFilters, filterTag, filterType)
 		end
 	end
+
+	if wasAdded == true and #masterListUnsorted > 0 then
+		tsort(masterListUnsorted, sortFuncFilterTypesEnabledList)
+		for _, filterData in ipairs(masterListUnsorted) do
+			tins(dataList, ZO_ScrollList_CreateDataEntry(LIST_TYPE, filterData))
+		end
+	end
+
+	return wasAdded
 end
 
 local function refreshUpdateList()
@@ -461,7 +537,7 @@ local function refreshEnableList()
 	
 	ZO_ScrollList_Clear(enableList)
 	local dataList = ZO_ScrollList_GetDataList(enableList)
-	for _, filterData in pairs(filterTypesToCategory) do
+	for _, filterData in ipairs(filterTypesToCategory) do
 		local listType = LIST_TYPE
 		local filterType = filterData.filterType
 		local filterTypeName = libFilters_GetFilterTypeName(libFilters, filterType)
@@ -545,19 +621,73 @@ local function allButtonToggle()
 	end
 end
 
-local function updateCurrentFilterPanelLabel(stateStr)
---d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr))
+local lastFilterPanelId
+local function checkIfPanelControlsNeedChange(filterPanelId, panelIsShown)
+	panelIsShown = panelIsShown or false
+	local gamepadMode = IsInGamepadPreferredMode()
+--d("[LibFilters]checkIfPanelControlsNeedChange - filterPanelId: " ..tos(filterPanelId) ..", panelIsShown: " ..tos(panelIsShown) ..", gamepadMode: " .. tos(gamepadMode))
+	--Panel was hidden, check the last opened if we need to show any controls there again
+	if filterPanelId == nil and not panelIsShown then
+		if lastFilterPanelId ~= nil then
+			--Show any controls again?
+			local filterPanelControls = filterTypeToControlsChange[gamepadMode]["OnHide"]
+			if filterPanelControls and filterPanelControls[lastFilterPanelId] then
+				for _, ctrlToChange in ipairs(filterPanelControls[lastFilterPanelId]) do
+					if ctrlToChange ~= nil and ctrlToChange.SetHidden then
+						ctrlToChange:SetHidden(false)
+					end
+				end
+			end
+			return true
+		end
+	elseif filterPanelId ~= nil and panelIsShown == true then
+		--Panel is shown, check if we need to hide any controls there
+		local filterPanelControls = filterTypeToControlsChange[gamepadMode]["OnShow"]
+		if filterPanelControls and filterPanelControls[filterPanelId] then
+			for _, ctrlToChange in ipairs(filterPanelControls[filterPanelId]) do
+				if ctrlToChange ~= nil and ctrlToChange.SetHidden then
+					ctrlToChange:SetHidden(true)
+				end
+			end
+		end
+		return true
+	end
+	return false
+end
+
+local function updateCurrentFilterPanelLabel(stateStr, universalDeconSelectedTabNow)
+	local currentFilterType, universalDeconSelectedTabKey = libFilters_GetCurrrentFilterType(libFilters) or "n/a"
+	--libFilters:IsUniversalDeconstructionPanelShown()
+	--Universal deconstruction open/close!
+	if universalDeconSelectedTabNow == nil and universalDeconSelectedTabKey ~= nil and currentFilterType == nil then
+		currentFilterType = universalDeconTabKeyToLibFiltersFilterType[universalDeconSelectedTabKey]
+	end
+	if universalDeconSelectedTabKey ~= nil and universalDeconSelectedTabNow == nil then
+		universalDeconSelectedTabNow = universalDeconSelectedTabKey
+	end
+
+
+--d("!!! updateCurrentFilterPanelLabel - state: " ..tos(stateStr) .. ", _currentFilterType: " .. tos(libFilters._currentFilterType) .. ", currentFilterType: " .. tos(currentFilterType) .. ", universalDeconSelectedTabKey: " .. tos(universalDeconSelectedTabNow))
 	if currentFilterPanelLabel == nil then return end
-	local currentFilterPanelName
+	local currentFilterPanel, currentFilterPanelName
 	if stateStr == SCENE_SHOWN then
-		local currentFilterPanel = libFilters._currentFilterType
+		currentFilterPanel = libFilters._currentFilterType or libFilters_GetCurrrentFilterType(libFilters)
 		if (currentFilterPanel == nil or currentFilterPanel == 0) then return end
 		currentFilterPanelName = libFilters_GetFilterTypeName(libFilters, currentFilterPanel)
-		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" end
+
+		if universalDeconSelectedTabNow ~= nil then
+			currentFilterPanelName = currentFilterPanelName .. " - UD: " .. tos(universalDeconSelectedTabNow)
+		end
+--d(">filterTypeName: " .. tos(currentFilterPanelName))
+		if currentFilterPanelName == nil then currentFilterPanelName = "unknown" else
+			lastFilterPanelId = currentFilterPanel
+		end
 	else
 		currentFilterPanelName = ""
 	end
 	currentFilterPanelLabel:SetText("Current panel: " .. tos(currentFilterPanelName))
+
+	checkIfPanelControlsNeedChange(currentFilterPanel, currentFilterPanelName ~= "")
 end
 
 local helpWasNotShownYet = true
@@ -631,8 +761,8 @@ local function intializeFilterUI()
 	local buttons = CreateControl("$(parent)Buttons", tlw, CT_CONTROL)
 	buttons:SetDimensions(340, 80)
 	buttons:SetAnchor(TOP, enableList, BOTTOM, 3, 15)
-	local buttonshBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
-	buttonshBackdrop:SetAnchorFill()
+	local buttonsBackdrop = CreateControlFromVirtual("$(parent)Bg", buttons, "ZO_DefaultBackdrop")
+	buttonsBackdrop:SetAnchorFill()
 
 	-- create All button
 	-- enable all filters if any are not enabled, else disables all filters
@@ -641,7 +771,8 @@ local function intializeFilterUI()
 	btnAll:SetText(GetString(SI_BUFFS_OPTIONS_ALL_ENABLED))
 	btnAll:SetDimensions(100, 40)
 	btnAll:SetAnchor(TOPLEFT, buttons, TOPLEFT, 0, 8)
-	btnAll:SetHandler("OnMouseUp", function(btn)
+	btnAll:SetHandler("OnMouseUp", function(btn, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		allButtonToggle()
 	end)
 
@@ -653,7 +784,8 @@ local function intializeFilterUI()
 	btnFilter:SetDimensions(100, 40)
 	btnFilter:SetAnchor(TOP, buttons, TOP, -20, 8)
 	setButtonToggleColor(btnFilter, useFilter)
-	btnFilter:SetHandler("OnMouseUp", function(btn)
+	btnFilter:SetHandler("OnMouseUp", function(btn, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		useFilter = not useFilter
 		setButtonToggleColor(btnFilter, useFilter)
 	end)
@@ -665,7 +797,8 @@ local function intializeFilterUI()
 	btnRefresh:SetText(GetString(SI_APPLY))
 	btnRefresh:SetDimensions(150, 40)
 	btnRefresh:SetAnchor(TOPRIGHT, buttons, TOPRIGHT, 0, 8)
-	btnRefresh:SetHandler("OnMouseUp", function(btn)
+	btnRefresh:SetHandler("OnMouseUp", function(btn, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		refreshUpdateList()
 	end)
 
@@ -769,6 +902,7 @@ local function intializeFilterUI()
 end
 
 local function setupRow(rowControl, data, onMouseUp)
+
 	rowControl.data = data
 	local filterType = data.filterType
 	local rowButton  = rowControl:GetNamedChild("Button")
@@ -785,7 +919,9 @@ local function setupRow(rowControl, data, onMouseUp)
 	rowControl:SetHidden(false)
 	setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
 
-	rowButton:SetHandler("OnMouseUp", 	onMouseUp)
+	if onMouseUp ~= nil then
+		rowButton:SetHandler("OnMouseUp", 	onMouseUp)
+	end
 	rowButton:SetHandler("OnMouseEnter", function(rowBtnCtrl)
 		if rowControl.data and rowControl.data.tooltipText then
 			ZO_Options_OnMouseEnter(rowControl)
@@ -796,8 +932,10 @@ local function setupRow(rowControl, data, onMouseUp)
 	rowButton:SetHandler("OnMouseExit", 	ZO_Options_OnMouseExit)
 end
 
+
 local function addFilterUIListDataTypes()
-	local function onMouseUpOnRow(rowControl, data)
+	local function onMouseUpOnRow(rowControl, data, mouseButton, upInside)
+		if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 		local filterType = data.filterType
 		enabledFilters[filterType] = not enabledFilters[filterType]
 		setButtonToggleColor(rowControl:GetNamedChild("Button"), enabledFilters[filterType])
@@ -806,18 +944,21 @@ local function addFilterUIListDataTypes()
 		local header = rowControl:GetNamedChild('Header')
 		header:SetText(data.header)
 		header:SetHidden(false)
-		setupRow(rowControl, data, function(btn)
-			onMouseUpOnRow(rowControl, data)
+		rowControl:SetMouseEnabled(true)
+		setupRow(rowControl, data, function(btn, mouseButton, upInside)
+			onMouseUpOnRow(rowControl, data, mouseButton, upInside)
 		end)
 	end
 	local function setupEnableRow(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
-		setupRow(rowControl, data, function(btn)
-			onMouseUpOnRow(rowControl, data)
+		setupRow(rowControl, data, function(btn, mouseButton, upInside)
+			if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
+			onMouseUpOnRow(rowControl, data, mouseButton, upInside)
 		end)
 	end
 
  	local function setupUpdateRow(rowControl, data)
-		setupRow(rowControl, data, function(btn)
+		setupRow(rowControl, data, function(btn, mouseButton, upInside)
+			if not upInside or mouseButton ~= MOUSE_BUTTON_INDEX_LEFT then return end
 			local filterType = data.filterType
 			local customFilterFunctionName = data.customFilterFunctionName
 			local customFilterFunctionSuffix = ""
@@ -834,20 +975,76 @@ local function addFilterUIListDataTypes()
 	ZO_ScrollList_AddDataType(enableList, HEADER_TYPE, testUItemplate .. "_WithHeader", 80, setupEnableRowWithHeader)
 end
 
-local function callbackFunctionForPanelShowOrHide(filterTypeName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType)
+--The callbackFunction you register to it needs to provide the following parameters:
+		--string callbackName Concatenated callback name
+		--number filterType is the LF_* constant for the panel currently shown/hidden
+		--string stateStr will be SCENE_SHOWN ("shown") if shown, or SCENE_HIDDEN ("hidden") if hidden callback was fired
+		--boolean isInGamepadMode is true if we are in Gamepad input mode and false if in keyboard mode
+		--refVar fragmentOrSceneOrControl is the frament/scene/control which was used to do the isShown/isHidden check
+		--table lReferencesToFilterType will contain additional reference variables used to do shown/hidden checks
+local function callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+	--d(">filterTypeName: " .. tos(filterTypeName) .. "; filterType: " .. tos(filterType) .. ", stateStr: " .. tos(stateStr) .. "; isInGamepadMode: " .. tos(isInGamepadMode) .. "; fragmentOrSceneOrControl: " .. tos(fragmentOrSceneOrControl) .. "; lReferencesToFilterType: " .. tos(lReferencesToFilterType) .. "; bla: " .. tos(bla))
 	local filterTypeNameStr = filterTypeName .. " [" .. tos(filterType) .. "]"
 	d(prefixBr .. "callback - filterType: " .. filterTypeNameStr .. ", state: " .. stateStr)
-	updateCurrentFilterPanelLabel(stateStr)
+	updateCurrentFilterPanelLabel(stateStr, universalDeconSelectedTabNow)
 end
 
 local function enableFilterTypeCallbacks()
 	local libFiltersFilterConstants = libFilters.constants.filterTypes
-	--For each filterType register a stateChange for show/hidestate change
+	--For each filterType register a stateChange for show/hide states
 	for filterType, filterTypeName in ipairs(libFiltersFilterConstants) do
-		--Shown callbacks
+		--Additional callback needed for universal deconstruction open/close!
+		if universalDeconLibFiltersFilterTypeSupported[filterType] then
+			--todo 20251031
+			--======== UNIVERSAL DECONSTRUCTION ===========================================================
+			--[[
+				callbackName,
+				filterType,
+				stateStr,
+				isInGamepadMode,
+				fragmentOrSceneOrControl,
+				lReferencesToFilterType,
+				universalDeconSelectedTabNow
+			]]
+			local addonName = "LibFilters3_TEST_UI_UniversalDecon"
+			local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+--d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
+				callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+				--The un-/register of the filter callback function and the update of the filters is done via libFilters:RequestUpdate(filterType_LF_constant) internall in that FCOCraftFilter function
+			end
+
+			--#2025_01
+			--todo 20251031 Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected?
+			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
+			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
+			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
+
+			local callbackNameUniversalDeconDeconAllShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "all")
+			local callbackNameUniversalDeconDeconAllHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "all")
+			CM:RegisterCallback(callbackNameUniversalDeconDeconAllShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconDeconAllHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconDeconArmorShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "armor")
+			local callbackNameUniversalDeconDeconArmorHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "armor")
+			CM:RegisterCallback(callbackNameUniversalDeconDeconArmorShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconDeconArmorHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconDeconWeaponsShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "weapons")
+			local callbackNameUniversalDeconDeconWeaponsHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "weapons")
+			CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconJewelryDeconShown = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, true, nil, "jewelry")
+			local callbackNameUniversalDeconJewelryDeconHidden = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, false, nil, "jewelry")
+			CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+			local callbackNameUniversalDeconEnchantingShown = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, true, nil, "enchantments")
+			local callbackNameUniversalDeconEnchantingHidden = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, false, nil, "enchantments")
+			CM:RegisterCallback(callbackNameUniversalDeconEnchantingShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			CM:RegisterCallback(callbackNameUniversalDeconEnchantingHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+		end
+
+		--Shown callbacks, fired by CALLBACK_MANAGER of LibFilters automatically --> Why isn't UniversalDeconstruction firing any default callbacks?
 		local callbackName = libFilters_CreateCallbackName(libFilters, filterType, true)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
-		--Hidden callbacks
+		--Hidden callbacks, fired by CALLBACK_MANAGER of LibFilters automatically --> Why isn't UniversalDeconstruction firing any default callbacks?
 		callbackName = libFilters_CreateCallbackName(libFilters, filterType, false)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
 	end
@@ -1076,3 +1273,39 @@ SLASH_COMMANDS["/lftesthousebankwithdraw"] = function()
 	toggleFilterForFilterType(LF_HOUSE_BANK_WITHDRAW)
 end
 ]]
+
+
+--Custom global filter function you can change and use in the test UI's customFilterFunction editbox
+-->uses the slot (for all others)
+--Hides all items!
+function LibFilters3_TestFilterAll(slotOrBagId, slotIndex)
+	return false
+end
+
+--Custom global filter function you can change and use in the test UI's customFilterFunction editbox
+-->uses bagId and slotIndex (for most crafting tables)
+--Hides all items, except at bank deposit if quality is above arcane
+function LibFilters3_TestFilter_BagId(bagId, slotIndex)
+	if libFilters_GetCurrrentFilterType(libFilters) == LF_BANK_DEPOSIT then
+		local quality = GetItemQuality(bagId, slotIndex)
+		if quality > ITEM_FUNCTIONAL_QUALITY_ARCANE then
+			d("Quality < Arcane")
+			return true
+		end
+	end
+	return false
+end
+
+--Custom global filter function you can change and use in the test UI's customFilterFunction editbox
+-->uses the slot (for all others)
+--Hides all items, except at bank deposit, if quality is above arcane
+function LibFilters3_TestFilter(slot)
+	if libFilters_GetCurrrentFilterType(libFilters) == LF_BANK_DEPOSIT then
+		local quality = GetItemQuality(slot.bagId, slot.slotIndex)
+		if quality > ITEM_FUNCTIONAL_QUALITY_ARCANE then
+			d("Quality < Arcane")
+			return true
+		end
+	end
+	return false
+end

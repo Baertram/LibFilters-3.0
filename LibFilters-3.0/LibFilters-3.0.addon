@@ -1,17 +1,23 @@
 ## Title: LibFilters-3.0
 ## Author: Baertram, Randactyl, ingeniousclown, et al.
-## Version: 3.0r4.5
-## AddOnVersion: 345
-## APIVersion: 101046 101047
+## Version: 3.0r4.6
+## AddOnVersion: 346
+## APIVersion: 101048 101049
 ## IsLibrary: true
 ## OptionalDependsOn: LibDebugLogger>=268
 ## SavedVariables: LIBFILTERS_SV_TEST
 
 constants.lua
+Gamepad/gamepadCustomFragment_class.lua
 Gamepad/gamepadCustomFragments.lua
 LibFilters-3.0.lua
 helper.lua
 
 ## Uncomment the 2 test/*.lua, *.xml lines below to enable the /lftestfilters <OPTIONAL LF_filterTypeConstantToAddTheFilterFunctionFor> <globalFilterFunctionUsingBagIdAndSlotIndex slash command to show the test UI -> See /test/test.lua for other slash commands
-##test/test.lua
-##test/test.xml
+## test/test.lua
+## test/test.xml
+
+
+# This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+# The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+# in the United States and/or other countries. All rights reserved.

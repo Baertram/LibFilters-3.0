@@ -7,7 +7,7 @@ You simply reference it by using the global Variable
 This libray optionally supports the use of [URL="https://www.esoui.com/downloads/info2275-LibDebugLogger.html"]LibDebugLogger[/URL] to log messages to the addon log instead of the normal chat.
 
 
-[B][SIZE="3"]Welcome to LibFilters-3.0![/SIZE][/B]
+[B][SIZE="3"]Welcome to LibFilters-3.0[/SIZE][/B]
 
 The goal of LibFilters is to provide an easy interface for applying custom sorting rules to different lists of items found in the game. At the moment, you can filter the inventory, bank withdrawal, bank deposits, guild bank withdrawal, guild bank deposits, vendor buying, vendor selling, buyback, repair, guild store selling, mail sending, trading, smithing (refinement, deconstruction, improvement, research), alchemy creation, enchanting creation, enchanting extraction, fence selling, fence laundering, the craftbag, and the quickslot inventory.
 
@@ -71,9 +71,13 @@ LF_SMITHING_RESEARCH_DIALOG = 36
 LF_JEWELRY_RESEARCH_DIALOG  = 37
 LF_INVENTORY_QUEST = 38
 LF_INVENTORY_COMPANION = 39
+LF_FURNITURE_VAULT_WITHDRAW = 40
+LF_FURNITURE_VAULT_DEPOSIT = 41
+LF_INVENTORY_VENGEANCE = 42
+LF_VENDOR_SELL_VENGEANCE = 43
 
 LF_FILTER_MIN                = LF_INVENTORY
-LF_FILTER_MAX               = LF_INVENTORY_COMPANION [/CODE]
+LF_FILTER_MAX               = LF_VENDOR_SELL_VENGEANCE  [/CODE]
 
 Universal Deconstruction is a special case as it does not provide any dedicated LF_UNIVERSAL_DECONSTRUCT filterType but reuses LF_SMIHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT and LF_ENCHANTING_EXTRACTION at the UniversalDecon UI, depending on the selected UI Tab!
 You need to register/unregister the according filterTypes for it.
