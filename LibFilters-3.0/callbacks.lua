@@ -17,6 +17,15 @@ local df 	= debugFunctions.df
 local dv 	= debugFunctions.dv
 local dfe 	= debugFunctions.dfe
 
+local SCENE_SHOWING = SCENE_SHOWING
+local SCENE_SHOWN = SCENE_SHOWN
+local SCENE_HIDDEN = SCENE_HIDDEN
+local SCENE_HIDING = SCENE_HIDING
+local SCENE_FRAGMENT_HIDDEN = SCENE_FRAGMENT_HIDDEN
+local SCENE_FRAGMENT_SHOWN = SCENE_FRAGMENT_SHOWN
+local SCENE_FRAGMENT_SHOWING = SCENE_FRAGMENT_SHOWING
+local SCENE_FRAGMENT_HIDING = SCENE_FRAGMENT_HIDING
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL SPEED UP VARIABLES & REFERENCES
@@ -144,7 +153,10 @@ local libFilters_IsUniversalDeconstructionPanelShown
 --**********************************************************************************************************************
 -- CALLBACKS
 --**********************************************************************************************************************
---Returns a callback name based on the filterType and SCENE_SHOWN or SCENE_HIDDEn and the current universal deconstruction tab name
+--Returns a callback name based on the filterType and SCENE_SHOWN or SCENE_HIDDEN and the current universal deconstruction tab name
+--number filterType, boolean isShown, string (see table constants.universalDeconTabKeyToLibFiltersFilterType for posible strings of the tab names) universalDeconSelectedTabNow
+--Default callbackName pattern is "LibFilters3-%s-%s-%s"
+--example callbackName would be (for filterTyle LF_INVENTORY, isshown = true, universalDeconSelectedTabNow = nil): "LibFilters3-shown-1-"
 function libFilters:CreateCallbackName(filterType, isShown, universalDeconSelectedTabNow)
 	universalDeconSelectedTabNow = universalDeconSelectedTabNow or ""
 	return strfor(callbackBaseLibPattern, (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconSelectedTabNow))

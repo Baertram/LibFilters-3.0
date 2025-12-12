@@ -29,7 +29,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
 --Keyboard
-local inventories =                         kbc.inventories
+--local inventories =                         kbc.inventories
 local playerInv =                           kbc.playerInv
 local store =                               kbc.store
 local vendorBuyBack =                       kbc.vendorBuyBack
@@ -50,10 +50,13 @@ local vendorBuyBack_GP =                    gpc.vendorBuyBack_GP
 local fenceSell_GP =                        gpc.invFenceSell_GP
 local fenceLaunder_GP =                     gpc.invFenceLaunder_GP
 local storeWindowComponents_GP =            gpc.store_GP.components
-
 local smithing_GP =                         gpc.smithing_GP
 local universalDeconstructPanel_GP =        gpc.universalDeconstructPanel_GP
 local companionEquipment_GP =               gpc.companionEquipment_GP
+local enchantingCreateScene_GP  =           gpc.enchantingCreateScene_GP
+local enchantingExtractScene_GP =           gpc.enchantingExtractScene_GP
+local researchChooseItemDialog_GP =         gpc.researchChooseItemDialog_GP
+
 
 --local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 --local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
@@ -656,7 +659,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
 			if filterType == ENCHANTING_EXTRACTION_FILTER then
 				local result = craftingSubItemType == ITEMTYPE_GLYPH_WEAPON or craftingSubItemType == ITEMTYPE_GLYPH_ARMOR or craftingSubItemType == ITEMTYPE_GLYPH_JEWELRY
                 --Original result was determined, so add the LibFilters filterFunctions now
-				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_EXTRACTION_SCENE, bagId, slotIndex, result) -- Added by LibFilters
+                return checkAndRundAdditionalFiltersBag(enchantingExtractScene_GP, bagId, slotIndex, result) -- Added by LibFilters
 			elseif filterType == ENCHANTING_NO_FILTER or filterType == runeType then
                 local result = true
                 if questFilterChecked then
@@ -670,7 +673,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
                     result = runeType == ENCHANTING_RUNE_ASPECT or runeType == ENCHANTING_RUNE_ESSENCE or runeType == ENCHANTING_RUNE_POTENCY
                 end
                 --Original result was determined, so add the LibFilters filterFunctions now
-                return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_CREATION_SCENE, bagId, slotIndex, result) -- Added by LibFilters
+                return checkAndRundAdditionalFiltersBag(enchantingCreateScene_GP, bagId, slotIndex, result) -- Added by LibFilters
 			end
 			return false
         end,
@@ -870,8 +873,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
                 end
 
                 if iigpm() then
-                    --todo 2023-08-31
-                    --Gamepad mode support?
+                    --todo 2025-12-12 Gamepad mode support - anything needed here??
                 else
                     --Keyboard mode
                     GetControl(selfControl, "ContainerDivider"):SetHidden(allItemsFiltered)
@@ -896,7 +898,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 --enable LF_SMITHING_RESEARCH_DIALOG/LF_JEWELRY_RESEARCH_DIALOG smithing/jewelry
 -->See \esoui\ingame\crafting\smithingresearch_shared.lua
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG},
         [false]={LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG}
@@ -910,7 +912,7 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
 --d("[LibFilters3]IsResearchableItem: " ..GetItemLink(bagId, slotIndex))
 			local result = doesItemPassResearchDialogFilter(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFiltersBag(researchChooseItemDialog, bagId, slotIndex, result)  -- Added by LibFilters SMITHING_RESEARCH_SELECT
+            return checkAndRundAdditionalFiltersBag((iigpm() and researchChooseItemDialog_GP) or researchChooseItemDialog, bagId, slotIndex, result)  -- Added by LibFilters GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE or SMITHING_RESEARCH_SELECT
         end,
     }
 }
@@ -956,7 +958,7 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
         funcName = "ZO_SharedSmithingExtraction_DoesItemPassFilter",
         func = function(bagId, slotIndex, filterType)
 			-- get objectVar for LF_SMITHING_REFINE/LF_JEWELRY_REFINE, or LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT-> Use keyboard mode variable for gamepad mode as well
-            local base = filterType == SMITHING_FILTER_TYPE_RAW_MATERIALS and smithing.refinementPanel or smithing.deconstructionPanel
+            local base = (filterType == SMITHING_FILTER_TYPE_RAW_MATERIALS and smithing.refinementPanel) or smithing.deconstructionPanel
 
 			local result = doesSmithingItemPassFilterOriginal(bagId, slotIndex, filterType)
             --Original result was determined, so add the LibFilters filterFunctions now
@@ -988,6 +990,9 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 
 
 --  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTRACT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
+-- UniversalDecon uses LF_SMITHING_DECONSTRUCT, LF_ENCHANTING_EXTRACTION and LF_JEWELRY_DECONSTRUCT but adds the current UniversalDecon's active tabName e.g.
+-- "all", "armor", "weapons", "jewelry", "enchantsments" to identify the UnivesalDeconstruction panel usage -> e.g. in LibFilters3:GetCurrentFilterType() return param 2
+-- See constants.lua, table universalDeconTabKeyToLibFiltersFilterType for the mapping of the LibFiltersPanelId to the UniversalDeconTabName
 --> See \esoui\ingame\crafting\universaldeconstructionpanel_shared.lua
 helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
     version = 1,
@@ -1379,21 +1384,25 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
     },
 }
 
---enable LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/LF_TRADE
---LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG/LF_MAIL_SEND/
---LF_FURNITURE_VAULT_DEPOSIT/LF_FURNITURE_VAULT_WITHDRAW for gamepad mode
+--enable LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/
+--LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/
+--LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/
+--LF_FURNITURE_VAULT_WITHDRAW/LF_FURNITURE_VAULT_DEPOSIT/
+--LF_GUILDSTORE_SELL/
+--LF_CRAFTBAG/LF_MAIL_SEND/LF_TRADE for gamepad mode
+
 --> See \esoui\ingame\inventory\gamepad\inventorylist_gamepad.lua
 helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
-    version = 3,
+    version = 4,
     filterTypes = {
         [true] = {
             LF_BANK_WITHDRAW, LF_BANK_DEPOSIT,
-            LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT,
+            LF_GUILDBANK_WITHDRAW, LF_GUILDBANK_DEPOSIT,
             LF_HOUSE_BANK_WITHDRAW, LF_HOUSE_BANK_DEPOSIT,
+            LF_FURNITURE_VAULT_WITHDRAW, LF_FURNITURE_VAULT_DEPOSIT,
             LF_GUILDSTORE_SELL,
             LF_CRAFTBAG,
             LF_TRADE, LF_MAIL_SEND,
-            LF_FURNITURE_VAULT_WITHDRAW, LF_FURNITURE_VAULT_DEPOSIT,
         },
         [false]={}
     },

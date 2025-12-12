@@ -19,6 +19,9 @@ local dd 	= debugFunctions.dd
 local dv 	= debugFunctions.dv
 local dfe 	= debugFunctions.dfe
 
+local SCENE_SHOWN = SCENE_SHOWN
+local SCENE_HIDDEN = SCENE_HIDDEN
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL SPEED UP VARIABLES & REFERENCES
@@ -1762,6 +1765,61 @@ local function getAddonCallbackName(yourAddonName, isShown, filterType, universa
 	return strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 end
 
+local function checkIfCallbackUniqueNameExist(callBackUniqueName, callBacksTableToSearchIn)
+	if callbacks.allRegisteredAddonCallbacks[callBackUniqueName] == true then return true end --exists already
+	--[[
+	if ZO_IsTableEmpty(callBacksTableToSearchIn) then return false end
+	for _, callbackAlreadyRegisteredData in ipairs(callBacksTableToSearchIn) do
+		if callbackAlreadyRegisteredData and callBackUniqueName == callbackAlreadyRegisteredData.callbackName then return true end --exists already
+	end
+	]]
+	return false
+end
+
+local function registerCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
+	local callbacksRegistered = libFilters.mapping.callbacks.registeredCallbacks[inputType]
+	if not callbacksRegistered then return false end --no error as tables are still empty for the inputType
+	if not checkIfCallbackUniqueNameExist(callBackUniqueName) then --, callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType][isShown]) then
+		callbacksRegistered[yourAddonName] = callbacksRegistered[yourAddonName] or {}
+		callbacksRegistered[yourAddonName][universalDeconActiveTab] = callbacksRegistered[yourAddonName][universalDeconActiveTab] or {}
+		callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType] = callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType] or {}
+		callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType][isShown] =  {
+			callbackName=callBackUniqueName,
+			raiseBefore=raiseBeforeOtherAddonsCallbackName
+		}
+		return false --no error
+	end
+	return true
+end
+
+local function unRegisterCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
+	local callbacksRegistered = libFilters.mapping.callbacks.registeredCallbacks[inputType]
+	if not callbacksRegistered then return true end --tables do not exist yet, so we cannot unregister a callback in them
+	if not checkIfCallbackUniqueNameExist(callBackUniqueName) then return true end --error, no addon callback with your uniqueName was registered
+	if not callbacksRegistered[yourAddonName] then return true end
+
+	local callbackData = ((callbacksRegistered[yourAddonName][universalDeconActiveTab]
+			and callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType])
+			and	callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType][isShown]) or nil
+	if callbackData ~= nil and callBackUniqueName == callbackData.callbackName then
+		callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
+		callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
+		--Clean up non needed tables
+		if ncc(callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType]) == 0 then
+			callbacksRegistered[yourAddonName][universalDeconActiveTab][filterType] = nil
+		end
+		if ncc(callbacksRegistered[yourAddonName][universalDeconActiveTab]) == 0 then
+			callbacksRegistered[yourAddonName][universalDeconActiveTab] = nil
+		end
+		if ncc(callbacksRegistered[yourAddonName]) == 0 then
+			callbacksRegistered[yourAddonName] = nil
+		end
+		return false --no error
+	end
+	return true
+end
+
+
 --Create the callback name for a libFilters filterPanel shown/hidden callback
 ----It will add an entry in table LibFilters3.mapping.callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
 ----number filterType needs to be a valid LF_* filterType constant
@@ -1793,31 +1851,28 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 	end
 
 	--Build the unique callback Name
-	--local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
 		universalDeconActiveTab = "_NONE_"
 	end
+	local errorRegistering = true
 	if inputType == nil then
 		--Keyboard
-		callbacks.registeredCallbacks[false][yourAddonName] = callbacks.registeredCallbacks[false][yourAddonName] or {}
-		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] or {}
-		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] or {}
-		callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown] =  { callbackName=callBackUniqueName, raiseBefore=raiseBeforeOtherAddonsCallbackName }
+		errorRegistering = registerCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
 		--Gamepad
-		callbacks.registeredCallbacks[true][yourAddonName] = callbacks.registeredCallbacks[true][yourAddonName] or {}
-		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] or {}
-		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] or {}
-		callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown] = { callbackName=callBackUniqueName, raiseBefore=raiseBeforeOtherAddonsCallbackName }
+		if not errorRegistering then
+			errorRegistering = registerCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
+		end
 	elseif type(inputType) == booleanType then
-		callbacks.registeredCallbacks[inputType][yourAddonName] = callbacks.registeredCallbacks[inputType][yourAddonName] or {}
-		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] or {}
-		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] or {}
-		callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = { callbackName=callBackUniqueName, raiseBefore=raiseBeforeOtherAddonsCallbackName }
+		errorRegistering = registerCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
 	else
 		dfe("[RegisterCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
+		return
+	end
+	if errorRegistering == true then
+		dfe("[RegisterCallbackName]ERROR - callbackName %q was registered already for inputType %q,", tos(callBackUniqueName), tos(inputType))
 		return
 	end
 
@@ -1851,15 +1906,18 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 	end
 
 	--Build the unique callback Name
-	--local callBackUniqueName = strfor(callbackPattern, tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
 		universalDeconActiveTab = "_NONE_"
 	end
+
+	local errorUnregistering = true
 	if inputType == nil then
 		--Keyboard
+		errorUnregistering = unRegisterCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
+--[[
 		if callbacks.registeredCallbacks[false][yourAddonName] ~= nil then
 			if callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] ~= nil then
 				if callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
@@ -1881,7 +1939,12 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 				end
 			end
 		end
+]]
 		--Gamepad
+		if not errorUnregistering then
+			errorUnregistering = unRegisterCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
+		end
+--[[
 		if callbacks.registeredCallbacks[true][yourAddonName] ~= nil then
 			if callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] ~= nil then
 				if callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
@@ -1903,30 +1966,15 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 				end
 			end
 		end
+]]
 	elseif type(inputType) == booleanType then
-		if callbacks.registeredCallbacks[inputType][yourAddonName] ~= nil then
-			if callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] ~= nil then
-				if callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
-					local callbackData = callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown]
-					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
-						callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
-						callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
-
-						if ncc(callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
-							callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab][filterType] = nil
-						end
-						if ncc(callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab]) == 0 then
-							callbacks.registeredCallbacks[inputType][yourAddonName][universalDeconActiveTab] = nil
-						end
-						if ncc(callbacks.registeredCallbacks[inputType][yourAddonName]) == 0 then
-							callbacks.registeredCallbacks[inputType][yourAddonName] = nil
-						end
-					end
-				end
-			end
-		end
+		errorUnregistering = unRegisterCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
 	else
 		dfe("[UnregisterCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
+		return
+	end
+	if errorUnregistering == true then
+		dfe("[RegisterCallbackName]ERROR - callbackName %q was not unregistered for inputType %q,", tos(callBackUniqueName), tos(inputType))
 		return
 	end
 	return true

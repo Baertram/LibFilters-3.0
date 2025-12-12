@@ -1257,20 +1257,20 @@ mapping.filterTypeToFilterFunctionType = {}
 local filterTypeToFilterFunctionType = mapping.filterTypeToFilterFunctionType
 --The following filterTypes use bagId and slotIndex
 local filterTypesUsingBagIdAndSlotIndexFilterFunction = {
-	[LF_SMITHING_REFINE]			= true,
-	[LF_SMITHING_DECONSTRUCT]     	= true,
-	[LF_SMITHING_IMPROVEMENT]     	= true,
-	[LF_SMITHING_RESEARCH]        	= true,
-	[LF_SMITHING_RESEARCH_DIALOG] 	= true,
-	[LF_JEWELRY_REFINE]           	= true,
-	[LF_JEWELRY_DECONSTRUCT]     	= true,
-	[LF_JEWELRY_IMPROVEMENT]      	= true,
-	[LF_JEWELRY_RESEARCH]         	= true,
-	[LF_JEWELRY_RESEARCH_DIALOG]  	= true,
-	[LF_ENCHANTING_CREATION]      	= true,
-	[LF_ENCHANTING_EXTRACTION]    	= true,
-	[LF_RETRAIT]                  	= true,
-	[LF_ALCHEMY_CREATION]         	= true,
+	[LF_ALCHEMY_CREATION]         = true,
+	[LF_ENCHANTING_CREATION]      = true,
+	[LF_ENCHANTING_EXTRACTION]    = true,
+	[LF_JEWELRY_REFINE]           = true,
+	[LF_JEWELRY_DECONSTRUCT]      = true,
+	[LF_JEWELRY_IMPROVEMENT]      = true,
+	[LF_JEWELRY_RESEARCH]         = true,
+	[LF_JEWELRY_RESEARCH_DIALOG]  = true,
+	[LF_RETRAIT]                  = true,
+	[LF_SMITHING_REFINE]          = true,
+	[LF_SMITHING_DECONSTRUCT]     = true,
+	[LF_SMITHING_IMPROVEMENT]     = true,
+	[LF_SMITHING_RESEARCH]        = true,
+	[LF_SMITHING_RESEARCH_DIALOG] = true,
 }
 mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction = filterTypesUsingBagIdAndSlotIndexFilterFunction
 --Add them to the table mapping.filterTypeToFilterFunctionType
@@ -1532,6 +1532,13 @@ local universalDeconTabKeyToLibFiltersFilterType = {
 }
 mapping.universalDeconTabKeyToLibFiltersFilterType = universalDeconTabKeyToLibFiltersFilterType
 
+local libFiltersFilterTypeToUniversalDeconTabKeys = {
+	[LF_SMITHING_DECONSTRUCT] = { "all", "armor", "weapons" },
+	[LF_JEWELRY_DECONSTRUCT] = { "jewelry" },
+	[LF_ENCHANTING_EXTRACTION] = { "enchantments" },
+}
+mapping.libFiltersFilterTypeToUniversalDeconTabKeys = libFiltersFilterTypeToUniversalDeconTabKeys
+
 local universalDeconFilterTypeToFilterBase = {
 	[LF_SMITHING_DECONSTRUCT] =     deconstructionPanel,
 	[LF_JEWELRY_DECONSTRUCT] =      deconstructionPanel,
@@ -1598,8 +1605,7 @@ local filterTypeToReference = {
 		--Attention: As LF_INVENTORY and LF_CRAFTBAG both get hooked via fragment BACKPACK_MENU_BAR_LAYOUT_FRAGMENT it needs to be applied a
 		--fix at ZO_InventoryManager:ApplyBackpackLayout in order to update layoutData.LibFilters3_filterType with the correct filterType
 		--LF_INVENTORY or LF_CRAFTBAG! See file LibFilters-3.0.lua, function hookNow
-		--Else the last hooked one (LF_CRAFTBAG) will be kept as layoutData.LibFilters3_filterType all the time and filtering at other addons wont
-		--work properly!
+		--Else the last hooked one (LF_CRAFTBAG) will be kept as layoutData.LibFilters3_filterType all the time and filtering wont properly work!
 		[LF_CRAFTBAG]                 = { invCraftbag }, --, kbc.invBackpackFragment
 
 		[LF_INVENTORY_QUEST]          = { invQuests },
@@ -1653,7 +1659,7 @@ local filterTypeToReference = {
 		-->.additionalFilter and the helper function ZO_Enchanting_DoesEnchantingItemPassFilter will be used to read the
 		-->scenes for both, keyboard AND gamepad mode
 		-->Dynamically added below with loop: for filterType, _ in pairs(filterTypesToReferenceImplementedSpecial) do
-		--[LF_ENCHANTING_CREATION]	  = {},	--implemented special, leave empty (not NIL!) to prevent error messages
+		--[LF_ENCHANTING_CREATION & LF_ENCHANTING_EXTRACTION]	  = {},	--implemented special, leave empty (not NIL!) to prevent error messages
 
 
 		--Not implemented yet
@@ -1695,7 +1701,7 @@ local filterTypeToReference = {
 
 		--Updated with correct custom created LibFilters fragment in file /gamepad/gamepadCustomFragments.lua, as the fragments are created
 		--[LF_INVENTORY]                = {}, --custom created gamepad fragment gamepadLibFiltersInventoryFragment
-		--[LF_CRAFTAG]                  = {}, --custom created gamepad fragment gamepadLibFiltersCraftBagFragment
+		--[LF_CRAFTBAG]                 = {}, --custom created gamepad fragment gamepadLibFiltersCraftBagFragment
 		--...
 		-->Dynamically added below with loop: for filterType, _ in pairs(gpc.customFragments) do
 
@@ -1727,23 +1733,25 @@ for filterType, _ in pairs(gpc.customFragments) do
 end
 
 --The following filterTypes fallback to keyboard reference variables, as gamepad re-uses the same
---> If filterType was added here with true, that filterType will use above table filterTypeToReference[false][filtertype] as reference variable
+--> If filterType was added here with true, that filterType will use above table filterTypeToReference[false][filtertype] as reference variable for the .additionalFilter
 local filterTypesGamepadFallbackToKeyboard = {
-		--[LF_CRAFTBAG]                 = true, --20205-11-02 using a custom fragment now to circumvent PLAYER_INVENTORY.inventories not being initialized properly if gamepad mode was active as the game loads/reloadui!
+		--[LF_CRAFTBAG]                 = true, --2025-11-02 using a custom fragment now to circumvent PLAYER_INVENTORY.inventories not being initialized properly if gamepad mode was active as the game loads/reloadui!
+		[LF_ALCHEMY_CREATION]         = true,
 		[LF_BANK_WITHDRAW]            = true,
+		[LF_FURNITURE_VAULT_WITHDRAW] = true,
 		[LF_GUILDBANK_WITHDRAW]       = true,
 		[LF_HOUSE_BANK_WITHDRAW]      = true,
-		[LF_SMITHING_REFINE]          = true,
-		[LF_SMITHING_DECONSTRUCT]     = true,
-		[LF_SMITHING_IMPROVEMENT]     = true,
-		[LF_SMITHING_RESEARCH]        = true,
+		--[LF_JEWELRY_CREATION]		= true, --currently not implemented
 		[LF_JEWELRY_REFINE]           = true,
 		[LF_JEWELRY_DECONSTRUCT]      = true,
 		[LF_JEWELRY_IMPROVEMENT]      = true,
 		[LF_JEWELRY_RESEARCH]         = true,
-		[LF_ALCHEMY_CREATION]         = true,
 		[LF_RETRAIT]                  = true,
-		[LF_FURNITURE_VAULT_WITHDRAW] = true,
+		--[LF_SMITHING_CREATION]		= true, --currently not implemented
+		[LF_SMITHING_REFINE]          = true,
+		[LF_SMITHING_DECONSTRUCT]     = true,
+		[LF_SMITHING_IMPROVEMENT]     = true,
+		[LF_SMITHING_RESEARCH]        = true,
 }
 mapping.LF_FilterTypeToReferenceGamepadFallbackToKeyboard = filterTypesGamepadFallbackToKeyboard
 --Add custom LibFilters gamepad filterTypes which use the same reference objects like the keybaord mode does
