@@ -1852,7 +1852,7 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 	end
 
 	--Build the unique callback Name
-	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), isShown, tos(filterType), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
@@ -1907,7 +1907,7 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 	end
 
 	--Build the unique callback Name
-	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), (isShown == true and SCENE_SHOWN) or SCENE_HIDDEN, tos(filterType), tos(universalDeconActiveTab))
+	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), isShown, tos(filterType), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
