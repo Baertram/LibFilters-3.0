@@ -1918,56 +1918,10 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 	if inputType == nil then
 		--Keyboard
 		errorUnregistering = unRegisterCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
---[[
-		if callbacks.registeredCallbacks[false][yourAddonName] ~= nil then
-			if callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] ~= nil then
-				if callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
-					local callbackData = callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown]
-					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
-						callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
-						callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
-
-						if ncc(callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
-							callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab][filterType] = nil
-						end
-						if ncc(callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab]) == 0 then
-							callbacks.registeredCallbacks[false][yourAddonName][universalDeconActiveTab] = nil
-						end
-						if ncc(callbacks.registeredCallbacks[false][yourAddonName]) == 0 then
-							callbacks.registeredCallbacks[false][yourAddonName] = nil
-						end
-					end
-				end
-			end
-		end
-]]
 		--Gamepad
 		if not errorUnregistering then
 			errorUnregistering = unRegisterCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
 		end
---[[
-		if callbacks.registeredCallbacks[true][yourAddonName] ~= nil then
-			if callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] ~= nil then
-				if callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType]  ~= nil then
-					local callbackData = callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown]
-					if callbackData ~= nil and callbackData.callbackName == callBackUniqueName then
-						callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType][isShown] = nil
-						callbacks.allRegisteredAddonCallbacks[callBackUniqueName] = nil
-
-						if ncc(callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType]) == 0 then
-							callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab][filterType] = nil
-						end
-						if ncc(callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab]) == 0 then
-							callbacks.registeredCallbacks[true][yourAddonName][universalDeconActiveTab] = nil
-						end
-						if ncc(callbacks.registeredCallbacks[true][yourAddonName]) == 0 then
-							callbacks.registeredCallbacks[true][yourAddonName] = nil
-						end
-					end
-				end
-			end
-		end
-]]
 	elseif type(inputType) == booleanType then
 		errorUnregistering = unRegisterCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
 	else
