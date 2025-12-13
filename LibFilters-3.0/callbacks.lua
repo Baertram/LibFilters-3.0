@@ -137,7 +137,7 @@ local getCtrlName = 			libFilters.GetCtrlName
 
 --Functions
 local isCraftBagExtendedSupportedPanel = functions.isCraftBagExtendedSupportedPanel
-local updateCurrentAndLastUniversalDeconVariables = functions.updateCurrentAndLastUniversalDeconVariables
+local updateCurrentAndLastUniversalDeconVariables
 local checkForValidFilterTypeAtSamePanel = functions.checkForValidFilterTypeAtSamePanel
 
 --Non referenced functions - updated inline below
@@ -1196,6 +1196,7 @@ local function createSpecialCallbacks()
 		--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
 		--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
 		if isUniversalDeconShown == true then
+			updateCurrentAndLastUniversalDeconVariables = updateCurrentAndLastUniversalDeconVariables or functions.updateCurrentAndLastUniversalDeconVariables
 			updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
 		end
 	end
