@@ -1,3 +1,81 @@
+------------------------------------------------------------------------------------------------------------------------
+--Name, global variable LibFilters3
+------------------------------------------------------------------------------------------------------------------------
+local libFilters = LibFilters3
+
+local strfor = string.format
+local tos = tostring
+local strgm = string.gmatch
+local gTab = table
+local tins = gTab.insert
+local tsort = gTab.sort
+
+
+--Helper variables of ESO
+local CM = CALLBACK_MANAGER
+
+local gilst = 	GetItemLinkStacks
+local gil = 	GetItemLink
+local gqil = 	GetQuestItemLink
+local zigbai = 	ZO_Inventory_GetBagAndIndex
+
+--Helper variables of the library
+local constants   =                         libFilters.constants
+local mapping = 							libFilters.mapping
+
+local kbc         =                         constants.keyboard
+local gpc         =                         constants.gamepad
+
+
+--Debugging
+local debugFunctions = libFilters.debugFunctions
+local dd = debugFunctions.dd
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Local LibFilters speed-up variables and references
+------------------------------------------------------------------------------------------------------------------------
+local svTest
+
+--Helper varibales for tests
+local prefix = libFilters.globalLibName
+local prefixBr = "[" .. prefix .. "] TEST "
+local testUItemplate = "LibFilters_Test_Template"
+
+local filterTag = prefix .."_TestFilters_"
+local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
+local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
+
+local customFilterFunctionTag = " (C)"
+local allCustomFilterFunctionsDisabled = true
+
+--UI
+libFilters.test = {}
+local tlw
+local btnFilter
+
+
+
+local usingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
+
+
+--local universalDeconLibFiltersFilterTypeSupported = mapping.universalDeconLibFiltersFilterTypeSupported
+local universalDeconTabKeyToLibFiltersFilterType = mapping.universalDeconTabKeyToLibFiltersFilterType
+local libFiltersFilterTypeToUniversalDeconTabKeys = mapping.libFiltersFilterTypeToUniversalDeconTabKeys
+
+local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
+local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
+local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
+local libFilters_RegisterFilter = libFilters.RegisterFilter
+local libFilters_UnregisterFilter = libFilters.UnregisterFilter
+local libFilters_RequestUpdate = libFilters.RequestUpdate
+local libFilters_CreateCallbackName = libFilters.CreateCallbackName
+
+
+------------------------------------------------------------------------------------------------------------------------
+--Helper UI
+------------------------------------------------------------------------------------------------------------------------
+
 -- Use /lftestfilters to open testing UI
 -- To test a specific filter, you can specify a globally difined function
 
@@ -13,30 +91,6 @@
 
 -- /lftestfilters addon.test.testFilter
 
---Init the library, if not already done
-local libFilters = LibFilters3
-if not libFilters then return end
-
-local svTest
-
-local CM = CALLBACK_MANAGER
-
-local gilst = 	GetItemLinkStacks
-local gil = 	GetItemLink
-local gqil = 	GetQuestItemLink
-local zigbai = 	ZO_Inventory_GetBagAndIndex
-
-local mapping = libFilters.mapping
-local universalDeconLibFiltersFilterTypeSupported = mapping.universalDeconLibFiltersFilterTypeSupported
-local universalDeconTabKeyToLibFiltersFilterType = mapping.universalDeconTabKeyToLibFiltersFilterType
-
-local libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
-local libFilters_GetCurrrentFilterType = libFilters.GetCurrentFilterType
-local libFilters_IsFilterRegistered = libFilters.IsFilterRegistered
-local libFilters_RegisterFilter = libFilters.RegisterFilter
-local libFilters_UnregisterFilter = libFilters.UnregisterFilter
-local libFilters_RequestUpdate = libFilters.RequestUpdate
-local libFilters_CreateCallbackName = libFilters.CreateCallbackName
 
 local function checkIfInitDone()
 	if libFilters.isInitialized then return end
@@ -61,43 +115,11 @@ local filterTypeToControlsChange = {
 	[true] = {},
 }
 
-------------------------------------------------------------------------------------------------------------------------
--- LIBRARY VARIABLES
-------------------------------------------------------------------------------------------------------------------------
---local constants = libFilters.constants
-local mapping = libFilters.mapping
-local usingBagIdAndSlotIndexFilterFunction = mapping.filterTypesUsingBagIdAndSlotIndexFilterFunction
 
 
 ------------------------------------------------------------------------------------------------------------------------
 -- HELPER VARIABLES AND FUNCTIONS FOR TESTS
 ------------------------------------------------------------------------------------------------------------------------
---ZOs helpers
-local strfor = string.format
-local tos = tostring
-local strgm = string.gmatch
-local gTab = table
-local tins = gTab.insert
-local tsort = gTab.sort
-
---Helper varibales for tests
-local prefix = libFilters.globalLibName
-local prefixBr = "[" .. prefix .. "] TEST "
-local testUItemplate = "LibFilters_Test_Template"
-
-local filterTag = prefix .."_TestFilters_"
-local filterTypeToFilterFunctionType = libFilters.mapping.filterTypeToFilterFunctionType
-local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = libFilters.constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
-
-local customFilterFunctionTag = " (C)"
-local allCustomFilterFunctionsDisabled = true
-
---UI
-libFilters.test = {}
-local tlw
-local btnFilter
-
-
 
 --filter function for inventories
 local function filterFuncForInventories(inventorySlot)
@@ -993,54 +1015,6 @@ local function enableFilterTypeCallbacks()
 	local libFiltersFilterConstants = libFilters.constants.filterTypes
 	--For each filterType register a stateChange for show/hide states
 	for filterType, filterTypeName in ipairs(libFiltersFilterConstants) do
-		--Additional callback needed for universal deconstruction open/close!
-		if universalDeconLibFiltersFilterTypeSupported[filterType] then
-			--todo 20251031
-			--======== UNIVERSAL DECONSTRUCTION ===========================================================
-			--[[
-				callbackName,
-				filterType,
-				stateStr,
-				isInGamepadMode,
-				fragmentOrSceneOrControl,
-				lReferencesToFilterType,
-				universalDeconSelectedTabNow
-			]]
-			local addonName = "LibFilters3_TEST_UI_UniversalDecon"
-			local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
---d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
-				callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
-				--The un-/register of the filter callback function and the update of the filters is done via libFilters:RequestUpdate(filterType_LF_constant) internall in that FCOCraftFilter function
-			end
-
-			--#2025_01
-			--todo 20251031 Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected?
-			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
-			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
-			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
-
-			local callbackNameUniversalDeconDeconAllShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "all")
-			local callbackNameUniversalDeconDeconAllHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "all")
-			CM:RegisterCallback(callbackNameUniversalDeconDeconAllShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
-			CM:RegisterCallback(callbackNameUniversalDeconDeconAllHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
-			local callbackNameUniversalDeconDeconArmorShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "armor")
-			local callbackNameUniversalDeconDeconArmorHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "armor")
-			CM:RegisterCallback(callbackNameUniversalDeconDeconArmorShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
-			CM:RegisterCallback(callbackNameUniversalDeconDeconArmorHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
-			local callbackNameUniversalDeconDeconWeaponsShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "weapons")
-			local callbackNameUniversalDeconDeconWeaponsHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "weapons")
-			CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
-			CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
-			local callbackNameUniversalDeconJewelryDeconShown = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, true, nil, "jewelry")
-			local callbackNameUniversalDeconJewelryDeconHidden = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, false, nil, "jewelry")
-			CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
-			CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
-			local callbackNameUniversalDeconEnchantingShown = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, true, nil, "enchantments")
-			local callbackNameUniversalDeconEnchantingHidden = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, false, nil, "enchantments")
-			CM:RegisterCallback(callbackNameUniversalDeconEnchantingShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
-			CM:RegisterCallback(callbackNameUniversalDeconEnchantingHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
-		end
-
 		--Shown callbacks, fired by CALLBACK_MANAGER of LibFilters automatically --> Why isn't UniversalDeconstruction firing any default callbacks?
 		local callbackName = libFilters_CreateCallbackName(libFilters, filterType, true)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
@@ -1048,6 +1022,60 @@ local function enableFilterTypeCallbacks()
 		callbackName = libFilters_CreateCallbackName(libFilters, filterType, false)
 		CM:RegisterCallback(callbackName, function(...) callbackFunctionForPanelShowOrHide(filterTypeName, ...) end)
 	end
+
+	--Additional callback needed for universal deconstruction open/close!
+	--======== UNIVERSAL DECONSTRUCTION ===========================================================
+	--[[
+		callbackName,
+		filterType,
+		stateStr,
+		isInGamepadMode,
+		fragmentOrSceneOrControl,
+		lReferencesToFilterType,
+		universalDeconSelectedTabNow
+	]]
+	local addonName = "LibFilters3_TEST_UI_UniversalDecon"
+	local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+--d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
+		callbackFunctionForPanelShowOrHide(libFiltersFilterConstants[filterType], callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+	end
+
+	for universalDeconSupportedFilterType, universalDeconTabNames in pairs(libFiltersFilterTypeToUniversalDeconTabKeys) do
+		for _, universalDeconTabName in pairs(universalDeconTabNames) do
+			local callbackNameUniversalDeconTabShown = libFilters:RegisterCallbackName(addonName, universalDeconSupportedFilterType, true, nil, universalDeconTabName)
+			CM:RegisterCallback(callbackNameUniversalDeconTabShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+			local callbackNameUniversalDeconTabHidden = libFilters:RegisterCallbackName(addonName, universalDeconSupportedFilterType, false, nil, universalDeconTabName)
+			CM:RegisterCallback(callbackNameUniversalDeconTabHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+		end
+	end
+	--[[
+	local function libFiltersUniversalDeconShownOrHiddenCallback(isShown, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+--d("[UNIVERSAL_DECONSTRUCTION - CALLBACK - " ..tos(callbackName) .. ", state: "..tos(stateStr) .. ", filterType: " ..tos(filterType) ..", isInGamepadMode: " ..tos(isInGamepadMode) .. ", universalDeconSelectedTabNow: " ..tos(universalDeconSelectedTabNow))
+		callbackFunctionForPanelShowOrHide(filterTypeName, callbackName, filterType, stateStr, isInGamepadMode, fragmentOrSceneOrControl, lReferencesToFilterType, universalDeconSelectedTabNow)
+	end
+
+	--#2025_01
+	local callbackNameUniversalDeconDeconAllShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "all")
+	local callbackNameUniversalDeconDeconAllHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "all")
+	CM:RegisterCallback(callbackNameUniversalDeconDeconAllShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+	CM:RegisterCallback(callbackNameUniversalDeconDeconAllHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+	local callbackNameUniversalDeconDeconArmorShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "armor")
+	local callbackNameUniversalDeconDeconArmorHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "armor")
+	CM:RegisterCallback(callbackNameUniversalDeconDeconArmorShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+	CM:RegisterCallback(callbackNameUniversalDeconDeconArmorHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+	local callbackNameUniversalDeconDeconWeaponsShown = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, true, nil, "weapons")
+	local callbackNameUniversalDeconDeconWeaponsHidden = libFilters:RegisterCallbackName(addonName, LF_SMITHING_DECONSTRUCT, false, nil, "weapons")
+	CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+	CM:RegisterCallback(callbackNameUniversalDeconDeconWeaponsHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+	local callbackNameUniversalDeconJewelryDeconShown = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, true, nil, "jewelry")
+	local callbackNameUniversalDeconJewelryDeconHidden = libFilters:RegisterCallbackName(addonName, LF_JEWELRY_DECONSTRUCT, false, nil, "jewelry")
+	CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+	CM:RegisterCallback(callbackNameUniversalDeconJewelryDeconHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+	local callbackNameUniversalDeconEnchantingShown = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, true, nil, "enchantments")
+	local callbackNameUniversalDeconEnchantingHidden = libFilters:RegisterCallbackName(addonName, LF_ENCHANTING_EXTRACTION, false, nil, "enchantments")
+	CM:RegisterCallback(callbackNameUniversalDeconEnchantingShown, function(...) libFiltersUniversalDeconShownOrHiddenCallback(true, ...) end)
+	CM:RegisterCallback(callbackNameUniversalDeconEnchantingHidden, function(...) libFiltersUniversalDeconShownOrHiddenCallback(false, ...) end)
+	]]
 end
 
 local function parseArguments(args, slashCommand)

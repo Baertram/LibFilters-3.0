@@ -46,6 +46,7 @@ Last updated: 2025-09-21
 
 **Attention:**
 The UniversalDeconstruction panel does not provide it's own LF_UNIVERSAL_DECON filterTypes as it is reusing the already provided filterTypes at the different UniversalDecon tabs "all", "weapons", "armor", "jewelry" and "enchantments":<br>
+----> See file constants.lua, table universalDeconstructionTabNames
 ```
 "all" = LF_SMITHING_DECONSTRUCT
 "weapons"  = LF_SMITHING_DECONSTRUCT

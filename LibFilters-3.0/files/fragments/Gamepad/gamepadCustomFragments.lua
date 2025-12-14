@@ -79,7 +79,7 @@ local invGuildStoreSellScene_GP   	= 			gpc.invGuildStoreSellScene_GP
 --local invGuildStoreSell_GP 			= 			gpc.invGuildStoreSell_GP
 local invMailSendScene_GP         	= 			gpc.invMailSendScene_GP
 local invMailSend_GP  				= 			gpc.invMailSend_GP
-local invMailSendFragment_GP		=			gpc.invMailSendFragment_GP
+--local invMailSendFragment_GP		=			gpc.invMailSendFragment_GP
 local invPlayerTradeScene_GP		= 			gpc.invPlayerTradeScene_GP
 local quickslotFragment_GP   		=			gpc.quickslotFragment_GP
 --local quickslotScene_GP				=			gpc.quickslotScene_GP
@@ -151,8 +151,8 @@ local function isFurnitureVaultShowing()
 end
 
 local function isVengeanceCampaign()
-	if IsInCampaign() == true and IsCurrentCampaignVengeanceRuleset() == true then
-		return invBackpack_GP.vengeanceCategoryList:IsActive()
+	if IsCurrentCampaignVengeanceRuleset() == true then
+		return invBackpack_GP.vengeanceCategoryList:IsActive() or invBackpack_GP.vengeanceItemList:IsActive()
 	end
 	return false
 end

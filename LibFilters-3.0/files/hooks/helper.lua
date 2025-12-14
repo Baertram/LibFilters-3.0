@@ -29,7 +29,7 @@ if libFilters.debug then dd("LIBRARY HELPER FILE - START") end
 --Local LibFilters speed-up variables and references
 ------------------------------------------------------------------------------------------------------------------------
 --Keyboard
-local inventories =                         kbc.inventories
+--local inventories =                         kbc.inventories
 local playerInv =                           kbc.playerInv
 local store =                               kbc.store
 local vendorBuyBack =                       kbc.vendorBuyBack
@@ -46,14 +46,18 @@ local invBackpack_GP =                      gpc.invBackpack_GP
 local vendorRepair_GP =                     gpc.vendorRepair_GP
 local vendorBuy_GP =                        gpc.vendorBuy_GP
 local vendorSell_GP =                       gpc.vendorSell_GP
+local vendorSellVengeance_GP =              gpc.vendorSellVengeance_GP
 local vendorBuyBack_GP =                    gpc.vendorBuyBack_GP
 local fenceSell_GP =                        gpc.invFenceSell_GP
 local fenceLaunder_GP =                     gpc.invFenceLaunder_GP
 local storeWindowComponents_GP =            gpc.store_GP.components
-
 local smithing_GP =                         gpc.smithing_GP
 local universalDeconstructPanel_GP =        gpc.universalDeconstructPanel_GP
 local companionEquipment_GP =               gpc.companionEquipment_GP
+local enchantingCreateScene_GP  =           gpc.enchantingCreateScene_GP
+local enchantingExtractScene_GP =           gpc.enchantingExtractScene_GP
+local researchChooseItemDialog_GP =         gpc.researchChooseItemDialog_GP
+
 
 --local enchantingModeToFilterType = mapping.enchantingModeToFilterType
 --local LF_ConstantToAdditionalFilterControlSceneFragmentUserdata = mapping.LF_ConstantToAdditionalFilterControlSceneFragmentUserdata
@@ -188,7 +192,7 @@ local DATA_TYPE_REPAIR_ITEM = 1
 -->See \esoui\ingame\repair\repairwindow.lua
 local function GatherDamagedEquipmentFromBag_Keyboard(bagId, dataTable)
     for slotIndex in ZO_IterateBagSlots(bagId) do
-        if TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
+        if TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
             local condition = GetItemCondition(bagId, slotIndex)
             if condition < 100 and not IsItemStolen(bagId, slotIndex) then
                 local icon, stackCount, _, _, _, _, _, functionalQuality, displayQuality = GetItemInfo(bagId, slotIndex)
@@ -363,9 +367,8 @@ end
 --Called from local function GetRepairItems(searchContext)
 --> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
 local function GatherDamagedEquipmentFromBag_Gamepad(searchContext, bagId, itemTable)
-    local bagSlots = GetBagSize(bagId)
-    for slotIndex = 0, bagSlots - 1 do
-        if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
+    for slotIndex in ZO_IterateBagSlots(bagId) do
+        if searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, bagId, slotIndex) then
             local condition = GetItemCondition(bagId, slotIndex)
             if condition < 100 and not IsItemStolen(bagId, slotIndex) then
                 local _, stackCount = GetItemInfo(bagId, slotIndex)
@@ -471,7 +474,7 @@ helpers["BUY_BACK_WINDOW:UpdateList"] = {
 
                 for entryIndex = 1, GetNumBuybackItems() do
                     if not TEXT_SEARCH_MANAGER or
-                        (TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex)) then
+                        (TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("storeTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex)) then
                         local icon, name, stack, price, functionalQuality, meetsRequirements, displayQuality = GetBuybackItemInfo(entryIndex)
                         if stack > 0 then
                             local buybackData = {
@@ -550,13 +553,8 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddItemToList"] = {
         funcName = "ShouldAddItemToList",
         func = function(self, itemData)
 
-            --[[
-    return ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
-        and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
-            ]]
-
             local resultFilter = ZO_IsElementInNumericallyIndexedTable(itemData.filterData, ITEMFILTERTYPE_QUICKSLOT)
-            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)) or false
+            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)) or false
             return checkAndRundAdditionalFilters(self, itemData, resultFilter and textSearchResult)
         end,
     },
@@ -578,7 +576,7 @@ helpers["QUICKSLOT_KEYBOARD:ShouldAddQuestItemToList"] = {
         funcName = "ShouldAddQuestItemToList",
         func = function(self, questItemData)
             local resultFilter = ZO_IsElementInNumericallyIndexedTable(questItemData.filterData, ITEMFILTERTYPE_QUEST_QUICKSLOT)
-            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId)) or false
+            local textSearchResult = (resultFilter == true and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_QUEST_ITEM_ID, questItemData.questItemId)) or false
             --Original result was determined, so add the LibFilters filterFunctions now
             return checkAndRundAdditionalFilters(self, questItemData, resultFilter and textSearchResult)
         end,
@@ -620,7 +618,7 @@ helpers["QUICKSLOT_KEYBOARD:AppendCollectiblesData"] = {
                 }
                 local result = (not libFiltersQuickslotCollectiblesFilterFunc and true) or (libFiltersQuickslotCollectiblesFilterFunc and libFiltersQuickslotCollectiblesFilterFunc(collectibleData))
                 --Original result was determined from .additionalFilter registered functions, or if no filterFunction existed: true
-                if result == true and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
+                if result == true and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults("quickslotTextSearch", BACKGROUND_LIST_FILTER_TARGET_COLLECTIBLE_ID, collectibleData.collectibleId) then
                     table.insert(scrollData, ZO_ScrollList_CreateDataEntry(DATA_TYPE_COLLECTIBLE_ITEM, collectibleData))
                 end
             end
@@ -656,7 +654,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
 			if filterType == ENCHANTING_EXTRACTION_FILTER then
 				local result = craftingSubItemType == ITEMTYPE_GLYPH_WEAPON or craftingSubItemType == ITEMTYPE_GLYPH_ARMOR or craftingSubItemType == ITEMTYPE_GLYPH_JEWELRY
                 --Original result was determined, so add the LibFilters filterFunctions now
-				return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_EXTRACTION_SCENE, bagId, slotIndex, result) -- Added by LibFilters
+                return checkAndRundAdditionalFiltersBag(enchantingExtractScene_GP, bagId, slotIndex, result) -- Added by LibFilters
 			elseif filterType == ENCHANTING_NO_FILTER or filterType == runeType then
                 local result = true
                 if questFilterChecked then
@@ -670,7 +668,7 @@ helpers["ZO_Enchanting_DoesEnchantingItemPassFilter"] = {
                     result = runeType == ENCHANTING_RUNE_ASPECT or runeType == ENCHANTING_RUNE_ESSENCE or runeType == ENCHANTING_RUNE_POTENCY
                 end
                 --Original result was determined, so add the LibFilters filterFunctions now
-                return checkAndRundAdditionalFiltersBag(GAMEPAD_ENCHANTING_CREATION_SCENE, bagId, slotIndex, result) -- Added by LibFilters
+                return checkAndRundAdditionalFiltersBag(enchantingCreateScene_GP, bagId, slotIndex, result) -- Added by LibFilters
 			end
 			return false
         end,
@@ -870,8 +868,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
                 end
 
                 if iigpm() then
-                    --todo 2023-08-31
-                    --Gamepad mode support?
+                    --todo 2025-12-12 Gamepad mode support - anything needed here??
                 else
                     --Keyboard mode
                     GetControl(selfControl, "ContainerDivider"):SetHidden(allItemsFiltered)
@@ -896,7 +893,7 @@ helpers["SMITHING/SMITHING_GAMEPAD.researchPanel:Refresh"] = {
 --enable LF_SMITHING_RESEARCH_DIALOG/LF_JEWELRY_RESEARCH_DIALOG smithing/jewelry
 -->See \esoui\ingame\crafting\smithingresearch_shared.lua
 helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
-    version = 2,
+    version = 3,
     filterTypes = {
         [true] = {LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG},
         [false]={LF_SMITHING_RESEARCH_DIALOG, LF_JEWELRY_RESEARCH_DIALOG}
@@ -910,7 +907,7 @@ helpers["ZO_SharedSmithingResearch.IsResearchableItem"] = {
 --d("[LibFilters3]IsResearchableItem: " ..GetItemLink(bagId, slotIndex))
 			local result = doesItemPassResearchDialogFilter(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
             --Original result was determined, so add the LibFilters filterFunctions now
-            return checkAndRundAdditionalFiltersBag(researchChooseItemDialog, bagId, slotIndex, result)  -- Added by LibFilters SMITHING_RESEARCH_SELECT
+            return checkAndRundAdditionalFiltersBag((iigpm() and researchChooseItemDialog_GP) or researchChooseItemDialog, bagId, slotIndex, result)  -- Added by LibFilters GAMEPAD_SMITHING_RESEARCH_CONFIRM_SCENE or SMITHING_RESEARCH_SELECT
         end,
     }
 }
@@ -956,7 +953,7 @@ helpers["ZO_SharedSmithingExtraction_DoesItemPassFilter"] = {
         funcName = "ZO_SharedSmithingExtraction_DoesItemPassFilter",
         func = function(bagId, slotIndex, filterType)
 			-- get objectVar for LF_SMITHING_REFINE/LF_JEWELRY_REFINE, or LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT-> Use keyboard mode variable for gamepad mode as well
-            local base = filterType == SMITHING_FILTER_TYPE_RAW_MATERIALS and smithing.refinementPanel or smithing.deconstructionPanel
+            local base = (filterType == SMITHING_FILTER_TYPE_RAW_MATERIALS and smithing.refinementPanel) or smithing.deconstructionPanel
 
 			local result = doesSmithingItemPassFilterOriginal(bagId, slotIndex, filterType)
             --Original result was determined, so add the LibFilters filterFunctions now
@@ -988,6 +985,9 @@ helpers["ZO_SharedSmithingImprovement_DoesItemPassFilter"] = {
 
 
 --  enable LF_SMITHING_DECONSTRUCT/LF_JEWELRY_DECONSTRUCT/LF_ENCHANTING_EXTRACT smithing/jewelry/enchanting extract at the Universal Deconstruction NPC
+-- UniversalDecon uses LF_SMITHING_DECONSTRUCT, LF_ENCHANTING_EXTRACTION and LF_JEWELRY_DECONSTRUCT but adds the current UniversalDecon's active tabName e.g.
+-- "all", "armor", "weapons", "jewelry", "enchantsments" to identify the UnivesalDeconstruction panel usage -> e.g. in LibFilters3:GetCurrentFilterType() return param 2
+-- See constants.lua, table universalDeconTabKeyToLibFiltersFilterType for the mapping of the LibFiltersPanelId to the UniversalDeconTabName
 --> See \esoui\ingame\crafting\universaldeconstructionpanel_shared.lua
 helpers["ZO_UniversalDeconstructionPanel_Shared.DoesItemPassFilter"] = {
     version = 1,
@@ -1110,7 +1110,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 			local unequippedItems = {}
 			--- Setup sort filter   < zos
 			for _, itemData in ipairs(items) do
-				if itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
+				if itemData.bagId ~= BAG_WORN and not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
                     if checkAndRundAdditionalFilters(vendorSell_GP, itemData, nil) == true then       --Added by LibFilters
                         itemData.isEquipped = false
                         itemData.meetsRequirementsToBuy = true
@@ -1126,6 +1126,47 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list:updateFunc"] =
 		end
     },
 }
+
+--enable LF_VENDOR_SELL_VENGEANCE for gamepad mode
+--Calling local function GetSellVengeanceItems(searchContext)
+--> See \esoui\ingame\storewindow\gamepad\storewindow_gamepad_util.lua
+helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_VENGEANCE].list:updateFunc"] = {
+    version = 1,
+    filterTypes = {
+        [true] = {LF_VENDOR_SELL_VENGEANCE},
+        [false]={}
+    },
+    locations = {
+        [1] = storeWindowComponents_GP[ZO_MODE_STORE_SELL_VENGEANCE].list,
+    },
+    helper = {
+        funcName = "updateFunc",
+        func = function(searchContext)
+--d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_VENGEANCE].list:updateFunc')
+		    -- original function GetSellVengeanceItems(searchContext)
+			local items = SHINV:GenerateFullSlotData(nil, BAG_VENGEANCE)
+			local unequippedItems = {}
+			--- Setup sort filter   < zos
+            for _, itemData in ipairs(items) do
+                if not itemData.stolen and not itemData.isPlayerLocked  and searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex) then
+                    if checkAndRundAdditionalFilters(vendorSellVengeance_GP, itemData, nil) == true then      --Added by LibFilters
+                        itemData.isEquipped = false
+                        itemData.meetsRequirementsToBuy = true
+                        itemData.meetsRequirementsToEquip = itemData.meetsUsageRequirements
+
+                        itemData.storeGroup = GetItemStoreGroup(itemData)
+                        itemData.bestGamepadItemCategoryName = GetBestSellItemCategoryDescription(itemData)
+                        itemData.customSortOrder = itemData.sellInformationSortOrder
+                        table.insert(unequippedItems, itemData)
+                    end                                                                             --Added by LibFilters
+                end
+            end
+
+			return unequippedItems
+		end
+    },
+}
+
 
 --enable LF_VENDOR_BUYBACK for gamepad mode
 --Calling local function GetBuybackItems(searchContext)
@@ -1146,7 +1187,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_BUY_BACK].list:updateFunc
 		-- original function GetBuybackItems(searchContext)
 			local items = {}
 			for entryIndex = 1, GetNumBuybackItems() do
-				if searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex) then
+				if searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, BAG_BUYBACK, entryIndex) then
 					local icon, name, stackCount, price, functionalQuality, meetsRequirementsToEquip, displayQuality = GetBuybackItemInfo(entryIndex)
 					if stackCount > 0 then
 						local itemLink = GetBuybackItemLink(entryIndex)
@@ -1237,7 +1278,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateF
         func = function(searchContext)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list:updateFunc')
 			local function TextSearchFilterFunction(itemData)
-				local result = IsStolenItemSellable(itemData) and searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+				local result = IsStolenItemSellable(itemData) and searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
                 --Original result was determined, so add the LibFilters filterFunctions now
                 return checkAndRundAdditionalFilters(fenceSell_GP, itemData, result) -- Added by LibFilters
 			end
@@ -1265,7 +1306,7 @@ helpers["STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc"
         func = function(searchContext)
 --d( 'STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list:updateFunc')
 			local function TextSearchFilterFunction(itemData)
-                local result = searchContext and TEXT_SEARCH_MANAGER:IsItemInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
+                local result = searchContext and TEXT_SEARCH_MANAGER:IsDataInSearchTextResults(searchContext, BACKGROUND_LIST_FILTER_TARGET_BAG_SLOT, itemData.bagId, itemData.slotIndex)
                 --Original result was determined, so add the LibFilters filterFunctions now
 				return checkAndRundAdditionalFilters(fenceLaunder_GP, itemData, result) -- Added by LibFilters
 			end
@@ -1337,12 +1378,12 @@ helpers["GAMEPAD_INVENTORY:GetQuestItemDataFilterComparator"] = { -- not tested
 }
 
 
---enable LF_INVENTORY for gamepad mode
+--enable LF_INVENTORY/LF_INVENTORY_VENGEANCE for gamepad mode
 --> See \esoui\ingame\inventory\gamepad\gamepadinventory.lua
 helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
     version = 2,
     filterTypes = {
-        [true] = {LF_INVENTORY},
+        [true] = {LF_INVENTORY, LF_INVENTORY_VENGEANCE},
         [false]={}
     },
     locations = {
@@ -1379,21 +1420,25 @@ helpers["GAMEPAD_INVENTORY:GetItemDataFilterComparator"] = { -- not tested
     },
 }
 
---enable LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/LF_TRADE
---LF_GUILDSTORE_SELL/LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/LF_CRAFTBAG/LF_MAIL_SEND/
---LF_FURNITURE_VAULT_DEPOSIT/LF_FURNITURE_VAULT_WITHDRAW for gamepad mode
+--enable LF_BANK_WITHDRAW/LF_BANK_DEPOSIT/
+--LF_GUILDBANK_WITHDRAW/LF_GUILDBANK_DEPOSIT/
+--LF_HOUSE_BANK_WITHDRAW/LF_HOUSE_BANK_DEPOSIT/
+--LF_FURNITURE_VAULT_WITHDRAW/LF_FURNITURE_VAULT_DEPOSIT/
+--LF_GUILDSTORE_SELL/
+--LF_CRAFTBAG/LF_MAIL_SEND/LF_TRADE for gamepad mode
+
 --> See \esoui\ingame\inventory\gamepad\inventorylist_gamepad.lua
 helpers["ZO_GamepadInventoryList:AddSlotDataToTable"] = {
-    version = 3,
+    version = 4,
     filterTypes = {
         [true] = {
             LF_BANK_WITHDRAW, LF_BANK_DEPOSIT,
-            LF_BANK_DEPOSIT, LF_GUILDBANK_DEPOSIT,
+            LF_GUILDBANK_WITHDRAW, LF_GUILDBANK_DEPOSIT,
             LF_HOUSE_BANK_WITHDRAW, LF_HOUSE_BANK_DEPOSIT,
+            LF_FURNITURE_VAULT_WITHDRAW, LF_FURNITURE_VAULT_DEPOSIT,
             LF_GUILDSTORE_SELL,
             LF_CRAFTBAG,
             LF_TRADE, LF_MAIL_SEND,
-            LF_FURNITURE_VAULT_WITHDRAW, LF_FURNITURE_VAULT_DEPOSIT,
         },
         [false]={}
     },
