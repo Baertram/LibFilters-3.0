@@ -1,7 +1,7 @@
 --[[
 
- Todo and bugs list - Last updated: 	2025-12-04
- Total Bugs:							2025_02
+ Todo and bugs list - Last updated: 	2025-12-15
+ Total Bugs:							2025_03
 
  -BUGS-
  #2025_01   --todo 20251031 in KB mode (maybe GP too): Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected? See test UI
@@ -9,8 +9,7 @@
 			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
 			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
 
- #2025_02	Test the new Cyrodiil Vengeance inventory and vendor, if filter functions work properly and callbacks get raised properly (kb + gp mode)
-
+ #2025_03 user:/AddOns/LibFilters-3.0/files/hooks/helper.lua:94: function expected instead of nil while opening gamepad inventory (with AdvancedFilters enabled)
 
  -FEATURES-
 
@@ -22,7 +21,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.7
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.8
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
