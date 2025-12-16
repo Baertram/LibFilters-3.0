@@ -49,6 +49,9 @@ local mapping = 					libFilters.mapping
 local functions = 					libFilters.functions
 local callbacks = 					mapping.callbacks
 
+local types = constants.types
+local functionType = types.func
+
 --local LibFilters panelIds
 local LF_CRAFTBAG = LF_CRAFTBAG
 
@@ -760,7 +763,7 @@ local function checkIfSpecialCallbackNeedsToBeAdded(controlOrSceneOrFragmentRef,
 	local specialCallbackForCtrl = specialCallbacks[controlOrSceneOrFragmentRef]
 	if specialCallbackForCtrl ~= nil then
 		local funcToCall = specialCallbackForCtrl[stateStr]
-		if funcToCall ~= nil and type(funcToCall) == "function" then
+		if funcToCall ~= nil and type(funcToCall) == functionType then
 			if libFilters.debug then
 				dv(">>special callback function will be called now...")
 			end

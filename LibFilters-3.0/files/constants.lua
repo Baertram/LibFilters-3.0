@@ -311,6 +311,21 @@ LF_FILTER_ALL					= 9999
 --Add the filterTypes to the constants
 constants.filterTypes = libFiltersFilterConstants
 
+--#15 Add the filterTypeDeterminationFunctions for the filterTypes where they are needed, e.g. LF_VENDOR_SELL and LF_VENDOR_SELL_VENGEANCE
+--Both use the same referenceVariable but 2 different filterTypes. Based on the curent vendor/store mode the fucntion should return either
+--normal vendor sell, or vengeance vendor sell
+local libFilters_IsVengeanceStoreShown
+local function isVendorOrVendorVengeanceSell(referenceVariable, filterType)
+	libFilters_IsVengeanceStoreShown = libFilters_IsVengeanceStoreShown or libFilters.IsVengeanceStoreShown
+	local isVengeanceVendorSellShown = libFilters_IsVengeanceStoreShown(libFilters)
+	return (isVengeanceVendorSellShown == true and LF_VENDOR_SELL_VENGEANCE) or LF_VENDOR_SELL
+end
+
+local filterTypeDeterminationFunctions = {
+	[LF_VENDOR_SELL] = isVendorOrVendorVengeanceSell,
+	[LF_VENDOR_SELL_VENGEANCE] = isVendorOrVendorVengeanceSell,
+}
+constants.filterTypeDeterminationFunctions = filterTypeDeterminationFunctions
 
 --The default attribute at an inventory/layoutData/scene/control/userdata used within table filterTypeToReference
 --to store the libFilters 3.0 filterType. This will be used to determine which filterType is currently used and store the
@@ -754,8 +769,8 @@ kbc.vendorBuyFragment			  = STORE_FRAGMENT
 local vendorBuyFragment 	  	  = kbc.vendorBuyFragment
 vendorBuyFragment._name = "STORE_FRAGMENT"
 kbc.vendorSell        			  = BACKPACK_STORE_LAYOUT_FRAGMENT
-local vendorSell 				  = kbc.vendorSell
-vendorSell._name = "BACKPACK_STORE_LAYOUT_FRAGMENT"
+local vendorSellFragment 		  = kbc.vendorSell
+vendorSellFragment._name = "BACKPACK_STORE_LAYOUT_FRAGMENT"
 
 ---Buy back
 kbc.vendorBuyBack     			  = BUY_BACK_WINDOW
@@ -770,14 +785,15 @@ local vendorRepair 				  = kbc.vendorRepair
 kbc.vendorRepairFragment          = REPAIR_FRAGMENT
 local vendorRepairFragment 		  = kbc.vendorRepairFragment
 vendorRepairFragment._name = "REPAIR_FRAGMENT"
-kbc.storeWindows                  = {
+kbc.storeWindows         = {
 	[ZO_MODE_STORE_BUY] = 			vendorBuy,
 	[ZO_MODE_STORE_BUY_BACK] = 		vendorBuyBack,
-	[ZO_MODE_STORE_SELL] = 			vendorSell,
+	[ZO_MODE_STORE_SELL] = 			vendorSellFragment,
 	[ZO_MODE_STORE_REPAIR] = 		vendorRepair,
-	[ZO_MODE_STORE_SELL_STOLEN] = 	vendorSell,
-	[ZO_MODE_STORE_LAUNDER] = 		vendorSell,
+	[ZO_MODE_STORE_SELL_STOLEN] = 	vendorSellFragment,
+	[ZO_MODE_STORE_LAUNDER] = 		vendorSellFragment,
 	[ZO_MODE_STORE_STABLE] = 		vendorBuy,
+	[ZO_MODE_STORE_SELL_VENGEANCE] =vendorSellFragment,
 }
 
 
@@ -1627,8 +1643,10 @@ local filterTypeToReference = {
 		[LF_HOUSE_BANK_DEPOSIT]       = { invHouseBankDeposit },
 
 		[LF_VENDOR_BUY]               = { store },
-		[LF_VENDOR_SELL]              = { vendorSell },
-		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSell },
+		[LF_VENDOR_SELL]              = { vendorSellFragment }, --#15
+		[LF_VENDOR_SELL_VENGEANCE]    = { vendorSellFragment }, --#15 Both use the same fragment and thus on first open the "last hooked" value for .LibFilters3_filterType (defaultLibFiltersAttributeToStoreTheFilterType), pointing to Vendor sell vengeance, will be set
+																--    We need a function at the fragments'.LibFilters3_filterType which is then checked for vendor mode and returns the appropriate LF* constant on each check!
+
 		[LF_VENDOR_BUYBACK]           = { vendorBuyBack },
 		[LF_VENDOR_REPAIR]            = { vendorRepair },
 		[LF_FENCE_SELL]               = { invFenceSellFragment },

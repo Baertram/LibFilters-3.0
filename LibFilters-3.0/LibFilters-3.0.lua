@@ -10,8 +10,13 @@
 
 --[Bugs]
 --#15 PLAYER_INVENTORY.appliedLayout contains the vendor fragment which got LibFilters3_filterType = LF_VENDOR_SELL_VENGEANCE.
---->We might need to add support for a function returning the filterType here (for same fragments used for multiple LF* constants)
-
+--[[
+	[LF_VENDOR_SELL]              = { vendorSellFragment },
+	[LF_VENDOR_SELL_VENGEANCE]    = { vendorSellFragment },
+-- Both use the same fragment BACKPACK_STORE_LAYOUT_FRAGMENT and thus on first open of the venor sell panel the "last hooked" value for
+--.LibFilters3_filterType (defaultLibFiltersAttributeToStoreTheFilterType), pointing to Vendor sell vengeance, will be set!
+-- We need a function at the fragments'.LibFilters3_filterType which is then checked for vendor mode and returns the appropriate LF* constant on each check!
+]]
 --[Feature requests]
 
 

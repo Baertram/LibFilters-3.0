@@ -13,6 +13,9 @@ local SHINV = SHARED_INVENTORY
 local constants   =                         libFilters.constants
 local mapping     =                         libFilters.mapping
 
+local types = constants.types
+local functionType = types.func
+
 local kbc         =                         constants.keyboard
 local gpc         =                         constants.gamepad
 
@@ -81,7 +84,7 @@ local defaultSubTableWhereFilterFunctionsCouldBe = constants.defaultSubTableWher
 ------------------------------------------------------------------------------------------------------------------------
 --Locals for .additionalFilters checks
 local function doesAdditionalFilterFuncExist(gpFragmentOrOtherRef)
-    return (gpFragmentOrOtherRef and type(gpFragmentOrOtherRef[defaultOriginalFilterAttributeAtLayoutData]) == "function") or false
+    return (gpFragmentOrOtherRef and type(gpFragmentOrOtherRef[defaultOriginalFilterAttributeAtLayoutData]) == functionType) or false
 end
 
 local function checkIfFiltertypeUsesCustomGamepadFragment(objectVar)
@@ -710,7 +713,7 @@ helpers["ZO_Alchemy_DoesAlchemyItemPassFilter"] = {
             else
                 local _, craftingSubItemType = GetItemCraftingInfo(bagId, slotIndex)
 
-                if type(filterType) == "function" then
+                if type(filterType) == functionType then
                     result = filterType(craftingSubItemType)
                 else
                     result = filterType == craftingSubItemType

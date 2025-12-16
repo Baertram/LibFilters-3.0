@@ -23,13 +23,14 @@ local zigbai = 	ZO_Inventory_GetBagAndIndex
 local constants   =                         libFilters.constants
 local mapping = 							libFilters.mapping
 
-local kbc         =                         constants.keyboard
-local gpc         =                         constants.gamepad
+local types = constants.types
+local functionType = types.func
+local numberType = types.num
 
 
 --Debugging
-local debugFunctions = libFilters.debugFunctions
-local dd = debugFunctions.dd
+--local debugFunctions = libFilters.debugFunctions
+--local dd = debugFunctions.dd
 
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -883,7 +884,7 @@ local function intializeFilterUI()
 		else
 			--Apply custom global filterFunction
 			local filterFunction = _G[filterFunctionName]
-			if filterFunction == nil or type(filterFunction) ~= "function" then
+			if filterFunction == nil or type(filterFunction) ~= functionType then
 				d(strfor(prefixBr.. "ERROR -  global filter function %q does not exist!", filterFunctionName))
 				return
 			end
@@ -1098,7 +1099,7 @@ local function parseArguments(args, slashCommand)
 			retTab[1] = LF_FILTER_ALL --specify that the function is to be used for all LF_* constants
 
 			filterFunctionName = elements[1]
-			if filterFunctionName ~= nil and _G[filterFunctionName] ~= nil and type(_G[filterFunctionName]) == "function" then
+			if filterFunctionName ~= nil and _G[filterFunctionName] ~= nil and type(_G[filterFunctionName]) == functionType then
 				retTab[2] = filterFunctionName
 			elseif filterFunctionName ~= nil and filterFunctionName == "" then
 				retTab[2] = ""
@@ -1110,7 +1111,7 @@ local function parseArguments(args, slashCommand)
 		--FilterType LF* and filterFunction were both given
 		elseif numElements == 2 then
 			filterType = tonumber(elements[1])
-			if filterType ~= nil and type(filterType) == "number" and filterType >= LF_FILTER_MIN and filterType <= LF_FILTER_MAX then
+			if filterType ~= nil and type(filterType) == numberType and filterType >= LF_FILTER_MIN and filterType <= LF_FILTER_MAX then
 				retTab[1] = filterType
 			else
 				d(strfor(prefixBr.. "ERROR -  filterType %q does not exist!", tos(filterType)))
@@ -1118,7 +1119,7 @@ local function parseArguments(args, slashCommand)
 			end
 
 			filterFunctionName = elements[2]
-			if filterFunctionName ~= nil and _G[filterFunctionName] ~= nil and type(_G[filterFunctionName]) == "function" then
+			if filterFunctionName ~= nil and _G[filterFunctionName] ~= nil and type(_G[filterFunctionName]) == functionType then
 				retTab[2] = filterFunctionName
 			elseif filterFunctionName ~= nil and filterFunctionName == "" then
 				retTab[2] = ""
@@ -1180,7 +1181,7 @@ SLASH_COMMANDS["/lftestfilters"] = function(args)
 			end
 		else
 			local filterFunction = _G[filterFunctionName]
-			if filterFunction == nil or type(filterFunction) ~= "function" then
+			if filterFunction == nil or type(filterFunction) ~= functionType then
 				d(strfor(prefixBr.. "ERROR -  global filter function %q does not exist!", filterFunctionName))
 				return
 			end
@@ -1214,7 +1215,7 @@ SLASH_COMMANDS["/lftestenchant"] = function()
 	local function filterCallback(slotOrBagId, slotIndex)
 		local bagId
 
-		if type(slotOrBagId) == "number" then
+		if type(slotOrBagId) == numberType then
 			if not slotIndex then return false end
 
 			bagId = slotOrBagId

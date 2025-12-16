@@ -20,12 +20,6 @@ local dv	= debugFunctions.dv
 local tos = tostring
 local strfor = string.format
 local tins = table.insert
-local functionType = "function"
-local boolType = "boolean"
-local userDataType ="userdata"
-local tableType = "table"
-local stringType = "string"
-local numberType = "number"
 
 --Game API local speedup
 local SM = SCENE_MANAGER
@@ -40,6 +34,15 @@ local ncc = NonContiguousCount
 local constants = 					libFilters.constants
 local mapping = 					libFilters.mapping
 local functions = 					libFilters.functions
+
+local types = constants.types
+local functionType = types.func
+local boolType = types.bool
+local userDataType = types.ud
+local tableType = types.tab
+local stringType = types.str
+local numberType = types.num
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --Local LibFilters speed-up variables and references
