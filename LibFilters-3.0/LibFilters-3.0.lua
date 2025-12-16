@@ -3,13 +3,14 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.7 - Last updated: 2025-12-06, Baertram
+--Bugs/Todo List for version: 3.0 r4.9 - Last updated: 2025-12-16, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				15
 --Feature requests total: 	0
 
 --[Bugs]
-
+--#15 PLAYER_INVENTORY.appliedLayout contains the vendor fragment which got LibFilters3_filterType = LF_VENDOR_SELL_VENGEANCE.
+--->We might need to add support for a function returning the filterType here (for same fragments used for multiple LF* constants)
 
 --[Feature requests]
 

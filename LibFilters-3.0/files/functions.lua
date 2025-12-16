@@ -20,6 +20,12 @@ local dv	= debugFunctions.dv
 local tos = tostring
 local strfor = string.format
 local tins = table.insert
+local functionType = "function"
+local boolType = "boolean"
+local userDataType ="userdata"
+local tableType = "table"
+local stringType = "string"
+local numberType = "number"
 
 --Game API local speedup
 local SM = SCENE_MANAGER
@@ -81,6 +87,18 @@ local libFilters_IsUniversalDeconstructionPanelShown
 ------------------------------------------------------------------------------------------------------------------------
 --LOCAL HELPER FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
+
+--Determine value or function returned value
+--Run function arg to get the return value (passing in ... as optional params to that function),
+--or directly use non-function return value arg
+local function getValueOrCallback(arg, ...)
+	if type(arg) == functionType then
+		return arg(...)
+	else
+		return arg
+	end
+end
+functions.getValueOrCallback = getValueOrCallback
 
 --Is a filterType that is supported at UniversalDeconstruction, e.g. LF_SMITHING_DECONSTRUCT, LF_JEWELRY_DECONSTRUCT, LF_ENCHANTING_EXTRACT
 local function isUniversalDeconstructionSupportedFilterType(filterType)
@@ -150,7 +168,7 @@ local function compareCurrentSceneFragment(sceneOrFragmentToCompare, currentScen
 		return false
 	end
 	local sceneOrFragmentNameToCompare = ""
-	if type(sceneOrFragmentToCompare) == "String" then
+	if type(sceneOrFragmentToCompare) == stringType then
 		sceneOrFragmentNameToCompare = sceneOrFragmentToCompare
 	else
 		if sceneOrFragmentToCompare == currentSceneOrFragment then
@@ -176,7 +194,7 @@ local function getSceneNameByFilterType(filterType, isInGamepadMode)
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	local retScene = filterTypeData ~= nil and filterTypeData["scene"]
 	if retScene then
-		if type(retScene) == "String" then
+		if type(retScene) == stringType then
 			retSceneName = retScene
 			local sceneOfRetSceneName = getScene(SM, retSceneName)
 			retScene = sceneOfRetSceneName
@@ -207,7 +225,7 @@ local function isSceneFragmentShown(filterType, isInGamepadMode, isSceneOrFragme
 	local retFragment = filterTypeData["fragment"]
 	local retScene = filterTypeData["scene"]
 	--Is the scene "name" given -> Get the scene by name
-	if retScene ~= nil and type(retScene) == "string" then
+	if retScene ~= nil and type(retScene) == stringType then
 		local sceneOfRetSceneName = getScene(SM, retScene)
 --libFilters._lastCheckedSceneName = retScene
 --libFilters._lastCheckedScene = SCENE_MANAGER:GetScene(retScene)
@@ -330,7 +348,8 @@ functions.checkIfStoreCtrlOrFragmentShown = checkIfStoreCtrlOrFragmentShown
 local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
 	isSpecialForced = isSpecialForced or false
-	if libFilters.debug then
+	local doDebug = libFilters.debug
+	if doDebug then
 		dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 		dd("!isSpecialTrue - filterType: %s, gamepadMode: %s, isSpecialForced: %s, paramsGiven: %s", tos(filterType), tos(isInGamepadMode), tos(isSpecialForced), tos(... ~= nil))
 	end
@@ -338,7 +357,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 	local filterTypeData = LF_FilterTypeToCheckIfReferenceIsHidden[isInGamepadMode][filterType]
 	local specialRoutines = filterTypeData and ((isSpecialForced == true and filterTypeData["specialForced"]) or filterTypeData["special"])
 	if not specialRoutines or #specialRoutines == 0 then
-		if libFilters.debug then
+		if doDebug then
 			dd("!isSpecialTrue - No checks found! Returned: true")
 			dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 		end
@@ -354,9 +373,9 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 		local ctrl = specialRoutineDetails.control
 		local bool = specialRoutineDetails.boolean
 		if ctrl ~= nil and ctrl ~= "" then
-			if libFilters.debug then checkType = "control"end
+			if doDebug then checkType = "control"end
 			local ctrlType = type(ctrl)
-			if ctrlType == "String" then
+			if ctrlType == stringType then
 				local ctrlName = ctrl
 				ctrl = GetControl(ctrlName)
 			end
@@ -365,28 +384,28 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 				local funcOrAttribute = specialRoutineDetails.funcOrAttribute
 				if funcOrAttribute ~= nil then
 					local funcType = type(funcOrAttribute)
-					if funcType == "string" then
-						if libFilters.debug then checkType = "control - String"end
+					if funcType == stringType then
+						if doDebug then checkType = "control - String"end
 						if ctrl[funcOrAttribute] == nil then
 							skip = true
-							if libFilters.debug then checkAborted = "ctrl[funcOrAttribute] = nil" end
+							if doDebug then checkAborted = "ctrl[funcOrAttribute] = nil" end
 						end
-					elseif funcType == "number" then
-						if libFilters.debug then checkType = "control - table"end
-						if ctrlType == "table" and ctrl[funcOrAttribute] == nil then
+					elseif funcType == numberType then
+						if doDebug then checkType = "control - table"end
+						if ctrlType == tableType and ctrl[funcOrAttribute] == nil then
 							skip = true
-							if libFilters.debug then checkAborted = "ctrl[funcOrAttribute] = nil" end
-						elseif ctrlType == "userdata" then
-							if libFilters.debug then checkType = "control - userdata"end
+							if doDebug then checkAborted = "ctrl[funcOrAttribute] = nil" end
+						elseif ctrlType == userDataType then
+							if doDebug then checkType = "control - userdata"end
 							if ctrl.GetChildren == nil then
 								skip = true
-								if libFilters.debug then checkAborted = "ctrl.GetChildren = nil" end
+								if doDebug then checkAborted = "ctrl.GetChildren = nil" end
 							else
 								childControl = ctrl:GetChildren()[funcOrAttribute]
 							end
 							if childControl == nil then
 								skip = true
-								if libFilters.debug then checkAborted = "ctrl.childControl = nil" end
+								if doDebug then checkAborted = "ctrl.childControl = nil" end
 							end
 						end
 					end
@@ -394,53 +413,53 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 						local expectedResults = specialRoutineDetails.expectedResults
 						local expectedResultsMap = specialRoutineDetails.expectedResultsMap
 						local results
-						local isFunction = (type(ctrl[funcOrAttribute]) == "function") or false
+						local isFunction = (type(ctrl[funcOrAttribute]) == functionType) or false
 						if isFunction == true then
 							local params = specialRoutineDetails.params
 							local noParams = false
 							if params == nil then
-								if libFilters.debug then dv(">using locally passed in params") end
+								if doDebug then dv(">using locally passed in params") end
 								params = {...}
 								if ncc(params) == 0 then
-									if libFilters.debug then dv(">>locally passed in params are empty") end
+									if doDebug then dv(">>locally passed in params are empty") end
 									noParams = true
 								end
 							else
-								if libFilters.debug then dv(">using params of constants") end
+								if doDebug then dv(">using params of constants") end
 								if ncc(params) == 0 then
-									if libFilters.debug then dv(">>params of constants are empty") end
+									if doDebug then dv(">>params of constants are empty") end
 									noParams = true
 								end
 							end
-							if libFilters.debug then dv(">>CALLING FUNCTION NOW...") end
+							if doDebug then dv(">>CALLING FUNCTION NOW...") end
 							if not noParams then
 								results = {ctrl[funcOrAttribute](unpack(params))}
 							else
 								results = {ctrl[funcOrAttribute]()}
 							end
 						else
-							if libFilters.debug then dv(">>GETTING ATTRIBUTE NOW...") end
+							if doDebug then dv(">>GETTING ATTRIBUTE NOW...") end
 							results = {ctrl[funcOrAttribute]}
 						end
 						if not results then
-							if libFilters.debug then dv(">>>no return values") end
+							if doDebug then dv(">>>no return values") end
 							if expectedResults == nil then
-								if libFilters.debug then dv(">>>no expected results -> OK") end
+								if doDebug then dv(">>>no expected results -> OK") end
 								loopResult = true
 							end
 						else
 							local numResults = #results
-							if libFilters.debug then dv(">>>return values: " ..tos(numResults)) end
+							if doDebug then dv(">>>return values: " ..tos(numResults)) end
 							if numResults == 0 then
-								if libFilters.debug then dv(">>>no return values") end
+								if doDebug then dv(">>>no return values") end
 								if expectedResults == nil then
-									if libFilters.debug then dv(">>>>no expected results -> OK") end
+									if doDebug then dv(">>>>no expected results -> OK") end
 									loopResult = true
 								end
 							else
 								if expectedResults == nil or #expectedResults == 0 then
 									loopResult = false
-									if libFilters.debug then checkAborted = ">>expectedResults missing" end
+									if doDebug then checkAborted = ">>expectedResults missing" end
 								else
 									if numResults ~= #expectedResults then
 										if expectedResultsMap ~= nil then
@@ -448,18 +467,18 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 												if isExpectedResult == true then
 													loopResult = results[expectedResultsMapIdx] ~= nil
 													if loopResult == false then
-														if libFilters.debug then checkAborted = strfor(">>>expectedResultsMap did not match, index %s", tos(expectedResultsMapIdx)) end
+														if doDebug then checkAborted = strfor(">>>expectedResultsMap did not match, index %s", tos(expectedResultsMapIdx)) end
 													end
 												end
 											end
 										else
 											loopResult = false
-											if libFilters.debug then checkAborted = strfor(">>>numResults [%s] ~= #expectedResults [%s]", tos(numResults), tos(#expectedResults)) end
+											if doDebug then checkAborted = strfor(">>>numResults [%s] ~= #expectedResults [%s]", tos(numResults), tos(#expectedResults)) end
 										end
 									else
 										if numResults == 1 then
 											loopResult = results[1] == expectedResults[1]
-											if not loopResult then if libFilters.debug then checkAborted = ">>>results[1]: "..tos(results[1]) .." ~= expectedResults[1]: " ..tos(expectedResults[1]) end end
+											if not loopResult then if doDebug then checkAborted = ">>>results[1]: "..tos(results[1]) .." ~= expectedResults[1]: " ..tos(expectedResults[1]) end end
 										elseif numResults > 1 then
 											loopResult = true
 										end
@@ -471,7 +490,7 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 													loopResult = (resultOfResults == expectedResults[resultIndex]) or false
 													if not loopResult then
 														skip = true
-														if libFilters.debug then checkAborted = ">>>results[" .. tos(resultIndex) .."]: "..tos(results[resultIndex]) .." ~= expectedResults[" .. tos(resultIndex) .."]: " ..tos(expectedResults[resultIndex]) end
+														if doDebug then checkAborted = ">>>results[" .. tos(resultIndex) .."]: "..tos(results[resultIndex]) .." ~= expectedResults[" .. tos(resultIndex) .."]: " ..tos(expectedResults[resultIndex]) end
 													end
 												end
 											end
@@ -481,37 +500,37 @@ local function isSpecialTrue(filterType, isInGamepadMode, isSpecialForced, ...)
 							end
 						end
 					else
-						if libFilters.debug then checkAborted = "skipped" end
+						if doDebug then checkAborted = "skipped" end
 					end
 				else
-					if libFilters.debug then checkAborted = "no func/no attribute" end
+					if doDebug then checkAborted = "no func/no attribute" end
 				end
 			end
 		elseif bool ~= nil then
 			local typeBool= type(bool)
-			if typeBool == "function" then
-				if libFilters.debug then checkType = "boolean - function" end
+			if typeBool == functionType then
+				if doDebug then checkType = "boolean - function" end
 				loopResult = bool()
-			elseif typeBool == "boolean" then
-				if libFilters.debug then checkType = "boolean"end
+			elseif typeBool == boolType then
+				if doDebug then checkType = boolType end
 				loopResult = bool
 			else
-				if libFilters.debug then
+				if doDebug then
 					checkType = "boolean > false"
 					checkAborted = "hardcoded boolean false"
 				end
 				loopResult = false
 			end
 		else
-			if libFilters.debug then checkAborted = "no checktype" end
+			if doDebug then checkAborted = "no checktype" end
 		end
-		if libFilters.debug then
+		if doDebug then
 			local abortedStartStr = (checkAborted ~= "" and "<<<") or ">>>"
 			dd("%scheckType: %q, abortedDueTo: %s, loopResult: %s", abortedStartStr, tos(checkType), tos(checkAborted), tos(loopResult))
 		end
 		totalResult = totalResult and loopResult
 	end
-	if libFilters.debug then
+	if doDebug then
 		dd("!isSpecialTrue - filterType: %s, totalResult: %s, isSpecialForced: %s", tos(filterType), tos(totalResult), tos(isSpecialForced))
 		dd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	end
@@ -714,7 +733,7 @@ local function checkIfShownNow(filterTypeControlAndOtherChecks, isInGamepadMode,
 							local curRefType = type(currentReferenceFound)
 							if libFilters.debug then dv(">>>>currentReferenceFound: YES, type: %s", tos(curRefType)) end
 							lReferencesToFilterType = {}
-							if curRefType == "table" then
+							if curRefType == tableType then
 								--[[
 								for _, refInRefTab in pairs(currentReferenceFound) do
 									tins(lReferencesToFilterType, refInRefTab)
@@ -788,20 +807,22 @@ local function detectShownReferenceNow(p_filterType, isInGamepadMode, checkIfHid
 	local isUniversalDeconPanelShown = libFilters_IsUniversalDeconstructionPanelShown()
 	local universalDeconSelectedTabKey
 
+	local filterTypeVar = getValueOrCallback(p_filterType)
+
 	if libFilters.debug then dd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>") end
 	if libFilters.debug then dd("!detectShownReferenceNow - filterTypePassedIn: %s, isInGamepadMode: %s, isUniversalDecon: %s",
-			tos(p_filterType), tos(isInGamepadMode), tos(isUniversalDeconPanelShown) ) end
+			tos(filterTypeVar), tos(isInGamepadMode), tos(isUniversalDeconPanelShown) ) end
 
 	--Universal Deconstruction?
 	if isUniversalDeconPanelShown == true then
-		lFilterTypeDetected, lReferencesToFilterType, universalDeconSelectedTabKey = getUniversalDeconstructionFilterTypeByActiveTab_AndReferenceVar(p_filterType, isInGamepadMode)
+		lFilterTypeDetected, lReferencesToFilterType, universalDeconSelectedTabKey = getUniversalDeconstructionFilterTypeByActiveTab_AndReferenceVar(filterTypeVar, isInGamepadMode)
 	else
 
 		--All other panels
 		--Check one specific filterType first (e.g. cached one)
-		if p_filterType ~= nil then
+		if filterTypeVar ~= nil then
 			--Get data to check from lookup table
-			local filterTypeChecksIndex = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[isInGamepadMode][p_filterType]
+			local filterTypeChecksIndex = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypesLookup[isInGamepadMode][filterTypeVar]
 			if filterTypeChecksIndex ~= nil then
 				local filterTypeControlAndOtherChecks = LF_FilterTypeToCheckIfReferenceIsHiddenOrderAndCheckTypes[isInGamepadMode][filterTypeChecksIndex]
 				--Check if still shown

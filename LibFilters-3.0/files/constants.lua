@@ -1,6 +1,6 @@
 --[[
 
- Todo and bugs list - Last updated: 	2025-12-15
+ Todo and bugs list - Last updated: 	2025-12-16
  Total Bugs:							2025_03
 
  -BUGS-
@@ -21,7 +21,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.8
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.9
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end

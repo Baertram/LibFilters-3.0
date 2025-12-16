@@ -272,7 +272,7 @@ local function applyUniversalDeconstructionHook()
 			universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
 			universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 			local base = universalDeconFilterTypeToFilterBase[libFiltersFilterType]
-			base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType
+			base[defaultLibFiltersAttributeToStoreTheFilterType] = libFiltersFilterType --.LibFilters3_filterType
 
 			--Raise the callbacks
 			libFilters_CallbackRaise = libFilters_CallbackRaise or libFilters.CallbackRaise
@@ -470,7 +470,7 @@ function libFilters:HookAdditionalFilter(filterType, hookKeyboardAndGamepadMode)
 				--Store the filterType at the layoutData (which could be a fragment.layoutData table or a variable like
 				--PLAYER_INVENTORY.inventories[INVENTORY_*]) table to identify the panel -> will be used e.g. within
 				--LibFilters:GetCurrentFilterTypeForInventory(inventoryType)
-				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType
+				layoutData[defaultLibFiltersAttributeToStoreTheFilterType] = filterType --.LibFilters3_filterType --#15
 
 				--Special handling for some filterTypes -> Add additional filter functions/values to the originalFilter
 				--which were added to other fields than "additionalFilter" (e.g. "additionalCraftBagFilter" at BACKPACK_MENU_BAR_LAYOUT_FRAGMENT which is copied over to
