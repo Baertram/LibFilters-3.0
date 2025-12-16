@@ -91,7 +91,9 @@ local function checkIfFiltertypeUsesCustomGamepadFragment(objectVar)
     if iigpm() then
         --2025-11-01 Gamepad bank deposit (and other filterTypes used) uses own custom fragment and that fragment was defined via libFilters:HookAdditionaFilters
         --to have the filterfunction there at the layoutData!
+        libFilters_GetCurrentFilterType = libFilters_GetCurrentFilterType or libFilters.GetCurrentFilterType
         local filterType = libFilters_GetCurrentFilterType(libFilters) or libFilters._currentFilterType
+        libFilters_IsFilterTypeUsingCustomGamepadFragment = libFilters_IsFilterTypeUsingCustomGamepadFragment or libFilters.IsFilterTypeUsingCustomGamepadFragment
         isUsingCustomGPFragment, gpFragmentOrOtherRef = libFilters_IsFilterTypeUsingCustomGamepadFragment(filterType)
         if not isUsingCustomGPFragment then
             gpFragmentOrOtherRef = objectVar
