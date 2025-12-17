@@ -3,13 +3,20 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.7 - Last updated: 2025-12-06, Baertram
+--Bugs/Todo List for version: 3.0 r4.9 - Last updated: 2025-12-17, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				15
+--[[
+ #2025_01   --todo 20251031 in KB mode (maybe GP too): Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected? See test UI
+			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
+			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
+			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
+]]
+
+
 --Feature requests total: 	0
 
 --[Bugs]
-
 
 --[Feature requests]
 

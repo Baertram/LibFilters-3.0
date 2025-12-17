@@ -76,6 +76,7 @@ local detectShownReferenceNow = libFilters.DetectShownReferenceNow
 --Function references - Updated inline
 local libFilters_IsStoreShown
 
+local getValueOrCallback = functions.getValueOrCallback
 
 local libFiltersFilterConstants = 	constants.filterTypes
 local LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT = 				constants.LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
@@ -256,13 +257,14 @@ end
 
 --Returns String LibFilters LF* filterType constant's name for the number filterType
 function libFilters:GetFilterTypeName(filterType)
-	if not filterType then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if not filterTypeVar then
 		dfe("Invalid argument to GetFilterTypeName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
-			tos(filterType))
+			tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dv("GetFilterTypeName - filterType: %q", tos(filterType)) end
-	return libFiltersFilterConstants[filterType] or ""
+	if libFilters.debug then dv("GetFilterTypeName - filterType: %q", tos(filterTypeVar)) end
+	return libFiltersFilterConstants[filterTypeVar] or ""
 end
 libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 
@@ -272,15 +274,16 @@ libFilters_GetFilterTypeName = libFilters.GetFilterTypeName
 --or nil if error occured or no filter function type was determined
 -- returns number filterFunctionType
 function libFilters:GetFilterTypeFunctionType(filterType)
-	if not filterType then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if not filterTypeVar then
 		dfe("Invalid argument to GetFilterTypeFunctionType(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
-			tos(filterType))
+			tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTypeFunctionType-%q", tos(filterType)) end
-	if filterTypesUsingBagIdAndSlotIndexFilterFunction[filterType] ~= nil then
+	if libFilters.debug then dd("GetFilterTypeFunctionType-%q", tos(filterTypeVar)) end
+	if filterTypesUsingBagIdAndSlotIndexFilterFunction[filterTypeVar] ~= nil then
 		return LIBFILTERS_FILTERFUNCTIONTYPE_BAGID_AND_SLOTINDEX
-	elseif filterTypesUsingInventorySlotFilterFunction[filterType] ~= nil then
+	elseif filterTypesUsingInventorySlotFilterFunction[filterTypeVar] ~= nil then
 		return LIBFILTERS_FILTERFUNCTIONTYPE_INVENTORYSLOT
 	end
 	return nil
@@ -302,8 +305,8 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 	--Get the layoutData from the fragment. If no fragment: Abort
 	if inventoryType == invTypeBackpack then --INVENTORY_BACKPACK
 		local layoutData = playerInv.appliedLayout
-		if layoutData and layoutData[defaultLibFiltersAttributeToStoreTheFilterType] then --.LibFilters3_filterType
-			filterTypeDetected = layoutData[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+		if layoutData then
+			filterTypeDetected = getValueOrCallback(layoutData[defaultLibFiltersAttributeToStoreTheFilterType], layoutData) --.LibFilters3_filterType --#15
 		else
 			errorAppeared = true
 		end
@@ -312,8 +315,8 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 		local invVarIsNumber = (type(inventoryType) == numberType) or false
 		if not invVarIsNumber then
 			--Check if inventoryType is a SCENE or fragment, e.g. GAMEPAD_ENCHANTING_CREATION_SCENE
-			if inventoryType.sceneManager ~= nil and inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] ~= nil then --.LibFilters3_filterType
-				filterTypeDetected = inventoryType[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
+			if inventoryType.sceneManager ~= nil then --.LibFilters3_filterType
+				filterTypeDetected = getValueOrCallback(inventoryType[defaultLibFiltersAttributeToStoreTheFilterType], inventoryType) --.LibFilters3_filterType --#15
 			end
 		end
 		--Afterwards:
@@ -324,9 +327,7 @@ function libFilters:GetCurrentFilterTypeForInventory(inventoryType, noRefUpdate)
 			if inventory == nil or inventory[defaultLibFiltersAttributeToStoreTheFilterType] == nil then
 				errorAppeared = true
 			else
-				if filterTypeDetected == nil then
-					filterTypeDetected = inventory[defaultLibFiltersAttributeToStoreTheFilterType] --.LibFilters3_filterType
-				end
+				filterTypeDetected = getValueOrCallback(inventory[defaultLibFiltersAttributeToStoreTheFilterType], inventory) --.LibFilters3_filterType
 			end
 		end
 	end
@@ -402,9 +403,10 @@ end
 --filterType without being at a crafting table).
 -- returns number LF*_filterType
 function libFilters:GetFilterTypeRespectingCraftType(filterTypeSource, craftType)
-	if filterTypeSource == nil then return nil end
-	local filterTypeMappedByCraftingType, _ = getFilterTypeByFilterTypeRespectingCraftType(filterTypeSource, craftType)
-	if libFilters.debug then dd("GetFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s", tos(filterTypeSource), tos(filterTypeMappedByCraftingType), tos(craftType)) end
+	local filterTypeVar = getValueOrCallback(filterTypeSource)
+	if filterTypeVar == nil then return nil end
+	local filterTypeMappedByCraftingType, _ = getFilterTypeByFilterTypeRespectingCraftType(filterTypeVar, craftType)
+	if libFilters.debug then dd("GetFilterTypeRespectingCraftType-source: %q, target: %q, craftType: %s", tos(filterTypeVar), tos(filterTypeMappedByCraftingType), tos(craftType)) end
 	return filterTypeMappedByCraftingType
 end
 
@@ -420,8 +422,9 @@ function libFilters:IsFilterRegistered(filterTag, filterType)
 			tos(filterTag), tos(filterType))
 		return
 	end
-	if libFilters.debug then dd("IsFilterRegistered-%q,%s", tos(filterTag), tos(filterType)) end
-	if filterType == nil then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if libFilters.debug then dd("IsFilterRegistered-%q,%s", tos(filterTag), tos(filterTypeVar)) end
+	if filterTypeVar == nil then
 		--check whether there's any filter with this tag
 		for _, filterCallbacks in pairs(filters) do
 			if filterCallbacks[filterTag] ~= nil then
@@ -431,7 +434,7 @@ function libFilters:IsFilterRegistered(filterTag, filterType)
 		return false
 	else
 		--check only the specified filter type
-		local filterCallbacks = filters[filterType]
+		local filterCallbacks = filters[filterTypeVar]
 		return filterCallbacks[filterTag] ~= nil
 	end
 end
@@ -464,8 +467,9 @@ function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, c
 		return
 	end
 	compareToLowerCase = compareToLowerCase or false
-	if libFilters.debug then dd("IsFilterTagPatternRegistered-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
-	if filterType == nil then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if libFilters.debug then dd("IsFilterTagPatternRegistered-%q,%s,%s", tos(filterTagPattern), tos(filterTypeVar), tos(compareToLowerCase)) end
+	if filterTypeVar == nil then
 		--check whether there's any filter with this tag's pattern
 		for _, filterCallbacks in pairs(filters) do
 			for filterTag, _ in pairs(filterCallbacks) do
@@ -476,8 +480,8 @@ function libFilters:IsFilterTagPatternRegistered(filterTagPattern, filterType, c
 			end
 		end
 	else
-	--check only the specified filter type
-		local filterCallbacks = filters[filterType]
+		--check only the specified filter type
+		local filterCallbacks = filters[filterTypeVar]
 		for filterTag, _ in pairs(filterCallbacks) do
 			local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
 			if strmat(filterTagToCompare, filterTagPattern) ~= nil then
@@ -498,17 +502,18 @@ local registerFilterParametersErrorStr = "Invalid arguments to %s(%q, %q, %q, %s
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilter(filterTag, filterType, filterCallback, noInUseError)
-	local filterCallbacks = filters[filterType]
-	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= functionType then
-		dfe(registerFilterParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+	local filterTypeVar = getValueOrCallback(filterType)
+	local filterCallbacks = filters[filterTypeVar]
+	if not filterTag or not filterType or not filterTypeVar or not filterCallbacks or type(filterCallback) ~= functionType then
+		dfe(registerFilterParametersErrorStr, "RegisterFilter", tos(filterTag), tos(filterTypeVar), tos(filterCallback), tos(noInUseError))
 		return
 	end
 	noInUseError = noInUseError or false
-	if libFilters.debug then dd("RegisterFilter-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
+	if libFilters.debug then dd("RegisterFilter-%q,%q,%q,%s", tos(filterTag), tos(filterTypeVar), tos(filterCallback), tos(noInUseError)) end
 	if filterCallbacks[filterTag] ~= nil then
 		if not noInUseError then
 			dfe("FilterTag \'%q\' filterType \'%q\' filterCallback function is already in use.\nPlease check via \'LibFilters:IsFilterRegistered(filterTag, filterType)\' before registering filters!",
-					tos(filterTag), tos(filterType))
+					tos(filterTag), tos(filterTypeVar))
 		end
 		return false
 	end
@@ -524,18 +529,19 @@ local libFilters_RegisterFilter = libFilters.RegisterFilter
 --Parameter boolean noInUseError: if set to true there will be no error message if the filterTag+filterType was registered already -> Silent fail. Return value will be false then!
 --Returns true if filter function was registered, else nil in case of parameter errors, or false if same tag+type was already registered
 function libFilters:RegisterFilterIfUnregistered(filterTag, filterType, filterCallback, noInUseError)
-	local filterCallbacks = filters[filterType]
-	if not filterTag or not filterType or not filterCallbacks or type(filterCallback) ~= functionType then
+	local filterTypeVar = getValueOrCallback(filterType)
+	local filterCallbacks = filters[filterTypeVar]
+	if not filterTag or not filterType or not filterTypeVar or not filterCallbacks or type(filterCallback) ~= functionType then
 		dfe(registerFilterParametersErrorStr, "RegisterFilterIfUnregistered",
-				tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError))
+				tos(filterTag), tos(filterTypeVar), tos(filterCallback), tos(noInUseError))
 		return
 	end
-	if libFilters.debug then dd("RegisterFilterIfUnregistered-%q,%q,%q,%s", tos(filterTag), tos(filterType), tos(filterCallback), tos(noInUseError)) end
+	if libFilters.debug then dd("RegisterFilterIfUnregistered-%q,%q,%q,%s", tos(filterTag), tos(filterTypeVar), tos(filterCallback), tos(noInUseError)) end
 	noInUseError = noInUseError or false
-	if libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then
+	if libFilters_IsFilterRegistered(libFilters, filterTag, filterTypeVar) then
 		return false
 	end
-	return libFilters_RegisterFilter(libFilters, filterTag, filterType, filterCallback, noInUseError)
+	return libFilters_RegisterFilter(libFilters, filterTag, filterTypeVar, filterCallback, noInUseError)
 end
 
 
@@ -551,8 +557,9 @@ function libFilters:UnregisterFilter(filterTag, filterType)
 			tos(filterTag), tos(filterType))
 		return
 	end
-	if libFilters.debug then dd("UnregisterFilter-%q,%s", tos(filterTag), tos(filterType)) end
-	if filterType == nil then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if libFilters.debug then dd("UnregisterFilter-%q,%s", tos(filterTag), tos(filterTypeVar)) end
+	if filterTypeVar == nil then
 		--unregister all filters with this tag
 		local unregisteredFilterFunctions = 0
 		for _, filterCallbacks in pairs(filters) do
@@ -566,7 +573,7 @@ function libFilters:UnregisterFilter(filterTag, filterType)
 		end
 	else
 		--unregister only the specified filter type
-		local filterCallbacks = filters[filterType]
+		local filterCallbacks = filters[filterTypeVar]
 		if filterCallbacks[filterTag] ~= nil then
 			filterCallbacks[filterTag] = nil
 			return true
@@ -583,14 +590,15 @@ end
 --Get the callback function of the String filterTag and number filterType
 --Returns function filterCallbackFunction(inventorySlot_Or_BagIdAtCraftingTables, OPTIONAL slotIndexAtCraftingTables)
 function libFilters:GetFilterCallback(filterTag, filterType)
-	if not filterTag or not filterType then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if not filterTag or not filterTypeVar then
 		dfe("Invalid arguments to GetFilterCallback(%q, %q).\n>Needed format is: String uniqueFilterTag, number LibFiltersLF_*FilterType",
-			tos(filterTag), tos(filterType))
+			tos(filterTag), tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dd("GetFilterCallback-%q,%q", tos(filterTag), tos(filterType)) end
-	if not libFilters_IsFilterRegistered(libFilters, filterTag, filterType) then return end
-	return filters[filterType][filterTag]
+	if libFilters.debug then dd("GetFilterCallback-%q,%q", tos(filterTag), tos(filterTypeVar)) end
+	if not libFilters_IsFilterRegistered(libFilters, filterTag, filterTypeVar) then return end
+	return filters[filterTypeVar][filterTag]
 end
 
 
@@ -598,13 +606,14 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTypeCallbacks(filterType)
-	if not filterType then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if not filterTypeVar then
 		dfe("Invalid arguments to GetFilterTypeCallbacks(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
-			tos(filterType))
+			tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTypeCallbacks-%q", tos(filterType)) end
-	return filters[filterType]
+	if libFilters.debug then dd("GetFilterTypeCallbacks-%q", tos(filterTypeVar)) end
+	return filters[filterTypeVar]
 end
 
 
@@ -613,16 +622,17 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerCase)
+	local filterTypeVar = getValueOrCallback(filterType)
 	if not filterTag then
 		dfe("Invalid arguments to GetFilterTagCallbacks(%q, %s, %s).\n>Needed format is: String uniqueFilterTag, OPTIONAL number LibFiltersLF_*FilterType, OPTIONAL boolean compareToLowerCase",
-			tos(filterTag), tos(filterType), tos(compareToLowerCase))
+			tos(filterTag), tos(filterTypeVar), tos(compareToLowerCase))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTagCallbacks-%q,%s,%s", tos(filterTag), tos(filterType), tos(compareToLowerCase)) end
+	if libFilters.debug then dd("GetFilterTagCallbacks-%q,%s,%s", tos(filterTag), tos(filterTypeVar), tos(compareToLowerCase)) end
 	compareToLowerCase = compareToLowerCase or false
 	local retTab
 	local filterTagToCompare = (compareToLowerCase == true and filterTag:lower()) or filterTag
-	if filterType == nil then
+	if filterTypeVar == nil then
 		--check whether there's any filter with this tag's pattern
 		for lFilterType, filterCallbacks in pairs(filters) do
 			for lFilterTag, filterFunction in pairs(filterCallbacks) do
@@ -636,13 +646,13 @@ function libFilters:GetFilterTagCallbacks(filterTag, filterType, compareToLowerC
 		end
 	else
 	--check only the specified filter type
-		local filterCallbacks = filters[filterType]
+		local filterCallbacks = filters[filterTypeVar]
 		for lFilterTag, filterFunction in pairs(filterCallbacks) do
 			local lFilterTagToCompare = (compareToLowerCase == true and lFilterTag:lower()) or lFilterTag
 			if strmat(lFilterTagToCompare, filterTagToCompare) ~= nil then
 				retTab = retTab or {}
-				retTab[filterType] = retTab[filterType] or {}
-				retTab[filterType][lFilterTag] = filterFunction
+				retTab[filterTypeVar] = retTab[filterTypeVar] or {}
+				retTab[filterTypeVar][lFilterTag] = filterFunction
 			end
 		end
 	end
@@ -655,15 +665,16 @@ end
 --Returns nilable:table { 	[filterType_e.g._LF_INVENTORY] = { [filterTag1] = filterFunction1, [filterTag2] = filterFunction2, ... },
 --				  			[filterType_e.g._LF_BANK_WITHDRAW] = { [filterTag3] = filterFunction3, [filterTag4] = filterFunction4, ... }, ... }
 function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, compareToLowerCase)
+	local filterTypeVar = getValueOrCallback(filterType)
 	if not filterTagPattern then
 		dfe(filterTagPatternErrorStr,
-			"GetFilterTagPatternCallbacks", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase))
+			"GetFilterTagPatternCallbacks", tos(filterTagPattern), tos(filterTypeVar), tos(compareToLowerCase))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTagPatternCallbacks-%q,%s,%s", tos(filterTagPattern), tos(filterType), tos(compareToLowerCase)) end
+	if libFilters.debug then dd("GetFilterTagPatternCallbacks-%q,%s,%s", tos(filterTagPattern), tos(filterTypeVar), tos(compareToLowerCase)) end
 	compareToLowerCase = compareToLowerCase or false
 	local retTab
-	if filterType == nil then
+	if filterTypeVar == nil then
 		--check whether there's any filter with this tag's pattern
 		for lFilterType, filterCallbacks in pairs(filters) do
 			for filterTag, filterFunction in pairs(filterCallbacks) do
@@ -677,13 +688,13 @@ function libFilters:GetFilterTagPatternCallbacks(filterTagPattern, filterType, c
 		end
 	else
 	--check only the specified filter type
-		local filterCallbacks = filters[filterType]
+		local filterCallbacks = filters[filterTypeVar]
 		for filterTag, filterFunction in pairs(filterCallbacks) do
 			local filterTagToCompare = (compareToLowerCase ~= nil and compareToLowerCase == true and filterTag:lower()) or filterTag
 			if strmat(filterTagToCompare, filterTagPattern) ~= nil then
 				retTab = retTab or {}
-				retTab[filterType] = retTab[filterType] or {}
-				retTab[filterType][filterTag] = filterFunction
+				retTab[filterTypeVar] = retTab[filterTypeVar] or {}
+				retTab[filterTypeVar][filterTag] = filterFunction
 			end
 		end
 	end
@@ -706,33 +717,34 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 			tos(updaterName))
 		return
 	end
-	if libFilters.debug then dv("[U-API]RequestUpdateByName-%q,%s,%s", tos(updaterName), tos(delay), tos(filterType)) end
+	local filterTypeVar = getValueOrCallback(filterType)
+	if libFilters.debug then dv("[U-API]RequestUpdateByName-%q,%s,%s", tos(updaterName), tos(delay), tos(filterTypeVar)) end
 
 	--Try to get the filterType, if not provided yet
-	if filterType == nil then
+	if filterTypeVar == nil then
 		local filterTypesTable = updaterNameToFilterType[updaterName]
 		local countFilterTypesWithUpdaterName = (filterTypesTable and #filterTypesTable) or 0
 		if countFilterTypesWithUpdaterName > 1 then
 			if countFilterTypesWithUpdaterName > 2 then
 				--Should not happen? Always take the 1st entry then as fallback
-				filterType = filterTypesTable[1]
+				filterTypeVar = filterTypesTable[1]
 			else
 				--Which filterType is the correct one for the updater name?
 				--If there are 2 filterTypes it should be LF_SMITHING_ and LF_JEWELRY_, so the filterType should be
 				--detectable by help of the current CraftingInteractionType?
 				local craftingType = gcit()
 				for _, filterTypeLoop in ipairs(filterTypesTable) do
-					if filterType ~= nil then
-						filterType = getFilterTypeByFilterTypeRespectingCraftType(filterTypeLoop, craftingType)
+					if filterTypeVar == nil then
+						filterTypeVar = getFilterTypeByFilterTypeRespectingCraftType(filterTypeLoop, craftingType)
 					end
 				end
-				if filterType == nil then
+				if filterTypeVar == nil then
 					--Should not happen? Always take the 1st entry then as fallback
-					filterType = filterTypesTable[1]
+					filterTypeVar = filterTypesTable[1]
 				end
 			end
 		elseif countFilterTypesWithUpdaterName == 1 then
-			filterType = filterTypesTable[1]
+			filterTypeVar = filterTypesTable[1]
 		end
 	end
 
@@ -753,12 +765,12 @@ function libFilters:RequestUpdateByName(updaterName, delay, filterType)
 
 	local function updateFiltersNow()
 		EM:UnregisterForUpdate(callbackName)
-		if libFilters.debug then dv("!!!RequestUpdateByName->Update called now, updaterName: %s, filterType: %s, delay: %s", tos(updaterName), tos(filterType), tos(delay)) end
+		if libFilters.debug then dv("!!!RequestUpdateByName->Update called now, updaterName: %s, filterType: %s, delay: %s", tos(updaterName), tos(filterTypeVar), tos(delay)) end
 
 		--Update the cashed filterType and it's references
 		--local currentFilterTypeReferences = libFilters_GetFilterTypeReferences(libFilters, filterType, nil)
 		--updateLastAndCurrentFilterType(filterType, currentFilterTypeReferences)
-		inventoryUpdaters[updaterName](filterType)
+		inventoryUpdaters[updaterName](filterTypeVar)
 	end
 
 	--Cancel previously scheduled update if any given
@@ -775,14 +787,15 @@ local libFilters_RequestUpdateByName = libFilters.RequestUpdateByName
 --called multiple times shortly after another
 --OPTIONAL parameter number delay will add a delay to the call of the updater function
 function libFilters:RequestUpdate(filterType, delay)
-	local updaterName = filterTypeToUpdaterName[filterType]
-	if not filterType or not updaterName or updaterName == "" then
+	local filterTypeVar = getValueOrCallback(filterType)
+	local updaterName = filterTypeToUpdaterName[filterTypeVar]
+	if not filterTypeVar or not updaterName or updaterName == "" then
 		dfe("Invalid arguments to RequestUpdate(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
-			tos(filterType))
+			tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dd("[U-API]RequestUpdate filterType: %q, updaterName: %s, delay: %s", tos(filterType), tos(updaterName), tos(delay)) end
-	libFilters_RequestUpdateByName(libFilters, updaterName, delay, filterType)
+	if libFilters.debug then dd("[U-API]RequestUpdate filterType: %q, updaterName: %s, delay: %s", tos(filterTypeVar), tos(updaterName), tos(delay)) end
+	libFilters_RequestUpdateByName(libFilters, updaterName, delay, filterTypeVar)
 end
 
 
@@ -800,13 +813,14 @@ local libFilters_RequestUpdateForResearchFilters = libFilters.RequestUpdateForRe
 -- Get the updater name of a number filterType
 -- returns String updateName
 function libFilters:GetFilterTypeUpdaterName(filterType)
-	if not filterType then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if not filterTypeVar then
 		dfe("Invalid arguments to GetFilterTypeUpdaterName(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
-			tos(filterType))
+			tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTypeUpdaterName filterType: %q", tos(filterType)) end
-	return filterTypeToUpdaterName[filterType] or ""
+	if libFilters.debug then dd("GetFilterTypeUpdaterName filterType: %q", tos(filterTypeVar)) end
+	return filterTypeToUpdaterName[filterTypeVar] or ""
 end
 
 
@@ -846,13 +860,14 @@ end
 -- Get the updater function used for updating/refresh of the inventories etc., by help of a number filterType
 -- returns nilable:function updaterFunction(OPTIONAL filterType)
 function libFilters:GetFilterTypeUpdaterCallback(filterType)
-	if filterType == nil then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if filterTypeVar == nil then
 		dfe("Invalid call to GetFilterTypeUpdaterCallback(%q).\n>Needed format is: number LibFiltersLF_*FilterType",
-				tos(filterType))
+				tos(filterTypeVar))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTypeUpdaterCallback filterType: %q", tos(filterType)) end
-	local updaterName = filterTypeToUpdaterName[filterType]
+	if libFilters.debug then dd("GetFilterTypeUpdaterCallback filterType: %q", tos(filterTypeVar)) end
+	local updaterName = filterTypeToUpdaterName[filterTypeVar]
 	if not updaterName then return end
 	return inventoryUpdaters[updaterName]
 end
@@ -904,16 +919,17 @@ end
 --If the filterType passed in is a UniversalDeconstruction supported one, 2nd return parameter "universalDeconRef" will be a table with the reference varable to the UniversalDeconstruction panel
 function libFilters:GetFilterTypeReferences(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	if not filterType or filterType == "" then
+	local filterTypeVar = getValueOrCallback(filterType)
+	if not filterTypeVar or filterTypeVar == "" then
 		dfe("Invalid arguments to GetFilterTypeReferences(%q, %s).\n>Needed format is: number LibFiltersLF_*FilterType, OPTIONAL boolean isInGamepadMode",
-				tos(filterType), tos(isInGamepadMode))
+				tos(filterTypeVar), tos(isInGamepadMode))
 		return
 	end
-	if libFilters.debug then dd("GetFilterTypeReferences filterType: %q, %s", tos(filterType), tos(isInGamepadMode)) end
-	local filterReferences = getFilterTypeReference(filterType, isInGamepadMode)
+	if libFilters.debug then dd("GetFilterTypeReferences filterType: %q, %s", tos(filterTypeVar), tos(isInGamepadMode)) end
+	local filterReferences = getFilterTypeReference(filterTypeVar, isInGamepadMode)
 	--if the filterType passed in is a UniversalDeconstruction supported one, return the reference for it too as 2nd return parameter.
 	local universalDeconRef
-	if universalDeconLibFiltersFilterTypeSupported[filterType] == true then
+	if universalDeconLibFiltersFilterTypeSupported[filterTypeVar] == true then
 		universalDeconRef = (isInGamepadMode == true and universalDeconstructPanel_GP.control) or universalDeconstructPanel.control
 	end
 	return filterReferences, universalDeconRef
@@ -929,16 +945,17 @@ libFilters_GetFilterTypeReferences = libFilters.GetFilterTypeReferences
 --		   nilable:String universalDeconSelectedTabKey
 function libFilters:GetCurrentFilterTypeReference(filterType, isInGamepadMode)
 	if isInGamepadMode == nil then isInGamepadMode = IsGamepad() end
-	if libFilters.debug then dd("[---] GetCurrentFilterTypeReference filterType: %q, %s [---]", tos(filterType), tos(isInGamepadMode)) end
+	local filterTypeVar = getValueOrCallback(filterType)
+	if libFilters.debug then dd("[---] GetCurrentFilterTypeReference filterType: %q, %s [---]", tos(filterTypeVar), tos(isInGamepadMode)) end
 
 	--Check if the cached "current filterType" is given and still shown -> Only if no filterType was explicitly passed in
-	if filterType == nil then
+	if filterTypeVar == nil then
 		local filterTypeReference, filterTypeShown, universalDeconSelectedTabKey = checkIfCachedFilterTypeIsStillShown(isInGamepadMode)
 		if filterTypeReference ~= nil and filterTypeShown ~= nil then
 			return filterTypeReference, filterTypeShown, universalDeconSelectedTabKey
 		end
 	end
-	return detectShownReferenceNow(filterType, isInGamepadMode, false, false)
+	return detectShownReferenceNow(filterTypeVar, isInGamepadMode, false, false)
 end
 libFilters_GetCurrentFilterTypeReference = libFilters.GetCurrentFilterTypeReference
 
@@ -1704,11 +1721,12 @@ function libFilters:IsCraftBagExtendedParentFilterType(filterTypesToCheck)
 		--local cbeSpecialAddonChecks = "CraftBagExtended"
 		--local isInGamepadMode = IsGamepad()
 		for _, filterTypeToCheck in ipairs(filterTypesToCheck) do
+			local filterTypeVar = getValueOrCallback(filterTypeToCheck)
 			referencesToFilterType, filterTypeParent = nil, nil
-			referencesToFilterType, filterTypeParent = craftBagExtendedCheckForCurrentModule(filterTypeToCheck)
+			referencesToFilterType, filterTypeParent = craftBagExtendedCheckForCurrentModule(filterTypeVar)
 			if referencesToFilterType ~= nil and filterTypeParent ~= nil then
 				if libFilters.debug then dv(">filterTypeChecked: %s, filterTypeParent: %q",
-						tos(filterTypeToCheck), tos(filterTypeParent)) end
+						tos(filterTypeVar), tos(filterTypeParent)) end
 				return true
 			end
 		end
@@ -1850,9 +1868,10 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 		dfe("[RegisterCallbackName]ERROR - The raiseBeforeOtherAddonsCallbackName %q must be a string, or cannot be used!", tos(raiseBeforeOtherAddonsCallbackName))
 		return
 	end
+	local filterTypeVar = getValueOrCallback(filterType)
 
 	--Build the unique callback Name
-	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), isShown, tos(filterType), tos(universalDeconActiveTab))
+	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), isShown, tos(filterTypeVar), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
@@ -1861,13 +1880,13 @@ function libFilters:RegisterCallbackName(yourAddonName, filterType, isShown, inp
 	local errorRegistering = true
 	if inputType == nil then
 		--Keyboard
-		errorRegistering = registerCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
+		errorRegistering = registerCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterTypeVar, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
 		--Gamepad
 		if not errorRegistering then
-			errorRegistering = registerCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
+			errorRegistering = registerCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterTypeVar, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
 		end
 	elseif type(inputType) == booleanType then
-		errorRegistering = registerCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
+		errorRegistering = registerCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterTypeVar, isShown, callBackUniqueName, raiseBeforeOtherAddonsCallbackName)
 	else
 		dfe("[RegisterCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
 		return
@@ -1905,9 +1924,10 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 		dfe("[UnregisterCallbackName]ERROR - universalDeconActiveTab %q needs to be a String (all/armor/weapons/jewelry/enchantments)!", tos(universalDeconActiveTab))
 		return
 	end
+	local filterTypeVar = getValueOrCallback(filterType)
 
 	--Build the unique callback Name
-	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), isShown, tos(filterType), tos(universalDeconActiveTab))
+	local callBackUniqueName = getAddonCallbackName(tos(yourAddonName), isShown, tos(filterTypeVar), tos(universalDeconActiveTab))
 
 	--Add the callback to the registered table
 	if universalDeconActiveTab == "" then
@@ -1917,13 +1937,13 @@ function libFilters:UnregisterCallbackName(yourAddonName, filterType, isShown, i
 	local errorUnregistering = true
 	if inputType == nil then
 		--Keyboard
-		errorUnregistering = unRegisterCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
+		errorUnregistering = unRegisterCallbackNameNow(false, yourAddonName, universalDeconActiveTab, filterTypeVar, isShown, callBackUniqueName)
 		--Gamepad
 		if not errorUnregistering then
-			errorUnregistering = unRegisterCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
+			errorUnregistering = unRegisterCallbackNameNow(true, yourAddonName, universalDeconActiveTab, filterTypeVar, isShown, callBackUniqueName)
 		end
 	elseif type(inputType) == booleanType then
-		errorUnregistering = unRegisterCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterType, isShown, callBackUniqueName)
+		errorUnregistering = unRegisterCallbackNameNow(inputType, yourAddonName, universalDeconActiveTab, filterTypeVar, isShown, callBackUniqueName)
 	else
 		dfe("[UnregisterCallbackName]ERROR - inputType %q needs to be a boolean (false = Keyboard/true = Gamepad), or nil (both inut types)!", tos(inputType))
 		return
