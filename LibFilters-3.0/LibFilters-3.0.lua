@@ -3,20 +3,21 @@
 --======================================================================================================================
 
 ------------------------------------------------------------------------------------------------------------------------
---Bugs/Todo List for version: 3.0 r4.9 - Last updated: 2025-12-16, Baertram
+--Bugs/Todo List for version: 3.0 r4.9 - Last updated: 2025-12-17, Baertram
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs total: 				15
+--[[
+ #2025_01   --todo 20251031 in KB mode (maybe GP too): Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected? See test UI
+			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
+			--todo It should first fire the real hidden tab, e.g. "all" or "weapons" (where we were before selecting the "armor" tab.
+			--todo and it should only fire once per tab, as registered below: tab + show, or tab + hide!
+]]
+
+
 --Feature requests total: 	0
 
 --[Bugs]
---#15 PLAYER_INVENTORY.appliedLayout contains the vendor fragment which got LibFilters3_filterType = LF_VENDOR_SELL_VENGEANCE.
---[[
-	[LF_VENDOR_SELL]              = { vendorSellFragment },
-	[LF_VENDOR_SELL_VENGEANCE]    = { vendorSellFragment },
--- Both use the same fragment BACKPACK_STORE_LAYOUT_FRAGMENT and thus on first open of the venor sell panel the "last hooked" value for
---.LibFilters3_filterType (defaultLibFiltersAttributeToStoreTheFilterType), pointing to Vendor sell vengeance, will be set!
--- We need a function at the fragments'.LibFilters3_filterType which is then checked for vendor mode and returns the appropriate LF* constant on each check!
-]]
+
 --[Feature requests]
 
 
