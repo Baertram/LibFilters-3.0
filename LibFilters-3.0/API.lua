@@ -137,9 +137,9 @@ local refinementPanel_GP	    =   gpc.refinementPanel_GP
 local creationPanel_GP		    =   gpc.creationPanel_GP
 local deconstructionPanel_GP    =   gpc.deconstructionPanel_GP
 local improvementPanel_GP		=   gpc.improvementPanel_GP
-local researchPanel_GP          = 	gpc.researchPanel_GP
-local enchantingInvCtrls_GP     = 	gpc.enchantingInvCtrls_GP
-local alchemy_GP                = 	gpc.alchemy_GP 				--#10
+local researchPanel_GP    		= 	gpc.researchPanel_GP
+local enchantingScenes_GP 		= 	gpc.enchantingScenes_GP
+local alchemy_GP          		= 	gpc.alchemy_GP 				--#10
 local alchemyCtrl_GP            =	gpc.alchemyCtrl_GP
 local provisioner_GP			=   gpc.provisioner_GP
 local invMailSend_GP 			= 	gpc.invMailSend_GP
@@ -1419,17 +1419,15 @@ function libFilters:IsEnchantingShown(enchantingMode)
     if enchantingMode and enchantingMode == ENCHANTING_MODE_NONE then return false, 0, nil	end
 	if IsGamepad() then
 		if enchantingMode ~= nil then
-			if enchantingInvCtrls_GP[enchantingMode] then
-				local enchantingControl = enchantingInvCtrls_GP[enchantingMode].control
-				return not enchantingControl:IsHidden(), enchantingMode, enchantingControl
+			local enchantingScene = enchantingScenes_GP[enchantingMode]  --#2026_16 Is enchantingControl nil?
+			if enchantingScene ~= nil then
+				return enchantingScene:IsShowing(), enchantingMode, enchantingScene
 			end
 		else
-			for lEnchantMode, enchantScene in pairs(enchantingInvCtrls_GP) do
+			for lEnchantMode, enchantScene in pairs(enchantingScenes_GP) do --#2026_16 Is enchantingControl nil?
 				if enchantScene then
-					local enchantingControl = enchantScene.control
-					local isEnchantingControlShown = not enchantScene.control:IsHidden()
-					if isEnchantingControlShown == true then
-						return true, lEnchantMode, enchantingControl
+					if enchantScene:IsShowing() == true then
+						return true, lEnchantMode, enchantScene
 					end
 				end
 			end

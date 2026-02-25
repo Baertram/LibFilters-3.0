@@ -5,7 +5,7 @@
 ------------------------------------------------------------------------------------------------------------------------
 --Bugs/Todo List for version: 3.0 r4.9 - Last updated: 2025-12-17, Baertram
 ------------------------------------------------------------------------------------------------------------------------
---Bugs total: 				15
+--Bugs total: 				16
 --[[
  #2025_01   --todo 20251031 in KB mode (maybe GP too): Why does EACH of the registered callbacks fire if ANY of the UniversalDeconstruction tabs is selected? See test UI
 			--todo And why does first the HIDDEN callback fire for e.g. "armor" if we select the "armor" tab, and then it fires the SHOWN state for "armor" again?
@@ -17,6 +17,7 @@
 --Feature requests total: 	0
 
 --[Bugs]
+--#2026_16 Gamepad enchanting create control is nil or GP scene not detected properly if crafting a glyph
 
 --[Feature requests]
 

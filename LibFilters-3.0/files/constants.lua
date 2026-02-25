@@ -2,7 +2,7 @@
 --LIBRARY CONSTANTS
 ------------------------------------------------------------------------------------------------------------------------
 --Name, global variable LibFilters3 name, and version
-local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 4.9
+local MAJOR, GlobalLibName, MINOR = "LibFilters-3.0", "LibFilters3", 5.0
 
 --Was the library loaded already? Abort here then
 if _G[GlobalLibName] ~= nil then return end
@@ -1090,10 +1090,10 @@ gpc.enchantingCreateScene_GP    = getScene(SM, "gamepad_enchanting_creation") --
 local enchantingCreateScene_GP  = gpc.enchantingCreateScene_GP
 gpc.enchantingExtractScene_GP   = getScene(SM, "gamepad_enchanting_extraction") --GAMEPAD_ENCHANTING_EXTRACTION_SCENE
 local enchantingExtractScene_GP = gpc.enchantingExtractScene_GP
-gpc.enchantingInvCtrls_GP       = {
+gpc.enchantingScenes_GP       = {
 	[ENCHANTING_MODE_CREATION] 		= 	enchantingCreateScene_GP,
 	[ENCHANTING_MODE_EXTRACTION] 	= 	enchantingExtractScene_GP,
-	[ENCHANTING_MODE_RECIPES] 		= 	nil, --recipesgot no own scene, maybe a fragment?
+	[ENCHANTING_MODE_RECIPES] 		= 	nil, --recipes got no own scene, maybe a fragment?
 }
 
 --Alchemy
