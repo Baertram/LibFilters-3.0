@@ -698,7 +698,7 @@ local invVengeance                = kbc.invVengeance
 kbc.vengeanceInvCtrl			  = ZO_VengeanceInventory
 kbc.invVengeanceFragment          = VENGEANCE_INVENTORY_FRAGMENT
 local invVengeanceFragment = kbc.invVengeanceFragment
-kbc.invVengeanceFragment._name = "VENGEANCE_INVENTORY_FRAGMENT"
+if invVengeanceFragment then kbc.invVengeanceFragment._name = "VENGEANCE_INVENTORY_FRAGMENT" end --nil-check: VENGEANCE_INVENTORY_FRAGMENT may not exist yet
 
 
 --[Banks]
@@ -922,7 +922,7 @@ kbc.invFurnitureVaultWithdraw               = inventories[invTypeFurnitureVault]
 local invFurnitureVaultWithdraw 			= kbc.invFurnitureVaultWithdraw
 kbc.furnitureVaultWithdrawFragment       	= FURNITURE_VAULT_FRAGMENT
 local furnitureVaultWithdrawFragment 		= kbc.furnitureVaultWithdrawFragment
-furnitureVaultWithdrawFragment._name = "FURNITURE_VAULT_FRAGMENT"
+if furnitureVaultWithdrawFragment then furnitureVaultWithdrawFragment._name = "FURNITURE_VAULT_FRAGMENT" end --nil-check: FURNITURE_VAULT_FRAGMENT may not exist yet
 kbc.furnitureVaultScene      		  		= getScene(SM, "furnitureVault")
 local furnitureVaultScene 					= kbc.furnitureVaultScene
 
