@@ -217,7 +217,7 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		universalDeconData.isShown = libFilters_IsUniversalDeconstructionPanelShown()
 	end
 	--Tab-change hide needs lastTab. Panel close may only have currentTab (or lastTab falls back later).
-	--Error only when both are unknown — otherwise the close fallback below can still assign the tab.
+	--Error only when both are unknown; otherwise, the close fallback below can still assign the tab.
 	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN then
 		if universalDeconData.lastTab == nil and universalDeconData.currentTab == nil and universalDeconData.wasShownBefore then
 			dfe("[CallbackRaise]|UD> ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
