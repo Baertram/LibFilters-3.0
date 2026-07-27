@@ -216,8 +216,10 @@ function libFilters:CallbackRaise(filterTypes, fragmentOrSceneOrControl, stateSt
 		libFilters_IsUniversalDeconstructionPanelShown = libFilters_IsUniversalDeconstructionPanelShown or libFilters.IsUniversalDeconstructionPanelShown
 		universalDeconData.isShown = libFilters_IsUniversalDeconstructionPanelShown()
 	end
+	--Tab-change hide needs lastTab. Panel close may only have currentTab (or lastTab falls back later).
+	--Error only when both are unknown; otherwise, the close fallback below can still assign the tab.
 	if universalDeconData.isShown == true and stateStr == SCENE_HIDDEN then
-		if universalDeconData.lastTab == nil and universalDeconData.wasShownBefore then
+		if universalDeconData.lastTab == nil and universalDeconData.currentTab == nil and universalDeconData.wasShownBefore then
 			dfe("[CallbackRaise]|UD> ERROR at UNIVERSAL DECON - state: %s - Last tab coming from unknown!", tos(stateStr))
 			return
 		end
@@ -1170,8 +1172,11 @@ local function createSpecialCallbacks()
 		--Is the current filterType not given (e.g. at alchemy recipes tab) and the last filterType shown before was valid at the current crafting table?
 		-->This would lead to a SCENE_HIDDEN callback firing for the lastFilterType the next time the crafting table opens, eben though the "recipes" tab at the crafting table would be
 		-->re-opened and thus no callback would be needed (SCENE_HIDDEN for lastFilterType already fired as the recipestab was activated!)
-		if libFilters.debug then dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s, isUniversalDecon: %s",
-				tos(craftSkill), tos(currentFilterType), tos(lastFilterType), tos(isUniversalDeconShown)) end
+		if libFilters.debug then
+			dd("<[EVENT_END_CRAFTING_STATION_INTERACT] craftSkill: %s, currentFilterType: %s, lastFilterType: %s, isUniversalDecon: %s, currentTab: %q, lastTab: %q, lastCallbackState: %s",
+				tos(craftSkill), tos(currentFilterType), tos(lastFilterType), tos(isUniversalDeconShown),
+				tos(currentTab), tos(libFilters._lastFilterTypeUniversalDeconTab), tos(libFilters._lastCallbackState))
+		end
 
 		local lastFilterTypeIsValidAtClosedCraftingTable = (lastFilterType ~= nil and checkForValidFilterTypeAtSamePanel(lastFilterType, nil, craftSkill)) or false
 		if currentFilterType == nil and lastFilterTypeIsValidAtClosedCraftingTable == true then
@@ -1192,9 +1197,25 @@ local function createSpecialCallbacks()
 			end
 		]]
 		end
-		if not isCraftingFilterType[currentFilterType] then return end
+		--UD scene SCENE_HIDDEN may have already raised hide and cleared currentFilterType / UD tab
+		--(e.g. mail keybind). Skip a second hide so consumers get one callback only.
+		if not isCraftingFilterType[currentFilterType] then
+			if libFilters.debug then
+				dd("|UD> craft-end skip hide raise (filterType %s not crafting) - isUniversalDecon: %s (scene may have closed first)",
+					tos(currentFilterType), tos(isUniversalDeconShown))
+			end
+			if isUniversalDeconShown == true then
+				updateCurrentAndLastUniversalDeconVariables = updateCurrentAndLastUniversalDeconVariables or functions.updateCurrentAndLastUniversalDeconVariables
+				updateCurrentAndLastUniversalDeconVariables(nil, true)
+			end
+			return
+		end
 		--Fire the HIDE callback of the last used crafting filterType
 		local universalDeconTab = (isUniversalDeconShown == true and currentTab) or nil
+		if libFilters.debug and isUniversalDeconShown == true then
+			dd("|UD> craft-end raising hide for tab %q, filterType: %s (scene hidden may follow -> hud)",
+				tos(universalDeconTab), tos(currentFilterType))
+		end
 		libFilters_RaiseFilterTypeCallback(libFilters, currentFilterType, SCENE_HIDDEN, nil, false, universalDeconTab)
 		--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
 		--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!

@@ -262,7 +262,19 @@ local function applyUniversalDeconstructionHook()
 		functions.updateCurrentAndLastUniversalDeconVariables = updateCurrentAndLastUniversalDeconVariables
 
 		--Callback function - Will fire at each change of any filter (tab, multiselect dropdown filterbox, search text, ...)
+		--LibFilters only maps UD tabs to LF_* shown/hidden; same-tab re-fires (e.g. ZOS OnFilterChanged again on
+		--scene showing->shown) are not real tab changes and must not hide+show the same panel.
 		local function universalDeconOnFilterChangedCallback(tab, craftingTypes, includeBanked)
+			if tab == nil then return end
+			local newTabKey = tab.key
+			local previousCurrentTab = libFilters._currentFilterTypeUniversalDeconTab
+			if previousCurrentTab ~= nil and newTabKey ~= nil and previousCurrentTab == newTabKey then
+				if libFilters.debug then
+					dd("|UD> universalDeconOnFilterChangedCallback - same tab %q already active, skip hide/show", tos(newTabKey))
+				end
+				return
+			end
+
 			--Update the last shown UniversalDecon tab and filterType
 			updateCurrentAndLastUniversalDeconVariables(tab, false)
 
@@ -320,6 +332,64 @@ local function applyUniversalDeconstructionHook()
 			libFilters.wasUniversalDeconPanelShownBefore = true
 		end
 
+		--Close-only path for UD scene SCENE_HIDDEN.
+		--Do not reuse universalDeconOnFilterChangedCallback here: that path does hide+show (tab change).
+		--Dismissing an assistant via hotkey often fires EVENT_END_CRAFTING_STATION_INTERACT first (clears
+		--_currentFilterTypeUniversalDeconTab), then scene hidden; a second hide must be a no-op.
+		--Mail-send keybind mid-UD still needs this scene hook when craft-end is too slow.
+		--Normal close and hotkey dismiss both transition: UD scene hiding -> hidden, then hud showing -> shown.
+		local function universalDeconOnSceneHidden(isInGamepadMode, oldState, newState, sceneName)
+			local closingTab = libFilters._currentFilterTypeUniversalDeconTab
+			local lastTab = libFilters._lastFilterTypeUniversalDeconTab
+			local currentFilterType = libFilters._currentFilterType
+			if libFilters.debug then
+				dd("|UD> scene StateChange %q: %s -> %s | closingTab: %q, lastTab: %q, filterType: %s, wasShownBefore: %s",
+					tos(sceneName), tos(oldState), tos(newState), tos(closingTab), tos(lastTab),
+					tos(currentFilterType), tos(libFilters.wasUniversalDeconPanelShownBefore))
+			end
+
+			--Already closed by EVENT_END_CRAFTING_STATION_INTERACT (or a prior scene hide)
+			if closingTab == nil then
+				if libFilters.debug then
+					dd("|UD> scene %q hidden - UD tab already reset (craft-end likely first), skip hide callback", tos(sceneName))
+				end
+				return
+			end
+
+			local libFiltersFilterType = currentFilterType
+			if libFiltersFilterType == nil or universalDeconLibFiltersFilterTypeSupported[libFiltersFilterType] ~= true then
+				libFiltersFilterType = detectUniversalDeconstructionPanelActiveTab(nil, closingTab)
+			end
+			if libFiltersFilterType == nil then
+				if libFilters.debug then
+					dd("|UD> scene %q hidden - no filterType for tab %q, reset only", tos(sceneName), tos(closingTab))
+				end
+				updateCurrentAndLastUniversalDeconVariables(nil, true)
+				return
+			end
+
+			if libFilters.debug then
+				dd("|UD> scene %q hidden - raising hide for tab %q (lastTab: %q), filterType: %s",
+					tos(sceneName), tos(closingTab), tos(lastTab or closingTab), tos(libFiltersFilterType))
+			end
+
+			universalDeconstructPanel = universalDeconstructPanel or kbc.universalDeconstructPanel
+			universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
+			local universalDeconRefVar = (isInGamepadMode == true and universalDeconstructPanel_GP) or universalDeconstructPanel
+			local lastTabForHide = lastTab or closingTab
+			local universalDeconDataHide = {
+				isShown = true, --This tells the called functions that the universal deconstruction panel hide is for UD
+				lastTab = lastTabForHide,
+				currentTab = closingTab,
+				wasShownBefore = libFilters.wasUniversalDeconPanelShownBefore
+			}
+			onControlHiddenStateChange = onControlHiddenStateChange or libFilters.OnControlHiddenStateChange
+			onControlHiddenStateChange(false, { libFiltersFilterType }, universalDeconRefVar, isInGamepadMode, nil, universalDeconDataHide)
+
+			--Reset so closing the next non-universal crafting table does not look like UD again
+			updateCurrentAndLastUniversalDeconVariables(nil, true)
+		end
+
 		--ZOs workaround needed?
 		universalDeconstructPanel_GP = universalDeconstructPanel_GP or gpc.universalDeconstructPanel_GP
 		--Workaround for GamePad mode where ZOs did not create the function GetCurrentFilter()
@@ -371,31 +441,28 @@ local function applyUniversalDeconstructionHook()
 		--and mail send panel is opened via keybind #, the universal decon "OnClose" callback wont fire before
 		--the new mail fragments show. EVENT_CRAFTING_INTERACTION_END and OnHidden of the UniversalDecon panel
 		--control are too slow here...
-		--So we need the extra scene HIDDE check here!
+		--Hotkey dismiss and Esc/Alt both go: universalDeconstructionScene* hiding -> hidden, then hud showing -> shown.
+		--So we need the extra scene HIDDEN check here!
+		local function onUniversalDeconSceneStateChange(isInGamepadMode, sceneName, oldState, newState)
+			if not libFilters.isInitialized then return end
+			if libFilters.debug and (newState == SCENE_HIDING or newState == SCENE_HIDDEN
+					or newState == SCENE_SHOWING or newState == SCENE_SHOWN) then
+				dd("|UD> %s StateChange: %s -> %s (next expected after close: hud)",
+					tos(sceneName), tos(oldState), tos(newState))
+			end
+			if newState == SCENE_HIDDEN then
+				universalDeconOnSceneHidden(isInGamepadMode, oldState, newState, sceneName)
+			end
+		end
+
 		universalDeconstructScene:RegisterCallback("StateChange",
 			function(oldState, newState)
-				if not libFilters.isInitialized then return end
-				if newState == SCENE_HIDDEN then
-					if libFilters.debug then dd("|UD> [UNIVERSAL DECON Keyboard SCENE HIDDEN]") end
-					universalDeconOnFilterChangedCallback(universalDeconstructPanel.inventory:GetCurrentFilter(), nil, nil)
-
-					--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
-					--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
-					updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
-				end
+				onUniversalDeconSceneStateChange(false, "universalDeconstructionSceneKeyboard", oldState, newState)
 			end)
 
 		universalDeconstructScene_GP:RegisterCallback("StateChange",
 			function(oldState, newState)
-				if not libFilters.isInitialized then return end
-				if newState == SCENE_HIDDEN then
-					if libFilters.debug then dd("|UD> [UNIVERSAL DECON Gamepad SCENE HIDDEN]") end
-					universalDeconOnFilterChangedCallback(universalDeconstructPanel_GP.inventory:GetCurrentFilter(), nil, nil)
-
-					--Update the current -> last universal decon tab so closing the next "normal" non-universal crafting table wont tell us we are
-					--closing universal decon again, because libFilters._currentFilterTypeUniversalDeconTab is still ~= nil!
-					updateCurrentAndLastUniversalDeconVariables(nil, true) --reset  libFilters._currentFilterTypeUniversalDeconTab
-				end
+				onUniversalDeconSceneStateChange(true, "universalDeconstructionSceneGamepad", oldState, newState)
 			end)
 
 		universalDeconHookApplied = true
